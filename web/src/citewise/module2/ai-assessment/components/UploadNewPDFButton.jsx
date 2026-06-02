@@ -6,24 +6,24 @@ export default function UploadNewPDFButton({ onClick }) {
         display: "flex",
         alignItems: "center",
         gap: "10px",
-        background: "#D85A30",
+        background: "#5b5bd6",
         border: "none",
         borderRadius: "8px",
         padding: "12px 22px",
         cursor: "pointer",
         transition: "background 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease",
-        boxShadow: "0 0 0 rgba(216, 90, 48, 0)",
+        boxShadow: "0 0 0 rgba(91, 91, 214, 0)",
         flexShrink: 0,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = "#e96439";
+        e.currentTarget.style.background = "#6f6fe0";
         e.currentTarget.style.transform = "scale(1.06)";
-        e.currentTarget.style.boxShadow = "0 0 14px rgba(216, 90, 48, 0.45)";
+        e.currentTarget.style.boxShadow = "0 0 14px rgba(91, 91, 214, 0.45)";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = "#D85A30";
+        e.currentTarget.style.background = "#5b5bd6";
         e.currentTarget.style.transform = "scale(1)";
-        e.currentTarget.style.boxShadow = "0 0 0 rgba(216, 90, 48, 0)";
+        e.currentTarget.style.boxShadow = "0 0 0 rgba(91, 91, 214, 0)";
       }}
       onMouseDown={(e) => {
         e.currentTarget.style.transform = "scale(0.97)";
@@ -40,12 +40,12 @@ export default function UploadNewPDFButton({ onClick }) {
           width="14"
           height="14"
           rx="2"
-          stroke="#f0ece6"
+          stroke="#e4e4f0"
           strokeWidth="1.5"
         />
         <path
           d="M9 12V6M9 6L6.5 8.5M9 6L11.5 8.5"
-          stroke="#f0ece6"
+          stroke="#e4e4f0"
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -56,7 +56,7 @@ export default function UploadNewPDFButton({ onClick }) {
           fontFamily: "'Poppins', sans-serif",
           fontSize: "14px",
           fontWeight: "700",
-          color: "#f0ece6",
+          color: "#e4e4f0",
           whiteSpace: "nowrap",
           letterSpacing: "0.2px",
         }}

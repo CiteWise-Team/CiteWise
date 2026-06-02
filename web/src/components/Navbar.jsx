@@ -20,21 +20,11 @@ export default function Navbar() {
         {/* <a className="navbar-brand" href="/" >
           CATalyst
         </a> */}
-        <a className="navbar-brand" href="/">
-          {/* <img
-            src={CatLogo}
-            alt="CATalyst Logo"
-            className="navbar-logo"
-          /> */}
-          <span className="brand-text" style={{color: "#c9a44c" }}>CATalyst</span>
-        </a>
-
         <Link
-          to="/citewise"
-          className="nav-link d-inline-block ms-3"
-          style={{ color: "#c9a44c", fontWeight: 600 }}
+          to="/groups"
+          className="navbar-brand text-decoration-none"
         >
-          CiteWise
+          <span className="brand-text" style={{color: "#c9a44c" }}>CATalyst</span>
         </Link>
 
         {isAuthenticated && user && (

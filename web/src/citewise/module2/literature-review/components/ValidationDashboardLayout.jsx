@@ -4,6 +4,7 @@ import QuickNavigationList from "./QuickNavigationList";
 import AIAssessmentPanel from "../../ai-assessment/components/AIAssessmentPanel";
 import ValidationSummaryFooter from "./ValidationSummaryFooter";
 import RrlUploadLayout from "../../../module1/rrl-upload/components/RrlUploadLayout";
+import RelevanceWeightsPanel from "../../ai-assessment/components/RelevanceWeightsPanel";
 
 export default function ValidationDashboardLayout({ sessionId: propSessionId, onStepChange }) {
   const STORAGE_SESSION_KEY = "citewise.session_id";
@@ -404,8 +405,8 @@ const handleProceed = () => {
         to { transform: scale(1); opacity: 1; }
       }
       @keyframes pulseRing {
-        0%, 100% { box-shadow: 0 0 20px rgba(216, 90, 48, 0.2); }
-        50% { box-shadow: 0 0 40px rgba(216, 90, 48, 0.4); }
+        0%, 100% { box-shadow: 0 0 20px rgba(91, 91, 214, 0.2); }
+        50% { box-shadow: 0 0 40px rgba(91, 91, 214, 0.4); }
       }
       @keyframes drawCheckmark {
         to { stroke-dashoffset: 0; }
@@ -444,14 +445,14 @@ const handleProceed = () => {
           animation: "fadeInToast 0.3s ease-out forwards",
         }}>
           <div style={{
-            background: "#1E1C19",
-            border: "1px solid rgba(217, 138, 33, 0.25)",
+            background: "#1e1e2f",
+            border: "1px solid rgba(91, 91, 214, 0.25)",
             borderRadius: "24px",
             padding: "clamp(1rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3rem)",
             width: "max-content",
             maxWidth: "96vw",
             textAlign: "center",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(216, 90, 48, 0.15)",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(91, 91, 214, 0.15)",
             animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
             overflowX: "auto",
             overflowY: "hidden",
@@ -461,16 +462,16 @@ const handleProceed = () => {
               width: "80px",
               height: "80px",
               borderRadius: "50%",
-              background: "rgba(216, 90, 48, 0.1)",
-              border: "2px solid #D85A30",
+              background: "rgba(91, 91, 214, 0.1)",
+              border: "2px solid #5b5bd6",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 1.5rem",
-              boxShadow: "0 0 20px rgba(216, 90, 48, 0.2)",
+              boxShadow: "0 0 20px rgba(91, 91, 214, 0.2)",
               animation: "pulseRing 2s infinite",
             }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
                 <line x1="12" y1="9" x2="12" y2="13"/>
                 <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -480,7 +481,7 @@ const handleProceed = () => {
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 800,
               fontSize: "1.5rem",
-              color: "#f0ece6",
+              color: "#e4e4f0",
               margin: "0 0 0.75rem 0",
               letterSpacing: "0.01em",
             }}>
@@ -490,14 +491,14 @@ const handleProceed = () => {
               fontFamily: "'Poppins', sans-serif",
               fontSize: "1.05rem",
               fontWeight: 700,
-              color: "#ffd79f",
+              color: "#c7c7f5",
               lineHeight: "1.55",
               margin: "0 0 0.85rem 0",
               padding: "0.9rem 1rem",
               borderRadius: "12px",
-              border: "1px solid rgba(217, 138, 33, 0.5)",
-              background: "linear-gradient(135deg, rgba(217, 138, 33, 0.2), rgba(216, 90, 48, 0.12))",
-              boxShadow: "0 0 0 1px rgba(217, 138, 33, 0.15) inset, 0 8px 24px rgba(216, 90, 48, 0.18)",
+              border: "1px solid rgba(91, 91, 214, 0.5)",
+              background: "linear-gradient(135deg, rgba(91, 91, 214, 0.2), rgba(91, 91, 214, 0.12))",
+              boxShadow: "0 0 0 1px rgba(91, 91, 214, 0.15) inset, 0 8px 24px rgba(91, 91, 214, 0.18)",
               letterSpacing: "0.01em",
               whiteSpace: "nowrap",
               minWidth: "max-content",
@@ -522,28 +523,28 @@ const handleProceed = () => {
                 type="button"
                 onClick={handleConfirmApprovalWarning}
                 style={{
-                  background: "#D85A30",
+                  background: "#5b5bd6",
                   border: "none",
                   borderRadius: "10px",
                   padding: "0.85rem 1rem",
-                  color: "#f0ece6",
+                  color: "#e4e4f0",
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: 700,
                   fontSize: "0.9rem",
                   cursor: "pointer",
                   transform: "scale(1)",
-                  boxShadow: "0 0 0 rgba(216, 90, 48, 0)",
+                  boxShadow: "0 0 0 rgba(91, 91, 214, 0)",
                   transition: "transform 0.18s ease, box-shadow 0.22s ease, background 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "scale(1.04)";
-                  e.currentTarget.style.background = "#e3663d";
-                  e.currentTarget.style.boxShadow = "0 0 24px rgba(216, 90, 48, 0.45), 0 0 42px rgba(217, 138, 33, 0.28)";
+                  e.currentTarget.style.background = "#6f6fe0";
+                  e.currentTarget.style.boxShadow = "0 0 24px rgba(91, 91, 214, 0.45), 0 0 42px rgba(91, 91, 214, 0.28)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.background = "#D85A30";
-                  e.currentTarget.style.boxShadow = "0 0 0 rgba(216, 90, 48, 0)";
+                  e.currentTarget.style.background = "#5b5bd6";
+                  e.currentTarget.style.boxShadow = "0 0 0 rgba(91, 91, 214, 0)";
                 }}
                 onMouseDown={(e) => {
                   e.currentTarget.style.transform = "scale(0.97)";
@@ -559,10 +560,10 @@ const handleProceed = () => {
                 onClick={handleCancelApprovalWarning}
                 style={{
                   background: "transparent",
-                  border: "1px solid #3A3630",
+                  border: "1px solid #3a3a55",
                   borderRadius: "10px",
                   padding: "0.85rem 1rem",
-                  color: "#f0ece6",
+                  color: "#e4e4f0",
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: 700,
                   fontSize: "0.9rem",
@@ -572,12 +573,12 @@ const handleProceed = () => {
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "scale(1.04)";
-                  e.currentTarget.style.borderColor = "#8a8278";
+                  e.currentTarget.style.borderColor = "#a1a1b5";
                   e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.borderColor = "#3A3630";
+                  e.currentTarget.style.borderColor = "#3a3a55";
                   e.currentTarget.style.background = "transparent";
                 }}
                 onMouseDown={(e) => {
@@ -608,8 +609,8 @@ const handleProceed = () => {
           fontFamily: "'Poppins', sans-serif",
         }}>
           <div style={{
-            background: "#1E1C19",
-            border: "1px solid #3A3630",
+            background: "#1e1e2f",
+            border: "1px solid #3a3a55",
             borderRadius: "24px",
             padding: "2rem",
             maxWidth: "900px",
@@ -624,10 +625,10 @@ const handleProceed = () => {
             {/* Modal Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: "1.25rem", fontWeight: 700, color: "#e07b39", margin: 0 }}>
+                <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: "1.25rem", fontWeight: 700, color: "#6f6fe0", margin: 0 }}>
                   Upload New RRL Documents
                 </h3>
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "#8a8278", margin: "0.25rem 0 0" }}>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "#a1a1b5", margin: "0.25rem 0 0" }}>
                   Add candidates to the current assessment batch. Duplicates are auto-removed.
                 </p>
               </div>
@@ -636,13 +637,13 @@ const handleProceed = () => {
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: "#8a8278",
+                  color: "#a1a1b5",
                   fontSize: "1.5rem",
                   cursor: "pointer",
                   transition: "color 0.2s ease",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.color = "#f0ece6"}
-                onMouseLeave={(e) => e.currentTarget.style.color = "#8a8278"}
+                onMouseEnter={(e) => e.currentTarget.style.color = "#e4e4f0"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "#a1a1b5"}
               >
                 ✕
               </button>
@@ -678,30 +679,30 @@ const handleProceed = () => {
           animation: "fadeInToast 0.3s ease-out forwards",
         }}>
           <div style={{
-            background: "#1E1C19",
-            border: "1px solid rgba(217, 138, 33, 0.25)",
+            background: "#1e1e2f",
+            border: "1px solid rgba(91, 91, 214, 0.25)",
             borderRadius: "24px",
             padding: "2.5rem 3rem",
             maxWidth: "480px",
             width: "90%",
             textAlign: "center",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(216, 90, 48, 0.15)",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(91, 91, 214, 0.15)",
             animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
           }}>
             <div style={{
               width: "80px",
               height: "80px",
               borderRadius: "50%",
-              background: "rgba(216, 90, 48, 0.1)",
-              border: "2px solid #D85A30",
+              background: "rgba(91, 91, 214, 0.1)",
+              border: "2px solid #5b5bd6",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 1.5rem",
-              boxShadow: "0 0 20px rgba(216, 90, 48, 0.2)",
+              boxShadow: "0 0 20px rgba(91, 91, 214, 0.2)",
               animation: "pulseRing 2s infinite",
             }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" style={{
                   strokeDasharray: 50,
                   strokeDashoffset: 50,
@@ -713,7 +714,7 @@ const handleProceed = () => {
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 800,
               fontSize: "1.5rem",
-              color: "#f0ece6",
+              color: "#e4e4f0",
               margin: "0 0 0.5rem 0",
               letterSpacing: "0.01em",
             }}>
@@ -737,7 +738,7 @@ const handleProceed = () => {
             }}>
               <div style={{
                 height: "100%",
-                background: "linear-gradient(90deg, #D98A21, #D85A30)",
+                background: "linear-gradient(90deg, #5b5bd6, #5b5bd6)",
                 width: "0%",
                 borderRadius: "2px",
                 animation: "fillProgress 2.2s linear forwards",
@@ -773,10 +774,12 @@ const handleProceed = () => {
             onSelect={setCurrentIndex}
             onDelete={handleDeleteDocument}
           />
+          <RelevanceWeightsPanel sessionId={resolvedSessionId} />
         </div>
 
         <AIAssessmentPanel
           documentId={activeDoc?.id}
+          sessionId={resolvedSessionId}
           insights={activeInsights}
           isLoading={isInsightsLoading}
           assessmentTimedOut={insightsPollExhausted}

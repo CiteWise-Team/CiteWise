@@ -2,9 +2,9 @@ import React from 'react';
 
 // Map relevance level to the exact string expected by the design
 const RELEVANCE_COLORS = {
-  High: "#D85A30",
-  Medium: "#D98A21",
-  Low: "#8a8278",
+  High: "#5b5bd6",
+  Medium: "#5b5bd6",
+  Low: "#a1a1b5",
 };
 
 const getRelevanceDisplay = (level) => {
@@ -17,7 +17,7 @@ const getRelevanceDisplay = (level) => {
 
 const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType }) => {
   const relevanceDisplay = getRelevanceDisplay(relevance);
-  const color = RELEVANCE_COLORS[relevanceDisplay] || "#8a8278";
+  const color = RELEVANCE_COLORS[relevanceDisplay] || "#a1a1b5";
 
   return (
     <div
@@ -25,7 +25,7 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
         display: "flex",
         gap: "14px",
         padding: "18px 16px",
-        borderBottom: "1px solid #3A3630",
+        borderBottom: "1px solid #3a3a55",
       }}
     >
       {/* Index number box */}
@@ -33,7 +33,7 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
         style={{
           width: "32px",
           height: "32px",
-          border: "1px solid #3A3630",
+          border: "1px solid #3a3a55",
           borderRadius: "6px",
           display: "flex",
           alignItems: "center",
@@ -46,7 +46,7 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
           style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: "12px",
-            color: "#8a8278",
+            color: "#a1a1b5",
             fontWeight: "600",
           }}
         >
@@ -57,9 +57,9 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {criterion && (
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#8a8278', marginBottom: 6 }}>
+          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#a1a1b5', marginBottom: 6 }}>
             {criterion}
-            {evidenceType ? <span style={{ marginLeft: 8, color: '#8a8278' }}>· {evidenceType}</span> : null}
+            {evidenceType ? <span style={{ marginLeft: 8, color: '#a1a1b5' }}>· {evidenceType}</span> : null}
           </div>
         )}
 
@@ -67,7 +67,7 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
           style={{
             fontFamily: "'Poppins', sans-serif",
             fontSize: "13px",
-            color: "#f0ece6",
+            color: "#e4e4f0",
             lineHeight: "1.65",
             margin: "0 0 8px 0",
             fontStyle: "italic",
@@ -86,17 +86,17 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
             style={{
               fontFamily: "'Geist Mono', monospace",
               fontSize: "11px",
-              color: "#8a8278",
+              color: "#a1a1b5",
             }}
           >
             Page {page}
           </span>
-          <span style={{ color: "#8a8278", fontSize: "11px" }}>·</span>
+          <span style={{ color: "#a1a1b5", fontSize: "11px" }}>·</span>
           <span
             style={{
               fontFamily: "'Geist Mono', monospace",
               fontSize: "11px",
-              color: "#8a8278",
+              color: "#a1a1b5",
             }}
           >
             Relevance: {" "}
@@ -129,7 +129,7 @@ const EvidenceExcerptList = ({ excerpts }) => {
                 marginBottom: "8px",
               }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.89a.5.5 0 0 0 .22.96h11.34a.5.5 0 0 0 .22-.96l-1.78-.89a2 2 0 0 1-1.11-1.79V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5.76z" />
           </svg>
           <span
@@ -137,7 +137,7 @@ const EvidenceExcerptList = ({ excerpts }) => {
               fontFamily: "'Poppins', sans-serif",
               fontSize: "16px",
               fontWeight: "700",
-              color: "#D98A21",
+              color: "#5b5bd6",
             }}
           >
             Highlighted Evidence Excerpts
@@ -147,13 +147,13 @@ const EvidenceExcerptList = ({ excerpts }) => {
         <div
           style={{
             background: "rgba(0, 0, 0, 0.15)",
-            border: "1px solid #3A3630",
+            border: "1px solid #3a3a55",
             borderRadius: "10px",
             padding: "0 20px",
             maxHeight: "320px",
             overflowY: "auto",
             scrollbarWidth: "thin",
-            scrollbarColor: "#333028 rgba(0, 0, 0, 0.15)",
+            scrollbarColor: "#3a3a55 rgba(0, 0, 0, 0.15)",
           }}
         >
           <div
@@ -162,7 +162,7 @@ const EvidenceExcerptList = ({ excerpts }) => {
               textAlign: "center",
               fontFamily: "'Geist Mono', monospace",
               fontSize: "12px",
-              color: "#8a8278",
+              color: "#a1a1b5",
             }}
           >
             No evidence excerpts available.
@@ -193,7 +193,7 @@ const EvidenceExcerptList = ({ excerpts }) => {
           marginBottom: "8px",
         }}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
           <path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.89a.5.5 0 0 0 .22.96h11.34a.5.5 0 0 0 .22-.96l-1.78-.89a2 2 0 0 1-1.11-1.79V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5.76z" />
         </svg>
         <span
@@ -201,7 +201,7 @@ const EvidenceExcerptList = ({ excerpts }) => {
             fontFamily: "'Poppins', sans-serif",
             fontSize: "16px",
             fontWeight: "700",
-            color: "#D98A21",
+            color: "#5b5bd6",
           }}
         >
           Highlighted Evidence Excerpts
@@ -212,13 +212,13 @@ const EvidenceExcerptList = ({ excerpts }) => {
       <div
         style={{
           background: "rgba(0, 0, 0, 0.15)",
-          border: "1px solid #3A3630",
+          border: "1px solid #3a3a55",
           borderRadius: "10px",
           padding: "0 20px",
           maxHeight: "320px",
           overflowY: "auto",
           scrollbarWidth: "thin",
-          scrollbarColor: "#333028 rgba(0, 0, 0, 0.15)",
+          scrollbarColor: "#3a3a55 rgba(0, 0, 0, 0.15)",
         }}
       >
         {items.map((item, i) => (

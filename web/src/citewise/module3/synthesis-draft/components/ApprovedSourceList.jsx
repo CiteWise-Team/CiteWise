@@ -4,8 +4,8 @@ export default function ApprovedSourceList({ documents, loading }) {
   return (
     <div
       style={{
-        background: "#1E1C19",
-        border: "1px solid #3A3630",
+        background: "#1e1e2f",
+        border: "1px solid #3a3a55",
         borderRadius: "16px",
         padding: "20px",
         display: "flex",
@@ -18,14 +18,14 @@ export default function ApprovedSourceList({ documents, loading }) {
           fontFamily: "'Poppins', sans-serif",
           fontWeight: 700,
           fontSize: "1.05rem",
-          color: "#D98A21",
+          color: "#5b5bd6",
           letterSpacing: "0.01em",
         }}
       >
         Source Documents ({documents.length})
       </span>
 
-      <div style={{ height: "1px", background: "#3A3630" }} />
+      <div style={{ height: "1px", background: "#3a3a55" }} />
       {!loading && guardedDocuments.length > 0 && (
         <div style={styles.guardrailNotice}>
           <span style={styles.guardrailTitle}>Synthesis guardrail active</span>
@@ -52,13 +52,13 @@ export default function ApprovedSourceList({ documents, loading }) {
             style={{
               width: "32px",
               height: "32px",
-              border: "2px solid #3A3630",
-              borderTop: "2px solid #D85A30",
+              border: "2px solid #3a3a55",
+              borderTop: "2px solid #5b5bd6",
               borderRadius: "50%",
               animation: "spin 0.8s linear infinite",
             }}
           />
-          <span style={{ color: "#8a8278", fontSize: "0.85rem" }}>
+          <span style={{ color: "#a1a1b5", fontSize: "0.85rem" }}>
             Loading documents...
           </span>
           <style>{`
@@ -73,7 +73,7 @@ export default function ApprovedSourceList({ documents, loading }) {
           style={{
             textAlign: "center",
             padding: "40px 20px",
-            color: "#8a8278",
+            color: "#a1a1b5",
             fontSize: "0.85rem",
             background: "rgba(0, 0, 0, 0.15)",
             borderRadius: "8px",
@@ -88,7 +88,7 @@ export default function ApprovedSourceList({ documents, loading }) {
               key={idx}
               style={{
                 background: "rgba(0, 0, 0, 0.15)",
-                border: "1px solid #3A3630",
+                border: "1px solid #3a3a55",
                 borderRadius: "8px",
                 padding: "10px 14px",
                 display: "flex",
@@ -100,7 +100,7 @@ export default function ApprovedSourceList({ documents, loading }) {
               <span
                 style={{
                   fontSize: "0.85rem",
-                  color: "#f0ece6",
+                  color: "#e4e4f0",
                   textOverflow: "ellipsis",
                   overflow: "hidden",
                   whiteSpace: "nowrap",
@@ -116,7 +116,7 @@ export default function ApprovedSourceList({ documents, loading }) {
                   width: "16px",
                   height: "16px",
                   borderRadius: "50%",
-                  background: "#D85A30",
+                  background: "#5b5bd6",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -126,7 +126,7 @@ export default function ApprovedSourceList({ documents, loading }) {
                 <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                   <path
                     d="M1 4L3.5 6.5L9 1"
-                    stroke="#f0ece6"
+                    stroke="#e4e4f0"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -158,23 +158,23 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "4px",
-    background: "rgba(216, 90, 48, 0.12)",
-    border: "1px solid rgba(216, 90, 48, 0.28)",
+    background: "rgba(91, 91, 214, 0.12)",
+    border: "1px solid rgba(91, 91, 214, 0.28)",
     borderRadius: "8px",
     padding: "10px 12px",
   },
   guardrailTitle: {
-    color: "#D98A21",
+    color: "#5b5bd6",
     fontSize: "0.75rem",
     fontWeight: 700,
   },
   guardrailText: {
-    color: "#f0ece6",
+    color: "#e4e4f0",
     fontSize: "0.75rem",
     lineHeight: 1.45,
   },
   sourceWarning: {
-    color: "#D98A21",
+    color: "#5b5bd6",
     fontSize: "0.68rem",
     fontWeight: 700,
     whiteSpace: "nowrap",

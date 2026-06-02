@@ -69,7 +69,7 @@ export default function CiteWiseApp() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1E1C19" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#16162a", textAlign: "left" }}>
 
       <GlobalNavigationBar
         currentStep={step}

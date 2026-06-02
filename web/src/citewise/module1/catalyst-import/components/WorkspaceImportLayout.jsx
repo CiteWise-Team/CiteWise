@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";  // ← ADDED useCallback, useRef
 import ImportHeaderBar from "./ImportHeaderBar";
 import DataDisplayGrid from "./DataDisplayGrid";
+import GapWorkshop from "./GapWorkshop";
 import DragDropZone from "../../rrl-upload/components/DragDropZone";
 import SelectedFilesList from "../../rrl-upload/components/SelectedFilesList";
 import UploadAllButton from "../../rrl-upload/components/UploadAllButton";
@@ -404,7 +405,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   const totalCount = fileQueue.length;
 
   return (
-    <div style={{ maxWidth: 1280, width: "100%", margin: "0 auto", padding: "24px 32px", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+    <div style={{ maxWidth: 1400, width: "100%", margin: "0 auto", padding: "2rem 2.5rem 3rem", display: "flex", flexDirection: "column", gap: "2rem" }}>
       {styleInject}
 
       {duplicateToast.show && (
@@ -415,19 +416,19 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
           zIndex: 10000,
           background: "rgba(30, 28, 25, 0.9)",
           backdropFilter: "blur(8px)",
-          border: "1px solid rgba(217, 138, 33, 0.4)",
+          border: "1px solid rgba(91, 91, 214, 0.4)",
           borderRadius: "12px",
           padding: "1rem 1.5rem",
           display: "flex",
           alignItems: "center",
           gap: "12px",
-          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(217, 138, 33, 0.1)",
+          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(91, 91, 214, 0.1)",
           animation: "slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
           maxWidth: "400px",
         }}>
           <div style={{
-            background: "rgba(217, 138, 33, 0.15)",
-            border: "1px solid #D98A21",
+            background: "rgba(91, 91, 214, 0.15)",
+            border: "1px solid #5b5bd6",
             borderRadius: "50%",
             width: "36px",
             height: "36px",
@@ -436,7 +437,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
             justifyContent: "center",
             flexShrink: 0,
           }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
               <line x1="12" y1="9" x2="12" y2="13"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -447,7 +448,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "0.9rem",
-              color: "#D98A21",
+              color: "#5b5bd6",
             }}>
               Duplicate File Detected
             </span>
@@ -476,30 +477,30 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
           animation: "fadeInToast 0.3s ease-out forwards",
         }}>
           <div style={{
-            background: "#1E1C19",
-            border: "1px solid rgba(217, 138, 33, 0.25)",
+            background: "#1e1e2f",
+            border: "1px solid rgba(91, 91, 214, 0.25)",
             borderRadius: "24px",
             padding: "2.5rem 3rem",
             maxWidth: "480px",
             width: "90%",
             textAlign: "center",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(216, 90, 48, 0.15)",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(91, 91, 214, 0.15)",
             animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
           }}>
             <div style={{
               width: "80px",
               height: "80px",
               borderRadius: "50%",
-              background: "rgba(216, 90, 48, 0.1)",
-              border: "2px solid #D85A30",
+              background: "rgba(91, 91, 214, 0.1)",
+              border: "2px solid #5b5bd6",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 1.5rem",
-              boxShadow: "0 0 20px rgba(216, 90, 48, 0.2)",
+              boxShadow: "0 0 20px rgba(91, 91, 214, 0.2)",
               animation: "pulseRing 2s infinite",
             }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" style={{
                   strokeDasharray: 50,
                   strokeDashoffset: 50,
@@ -512,7 +513,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 800,
               fontSize: "1.5rem",
-              color: "#f0ece6",
+              color: "#e4e4f0",
               margin: "0 0 0.5rem 0",
               letterSpacing: "0.01em",
             }}>
@@ -538,7 +539,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
             }}>
               <div style={{
                 height: "100%",
-                background: "linear-gradient(90deg, #D98A21, #D85A30)",
+                background: "linear-gradient(90deg, #5b5bd6, #5b5bd6)",
                 width: "0%",
                 borderRadius: "2px",
                 animation: "fillProgress 2.2s linear forwards",
@@ -548,106 +549,133 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
         </div>
       )}
 
-      {/* ── Card 1: CATalyst Data Import ─────────────────────────── */}
-      <div style={card}>
-        <div style={cardHeader}>
-          <span style={cardTitle}>CATalyst Data Import</span>
-          {/* Only show the manual import bar when no data is pre-loaded */}
-          {!catalystData && (
-            <ImportHeaderBar
-              workspaceId={workspaceId}
-              onWorkspaceIdChange={setWorkspaceId}
-              onImport={handleImport}
-              isLoading={isLoading}
-            />
-          )}
-        </div>
-
-        <DataDisplayGrid
-          catalystData={catalystData}
-          isLoading={isLoading}
-          error={error}
-          hasAttempted={hasAttempted}
-          sessionId={sessionId}
-        />
+      {/* ── Page header ─────────────────────────────────────────── */}
+      <div>
+        <h1 style={{ margin: 0, fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.5rem", color: "#e4e4f0", letterSpacing: "-0.01em" }}>
+          Data Import
+        </h1>
+        <p style={{ margin: "4px 0 0", fontFamily: "'Poppins', sans-serif", fontSize: "0.875rem", color: "#a1a1b5" }}>
+          Connect your CATalyst workspace, upload RRL documents, then refine your research gap.
+        </p>
       </div>
 
-      {/* ── Card 2: RRL Document Upload ──────────────────────────── */}
-      <div style={card}>
-        <div style={cardHeader}>
-          <span style={cardTitle}>RRL Document Upload</span>
-        </div>
+      {/* ── Two-column grid ─────────────────────────────────────── */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: catalystData ? "1fr 420px" : "1fr",
+          gap: "2rem",
+          alignItems: "start",
+        }}
+      >
+        {/* LEFT COLUMN — CATalyst import + RRL upload */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "1.25rem",
-            padding: "1.25rem 1.5rem",
-          }}
-        >
-          <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
-
-          <div
-            style={{
-              background: "rgba(0, 0, 0, 0.15)",
-              border: "1px solid #3A3630",
-              borderRadius: "12px",
-              padding: "1.25rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-              minHeight: 200,
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={selectedLabel}>Selected Files</span>
-              {totalCount > 0 && (
-                <span
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "rgba(240, 236, 230, 0.4)",
-                    fontFamily: "'Poppins', sans-serif",
-                    fontWeight: 500,
-                  }}
-                >
-                  {totalCount} in queue
-                </span>
+          {/* CATalyst Data Import */}
+          <div style={card}>
+            <div style={cardHeader}>
+              <div>
+                <span style={cardTitle}>CATalyst Workspace</span>
+                {catalystData && (
+                  <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "#a1a1b5", fontFamily: "'Poppins', sans-serif" }}>
+                    Loaded — title, rationale and gaps imported.
+                  </p>
+                )}
+              </div>
+              {!catalystData && (
+                <ImportHeaderBar
+                  workspaceId={workspaceId}
+                  onWorkspaceIdChange={setWorkspaceId}
+                  onImport={handleImport}
+                  isLoading={isLoading}
+                />
               )}
             </div>
 
-            <div
-              style={{
-                background: "rgba(0, 0, 0, 0.15)",
-                borderRadius: "8px",
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-              }}
-            >
-              <SelectedFilesList files={fileQueue} onRemove={removeFileItem} />
+            {!catalystData && (
+              <div style={{ padding: "2.5rem 2rem", textAlign: "center" }}>
+                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(91,91,214,0.1)", border: "1px solid rgba(91,91,214,0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                </div>
+                <p style={{ color: "#a1a1b5", fontFamily: "'Poppins', sans-serif", fontSize: "0.875rem", margin: 0 }}>
+                  Enter your CATalyst workspace ID above to load your research data.
+                </p>
+              </div>
+            )}
+
+            <DataDisplayGrid
+              catalystData={catalystData}
+              isLoading={isLoading}
+              error={error}
+              hasAttempted={hasAttempted}
+              sessionId={sessionId}
+            />
+          </div>
+
+          {/* RRL Document Upload */}
+          <div style={card}>
+            <div style={cardHeader}>
+              <div>
+                <span style={cardTitle}>RRL Document Upload</span>
+                <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "#a1a1b5", fontFamily: "'Poppins', sans-serif" }}>
+                  Upload PDF research papers to assess against your research gap.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ padding: "1.5rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+                <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
+
+                <div
+                  style={{
+                    background: "rgba(0, 0, 0, 0.15)",
+                    border: "1px solid #3a3a55",
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.875rem",
+                    minHeight: 200,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={selectedLabel}>Queue</span>
+                    {totalCount > 0 && (
+                      <span style={{ fontSize: "0.72rem", color: "#a1a1b5", fontFamily: "'Poppins', sans-serif" }}>
+                        {totalCount} file{totalCount !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, borderRadius: "8px", overflow: "hidden" }}>
+                    <SelectedFilesList files={fileQueue} onRemove={removeFileItem} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
+                <UploadAllButton onClick={handleUpload} isUploading={uploadState === "uploading"} />
+                <div style={{ flex: 1 }}>
+                  <UploadStatusBar
+                    readyCount={readyCount}
+                    totalCount={totalCount}
+                    statusMessage={statusMessage}
+                    uploadState={uploadState}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "1.25rem",
-            padding: "0 1.5rem 1.25rem",
-            alignItems: "center",
-          }}
-        >
-          <UploadAllButton onClick={handleUpload} isUploading={uploadState === "uploading"} />
-          <UploadStatusBar
-            readyCount={readyCount}
-            totalCount={totalCount}
-            statusMessage={statusMessage}
-            uploadState={uploadState}
-          />
-        </div>
+        {/* RIGHT COLUMN — Gap Workshop (only shown after CATalyst data loaded) */}
+        {catalystData && (
+          <div style={{ position: "sticky", top: "80px" }}>
+            <GapWorkshop sessionId={sessionId} catalystData={catalystData} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -673,9 +701,9 @@ const styleInject = (
       to { stroke-dashoffset: 0; }
     }
     @keyframes pulseRing {
-      0% { box-shadow: 0 0 0 0 rgba(216, 90, 48, 0.4); }
-      70% { box-shadow: 0 0 0 12px rgba(216, 90, 48, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(216, 90, 48, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(91, 91, 214, 0.4); }
+      70% { box-shadow: 0 0 0 12px rgba(91, 91, 214, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(91, 91, 214, 0); }
     }
     @keyframes fillProgress {
       from { width: 0%; }
@@ -690,8 +718,8 @@ const styleInject = (
 
 // ── Shared style tokens ──────────────────────────────────────────
 const card = {
-  background: "#1E1C19",
-  border: "1px solid #3A3630",
+  background: "#1e1e2f",
+  border: "1px solid #3a3a55",
   borderRadius: "16px",
   overflow: "hidden",
   animation: "cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both",
@@ -703,7 +731,7 @@ const cardHeader = {
   alignItems: "center",
   justifyContent: "space-between",
   padding: "1.125rem 1.5rem",
-  borderBottom: "1px solid #3A3630",
+  borderBottom: "1px solid #3a3a55",
   gap: "1rem",
   background: "rgba(0, 0, 0, 0.15)",
 };
@@ -712,7 +740,7 @@ const cardTitle = {
   fontFamily: "'Poppins', sans-serif",
   fontWeight: 700,
   fontSize: "1.05rem",
-  color: "#D98A21",
+  color: "#5b5bd6",
   letterSpacing: "0.01em",
   flexShrink: 0,
 };
@@ -722,6 +750,6 @@ const selectedLabel = {
   fontWeight: "700",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#D98A21",
+  color: "#5b5bd6",
   fontFamily: "'Poppins', sans-serif",
 };

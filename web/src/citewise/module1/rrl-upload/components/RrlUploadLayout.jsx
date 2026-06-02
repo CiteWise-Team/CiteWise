@@ -318,19 +318,19 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           zIndex: 10000,
           background: "rgba(30, 28, 25, 0.9)",
           backdropFilter: "blur(8px)",
-          border: "1px solid rgba(217, 138, 33, 0.4)",
+          border: "1px solid rgba(91, 91, 214, 0.4)",
           borderRadius: "12px",
           padding: "1rem 1.5rem",
           display: "flex",
           alignItems: "center",
           gap: "12px",
-          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(217, 138, 33, 0.1)",
+          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(91, 91, 214, 0.1)",
           animation: "slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
           maxWidth: "400px",
         }}>
           <div style={{
-            background: "rgba(217, 138, 33, 0.15)",
-            border: "1px solid #D98A21",
+            background: "rgba(91, 91, 214, 0.15)",
+            border: "1px solid #5b5bd6",
             borderRadius: "50%",
             width: "36px",
             height: "36px",
@@ -339,7 +339,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
             justifyContent: "center",
             flexShrink: 0,
           }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
               <line x1="12" y1="9" x2="12" y2="13"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -350,7 +350,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "0.9rem",
-              color: "#D98A21",
+              color: "#5b5bd6",
             }}>
               Duplicate File Detected
             </span>
@@ -376,21 +376,21 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           }}
         >
           <div>
-            <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#e07b39", margin: 0 }}>
+            <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#6f6fe0", margin: 0 }}>
               RRL document upload
             </h2>
-            <p style={{ fontSize: "0.8rem", color: "#8a8278", margin: "0.25rem 0 0" }}>
+            <p style={{ fontSize: "0.8rem", color: "#a1a1b5", margin: "0.25rem 0 0" }}>
               Upload candidate Review of Related Literature PDFs for parsing.
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-            <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#8a8278" }}>Session ID</span>
+            <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#a1a1b5" }}>Session ID</span>
             <div
               style={{
                 background: "#2a2724",
-                border: "1px solid #333028",
+                border: "1px solid #3a3a55",
                 borderRadius: "8px",
-                color: "#f0ece6",
+                color: "#e4e4f0",
                 padding: "0.5rem 0.875rem",
                 fontSize: "0.875rem",
                 width: "260px",
@@ -408,8 +408,8 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
         <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
         <div
           style={{
-            background: "#252220",
-            border: "1px solid #333028",
+            background: "#25253a",
+            border: "1px solid #3a3a55",
             borderRadius: "8px",
             display: "flex",
             flexDirection: "column",
@@ -419,7 +419,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           <div
             style={{
               padding: "0.625rem 0.875rem",
-              borderBottom: "1px solid #333028",
+              borderBottom: "1px solid #3a3a55",
               display: "flex",
               justifyContent: "space-between",
             }}
@@ -429,12 +429,12 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
                 fontSize: "0.7rem",
                 fontWeight: 700,
                 textTransform: "uppercase",
-                color: "#e07b39",
+                color: "#6f6fe0",
               }}
             >
               Selected files
             </span>
-            <span style={{ fontSize: "0.75rem", color: "#8a8278" }}>{totalCount} in queue</span>
+            <span style={{ fontSize: "0.75rem", color: "#a1a1b5" }}>{totalCount} in queue</span>
           </div>
           <SelectedFilesList files={fileQueue} onRemove={removeFileItem} />
         </div>

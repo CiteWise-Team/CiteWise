@@ -1,0 +1,72 @@
+{
+  "name": "CiteWise — Metadata Extractor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "citewise-metadata-extractor",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "id": "webhook-metadata",
+      "name": "Webhook",
+      "webhookId": "citewise-metadata-extractor"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst text = String(body.text ?? '').slice(0, 4000).trim();\nconst filename = String(body.filename ?? '');\nconst documentId = body.documentId ?? null;\n\nif (!text) throw new Error('No text provided');\n\nreturn [{ json: { text, filename, documentId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "parse-input",
+      "name": "Parse Input"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract citation metadata from this academic paper text:\n\nFILENAME: {{ $json.filename }}\n\nTEXT (first 4000 chars):\n{{ $json.text }}\n\nReturn ONLY valid JSON with this exact schema, no markdown fences:\n{\n  \"title\": \"full paper title or null\",\n  \"authorDisplay\": \"Author One, Author Two or null\",\n  \"authors\": [\"Author One\", \"Author Two\"],\n  \"year\": \"4-digit year string or null\",\n  \"journal\": \"journal or conference name or null\",\n  \"doi\": \"DOI string or null\",\n  \"metadataReliable\": true\n}\n\nRules:\n- title: the paper's full title, NOT the filename\n- authorDisplay: comma-separated real human names only; null if not found\n- year: publication/submission year; for arXiv IDs like 2207.xxxxx the year is 2022\n- metadataReliable: true only if title AND year AND authorDisplay are all non-null\n- Never invent data; return null for any field you cannot find with confidence",
+        "options": {
+          "systemMessage": "You are a precise citation metadata extractor for academic PDFs. Extract only what is explicitly present in the text. Return null for any field you cannot confidently identify. Do not invent or guess author names or years."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [680, 300],
+      "id": "ai-extract",
+      "name": "AI Metadata Extractor"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst prev = $('Parse Input').first().json;\n\nlet raw = item.output ?? item.text ?? item.response ?? item.message?.content ?? item.content ?? '';\nraw = String(raw).replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/i, '').trim();\n\nconst firstBrace = raw.indexOf('{');\nconst lastBrace = raw.lastIndexOf('}');\nif (firstBrace === -1 || lastBrace === -1) throw new Error('No JSON object in AI response: ' + raw.slice(0, 200));\n\nconst parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));\n\nreturn [{\n  json: {\n    documentId: prev.documentId,\n    title:         parsed.title         || null,\n    authorDisplay: parsed.authorDisplay || null,\n    authors:       Array.isArray(parsed.authors) ? parsed.authors : (parsed.authorDisplay ? [parsed.authorDisplay] : []),\n    year:          parsed.year          || null,\n    journal:       parsed.journal       || null,\n    doi:           parsed.doi           || null,\n    metadataReliable: parsed.metadataReliable === true && !!(parsed.title && parsed.year && parsed.authorDisplay)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "id": "parse-output",
+      "name": "Parse AI Output"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "id": "respond",
+      "name": "Respond"
+    }
+  ],
+  "connections": {
+    "Webhook":            { "main": [[{ "node": "Parse Input",     "type": "main", "index": 0 }]] },
+    "Parse Input":        { "main": [[{ "node": "AI Metadata Extractor", "type": "main", "index": 0 }]] },
+    "AI Metadata Extractor": { "main": [[{ "node": "Parse AI Output", "type": "main", "index": 0 }]] },
+    "Parse AI Output":    { "main": [[{ "node": "Respond",         "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

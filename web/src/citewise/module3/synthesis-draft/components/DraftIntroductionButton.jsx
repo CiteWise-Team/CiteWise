@@ -17,22 +17,22 @@ export default function DraftIntroductionButton({
             ...styles.button,
             background: (generationStatus === "generating" || !hasApprovedDocuments) 
               ? "rgba(0, 0, 0, 0.15)" 
-              : "#D85A30",
+              : "#5b5bd6",
             color: (generationStatus === "generating" || !hasApprovedDocuments) 
-              ? "#8a8278" 
-              : "#f0ece6",
+              ? "#a1a1b5" 
+              : "#e4e4f0",
             cursor: (generationStatus === "generating" || !hasApprovedDocuments) 
               ? "not-allowed" 
               : "pointer",
           }}
           onMouseEnter={(e) => {
             if (generationStatus !== "generating" && hasApprovedDocuments) {
-              e.currentTarget.style.background = "#e96439";
+              e.currentTarget.style.background = "#6f6fe0";
             }
           }}
           onMouseLeave={(e) => {
             if (generationStatus !== "generating" && hasApprovedDocuments) {
-              e.currentTarget.style.background = "#D85A30";
+              e.currentTarget.style.background = "#5b5bd6";
             }
           }}
         >
@@ -49,8 +49,8 @@ export default function DraftIntroductionButton({
         <button
           onClick={onRegenerate}
           style={styles.button}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#e96439")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#D85A30")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#6f6fe0")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#5b5bd6")}
         >
           Clear & Regenerate
         </button>
@@ -61,8 +61,8 @@ export default function DraftIntroductionButton({
 
 const styles = {
   button: {
-    background: "#D85A30",
-    color: "#f0ece6",
+    background: "#5b5bd6",
+    color: "#e4e4f0",
     border: "none",
     borderRadius: "10px",
     padding: "14px",

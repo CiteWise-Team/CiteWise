@@ -1,16 +1,17 @@
-import { useState } from "react";
-
+// Req 9: approval is a checkbox (per adviser feedback to replace AI-assessment
+// switches/buttons with checkboxes where appropriate).
 function ApprovalToggle({ isApproved, onToggle }) {
   return (
-    <div
+    <label
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         background: "rgba(0, 0, 0, 0.15)",
-        border: "1px solid #3A3630",
+        border: "1px solid #3a3a55",
         borderRadius: "12px",
         padding: "16px 20px",
+        cursor: "pointer",
       }}
     >
       <span
@@ -18,43 +19,27 @@ function ApprovalToggle({ isApproved, onToggle }) {
           fontFamily: "'Poppins', sans-serif",
           fontSize: "14px",
           fontWeight: "700",
-          color: "#D98A21",
+          color: "#5b5bd6",
           letterSpacing: "0.5px",
           textTransform: "uppercase",
         }}
       >
-        Approval Status
+        Approve this RRL
       </span>
 
-      {/* Toggle Switch */}
-      <div
-        onClick={onToggle}
+      <input
+        type="checkbox"
+        checked={!!isApproved}
+        onChange={onToggle}
         style={{
-          width: "54px",
-          height: "28px",
-          borderRadius: "14px",
-          background: "#12100e",
-          border: "1px solid #3A3630",
-          position: "relative",
+          width: "22px",
+          height: "22px",
+          accentColor: "#5b5bd6",
           cursor: "pointer",
           flexShrink: 0,
         }}
-      >
-        <div
-          style={{
-            width: "20px",
-            height: "20px",
-            borderRadius: "50%",
-            background: isApproved ? "#D85A30" : "#3A3630",
-            position: "absolute",
-            top: "3px",
-            left: isApproved ? "29px" : "3px",
-            transition: "left 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s",
-            boxShadow: isApproved ? "0 0 8px rgba(216, 90, 48, 0.4)" : "none",
-          }}
-        />
-      </div>
-    </div>
+      />
+    </label>
   );
 }
 
@@ -70,8 +55,8 @@ export default function DocumentActiveCard({
     return (
       <div
         style={{
-          background: "#1E1C19",
-          border: "1px solid #3A3630",
+          background: "#1e1e2f",
+          border: "1px solid #3a3a55",
           borderRadius: "16px",
           padding: 0,
           display: "flex",
@@ -89,7 +74,7 @@ export default function DocumentActiveCard({
             marginBottom: 0,
             padding: "1.125rem 1.5rem",
             background: "rgba(0, 0, 0, 0.15)",
-            borderBottom: "1px solid #3A3630",
+            borderBottom: "1px solid #3a3a55",
           }}
         >
           <span
@@ -97,7 +82,7 @@ export default function DocumentActiveCard({
               fontFamily: "'Poppins', sans-serif",
               fontSize: "15px",
               fontWeight: "700",
-              color: "#8a8278",
+              color: "#a1a1b5",
             }}
           >
             No documents uploaded
@@ -109,12 +94,12 @@ export default function DocumentActiveCard({
             width: "48px",
             height: "48px",
             borderRadius: "50%",
-            background: "rgba(217, 138, 33, 0.1)",
-            border: "1px solid rgba(217, 138, 33, 0.2)",
+            background: "rgba(91, 91, 214, 0.1)",
+            border: "1px solid rgba(91, 91, 214, 0.2)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#D98A21"
+            color: "#5b5bd6"
           }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
@@ -126,10 +111,10 @@ export default function DocumentActiveCard({
           <span style={{
             fontFamily: "'Poppins', sans-serif",
             fontSize: "0.85rem",
-            color: "#8a8278",
+            color: "#a1a1b5",
             lineHeight: "1.5",
           }}>
-            Upload PDF candidates using the orange button to view and manage their AI assessments.
+            Upload PDF candidates using the upload button to view and manage their AI assessments.
           </span>
         </div>
       </div>
@@ -141,8 +126,8 @@ export default function DocumentActiveCard({
   return (
     <div
       style={{
-        background: "#1E1C19",
-        border: "1px solid #3A3630",
+        background: "#1e1e2f",
+        border: "1px solid #3a3a55",
         borderRadius: "16px",
         padding: 0,
         display: "flex",
@@ -160,7 +145,7 @@ export default function DocumentActiveCard({
           marginBottom: 0,
           padding: "1.125rem 1.5rem",
           background: "rgba(0, 0, 0, 0.15)",
-          borderBottom: "1px solid #3A3630",
+          borderBottom: "1px solid #3a3a55",
         }}
       >
         <span
@@ -168,7 +153,7 @@ export default function DocumentActiveCard({
             fontFamily: "'Poppins', sans-serif",
             fontSize: "15px",
             fontWeight: "700",
-            color: "#D98A21",
+            color: "#5b5bd6",
           }}
         >
           Document {currentIndex + 1} of {documents.length}
@@ -180,8 +165,8 @@ export default function DocumentActiveCard({
               key={arrow}
               onClick={() => onNavigate && onNavigate(i === 0 ? currentIndex - 1 : currentIndex + 1)}
               style={{
-                background: "#D85A30",
-                border: "1px solid #D85A30",
+                background: "#5b5bd6",
+                border: "1px solid #5b5bd6",
                 color: "#ffffff",
                 cursor: "pointer",
                 width: "30px",
@@ -194,16 +179,16 @@ export default function DocumentActiveCard({
                 justifyContent: "center",
                 lineHeight: 1,
                 padding: 0,
-                boxShadow: "0 0 10px rgba(216, 90, 48, 0.35)",
+                boxShadow: "0 0 10px rgba(91, 91, 214, 0.35)",
                 transition: "transform 0.15s, opacity 0.15s, box-shadow 0.15s",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "scale(1.2)";
-                e.currentTarget.style.boxShadow = "0 0 14px rgba(216, 90, 48, 0.55)";
+                e.currentTarget.style.boxShadow = "0 0 14px rgba(91, 91, 214, 0.55)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow = "0 0 10px rgba(216, 90, 48, 0.35)";
+                e.currentTarget.style.boxShadow = "0 0 10px rgba(91, 91, 214, 0.35)";
               }}
             >
               {arrow}
@@ -232,7 +217,7 @@ export default function DocumentActiveCard({
             position: "relative",
             width: "36px",
             height: "46px",
-            background: "#D85A30",
+            background: "#5b5bd6",
             borderRadius: "4px",
             display: "flex",
             flexDirection: "column",
@@ -252,7 +237,7 @@ export default function DocumentActiveCard({
               height: 0,
               borderStyle: "solid",
               borderWidth: "0 10px 10px 0",
-              borderColor: "transparent transparent #1E1C19 #1E1C19",
+              borderColor: "transparent transparent #1e1e2f #1e1e2f",
               borderTopRightRadius: "4px",
             }}
           />
@@ -261,7 +246,7 @@ export default function DocumentActiveCard({
               fontFamily: "'Poppins', sans-serif",
               fontSize: "9px",
               fontWeight: "900",
-              color: "#f0ece6",
+              color: "#e4e4f0",
               letterSpacing: "0.2px",
             }}
           >
@@ -275,7 +260,7 @@ export default function DocumentActiveCard({
               fontFamily: "'Poppins', sans-serif",
               fontSize: "15px",
               fontWeight: "600",
-              color: "#f0ece6",
+              color: "#e4e4f0",
               marginBottom: "3px",
             }}
           >
@@ -285,7 +270,7 @@ export default function DocumentActiveCard({
             style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: "12px",
-              color: "#8a8278",
+              color: "#a1a1b5",
             }}
           >
             {doc.size} - {doc.pages} pages

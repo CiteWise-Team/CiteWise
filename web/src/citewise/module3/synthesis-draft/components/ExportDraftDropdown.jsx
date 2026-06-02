@@ -16,7 +16,7 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
   const dropdownItemStyle = {
     background: "transparent",
     border: "none",
-    color: "#f0ece6",
+    color: "#e4e4f0",
     padding: "10px 16px",
     textAlign: "left",
     width: "100%",
@@ -33,8 +33,8 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
         onClick={() => onToggle(!isOpen)}
         disabled={!isEnabled}
         style={{
-          background: isEnabled ? "#D85A30" : "rgba(0, 0, 0, 0.15)",
-          color: isEnabled ? "#f0ece6" : "#8a8278",
+          background: isEnabled ? "#5b5bd6" : "rgba(0, 0, 0, 0.15)",
+          color: isEnabled ? "#e4e4f0" : "#a1a1b5",
           border: "none",
           borderRadius: "8px",
           padding: "8px 16px",
@@ -50,13 +50,13 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
         onMouseEnter={(e) => {
           if (!isEnabled) return;
           e.currentTarget.style.transform = "scale(1.04)";
-          e.currentTarget.style.background = "#e96439";
-          e.currentTarget.style.boxShadow = "0 10px 28px rgba(216,90,48,0.35), 0 0 40px rgba(217,138,33,0.22)";
+          e.currentTarget.style.background = "#6f6fe0";
+          e.currentTarget.style.boxShadow = "0 10px 28px rgba(91, 91, 214,0.35), 0 0 40px rgba(91, 91, 214,0.22)";
         }}
         onMouseLeave={(e) => {
           if (!isEnabled) return;
           e.currentTarget.style.transform = "scale(1)";
-          e.currentTarget.style.background = "#D85A30";
+          e.currentTarget.style.background = "#5b5bd6";
           e.currentTarget.style.boxShadow = "none";
         }}
         onMouseDown={(e) => { if (isEnabled) e.currentTarget.style.transform = "scale(0.98)"; }}
@@ -75,7 +75,7 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
         >
           <path
             d="M1 1L5 5L9 1"
-            stroke={isEnabled ? "#f0ece6" : "#8a8278"}
+            stroke={isEnabled ? "#e4e4f0" : "#a1a1b5"}
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -89,8 +89,8 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
             position: "absolute",
             top: "calc(100% + 8px)",
             right: 0,
-            background: "#252220",
-            border: "1px solid #333028",
+            background: "#25253a",
+            border: "1px solid #3a3a55",
             borderRadius: "8px",
             boxShadow: "0 10px 25px rgba(0,0,0,0.6)",
             zIndex: 200,
@@ -123,10 +123,10 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
           >
             Export as Plain Text (.txt)
           </button>
-          <div style={{ height: "1px", background: "#333028" }} />
+          <div style={{ height: "1px", background: "#3a3a55" }} />
           <button
             onClick={onCopy}
-            style={{ ...dropdownItemStyle, color: "#e07b39" }}
+            style={{ ...dropdownItemStyle, color: "#6f6fe0" }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "#302b27")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >

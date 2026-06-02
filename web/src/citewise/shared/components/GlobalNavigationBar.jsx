@@ -1,15 +1,11 @@
 const STEPS = ["Data Import", "AI Assessment", "Generate Introduction"];
 
 export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep = 0, onNavigate, onLogoClick, onBack }) {
-  const handleLogoClick = () => {
-    if (onLogoClick) onLogoClick();
-  };
-
   return (
     <nav
       style={{
-        background: "#1E1C19",
-        borderBottom: "1px solid #3A3630",
+        background: "#1e1e2f",
+        borderBottom: "1px solid #3a3a55",
         position: "sticky",
         top: 0,
         zIndex: 100,
@@ -18,94 +14,75 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
     >
       <div
         style={{
-          maxWidth: 1280,
+          maxWidth: 1400,
           margin: "0 auto",
-          padding: "0 2rem",
-          height: "60px",
+          padding: "0 2.5rem",
+          height: "64px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: "1rem",
         }}
       >
-        {/* Logo Block - Clickable */}
-        <div 
-          style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
-          onClick={handleLogoClick}
+        {/* Logo */}
+        <div
+          style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", flexShrink: 0 }}
+          onClick={onLogoClick}
         >
-          {/* Elite Premium SVG Isometric Diamond Logo */}
           <div
             style={{
+              width: "34px",
+              height: "34px",
+              borderRadius: "9px",
+              background: "#25253a",
+              border: "1px solid rgba(91,91,214,0.3)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              background: "#3A3630",
-              marginRight: "10px",
-              border: "1px solid rgba(217, 138, 33, 0.2)",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-              transition: "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+              transition: "transform 0.25s ease, box-shadow 0.25s ease",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08) rotate(5deg)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1) rotate(0deg)")}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.08) rotate(5deg)";
+              e.currentTarget.style.boxShadow = "0 0 16px rgba(91,91,214,0.35)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "none";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2L2 7L12 12L22 7L12 2Z"
-                stroke="#D98A21"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 17L12 22L22 17"
-                stroke="#D85A30"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 12L12 17L22 12"
-                stroke="#D98A21"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.8"
-              />
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#5b5bd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="#5b5bd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="#5b5bd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
             </svg>
           </div>
-
           <span
             style={{
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
-              fontSize: "1.15rem",
-              color: "#f0ece6",
+              fontSize: "1.1rem",
+              color: "#e4e4f0",
               letterSpacing: "-0.01em",
               userSelect: "none",
-              transition: "opacity 0.2s ease",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
             CiteWise
           </span>
         </div>
 
-        {/* Step tabs + back button */}
-        <div style={{ display: "flex", alignItems: "stretch", gap: 0, height: "60px" }}>
-          {STEPS.map((step, index) => {
+        {/* Steps */}
+        <div style={{ display: "flex", alignItems: "stretch", height: "64px" }}>
+          {STEPS.map((label, index) => {
             const isActive = index === currentStep;
             const isPast = index < currentStep;
             const isClickable = index <= maxUnlockedStep;
             return (
               <button
-                key={step}
+                key={label}
                 onClick={() => isClickable && onNavigate?.(index)}
                 disabled={!isClickable}
-                aria-disabled={!isClickable}
                 style={{
+                  position: "relative",
                   background: "none",
                   border: "none",
                   cursor: isClickable ? "pointer" : "not-allowed",
@@ -113,65 +90,98 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
                   fontSize: "0.875rem",
                   fontWeight: isActive ? 700 : 500,
                   color: isActive
-                    ? "#f0ece6"
+                    ? "#e4e4f0"
                     : isPast
-                      ? "rgba(240, 236, 230, 0.8)"
-                      : isClickable
-                        ? "rgba(240, 236, 230, 0.4)"
-                        : "rgba(240, 236, 230, 0.22)",
-                  padding: "0 20px",
-                  transition: "all 0.25s ease",
+                    ? "rgba(228,228,240,0.7)"
+                    : isClickable
+                    ? "rgba(228,228,240,0.4)"
+                    : "rgba(228,228,240,0.22)",
+                  padding: "0 1.5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
                   whiteSpace: "nowrap",
-                  opacity: isClickable ? 1 : 0.78,
+                  transition: "color 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive && isClickable) {
-                    e.currentTarget.style.color = "#f0ece6";
-                  }
+                  if (!isActive && isClickable) e.currentTarget.style.color = "#e4e4f0";
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive && isClickable) {
-                    e.currentTarget.style.color = isPast ? "rgba(240, 236, 230, 0.8)" : "rgba(240, 236, 230, 0.4)";
-                  }
+                  if (!isActive && isClickable)
+                    e.currentTarget.style.color = isPast
+                      ? "rgba(228,228,240,0.7)"
+                      : "rgba(228,228,240,0.4)";
                 }}
               >
-                {step}
+                {/* Step number badge */}
+                <span
+                  style={{
+                    width: "20px",
+                    height: "20px",
+                    borderRadius: "50%",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.65rem",
+                    fontWeight: 800,
+                    flexShrink: 0,
+                    background: isActive
+                      ? "#5b5bd6"
+                      : isPast
+                      ? "rgba(91,91,214,0.25)"
+                      : "rgba(228,228,240,0.08)",
+                    color: isActive ? "#fff" : isPast ? "#5b5bd6" : "rgba(228,228,240,0.35)",
+                    transition: "background 0.2s ease, color 0.2s ease",
+                  }}
+                >
+                  {isPast ? "✓" : index + 1}
+                </span>
+                {label}
+                {/* Active underline */}
+                {isActive && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: "1.5rem",
+                      right: "1.5rem",
+                      height: "2px",
+                      borderRadius: "2px 2px 0 0",
+                      background: "#5b5bd6",
+                    }}
+                  />
+                )}
               </button>
             );
           })}
-
-          {onBack && (
-            <button
-              onClick={onBack}
-              style={{
-                background: "none",
-                border: "1px solid rgba(217, 138, 33, 0.35)",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: "0.8rem",
-                fontWeight: 600,
-                color: "#D98A21",
-                padding: "0 16px",
-                margin: "auto 0 auto 16px",
-                height: "32px",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                transition: "all 0.2s ease",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(217, 138, 33, 0.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "none";
-              }}
-            >
-              ← Groups
-            </button>
-          )}
         </div>
+
+        {/* Back to groups */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              flexShrink: 0,
+              background: "transparent",
+              border: "1px solid rgba(91,91,214,0.4)",
+              borderRadius: "8px",
+              padding: "6px 14px",
+              color: "#5b5bd6",
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "background 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(91,91,214,0.1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            ← Groups
+          </button>
+        )}
       </div>
     </nav>
   );

@@ -9,8 +9,8 @@ export default function ValidationSummaryFooter({
     return (
         <footer
             style={{
-                background: "#1E1C19",
-                borderTop: "1px solid #3A3630",
+                background: "#1e1e2f",
+                borderTop: "1px solid #3a3a55",
                 height: "72px",
                 display: "flex",
                 alignItems: "center",
@@ -38,7 +38,7 @@ export default function ValidationSummaryFooter({
                     <div
                         style={{
                             paddingRight: "32px",
-                            borderRight: "1px solid #3A3630",
+                            borderRight: "1px solid #3a3a55",
                         }}
                     >
                         <div
@@ -46,7 +46,7 @@ export default function ValidationSummaryFooter({
                                 fontFamily: "'Poppins', sans-serif",
                                 fontSize: "24px",
                                 fontWeight: "700",
-                                color: "#f0ece6",
+                                color: "#e4e4f0",
                                 lineHeight: 1.1,
                             }}
                         >
@@ -56,7 +56,7 @@ export default function ValidationSummaryFooter({
                             style={{
                                 fontFamily: "'Geist Mono', monospace",
                                 fontSize: "10px",
-                                color: "#D98A21",
+                                color: "#5b5bd6",
                                 letterSpacing: "1px",
                                 textTransform: "uppercase",
                                 marginTop: "3px",
@@ -73,7 +73,7 @@ export default function ValidationSummaryFooter({
                                 fontFamily: "'Poppins', sans-serif",
                                 fontSize: "24px",
                                 fontWeight: "700",
-                                color: "#f0ece6",
+                                color: "#e4e4f0",
                                 lineHeight: 1.1,
                             }}
                         >
@@ -83,7 +83,7 @@ export default function ValidationSummaryFooter({
                             style={{
                                 fontFamily: "'Geist Mono', monospace",
                                 fontSize: "10px",
-                                color: "#D98A21",
+                                color: "#5b5bd6",
                                 letterSpacing: "1px",
                                 textTransform: "uppercase",
                                 marginTop: "3px",
@@ -101,7 +101,7 @@ export default function ValidationSummaryFooter({
                         display: "flex",
                         alignItems: "center",
                         gap: "10px",
-                        background: canProceed ? "#D85A30" : "#3A3630",
+                        background: canProceed ? "#5b5bd6" : "#3a3a55",
                         border: "none",
                         borderRadius: "8px",
                         padding: "14px 28px",
@@ -110,10 +110,10 @@ export default function ValidationSummaryFooter({
                         opacity: canProceed ? 1 : 0.5,
                     }}
                     onMouseEnter={(e) => {
-                        if (canProceed) e.currentTarget.style.background = "#e96439";
+                        if (canProceed) e.currentTarget.style.background = "#6f6fe0";
                     }}
                     onMouseLeave={(e) => {
-                        if (canProceed) e.currentTarget.style.background = "#D85A30";
+                        if (canProceed) e.currentTarget.style.background = "#5b5bd6";
                     }}
                     onMouseDown={(e) => {
                         if (canProceed) e.currentTarget.style.transform = "scale(0.97)";
@@ -126,7 +126,7 @@ export default function ValidationSummaryFooter({
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                         <path
                             d="M3 9H15M15 9L10.5 4.5M15 9L10.5 13.5"
-                            stroke="#f0ece6"
+                            stroke="#e4e4f0"
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -137,7 +137,7 @@ export default function ValidationSummaryFooter({
                             fontFamily: "'Poppins', sans-serif",
                             fontSize: "14px",
                             fontWeight: "700",
-                            color: "#f0ece6",
+                            color: "#e4e4f0",
                             whiteSpace: "nowrap",
                             letterSpacing: "0.2px",
                         }}

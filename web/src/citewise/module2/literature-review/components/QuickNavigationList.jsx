@@ -10,8 +10,8 @@ export default function QuickNavigationList({
   return (
     <div
       style={{
-        background: "#1E1C19",
-        border: "1px solid #3A3630",
+        background: "#1e1e2f",
+        border: "1px solid #3a3a55",
         borderRadius: "16px",
         padding: "20px",
         display: "flex",
@@ -41,7 +41,7 @@ export default function QuickNavigationList({
               style={{
                 width: "16px",
                 height: "2px",
-                background: "#D98A21",
+                background: "#5b5bd6",
                 borderRadius: "1px",
               }}
             />
@@ -52,7 +52,7 @@ export default function QuickNavigationList({
             fontFamily: "'Poppins', sans-serif",
             fontSize: "15px",
             fontWeight: "700",
-            color: "#D98A21",
+            color: "#5b5bd6",
           }}
         >
           Quick Navigation
@@ -69,7 +69,7 @@ export default function QuickNavigationList({
               onClick={() => onSelect && onSelect(index)}
               style={{
                 background: "rgba(0, 0, 0, 0.15)",
-                border: `1px solid ${isActive ? "#D98A21" : "#3A3630"}`,
+                border: `1px solid ${isActive ? "#5b5bd6" : "#3a3a55"}`,
                 borderRadius: "8px",
                 padding: "10px 14px",
                 display: "flex",
@@ -82,13 +82,13 @@ export default function QuickNavigationList({
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.borderColor = "#D98A21";
+                  e.currentTarget.style.borderColor = "#5b5bd6";
                   e.currentTarget.style.background = "rgba(0, 0, 0, 0.25)";
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.borderColor = "#3A3630";
+                  e.currentTarget.style.borderColor = "#3a3a55";
                   e.currentTarget.style.background = "rgba(0, 0, 0, 0.15)";
                 }
               }}
@@ -98,7 +98,7 @@ export default function QuickNavigationList({
                   style={{
                     fontFamily: "'Poppins', sans-serif",
                     fontSize: "13px",
-                    color: isActive ? "#f0ece6" : "#8a8278",
+                    color: isActive ? "#e4e4f0" : "#a1a1b5",
                     fontWeight: isActive ? "600" : "500",
                     display: "block",
                     overflow: "hidden",
@@ -122,7 +122,7 @@ export default function QuickNavigationList({
                   style={{
                     background: "none",
                     border: "none",
-                    color: "#8a8278",
+                    color: "#a1a1b5",
                     fontSize: "14px",
                     lineHeight: 1,
                     cursor: "pointer",
@@ -136,7 +136,7 @@ export default function QuickNavigationList({
                     e.currentTarget.style.transform = "scale(1.1)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "#8a8278";
+                    e.currentTarget.style.color = "#a1a1b5";
                     e.currentTarget.style.transform = "scale(1)";
                   }}
                 >
@@ -150,8 +150,8 @@ export default function QuickNavigationList({
                   width: "18px",
                   height: "18px",
                   borderRadius: "50%",
-                  background: doc.approved ? "#D85A30" : "transparent",
-                  border: `1px solid ${doc.approved ? "#D85A30" : "#3A3630"}`,
+                  background: doc.approved ? "#5b5bd6" : "transparent",
+                  border: `1px solid ${doc.approved ? "#5b5bd6" : "#3a3a55"}`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -163,7 +163,7 @@ export default function QuickNavigationList({
                   <svg width="8" height="6" viewBox="0 0 10 8" fill="none">
                     <path
                       d="M1 4L3.5 6.5L9 1"
-                      stroke="#f0ece6"
+                      stroke="#e4e4f0"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -189,14 +189,14 @@ export default function QuickNavigationList({
           animation: "fadeInToast 0.3s ease-out forwards",
         }}>
           <div style={{
-            background: "#1E1C19",
-            border: "1px solid rgba(217, 138, 33, 0.25)",
+            background: "#1e1e2f",
+            border: "1px solid rgba(91, 91, 214, 0.25)",
             borderRadius: "20px",
             padding: "2rem",
             maxWidth: "460px",
             width: "90%",
             textAlign: "center",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(216, 90, 48, 0.1)",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(91, 91, 214, 0.1)",
             animation: "scaleInToast 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
             display: "flex",
             flexDirection: "column",
@@ -208,14 +208,14 @@ export default function QuickNavigationList({
               width: "64px",
               height: "64px",
               borderRadius: "50%",
-              background: "rgba(216, 90, 48, 0.1)",
-              border: "2px solid #D85A30",
+              background: "rgba(91, 91, 214, 0.1)",
+              border: "2px solid #5b5bd6",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 20px rgba(216, 90, 48, 0.2)",
+              boxShadow: "0 0 20px rgba(91, 91, 214, 0.2)",
             }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D85A30" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6h18"/>
                 <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
                 <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -228,7 +228,7 @@ export default function QuickNavigationList({
                 fontFamily: "'Poppins', sans-serif",
                 fontWeight: 700,
                 fontSize: "1.2rem",
-                color: "#f0ece6",
+                color: "#e4e4f0",
                 margin: "0 0 0.5rem 0",
               }}>
                 Remove Document?
@@ -236,11 +236,11 @@ export default function QuickNavigationList({
               <p style={{
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: "0.85rem",
-                color: "#8a8278",
+                color: "#a1a1b5",
                 lineHeight: "1.5",
                 margin: 0,
               }}>
-                Are you sure you want to remove <strong style={{ color: "#D98A21" }}>"{deleteConfirm.name}"</strong>? This will permanently delete it from the current active assessment batch.
+                Are you sure you want to remove <strong style={{ color: "#5b5bd6" }}>"{deleteConfirm.name}"</strong>? This will permanently delete it from the current active assessment batch.
               </p>
             </div>
 
@@ -257,9 +257,9 @@ export default function QuickNavigationList({
                 onClick={() => setDeleteConfirm({ show: false, index: null, name: "" })}
                 style={{
                   background: "transparent",
-                  border: "1px solid #3A3630",
+                  border: "1px solid #3a3a55",
                   borderRadius: "10px",
-                  color: "#8a8278",
+                  color: "#a1a1b5",
                   padding: "0.75rem 1rem",
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: "0.85rem",
@@ -268,12 +268,12 @@ export default function QuickNavigationList({
                   transition: "all 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#8a8278";
-                  e.currentTarget.style.color = "#f0ece6";
+                  e.currentTarget.style.borderColor = "#a1a1b5";
+                  e.currentTarget.style.color = "#e4e4f0";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#3A3630";
-                  e.currentTarget.style.color = "#8a8278";
+                  e.currentTarget.style.borderColor = "#3a3a55";
+                  e.currentTarget.style.color = "#a1a1b5";
                 }}
               >
                 Cancel
@@ -285,24 +285,24 @@ export default function QuickNavigationList({
                   setDeleteConfirm({ show: false, index: null, name: "" });
                 }}
                 style={{
-                  background: "#D85A30",
+                  background: "#5b5bd6",
                   border: "none",
                   borderRadius: "10px",
-                  color: "#f0ece6",
+                  color: "#e4e4f0",
                   padding: "0.75rem 1rem",
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: "0.85rem",
                   fontWeight: 700,
                   cursor: "pointer",
                   transition: "all 0.2s ease",
-                  boxShadow: "0 4px 12px rgba(216, 90, 48, 0.25)",
+                  boxShadow: "0 4px 12px rgba(91, 91, 214, 0.25)",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "#e06c45";
                   e.currentTarget.style.transform = "translateY(-1px)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#D85A30";
+                  e.currentTarget.style.background = "#5b5bd6";
                   e.currentTarget.style.transform = "translateY(0)";
                 }}
               >

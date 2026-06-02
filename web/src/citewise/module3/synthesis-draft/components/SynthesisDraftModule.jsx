@@ -4,6 +4,10 @@
   import ApprovedSourceList from "./ApprovedSourceList";
   import GeneratedDraftDisplay from "./GeneratedDraftDisplay";
   import ExportDraftDropdown from "./ExportDraftDropdown";
+  import InstructionsPanel from "./InstructionsPanel";
+  import SourceUsageTransparency from "./SourceUsageTransparency";
+  import DraftVersionHistory from "./DraftVersionHistory";
+  import * as store from "../../../lib/citewiseStore";
 
   const crcTable = Array.from({ length: 256 }, (_, index) => {
     let c = index;
@@ -159,6 +163,7 @@
     const [statusText, setStatusText] = useState("Ready to Generate");
     const [generatedContent, setGeneratedContent] = useState("");
     const [references, setReferences] = useState([]);
+    const [citationsUsed, setCitationsUsed] = useState([]);
     const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
     const [showSuccessToast, setShowSuccessToast] = useState(false);
 
@@ -301,11 +306,27 @@
       }, 1200);
 
       try {
-        const chosenGap = localStorage.getItem(`citewise_chosen_gap_${sessionId}`)?.trim();
+        // Gather all user-guidance for this session (Reqs 2, 3, 4, 8).
+        const selectedGaps = store.getSelectedGaps(sessionId);
+        const chosenGap =
+          selectedGaps[0]?.text ||
+          localStorage.getItem(`citewise_chosen_gap_${sessionId}`)?.trim() ||
+          "";
         const synthesisUrl = chosenGap
           ? `/api/v1/synthesis/generate?sessionId=${encodeURIComponent(sessionId)}&chosenGap=${encodeURIComponent(chosenGap)}`
           : `/api/v1/synthesis/generate?sessionId=${encodeURIComponent(sessionId)}`;
-        const response = await fetch(synthesisUrl, { method: "POST" });
+        const requestBody = {
+          userInstructions: store.getInstructions(sessionId),
+          weights: store.getScorePrefs(sessionId).weights,
+          gaps: (store.getGaps(sessionId) || []).map((g) => g.text),
+          primaryFocusGap: chosenGap,
+          rrlUsage: store.getRrlUsage(sessionId),
+        };
+        const response = await fetch(synthesisUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        });
         const payload = await response.json().catch(() => null);
         clearInterval(interval);
 
@@ -338,16 +359,25 @@
         setGenerationStatus("complete");
         setGeneratedContent(mergedContent);
         setReferences(mergedReferences);
+        setCitationsUsed(Array.isArray(payload.citationsUsed) ? payload.citationsUsed : []);
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 2200);
-        
+
+        // Req 7: record this generation as a restorable version.
+        store.addDraftVersion(sessionId, {
+          content: mergedContent,
+          references: mergedReferences,
+          label: `Generated v${store.getDraftVersions(sessionId).length + 1}`,
+          source: "generated",
+        });
+
         const draftToSave = {
           content: mergedContent,
           references: mergedReferences,
           timestamp: new Date().toISOString(),
         };
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
-        
+
       } catch (err) {
         clearInterval(interval);
         console.error("Synthesis error:", err);
@@ -367,6 +397,29 @@
       
       // Automatically trigger a clean synthesis
       startSynthesis(true);
+    };
+
+    // Req 6: persist a manual edit to the draft and snapshot it as a version.
+    const handleSaveEdit = (edited) => {
+      setGeneratedContent(edited);
+      const draftToSave = { content: edited, references, timestamp: new Date().toISOString() };
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
+      store.addDraftVersion(sessionId, {
+        content: edited,
+        references,
+        label: `Edited v${store.getDraftVersions(sessionId).length + 1}`,
+        source: "edited",
+      });
+    };
+
+    // Req 7: restore a previous version into the editor.
+    const handleRestoreVersion = (version) => {
+      if (!version) return;
+      setGeneratedContent(version.content || "");
+      setReferences(version.references || []);
+      setGenerationStatus("complete");
+      const draftToSave = { content: version.content || "", references: version.references || [], timestamp: new Date().toISOString() };
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
     };
 
     const handleExport = async (format) => {
@@ -444,7 +497,7 @@
           <div style={styles.toastOverlay}>
             <div style={styles.toastContainer}>
               <div style={styles.toastIcon}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="3">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="3">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
@@ -464,6 +517,17 @@
               onRegenerate={resetGeneration}
               hasApprovedDocuments={approvedDocuments.length > 0}
               approvedCount={approvedDocuments.length}
+            />
+            <InstructionsPanel sessionId={sessionId} />
+            <SourceUsageTransparency
+              sessionId={sessionId}
+              documents={approvedDocuments}
+              citationsUsed={citationsUsed}
+            />
+            <DraftVersionHistory
+              sessionId={sessionId}
+              currentContent={generatedContent}
+              onRestore={handleRestoreVersion}
             />
             <ApprovedSourceList documents={approvedDocuments} loading={loading} />
           </div>
@@ -485,6 +549,7 @@
                   generationStatus={generationStatus}
                   content={generatedContent}
                   references={references}
+                  onSaveEdit={handleSaveEdit}
                 />
               </div>
             </div>
@@ -500,7 +565,7 @@
       flexDirection: "column",
       fontFamily: "'Poppins', sans-serif",
       flex: 1,
-      color: "#f0ece6",
+      color: "#e4e4f0",
       position: "relative",
     },
     gridContainer: {
@@ -523,8 +588,8 @@
       minHeight: 0,
     },
     rightPanel: {
-      background: "#1E1C19",
-      border: "1px solid #3A3630",
+      background: "#1e1e2f",
+      border: "1px solid #3a3a55",
       borderRadius: "12px",
       display: "flex",
       flexDirection: "column",
@@ -534,7 +599,7 @@
     },
     rightPanelHeader: {
       padding: "16px 24px",
-      borderBottom: "1px solid #3A3630",
+      borderBottom: "1px solid #3a3a55",
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
@@ -544,13 +609,13 @@
       fontFamily: "'Poppins', sans-serif",
       fontWeight: 700,
       fontSize: "1.05rem",
-      color: "#D98A21",
+      color: "#5b5bd6",
       letterSpacing: "0.01em",
     },
     rightPanelContent: {
       flex: 1,
       padding: "24px",
-      background: "#1E1C19",
+      background: "#1e1e2f",
       overflowY: "auto",
     },
     toastOverlay: {
@@ -564,8 +629,8 @@
       zIndex: 9999,
     },
     toastContainer: {
-      background: "#1E1C19",
-      border: "1px solid rgba(217, 138, 33, 0.25)",
+      background: "#1e1e2f",
+      border: "1px solid rgba(91, 91, 214, 0.25)",
       borderRadius: "24px",
       padding: "2.5rem 3rem",
       maxWidth: "480px",
@@ -576,8 +641,8 @@
       width: "80px",
       height: "80px",
       borderRadius: "50%",
-      background: "rgba(216, 90, 48, 0.1)",
-      border: "2px solid #D85A30",
+      background: "rgba(91, 91, 214, 0.1)",
+      border: "2px solid #5b5bd6",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -587,7 +652,7 @@
       fontFamily: "'Poppins', sans-serif",
       fontWeight: 800,
       fontSize: "1.5rem",
-      color: "#f0ece6",
+      color: "#e4e4f0",
       margin: "0 0 0.5rem 0",
     },
     toastMessage: {

@@ -5,8 +5,8 @@ function formatFileSize(bytes) {
 }
 
 const statusConfig = {
-  queued: { label: "Ready", color: "#D98A21", bg: "rgba(217, 138, 33, 0.12)" },
-  uploading: { label: "Uploading", color: "#D98A21", bg: "rgba(217, 138, 33, 0.18)" },
+  queued: { label: "Ready", color: "#5b5bd6", bg: "rgba(91, 91, 214, 0.12)" },
+  uploading: { label: "Uploading", color: "#5b5bd6", bg: "rgba(91, 91, 214, 0.18)" },
   uploaded: { label: "Uploaded", color: "#4caf82", bg: "rgba(76,175,130,0.15)" },
   failed: { label: "Failed", color: "#e05555", bg: "rgba(224,85,85,0.15)" },
   invalid: { label: "Rejected", color: "#e05555", bg: "rgba(224,85,85,0.15)" },
@@ -57,21 +57,21 @@ export default function SelectedFilesList({ files, onRemove }) {
               alignItems: "center",
               justifyContent: "space-between",
               background: "rgba(0, 0, 0, 0.15)",
-              border: "1px solid #3A3630",
+              border: "1px solid #3a3a55",
               borderRadius: "8px",
               padding: "0.5rem 0.75rem",
               gap: "0.5rem",
               transition: "border-color 0.2s ease",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#D98A21")}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#3A3630")}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#5b5bd6")}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#3a3a55")}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <p
                 style={{
                   fontSize: "0.85rem",
                   fontWeight: 600,
-                  color: "#f0ece6",
+                  color: "#e4e4f0",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",

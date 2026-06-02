@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import EvidenceExcerptList from './EvidenceExcerptList';
 import SemanticScoreDashboard from './SemanticScoreDashboard';
 import UploadNewPDFButton from './UploadNewPDFButton';
+import RrlUsagePanel from './RrlUsagePanel';
+import * as store from '../../../lib/citewiseStore';
 
 const PANEL_HEADER_PADDING = '1.125rem 1.5rem';
 const PANEL_CONTENT_PADDING = '24px';
 
 const AIAssessmentPanel = ({
   documentId,
+  sessionId,
   insights: externalInsights,
   isLoading: externalLoading,
   onAssess: externalAssess,
@@ -20,6 +23,15 @@ const AIAssessmentPanel = ({
   const [error, setError] = useState(null);
   const [isAssessing, setIsAssessing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Re-render the recomputed overall score when the user changes weight prefs.
+  const [prefsVersion, setPrefsVersion] = useState(0);
+
+  useEffect(() => {
+    const unsub = store.subscribe(({ name }) => {
+      if (name === "scorePrefs") setPrefsVersion((v) => v + 1);
+    });
+    return unsub;
+  }, []);
   const useExternal = externalInsights !== undefined || externalLoading !== undefined;
   const resolvedInsights = useExternal ? externalInsights : insights;
   const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
@@ -136,6 +148,18 @@ const AIAssessmentPanel = ({
 
   const mappedData = getMappedData();
 
+  // Req 8: recompute the overall score from the user's weight preferences so
+  // the dashboard reflects their chosen components/weights. (prefsVersion forces
+  // a re-render when the weights change.)
+  void prefsVersion;
+  if (mappedData) {
+    const prefs = store.getScorePrefs(sessionId);
+    const recomputed = store.recomputeOverall(mappedData.scores, prefs);
+    if (recomputed != null) {
+      mappedData.scores = { ...mappedData.scores, overall: recomputed };
+    }
+  }
+
   // --- Helper: Panel header with both buttons ---
   const PanelHeader = () => (
     <div
@@ -152,7 +176,7 @@ const AIAssessmentPanel = ({
           fontFamily: "'Poppins', sans-serif",
           fontSize: '22px',
           fontWeight: '700',
-          color: '#D98A21',
+          color: '#5b5bd6',
           margin: 0,
         }}
       >
@@ -170,8 +194,8 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#1E1C19',
-          border: '1px solid #3A3630',
+          background: '#1e1e2f',
+          border: '1px solid #3a3a55',
           borderRadius: '16px',
           padding: 0,
           display: 'flex',
@@ -183,7 +207,7 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
           <PanelHeader />
         </div>
         <div style={{ padding: PANEL_CONTENT_PADDING }}>
@@ -193,7 +217,7 @@ const AIAssessmentPanel = ({
               height="48"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#8a8278"
+              stroke="#a1a1b5"
               strokeWidth="1"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -204,7 +228,7 @@ const AIAssessmentPanel = ({
               style={{
                 fontFamily: "'Geist Mono', monospace",
                 fontSize: '13px',
-                color: '#8a8278',
+                color: '#a1a1b5',
                 margin: 0,
               }}
             >
@@ -221,8 +245,8 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#1E1C19',
-          border: '1px solid #3A3630',
+          background: '#1e1e2f',
+          border: '1px solid #3a3a55',
           borderRadius: '16px',
           padding: 0,
           display: 'flex',
@@ -234,7 +258,7 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
           <PanelHeader />
         </div>
         <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
@@ -242,7 +266,7 @@ const AIAssessmentPanel = ({
             style={{
               fontFamily: "'Geist Mono', monospace",
               fontSize: '13px',
-              color: '#8a8278',
+              color: '#a1a1b5',
               letterSpacing: '0.5px',
             }}
           >
@@ -258,8 +282,8 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#1E1C19',
-          border: '1px solid #3A3630',
+          background: '#1e1e2f',
+          border: '1px solid #3a3a55',
           borderRadius: '16px',
           padding: 0,
           display: 'flex',
@@ -271,7 +295,7 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
           <PanelHeader />
         </div>
         <div style={{ padding: PANEL_CONTENT_PADDING }}>
@@ -288,7 +312,7 @@ const AIAssessmentPanel = ({
               style={{
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: '16px',
-                color: '#D98A21',
+                color: '#5b5bd6',
                 margin: '0 0 8px 0',
               }}
             >
@@ -298,7 +322,7 @@ const AIAssessmentPanel = ({
               style={{
                 fontFamily: "'Geist Mono', monospace",
                 fontSize: '13px',
-                color: '#f0ece6',
+                color: '#e4e4f0',
                 margin: 0,
               }}
             >
@@ -318,8 +342,8 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#1E1C19',
-          border: '1px solid #3A3630',
+          background: '#1e1e2f',
+          border: '1px solid #3a3a55',
           borderRadius: '16px',
           padding: 0,
           display: 'flex',
@@ -331,7 +355,7 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
           <PanelHeader />
         </div>
         <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
@@ -339,7 +363,7 @@ const AIAssessmentPanel = ({
             style={{
               fontFamily: "'Geist Mono', monospace",
               fontSize: '13px',
-              color: '#8a8278',
+              color: '#a1a1b5',
             }}
           >
             {waitingMessage}
@@ -353,8 +377,8 @@ const AIAssessmentPanel = ({
   return (
     <div
       style={{
-        background: '#1E1C19',
-        border: '1px solid #3A3630',
+        background: '#1e1e2f',
+        border: '1px solid #3a3a55',
         borderRadius: '16px',
         padding: 0,
         display: 'flex',
@@ -366,7 +390,7 @@ const AIAssessmentPanel = ({
         overflow: 'hidden',
       }}
     >
-      <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+      <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
         <PanelHeader />
       </div>
       <div style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
@@ -380,6 +404,11 @@ const AIAssessmentPanel = ({
           mismatchFlags={mappedData.mismatchFlags}
           weaknessFlags={mappedData.weaknessFlags}
           validationFlags={mappedData.validationFlags}
+        />
+        <RrlUsagePanel
+          sessionId={sessionId}
+          documentId={documentId}
+          excerpts={mappedData.excerpts}
         />
       </div>
     </div>

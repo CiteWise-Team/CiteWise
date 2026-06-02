@@ -77,46 +77,16 @@ function loadChosenGap(sessionId) {
   }
 }
 
-export default function DataDisplayGrid({ catalystData, isLoading, error, sessionId }) {
-  const gaps = useMemo(() => normalizeGaps(catalystData?.gaps), [catalystData?.gaps]);
-  const storageKey = getChosenGapStorageKey(sessionId);
-  const [selectedGap, setSelectedGap] = useState(null);
-
-  useEffect(() => {
-    if (gaps.length === 1) {
-      saveChosenGap(sessionId, 0, gaps[0]);
-    }
-  }, [gaps, sessionId]);
-
-  const selectedGapIndex = useMemo(() => {
-    if (isLoading || gaps.length === 0) return null;
-    if (selectedGap?.storageKey === storageKey && gaps[selectedGap.gapIndex] === selectedGap.gapText) {
-      return selectedGap.gapIndex;
-    }
-    if (gaps.length === 1) return 0;
-    const stored = loadChosenGap(sessionId);
-    const restoredIndex = gaps.findIndex((gap, index) => {
-      return gap === stored?.gapText && index === stored?.gapIndex;
-    });
-    const fallbackIndex = gaps.findIndex((gap) => gap === stored?.gapText);
-    const nextIndex = restoredIndex >= 0 ? restoredIndex : fallbackIndex;
-    return nextIndex >= 0 ? nextIndex : null;
-  }, [gaps, isLoading, selectedGap, sessionId, storageKey]);
-
-  const handleGapSelect = (gapIndex, gapText) => {
-    setSelectedGap({ gapIndex, gapText, storageKey });
-    saveChosenGap(sessionId, gapIndex, gapText);
-  };
-
+export default function DataDisplayGrid({ catalystData, isLoading, error }) {
   if (error) {
     return (
       <div
         style={{
           margin: "1.25rem",
-          background: "rgba(216, 90, 48, 0.08)",
-          border: "1px solid rgba(216, 90, 48, 0.25)",
+          background: "rgba(91, 91, 214, 0.08)",
+          border: "1px solid rgba(91, 91, 214, 0.25)",
           borderRadius: "8px",
-          color: "#D85A30",
+          color: "#5b5bd6",
           fontSize: "0.875rem",
           fontFamily: "'Poppins', sans-serif",
           fontWeight: 600,
@@ -129,42 +99,40 @@ export default function DataDisplayGrid({ catalystData, isLoading, error, sessio
     );
   }
 
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "1.25rem",
-        padding: "1.25rem 1.5rem",
-      }}
-    >
-      <DataColumn
-        label="Research Title"
-        value={catalystData?.title}
-        isLoading={isLoading}
-        isTitleRow
-      />
+  if (!catalystData && !isLoading) return null;
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: "1.25rem",
-        }}
-      >
-        <DataColumn
-          label="Rationale"
-          value={catalystData?.rationale}
-          isLoading={isLoading}
-        />
-        <DataColumn
-          label="Research Gap"
-          value={gaps}
-          isLoading={isLoading}
-          isList
-          selectedGapIndex={selectedGapIndex}
-          onGapSelect={handleGapSelect}
-        />
+  return (
+    <div style={{ padding: "1.5rem 2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* Research Title */}
+      <div>
+        <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#5b5bd6", fontFamily: "'Poppins', sans-serif" }}>
+          Research Title
+        </p>
+        {isLoading ? (
+          <div style={{ height: 24, background: "#25253a", borderRadius: 6, width: "60%" }} />
+        ) : (
+          <p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600, color: "#e4e4f0", lineHeight: 1.5, fontFamily: "'Poppins', sans-serif" }}>
+            {catalystData?.title || <span style={{ color: "#a1a1b5", fontStyle: "italic" }}>No title imported</span>}
+          </p>
+        )}
+      </div>
+
+      {/* Rationale */}
+      <div>
+        <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#5b5bd6", fontFamily: "'Poppins', sans-serif" }}>
+          Rationale
+        </p>
+        {isLoading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {[100, 85, 70].map((w) => (
+              <div key={w} style={{ height: 14, background: "#25253a", borderRadius: 4, width: `${w}%` }} />
+            ))}
+          </div>
+        ) : (
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "#a1a1b5", lineHeight: 1.7, fontFamily: "'Poppins', sans-serif" }}>
+            {catalystData?.rationale || <span style={{ fontStyle: "italic" }}>No rationale imported</span>}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -186,7 +154,7 @@ function DataColumn({
     <div
       style={{
         background: "rgba(0, 0, 0, 0.15)",
-        border: "1px solid #3A3630",
+        border: "1px solid #3a3a55",
         borderRadius: "12px",
         padding: "1.25rem",
         display: "flex",
@@ -196,12 +164,12 @@ function DataColumn({
         transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "#D98A21";
+        e.currentTarget.style.borderColor = "#5b5bd6";
         e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 6px 20px rgba(217, 138, 33, 0.08)";
+        e.currentTarget.style.boxShadow = "0 6px 20px rgba(91, 91, 214, 0.08)";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "#3A3630";
+        e.currentTarget.style.borderColor = "#3a3a55";
         e.currentTarget.style.transform = "translateY(0)";
         e.currentTarget.style.boxShadow = "none";
       }}
@@ -211,7 +179,7 @@ function DataColumn({
           fontSize: "0.75rem",
           fontWeight: "700",
           letterSpacing: "0.08em",
-          color: "#D98A21",
+          color: "#5b5bd6",
           textTransform: "uppercase",
           fontFamily: "'Poppins', sans-serif",
           margin: 0,
@@ -243,7 +211,7 @@ function DataColumn({
             style={{
               fontSize: isTitleRow ? "1.15rem" : "0.85rem",
               fontWeight: isTitleRow ? "600" : "400",
-              color: "#f0ece6",
+              color: "#e4e4f0",
               lineHeight: isTitleRow ? 1.45 : 1.65,
               margin: 0,
               fontFamily: "'Poppins', sans-serif",
@@ -288,25 +256,25 @@ function PrimaryGapSelector({ gaps, selectedGapIndex, onGapSelect }) {
                 appearance: "none",
                 width: "100%",
                 textAlign: "left",
-                background: isSelected ? "rgba(217, 138, 33, 0.12)" : "rgba(0, 0, 0, 0.18)",
-                border: isSelected ? "1px solid #D98A21" : "1px solid rgba(240, 236, 230, 0.12)",
+                background: isSelected ? "rgba(91, 91, 214, 0.12)" : "rgba(0, 0, 0, 0.18)",
+                border: isSelected ? "1px solid #5b5bd6" : "1px solid rgba(240, 236, 230, 0.12)",
                 borderRadius: "10px",
-                color: "#f0ece6",
+                color: "#e4e4f0",
                 cursor: "pointer",
                 padding: "0.85rem",
                 boxShadow: isSelected
-                  ? "0 0 0 1px rgba(217, 138, 33, 0.18), 0 10px 24px rgba(217, 138, 33, 0.08)"
+                  ? "0 0 0 1px rgba(91, 91, 214, 0.18), 0 10px 24px rgba(91, 91, 214, 0.08)"
                   : "none",
                 transition:
                   "border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease",
                 fontFamily: "'Poppins', sans-serif",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#D98A21";
+                e.currentTarget.style.borderColor = "#5b5bd6";
                 e.currentTarget.style.transform = "translateY(-1px)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = isSelected ? "#D98A21" : "rgba(240, 236, 230, 0.12)";
+                e.currentTarget.style.borderColor = isSelected ? "#5b5bd6" : "rgba(240, 236, 230, 0.12)";
                 e.currentTarget.style.transform = "translateY(0)";
               }}
             >
@@ -314,7 +282,7 @@ function PrimaryGapSelector({ gaps, selectedGapIndex, onGapSelect }) {
                 <span
                   style={{
                     display: "block",
-                    color: "#D98A21",
+                    color: "#5b5bd6",
                     fontSize: "0.68rem",
                     fontWeight: 800,
                     letterSpacing: "0.06em",
