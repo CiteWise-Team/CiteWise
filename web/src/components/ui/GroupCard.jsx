@@ -31,8 +31,19 @@ export default function GroupCard({
     navigate(`/workspace/${group_id}`);
   }
 
-  // Step 1: fetch topics + gaps, decide whether to show picker or auto-import
+  // Returns the scoped localStorage key for this group.
+  const gk = (suffix) => `citewise.${group_id}.${suffix}`;
+
+  // Step 1: if a session already exists for this group, go straight in.
+  // Otherwise fetch topics and run the import flow.
   async function handleOpenCiteWise() {
+    const existingSession = localStorage.getItem(gk("sessionId"));
+    if (existingSession) {
+      enterGroup({ id: group_id, name, color });
+      navigate(`/citewise/${group_id}`);
+      return;
+    }
+
     setImporting(true);
     try {
       const res = await fetch(`/api/catalyst/${encodeURIComponent(group_id)}/topics`);
@@ -51,10 +62,8 @@ export default function GroupCard({
       }
 
       if (topics.length === 1) {
-        // Only one topic — import immediately using it
         await importAndNavigate(topics[0].title, topics[0].rationale);
       } else {
-        // Multiple topics — let the user pick
         setPickerTopics(topics);
         setPickerGaps(gaps);
         setShowTopicPicker(true);
@@ -66,13 +75,14 @@ export default function GroupCard({
     }
   }
 
-  // Step 2: called either directly (1 topic) or from the picker modal (user selected)
+  // Step 2: create a new CiteWise session for this group.
+  // Only clears THIS group's previous data — other groups are untouched.
   async function importAndNavigate(title, rationale) {
-    // Clear any previous CiteWise session
-    localStorage.removeItem("citewise.sessionId");
-    localStorage.removeItem("citewise.catalystData");
-    localStorage.removeItem("citewise.step");
-    localStorage.removeItem("citewise.maxUnlockedStep");
+    // Clear only this group's previous CiteWise keys
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(`citewise.${group_id}.`)) localStorage.removeItem(key);
+    }
 
     const res = await fetch("/api/catalyst/import", {
       method: "POST",
@@ -87,11 +97,11 @@ export default function GroupCard({
     }
 
     const { sessionId, title: savedTitle, rationale: savedRationale, gaps } = payload.data;
-    localStorage.setItem("citewise.sessionId", sessionId);
-    localStorage.setItem("citewise.catalystData", JSON.stringify({ title: savedTitle, rationale: savedRationale, gaps }));
+    localStorage.setItem(gk("sessionId"), sessionId);
+    localStorage.setItem(gk("catalystData"), JSON.stringify({ title: savedTitle, rationale: savedRationale, gaps }));
     enterGroup({ id: group_id, name, color });
     setShowTopicPicker(false);
-    navigate("/citewise");
+    navigate(`/citewise/${group_id}`);
   }
 
   function openDeleteModal() {

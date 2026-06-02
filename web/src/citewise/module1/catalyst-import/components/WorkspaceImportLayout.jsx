@@ -8,15 +8,17 @@ import UploadAllButton from "../../rrl-upload/components/UploadAllButton";
 import UploadStatusBar from "../../rrl-upload/components/UploadStatusBar";
 
 const MAX_FILE_MB = 20;
-const STORAGE_SESSION_KEY = "citewise.sessionId";
-const STORAGE_CATALYST_KEY = "citewise.catalystData";
 const DUPLICATE_REMOVE_DELAY = 3000;
 
 function buildFileKey(file) {
   return `${file.name.toLowerCase()}-${file.size}`;
 }
 
-export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
+export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProceed }) {
+  // Group-scoped localStorage keys so each workspace keeps independent data.
+  const STORAGE_SESSION_KEY  = `citewise.${groupId}.sessionId`;
+  const STORAGE_CATALYST_KEY = `citewise.${groupId}.catalystData`;
+
   // ── CATalyst Import State ──────────────────────────────────────
   const [workspaceId, setWorkspaceId] = useState("");
   const [catalystData, setCatalystData] = useState(() => {
@@ -190,9 +192,28 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   };
 
 
+  const MAX_FILES = 5;
+
   // ── RRL Upload ─────────────────────────────────────────────────
   const appendFiles = (incomingFiles) => {
     if (!incomingFiles?.length) return;
+
+    // Count how many valid (non-duplicate, non-invalid) files are already queued.
+    const currentValid = fileQueue.filter((i) => i.status === "queued" || i.status === "uploading").length;
+    const slotsLeft = MAX_FILES - currentValid;
+
+    if (slotsLeft <= 0) {
+      triggerDuplicateToast([`Maximum ${MAX_FILES} files allowed per upload batch.`]);
+      return;
+    }
+
+    // Silently cap — take only as many files as there are slots left.
+    const capped = Array.from(incomingFiles).slice(0, slotsLeft);
+    const skipped = Array.from(incomingFiles).length - capped.length;
+    if (skipped > 0) {
+      triggerDuplicateToast([`Only ${capped.length} of ${Array.from(incomingFiles).length} files added — limit is ${MAX_FILES} per batch.`]);
+    }
+
     setUploadState("ready");
     setStatusMessage("Ready to upload");
     const dupesList = [];
@@ -201,7 +222,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
     const tempKeys = new Set(fileQueue.map((i) => i.key));
     const tempNames = new Set(fileQueue.map((i) => i.name.toLowerCase()));
 
-    Array.from(incomingFiles).forEach((file) => {
+    capped.forEach((file) => {
       const key = buildFileKey(file);
       const nameLower = file.name.toLowerCase();
 
@@ -224,7 +245,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
       const seenKeys = new Set(prev.map((i) => i.key));
       const seenNames = new Set(prev.map((i) => i.name.toLowerCase()));
 
-      Array.from(incomingFiles).forEach((file) => {
+      capped.forEach((file) => {
         const key = buildFileKey(file);
         const nameLower = file.name.toLowerCase();
         const isPdf = file.type === "application/pdf" || nameLower.endsWith(".pdf");
@@ -380,24 +401,27 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   };
 
   const clearCiteWiseSessionStorage = () => {
-    const prefixes = [
-      "citewise.uploadedDocs",
-      "citewise_approved_docs_",
-      "citewise_draft_",
-      "citewise_chosen_gap_",
-    ];
+    // Only clear THIS group's data — other workspaces are untouched.
+    const groupPrefix = `citewise.${groupId}.`;
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
-      if (key && prefixes.some((prefix) => key.startsWith(prefix))) {
+      if (!key) continue;
+      if (key.startsWith(groupPrefix)) { localStorage.removeItem(key); continue; }
+      // Also clear session-scoped keys that belong to this group's session.
+      if (sessionId && (
+        key === `citewise_chosen_gap_${sessionId}` ||
+        key === `citewise_approved_docs_${sessionId}` ||
+        key === `citewise_draft_${sessionId}` ||
+        key.startsWith(`citewise.gaps.${sessionId}`) ||
+        key.startsWith(`citewise.instructions.${sessionId}`) ||
+        key.startsWith(`citewise.scorePrefs.${sessionId}`) ||
+        key.startsWith(`citewise.rrlUsage.${sessionId}`) ||
+        key.startsWith(`citewise.draftVersions.${sessionId}`) ||
+        key.startsWith(`citewise.chosenTitle.${sessionId}`)
+      )) {
         localStorage.removeItem(key);
       }
     }
-    localStorage.removeItem("citewise.sessionId");
-    localStorage.removeItem("citewise.session_id");
-    localStorage.removeItem(STORAGE_CATALYST_KEY);
-    localStorage.removeItem("citewise_chosen_gap_default");
-    localStorage.removeItem("citewise.step");
-    localStorage.removeItem("citewise.maxUnlockedStep");
     sessionStorage.clear();
   };
 

@@ -6,8 +6,8 @@ import ValidationSummaryFooter from "./ValidationSummaryFooter";
 import RrlUploadLayout from "../../../module1/rrl-upload/components/RrlUploadLayout";
 import RelevanceWeightsPanel from "../../ai-assessment/components/RelevanceWeightsPanel";
 
-export default function ValidationDashboardLayout({ sessionId: propSessionId, onStepChange }) {
-  const STORAGE_SESSION_KEY = "citewise.session_id";
+export default function ValidationDashboardLayout({ groupId, sessionId: propSessionId, onStepChange }) {
+  const STORAGE_SESSION_KEY = groupId ? `citewise.${groupId}.sessionId` : "citewise.session_id";
   const LOW_RELEVANCE_APPROVAL_THRESHOLD = 60;
 
   // Use sessionId from prop or generate/get from localStorage

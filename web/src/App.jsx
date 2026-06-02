@@ -46,8 +46,8 @@ export default function App() {
           </ProtectedRoute>
         } />
 
-        {/* CiteWise flow (folded-in CiteWise modules: import -> upload -> assess -> synthesize) */}
-        <Route path="/citewise/*" element={<CiteWiseApp />} />
+        {/* CiteWise flow — keyed per workspace so each group keeps its own session */}
+        <Route path="/citewise/:groupId" element={<CiteWiseApp />} />
         {/* <Route path="/workspace/workflow" element={
           <ProtectedRoute>
             <GroupWorkflow />

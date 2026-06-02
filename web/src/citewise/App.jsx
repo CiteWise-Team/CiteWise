@@ -1,52 +1,49 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import GlobalNavigationBar from "./shared/components/GlobalNavigationBar";
 import WorkspaceImportLayout from "./module1/catalyst-import/components/WorkspaceImportLayout";
 import ValidationDashboardLayout from "./module2/literature-review/components/ValidationDashboardLayout";
 import SynthesisDraftModule from "./module3/synthesis-draft/components/SynthesisDraftModule";
 
-/**
- * CiteWise App
- *
- * Step 0 → Data Import        (WorkspaceImportLayout)
- * Step 1 → AI Assessment      (ValidationDashboardLayout)
- * Step 2 → Generate Introduction (SynthesisDraftModule)
- *
- * Entered via GroupCard "CiteWise →" which pre-loads sessionId +
- * catalystData into localStorage before navigating here.
- */
+// All localStorage keys are namespaced by groupId so each workspace keeps its own
+// independent CiteWise session. Switching workspaces and returning always restores
+// the correct state.
+function scopedKey(groupId, name) {
+  return `citewise.${groupId}.${name}`;
+}
+
 export default function CiteWiseApp() {
   const navigate = useNavigate();
+  const { groupId } = useParams();
 
   const [step, setStep] = useState(() => {
-    const saved = localStorage.getItem("citewise.step");
+    const saved = localStorage.getItem(scopedKey(groupId, "step"));
     const parsed = saved !== null ? parseInt(saved, 10) : 0;
-    // clamp: never start at the old "landing" step -1
     return parsed < 0 ? 0 : parsed;
   });
 
   const [maxUnlockedStep, setMaxUnlockedStep] = useState(() => {
-    const saved = localStorage.getItem("citewise.maxUnlockedStep");
+    const saved = localStorage.getItem(scopedKey(groupId, "maxUnlockedStep"));
     const parsed = saved !== null ? parseInt(saved, 10) : NaN;
     const floor = step >= 0 ? step : 0;
     return !Number.isNaN(parsed) ? Math.max(parsed, floor) : floor;
   });
 
   const [sessionId, setSessionId] = useState(
-    () => localStorage.getItem("citewise.sessionId") || ""
+    () => localStorage.getItem(scopedKey(groupId, "sessionId")) || ""
   );
 
   useEffect(() => {
-    localStorage.setItem("citewise.step", step.toString());
-  }, [step]);
+    if (groupId) localStorage.setItem(scopedKey(groupId, "step"), step.toString());
+  }, [step, groupId]);
 
   useEffect(() => {
-    if (sessionId) localStorage.setItem("citewise.sessionId", sessionId);
-  }, [sessionId]);
+    if (groupId && sessionId) localStorage.setItem(scopedKey(groupId, "sessionId"), sessionId);
+  }, [sessionId, groupId]);
 
   useEffect(() => {
-    localStorage.setItem("citewise.maxUnlockedStep", maxUnlockedStep.toString());
-  }, [maxUnlockedStep]);
+    if (groupId) localStorage.setItem(scopedKey(groupId, "maxUnlockedStep"), maxUnlockedStep.toString());
+  }, [maxUnlockedStep, groupId]);
 
   const handleModule1Proceed = () => {
     setMaxUnlockedStep((prev) => Math.max(prev, 1));
@@ -83,6 +80,7 @@ export default function CiteWiseApp() {
 
         {step === 0 && (
           <WorkspaceImportLayout
+            groupId={groupId}
             onImportSuccess={(sid) => setSessionId(sid)}
             onProceed={handleModule1Proceed}
           />
@@ -90,6 +88,7 @@ export default function CiteWiseApp() {
 
         {step === 1 && (
           <ValidationDashboardLayout
+            groupId={groupId}
             sessionId={sessionId}
             onStepChange={handleModuleStepChange}
           />
