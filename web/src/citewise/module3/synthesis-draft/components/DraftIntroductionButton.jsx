@@ -52,7 +52,7 @@ export default function DraftIntroductionButton({
           onMouseEnter={(e) => (e.currentTarget.style.background = "#6f6fe0")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "#5b5bd6")}
         >
-          Clear & Regenerate
+          Clear Draft
         </button>
       )}
     </>

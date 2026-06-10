@@ -394,9 +394,6 @@
       setReferences([]);
       setStatusText("Ready to Generate");
       localStorage.removeItem(DRAFT_STORAGE_KEY);
-      
-      // Automatically trigger a clean synthesis
-      startSynthesis(true);
     };
 
     // Req 6: persist a manual edit to the draft and snapshot it as a version.
