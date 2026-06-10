@@ -1,0 +1,8 @@
+body {
+  font-family: 'Geist', sans-serif;
+}
+
+.cw-workspace-input,
+.rrl-session input {
+  font-family: 'Geist Mono', monospace;
+}

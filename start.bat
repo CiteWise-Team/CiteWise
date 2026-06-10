@@ -3,8 +3,13 @@ setlocal
 
 pushd "%~dp0"
 
-start "CiteWise Backend" cmd /k "cd /d backend && mvnw spring-boot:run"
-start "CiteWise Frontend" cmd /k "cd /d frontend && npm run dev"
+echo Starting CiteWise (merged app)...
+echo   Backend  -> http://localhost:8081
+echo   Frontend -> http://localhost:5173
+echo.
+
+start "CiteWise API (port 8081)"      cmd /k "cd /d api  && npm run dev"
+start "CiteWise Web (port 5173)"      cmd /k "cd /d web  && npm run dev"
 
 popd
 endlocal

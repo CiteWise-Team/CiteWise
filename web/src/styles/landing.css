@@ -1,0 +1,71 @@
+body{
+  font-family: "Be Vietnam Pro", sans-serif;
+  background:#121417;
+}
+
+.hero-section{
+  padding:120px 0;
+}
+
+.hero-title{
+  font-weight:900;
+  font-size:3rem;
+}
+
+.hero-highlight{
+  color:#258cf4;
+}
+
+.feature-card{
+  border-radius:16px;
+  border:1px solid #eaeaea;
+  padding:30px;
+  transition:all .2s;
+  background:white;
+}
+
+.feature-card:hover{
+  border-color:#258cf4;
+  transform:translateY(-4px);
+}
+
+.icon-box{
+  width:48px;
+  height:48px;
+  border-radius:12px;
+  background:rgba(37,140,244,0.1);
+  color:#258cf4;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:15px;
+}
+
+.cta-section{
+  background:#258cf4;
+  color:white;
+  padding:80px 20px;
+  border-radius:16px;
+}
+
+
+/*  */
+/* Make the carousel box a fixed size */
+#uiCarousel{
+  height:420px;
+  overflow:hidden;
+}
+
+/* Ensure slides fill the box */
+#uiCarousel .carousel-inner,
+#uiCarousel .carousel-item{
+  height:100%;
+}
+
+/* Make images scale instead of resizing container */
+#uiCarousel img{
+  height:100%;
+  width:100%;
+  object-fit:contain;   /* keeps full image visible */
+  background:#f8f9fa;   /* fills empty space nicely */
+}
