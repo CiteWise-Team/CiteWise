@@ -65,3 +65,19 @@ Thumbs.db
 # Local dev overrides — do not commit
 DevRestClientConfig.java
 application-dev.properties
+
+# Agent-related exclusions
+.agents/
+.agent/
+_agents/
+_agent/
+.codex-logs/
+.codex-log
+project_onboarding.md
+walkthrough.md
+best_practices_audit.md
+task.md
+qa_walkthrough.md
+
+# PDFs and document inputs
+*.pdf
