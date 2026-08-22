@@ -5,7 +5,6 @@ import GapWorkshop from "./GapWorkshop";
 import DragDropZone from "../../rrl-upload/components/DragDropZone";
 import SelectedFilesList from "../../rrl-upload/components/SelectedFilesList";
 import UploadAllButton from "../../rrl-upload/components/UploadAllButton";
-import UploadStatusBar from "../../rrl-upload/components/UploadStatusBar";
 
 const MAX_FILE_MB = 20;
 const DUPLICATE_REMOVE_DELAY = 3000;
@@ -425,7 +424,6 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
     sessionStorage.clear();
   };
 
-  const readyCount = fileQueue.filter((i) => i.status === "queued").length;
   const totalCount = fileQueue.length;
 
   return (
@@ -681,14 +679,6 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
               <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
                 <UploadAllButton onClick={handleUpload} isUploading={uploadState === "uploading"} />
-                <div style={{ flex: 1 }}>
-                  <UploadStatusBar
-                    readyCount={readyCount}
-                    totalCount={totalCount}
-                    statusMessage={statusMessage}
-                    uploadState={uploadState}
-                  />
-                </div>
               </div>
             </div>
           </div>
