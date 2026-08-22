@@ -113,7 +113,8 @@ export default function GroupCard({
     onDelete?.(group_id);
   };
 
-  const headerGradient = `linear-gradient(135deg, ${color}cc, ${color}99)`;
+  const headerColor = color || "#5b5bd6";
+  const headerGradient = `linear-gradient(135deg, ${headerColor}e6, ${headerColor}99)`;
 
   return (
     <>
@@ -134,12 +135,13 @@ export default function GroupCard({
         {/* Header */}
         <div
           className="position-relative"
-          style={{ height: 120, background: headerGradient }}
+          style={{ height: 120, background: headerGradient, borderBottom: "3px solid #5b5bd6" }}
         >
           {/* Settings Dropdown */}
           <div className="position-absolute top-0 end-0 m-3">
             <button
               className="btn btn-sm text-light"
+              aria-label={`Settings for ${name}`}
               onClick={() => setDropdownOpen(!dropdownOpen)}
             >
               <CiSettings />
@@ -157,7 +159,7 @@ export default function GroupCard({
               >
                 <div
                   className="d-flex align-items-center p-1 hover-bg"
-                  style={{ cursor: "pointer", color: "#ffffff" }}
+                  style={{ cursor: "pointer", color: "#e4e4f0", fontFamily: "'Poppins', sans-serif" }}
                   onClick={() => { setDropdownOpen(false); onEdit?.(); }}
                 >
                   <FaPen className="me-2" />
@@ -165,7 +167,7 @@ export default function GroupCard({
                 </div>
                 <div
                   className="d-flex align-items-center p-1 hover-bg mt-1"
-                  style={{ cursor: "pointer", color: "#ffffff" }}
+                  style={{ cursor: "pointer", color: "#e5544b", fontFamily: "'Poppins', sans-serif" }}
                   onClick={() => { setDropdownOpen(false); openDeleteModal(); }}
                 >
                   <MdDelete className="me-2" />
@@ -192,8 +194,11 @@ export default function GroupCard({
             className="btn w-100 fw-bold mt-auto"
             style={{
               backgroundColor: "transparent",
-              border: "1px solid #5b5bd6",
+              border: "1px solid #3a3a55",
               color: "#a5b4fc",
+              borderRadius: "10px",
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.82rem",
             }}
           >
             Enter Group
@@ -205,9 +210,12 @@ export default function GroupCard({
             disabled={importing}
             className="btn w-100 fw-bold mt-2"
             style={{
-              backgroundColor: importing ? "#1a1a2e" : "#D98A21",
-              border: "1px solid #D98A21",
-              color: importing ? "#a1a1b5" : "#1a1a2e",
+              backgroundColor: importing ? "#25253a" : "#5b5bd6",
+              border: "1px solid #5b5bd6",
+              color: importing ? "#a1a1b5" : "#ffffff",
+              borderRadius: "10px",
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.82rem",
               opacity: importing ? 0.7 : 1,
               transition: "all 0.2s",
             }}

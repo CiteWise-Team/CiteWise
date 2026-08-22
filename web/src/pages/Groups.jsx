@@ -1,5 +1,4 @@
 import GroupsLayout from "../layouts/GroupsLayout";
-import ActionCard from "../components/ui/ActionCard";
 import GroupCard from "../components/ui/GroupCard";
 import CreateGroupModal from "../components/modals/CreateGroupModal";
 import JoinGroupModal from "../components/modals/JoinGroupModal";
@@ -181,24 +180,46 @@ export default function Groups() {
 
   return (
     <GroupsLayout>
-      <div className="py-4">
+      <div className="groups-page">
+        <header className="groups-header">
+          <div>
+            <p className="groups-eyebrow">CiteWise workspace</p>
+            <h1>Your research spaces</h1>
+            <p className="groups-description">
+              Organize your research and move from ideas to evidence in one focused workspace.
+            </p>
+          </div>
+          <div className="groups-summary" aria-label={`${groups.length} workspaces`}>
+            <strong>{groups.length}</strong>
+            <span>{groups.length === 1 ? "workspace" : "workspaces"}</span>
+          </div>
+        </header>
 
         {/* Groups List */}
-        <h5 className="fw-bold mb-3" style={{ color: "#ffffff" }}>
-          WORKSPACES
-        </h5>
+        <div className="groups-section-heading">
+          <h2>Workspaces</h2>
+          <span>Choose a space to continue your research</span>
+        </div>
 
-        <div className="row g-4">
+        <div className="row g-4 groups-grid">
           {loading ? (
-            <p>Loading groups...</p>
+            <div className="groups-empty-state">
+              <div className="groups-loading-bar" />
+              <p>Loading workspaces...</p>
+            </div>
           ) : groups.length === 0 ? (
-            <p className="text-muted" style={{ color: "#ffffff" }}>
-              You are not part of any groups yet.
-            </p>
+            <div className="groups-empty-state">
+              <div className="groups-empty-icon"><IoIosAddCircle size={26} /></div>
+              <h3>Start your first workspace</h3>
+              <p>Create a focused space for your literature, gaps, and research direction.</p>
+              <button className="groups-primary-action" onClick={() => openModal("createGroupModal")}>
+                <IoIosAddCircle size={18} /> Create workspace
+              </button>
+            </div>
           ) : (
             groups.filter((group) => group.is_active == true).
             map((group) => (
-              <div className="col-md-4" key={group.id}>
+              <div className="col-xl-4 col-md-6" key={group.id}>
                 <GroupCard
                   name={group.name}
                   members={group.members}
@@ -214,10 +235,10 @@ export default function Groups() {
         </div>
 
         {/* Floating Action Button */}
-        <div className="fab" onClick={() => openModal("createGroupModal")}>
+        <button className="fab" type="button" onClick={() => openModal("createGroupModal")} aria-label="Start new workspace">
           <IoIosAddCircle size={28} />
           <span className="fab-tooltip">Start new workspace</span>
-        </div>
+        </button>
 
         {/* Modals */}
         <CreateGroupModal onSubmit={handleCreateGroup} />

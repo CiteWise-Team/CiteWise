@@ -5,8 +5,8 @@ export default function GroupsLayout({ children }) {
     <>
       <Navbar />
 
-      <div className="container-fluid">
-        <main className="px-4 py-4">
+      <div className="groups-shell">
+        <main>
           {children}
         </main>
       </div>
