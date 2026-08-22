@@ -95,7 +95,7 @@ export default function TopicSuggesterInput({ setResult }) {
           color: "#e4e4f0",
         }}
       >
-        <div className="d-flex justify-content-between mb-3">
+        <div className="d-flex justify-content-between align-items-start mb-3">
           <div>
             <h5 className="fw-bold mb-0 text-white">Input</h5>
             <small style={{ color: "#a1a1b5" }}>
@@ -110,8 +110,7 @@ export default function TopicSuggesterInput({ setResult }) {
             <small style={{ color: "#a1a1b5" }}>Available Gaps</small>
 
             <div
-              className="mt-2 d-flex flex-column gap-2"
-              style={{ maxHeight: "200px", overflowY: "auto" }}
+              className="topic-gaps-list mt-2 d-flex flex-column gap-2"
             >
               {loading && (
                 <div style={{ color: "#a1a1b5" }}>Loading gaps...</div>
@@ -127,7 +126,7 @@ export default function TopicSuggesterInput({ setResult }) {
                 gaps.map((gap) => (
                   <div
                     key={gap.id}
-                    className="p-2 rounded-3 d-flex align-items-start gap-2"
+                    className="topic-gap-row p-2 rounded-3 d-flex align-items-start gap-2"
                     style={{
                       backgroundColor: "#25253a",
                       border: "1px solid #3a3a55",

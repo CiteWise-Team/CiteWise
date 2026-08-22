@@ -750,10 +750,11 @@ const handleProceed = () => {
 
       <div
         style={{
-          maxWidth: 1280,
+          maxWidth: 1400,
           width: "100%",
           margin: "0 auto",
-          padding: "24px 32px",
+          padding: "2rem 2.5rem 3rem",
+          boxSizing: "border-box",
           flex: 1,
           display: "grid",
           gridTemplateColumns: "320px 1fr",
@@ -766,12 +767,12 @@ const handleProceed = () => {
             documents={documents}
             currentIndex={currentIndex}
             onNavigate={(idx) => setCurrentIndex(Math.max(0, Math.min(documents.length - 1, idx)))}
-            onApprovalToggle={handleApprovalToggle}
           />
           <QuickNavigationList
             documents={documents}
             currentIndex={currentIndex}
             onSelect={setCurrentIndex}
+            onApprovalToggle={handleApprovalToggle}
             onDelete={handleDeleteDocument}
           />
           <RelevanceWeightsPanel sessionId={resolvedSessionId} />

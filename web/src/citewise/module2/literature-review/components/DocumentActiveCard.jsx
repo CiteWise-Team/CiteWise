@@ -1,53 +1,7 @@
-// Req 9: approval is a checkbox (per adviser feedback to replace AI-assessment
-// switches/buttons with checkboxes where appropriate).
-function ApprovalToggle({ isApproved, onToggle }) {
-  return (
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        background: "rgba(0, 0, 0, 0.15)",
-        border: "1px solid #3a3a55",
-        borderRadius: "12px",
-        padding: "16px 20px",
-        cursor: "pointer",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "'Poppins', sans-serif",
-          fontSize: "14px",
-          fontWeight: "700",
-          color: "#5b5bd6",
-          letterSpacing: "0.5px",
-          textTransform: "uppercase",
-        }}
-      >
-        Approve this RRL
-      </span>
-
-      <input
-        type="checkbox"
-        checked={!!isApproved}
-        onChange={onToggle}
-        style={{
-          width: "22px",
-          height: "22px",
-          accentColor: "#5b5bd6",
-          cursor: "pointer",
-          flexShrink: 0,
-        }}
-      />
-    </label>
-  );
-}
-
 export default function DocumentActiveCard({
   documents = [],
   currentIndex = 0,
   onNavigate,
-  onApprovalToggle,
 }) {
   const hasDocs = documents.length > 0;
 
@@ -98,7 +52,7 @@ export default function DocumentActiveCard({
             border: "1px solid rgba(91, 91, 214, 0.2)",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "flex-start",
             color: "#5b5bd6"
           }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -197,7 +151,7 @@ export default function DocumentActiveCard({
         </div>
       </div>
 
-      <div style={{ padding: "12px 20px 20px 20px" }}>
+      <div style={{ padding: "12px 20px 14px" }}>
 
         {/* Separator removed as requested */}
 
@@ -206,9 +160,10 @@ export default function DocumentActiveCard({
           style={{
             display: "flex",
             alignItems: "center",
+            justifyContent: "flex-start",
             gap: "14px",
-            marginBottom: "20px",
-            padding: "0 4px",
+            marginBottom: 0,
+            padding: 0,
           }}
         >
         {/* PDF folding dog-ear icon */}
@@ -278,11 +233,6 @@ export default function DocumentActiveCard({
         </div>
       </div>
 
-        {/* Approval Toggle */}
-        <ApprovalToggle
-          isApproved={doc.approved}
-          onToggle={() => onApprovalToggle && onApprovalToggle(currentIndex)}
-        />
       </div>
     </div>
   );

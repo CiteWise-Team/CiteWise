@@ -113,7 +113,8 @@ export default function GroupCard({
     onDelete?.(group_id);
   };
 
-  const headerGradient = `linear-gradient(135deg, ${color}cc, ${color}99)`;
+  const headerColor = color || "#5b5bd6";
+  const headerGradient = `linear-gradient(135deg, ${headerColor}e6, ${headerColor}99)`;
 
   return (
     <>
@@ -134,12 +135,13 @@ export default function GroupCard({
         {/* Header */}
         <div
           className="position-relative"
-          style={{ height: 120, background: headerGradient }}
+          style={{ height: 120, background: headerGradient, borderBottom: "3px solid #5b5bd6" }}
         >
           {/* Settings Dropdown */}
           <div className="position-absolute top-0 end-0 m-3">
             <button
               className="btn btn-sm text-light"
+              aria-label={`Settings for ${name}`}
               onClick={() => setDropdownOpen(!dropdownOpen)}
             >
               <CiSettings />
@@ -157,7 +159,7 @@ export default function GroupCard({
               >
                 <div
                   className="d-flex align-items-center p-1 hover-bg"
-                  style={{ cursor: "pointer", color: "#ffffff" }}
+                  style={{ cursor: "pointer", color: "#e4e4f0", fontFamily: "'Poppins', sans-serif" }}
                   onClick={() => { setDropdownOpen(false); onEdit?.(); }}
                 >
                   <FaPen className="me-2" />
@@ -165,7 +167,7 @@ export default function GroupCard({
                 </div>
                 <div
                   className="d-flex align-items-center p-1 hover-bg mt-1"
-                  style={{ cursor: "pointer", color: "#ffffff" }}
+                  style={{ cursor: "pointer", color: "#e5544b", fontFamily: "'Poppins', sans-serif" }}
                   onClick={() => { setDropdownOpen(false); openDeleteModal(); }}
                 >
                   <MdDelete className="me-2" />
@@ -188,12 +190,31 @@ export default function GroupCard({
           </div>
 
           <button
+            type="button"
             onClick={handleEnter}
+            title="Enter this group to run research workflows"
+            aria-label={`Enter ${name} and run research workflows`}
             className="btn w-100 fw-bold mt-auto"
             style={{
               backgroundColor: "transparent",
-              border: "1px solid #5b5bd6",
+              border: "1px solid #3a3a55",
               color: "#a5b4fc",
+              borderRadius: "10px",
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.82rem",
+              transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease",
+            }}
+            onMouseEnter={(event) => {
+              event.currentTarget.style.background = "rgba(91, 91, 214, 0.14)";
+              event.currentTarget.style.borderColor = "#5b5bd6";
+              event.currentTarget.style.color = "#e4e4f0";
+              event.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(event) => {
+              event.currentTarget.style.background = "transparent";
+              event.currentTarget.style.borderColor = "#3a3a55";
+              event.currentTarget.style.color = "#a5b4fc";
+              event.currentTarget.style.transform = "translateY(0)";
             }}
           >
             Enter Group
@@ -203,13 +224,30 @@ export default function GroupCard({
             type="button"
             onClick={handleOpenCiteWise}
             disabled={importing}
+            title="Open this workspace in CiteWise"
+            aria-label={`Open ${name} in CiteWise`}
             className="btn w-100 fw-bold mt-2"
             style={{
-              backgroundColor: importing ? "#1a1a2e" : "#D98A21",
-              border: "1px solid #D98A21",
-              color: importing ? "#a1a1b5" : "#1a1a2e",
+              backgroundColor: importing ? "#25253a" : "#5b5bd6",
+              border: "1px solid #5b5bd6",
+              color: importing ? "#a1a1b5" : "#ffffff",
+              borderRadius: "10px",
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.82rem",
               opacity: importing ? 0.7 : 1,
-              transition: "all 0.2s",
+              transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease",
+            }}
+            onMouseEnter={(event) => {
+              if (importing) return;
+              event.currentTarget.style.background = "#6f6fe0";
+              event.currentTarget.style.borderColor = "#6f6fe0";
+              event.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(event) => {
+              if (importing) return;
+              event.currentTarget.style.background = "#5b5bd6";
+              event.currentTarget.style.borderColor = "#5b5bd6";
+              event.currentTarget.style.transform = "translateY(0)";
             }}
           >
             {importing ? "Loading..." : "CiteWise →"}

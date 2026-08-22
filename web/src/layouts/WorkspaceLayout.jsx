@@ -1,24 +1,36 @@
-// layouts/WorkflowLayout.jsx
 import Navbar from "../components/Navbar.jsx";
-import WorkflowTracker from "../components/workspace/WorkflowTracker.jsx";
+import { useGroup } from "../context/GroupContext.jsx";
+import "../styles/workspace.css";
+
 export default function WorkflowLayout({ children }) {
+  const { groupName } = useGroup();
+
   return (
-    <>
-        <Navbar />
-        <div className="container py-4">
-        {/* Breadcrumb - change this soon for the table details */}
-        <div className="mb-2 text-muted small">
-            GroupsName /  <span className="text-primary">Process Workflow</span>
+    <div className="workflow-page">
+      <Navbar />
+      <main className="workflow-shell">
+        <div className="workflow-breadcrumb">
+          <span>Workspaces</span>
+          <span aria-hidden="true">/</span>
+          <strong>{groupName || "Current workspace"}</strong>
         </div>
 
-        <h2 className="fw-bold mb-4">Workflow Sequence</h2>
+        <header className="workflow-header">
+          <div>
+            <p className="workflow-eyebrow">Research workspace</p>
+            <h1>Workflow sequence</h1>
+            <p className="workflow-description">
+              Process a document through extraction, summarization, gap analysis, and topic discovery.
+            </p>
+          </div>
+          <div className="workflow-status">
+            <span className="workflow-status-dot" />
+            <span>Ready to work</span>
+          </div>
+        </header>
 
-        {/* <WorkflowTracker /> */}
-
-        <div className="mt-4">
-            {children}
-        </div>
-        </div>
-    </>
+        <div className="workflow-content">{children}</div>
+      </main>
+    </div>
   );
 }
