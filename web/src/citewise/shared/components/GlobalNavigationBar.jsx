@@ -160,26 +160,41 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
         {onBack && (
           <button
             onClick={onBack}
+            type="button"
+            title="Return to your workspaces"
+            aria-label="Return to your workspaces"
             style={{
               flexShrink: 0,
               background: "transparent",
-              border: "1px solid rgba(91,91,214,0.4)",
+              border: "1px solid rgba(91,91,214,0.55)",
               borderRadius: "8px",
               padding: "6px 14px",
               color: "#5b5bd6",
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.8rem",
               fontWeight: 600,
+              lineHeight: 1.2,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              transition: "background 0.2s ease",
+              minHeight: "34px",
+              whiteSpace: "nowrap",
+              transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(91,91,214,0.1)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(91,91,214,0.12)";
+              e.currentTarget.style.borderColor = "#5b5bd6";
+              e.currentTarget.style.color = "#a5b4fc";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.borderColor = "rgba(91,91,214,0.55)";
+              e.currentTarget.style.color = "#5b5bd6";
+            }}
           >
-            ← Groups
+            <span aria-hidden="true">←</span>
+            <span>Groups</span>
           </button>
         )}
       </div>
