@@ -750,10 +750,11 @@ const handleProceed = () => {
 
       <div
         style={{
-          maxWidth: 1280,
+          maxWidth: 1400,
           width: "100%",
           margin: "0 auto",
-          padding: "24px 32px",
+          padding: "2rem 2.5rem 3rem",
+          boxSizing: "border-box",
           flex: 1,
           display: "grid",
           gridTemplateColumns: "320px 1fr",
