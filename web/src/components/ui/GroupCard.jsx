@@ -190,7 +190,10 @@ export default function GroupCard({
           </div>
 
           <button
+            type="button"
             onClick={handleEnter}
+            title="Enter this group to run research workflows"
+            aria-label={`Enter ${name} and run research workflows`}
             className="btn w-100 fw-bold mt-auto"
             style={{
               backgroundColor: "transparent",
@@ -199,6 +202,19 @@ export default function GroupCard({
               borderRadius: "10px",
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.82rem",
+              transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease",
+            }}
+            onMouseEnter={(event) => {
+              event.currentTarget.style.background = "rgba(91, 91, 214, 0.14)";
+              event.currentTarget.style.borderColor = "#5b5bd6";
+              event.currentTarget.style.color = "#e4e4f0";
+              event.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(event) => {
+              event.currentTarget.style.background = "transparent";
+              event.currentTarget.style.borderColor = "#3a3a55";
+              event.currentTarget.style.color = "#a5b4fc";
+              event.currentTarget.style.transform = "translateY(0)";
             }}
           >
             Enter Group
@@ -208,6 +224,8 @@ export default function GroupCard({
             type="button"
             onClick={handleOpenCiteWise}
             disabled={importing}
+            title="Open this workspace in CiteWise"
+            aria-label={`Open ${name} in CiteWise`}
             className="btn w-100 fw-bold mt-2"
             style={{
               backgroundColor: importing ? "#25253a" : "#5b5bd6",
@@ -217,7 +235,19 @@ export default function GroupCard({
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.82rem",
               opacity: importing ? 0.7 : 1,
-              transition: "all 0.2s",
+              transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease",
+            }}
+            onMouseEnter={(event) => {
+              if (importing) return;
+              event.currentTarget.style.background = "#6f6fe0";
+              event.currentTarget.style.borderColor = "#6f6fe0";
+              event.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(event) => {
+              if (importing) return;
+              event.currentTarget.style.background = "#5b5bd6";
+              event.currentTarget.style.borderColor = "#5b5bd6";
+              event.currentTarget.style.transform = "translateY(0)";
             }}
           >
             {importing ? "Loading..." : "CiteWise →"}
