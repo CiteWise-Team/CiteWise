@@ -210,6 +210,61 @@
   box-sizing: border-box;
 }
 
+.topic-citewise-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #5b5bd6;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: transparent;
+  color: #a5b4fc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.topic-citewise-link:hover,
+.topic-citewise-link:focus-visible {
+  background: #5b5bd6;
+  color: #fff;
+}
+
+.topic-citewise-link:focus-visible {
+  outline: 3px solid rgba(165, 180, 252, 0.7);
+  outline-offset: 3px;
+}
+
+.topic-citewise-tooltip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 5;
+  width: max-content;
+  max-width: 220px;
+  padding: 7px 9px;
+  border: 1px solid #3a3a55;
+  border-radius: 7px;
+  background: #25253a;
+  color: #e4e4f0;
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.3;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.topic-citewise-link:hover .topic-citewise-tooltip,
+.topic-citewise-link:focus-visible .topic-citewise-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @keyframes workflow-panel-in {
   from { opacity: 0; transform: translateY(7px); }
   to { opacity: 1; transform: translateY(0); }
@@ -253,4 +308,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .workflow-panel { animation: none; }
+}
+
+.topic-citewise-link-large {
+  width: 100%;
+  justify-content: center;
+  margin-top: 14px;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  line-height: 1.3;
 }

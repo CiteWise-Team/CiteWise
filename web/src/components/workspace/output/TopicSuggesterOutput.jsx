@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { FaArrowRight } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import { useGroup } from "../../../context/GroupContext";
 import { getTopicsByGroupIdAPI } from "../../../api/workflow.topic";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 
 export default function TopicSuggesterOutput({ result }) {
   const group_id = useGroup().groupId;
+  const navigate = useNavigate();
 
   const [items, setItems] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -103,6 +106,19 @@ export default function TopicSuggesterOutput({ result }) {
               ))
             )}
           </div>
+
+          <button
+            type="button"
+            className="topic-citewise-link topic-citewise-link-large"
+            aria-label="Open CiteWise to draft your introduction"
+            onClick={() => navigate(`/citewise/${group_id}`)}
+          >
+            <span className="topic-citewise-tooltip" role="tooltip">
+              Ready to draft your introduction? Open CiteWise.
+            </span>
+            <span>Draft your introduction in CiteWise</span>
+            <FaArrowRight size={13} aria-hidden="true" />
+          </button>
         </div>
 
         <div

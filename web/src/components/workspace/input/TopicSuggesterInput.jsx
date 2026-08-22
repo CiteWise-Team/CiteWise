@@ -95,7 +95,7 @@ export default function TopicSuggesterInput({ setResult }) {
           color: "#e4e4f0",
         }}
       >
-        <div className="d-flex justify-content-between mb-3">
+        <div className="d-flex justify-content-between align-items-start mb-3">
           <div>
             <h5 className="fw-bold mb-0 text-white">Input</h5>
             <small style={{ color: "#a1a1b5" }}>
