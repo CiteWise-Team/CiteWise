@@ -4,6 +4,7 @@ export default function QuickNavigationList({
   documents = [],
   currentIndex = 0,
   onSelect,
+  onApprovalToggle,
   onDelete,
 }) {
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, index: null, name: "" });
@@ -112,65 +113,55 @@ export default function QuickNavigationList({
 
               {/* Action buttons (Delete) if needed, styled minimally */}
               {onDelete && (
-                <button
-                  type="button"
-                  aria-label={`Delete ${doc.name}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteConfirm({ show: true, index, name: doc.name });
-                  }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#a1a1b5",
-                    fontSize: "14px",
-                    lineHeight: 1,
-                    cursor: "pointer",
-                    padding: "4px 6px",
-                    borderRadius: "4px",
-                    flexShrink: 0,
-                    transition: "color 0.15s, transform 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "#e05555";
-                    e.currentTarget.style.transform = "scale(1.1)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "#a1a1b5";
-                    e.currentTarget.style.transform = "scale(1)";
-                  }}
-                >
-                  ✕
-                </button>
+                <span className="quick-nav-tooltip-anchor">
+                  <span className="quick-nav-tooltip" role="tooltip">Remove this document</span>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${doc.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteConfirm({ show: true, index, name: doc.name });
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#a1a1b5",
+                      fontSize: "14px",
+                      lineHeight: 1,
+                      cursor: "pointer",
+                      padding: "4px 6px",
+                      borderRadius: "4px",
+                      flexShrink: 0,
+                      transition: "color 0.15s, transform 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#e05555";
+                      e.currentTarget.style.transform = "scale(1.1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "#a1a1b5";
+                      e.currentTarget.style.transform = "scale(1)";
+                    }}
+                  >
+                    ✕
+                  </button>
+                </span>
               )}
 
               {/* Status indicator circle */}
-              <div
-                style={{
-                  width: "18px",
-                  height: "18px",
-                  borderRadius: "50%",
-                  background: doc.approved ? "#5b5bd6" : "transparent",
-                  border: `1px solid ${doc.approved ? "#5b5bd6" : "#3a3a55"}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  transition: "all 0.2s ease",
-                }}
-              >
-                {doc.approved && (
-                  <svg width="8" height="6" viewBox="0 0 10 8" fill="none">
-                    <path
-                      d="M1 4L3.5 6.5L9 1"
-                      stroke="#e4e4f0"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </div>
+              <span className="quick-nav-tooltip-anchor">
+                <span className="quick-nav-tooltip" role="tooltip">
+                  {doc.approved ? "Click to unapprove this document" : "Click to approve this document"}
+                </span>
+                <input
+                  type="checkbox"
+                  className="quick-nav-approval-checkbox"
+                  checked={!!doc.approved}
+                  aria-label={`${doc.approved ? "Unapprove" : "Approve"} ${doc.name}`}
+                  onChange={() => onApprovalToggle && onApprovalToggle(index)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </span>
             </div>
           );
         })}

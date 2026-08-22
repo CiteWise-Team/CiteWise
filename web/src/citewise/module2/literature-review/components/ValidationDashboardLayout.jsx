@@ -766,12 +766,12 @@ const handleProceed = () => {
             documents={documents}
             currentIndex={currentIndex}
             onNavigate={(idx) => setCurrentIndex(Math.max(0, Math.min(documents.length - 1, idx)))}
-            onApprovalToggle={handleApprovalToggle}
           />
           <QuickNavigationList
             documents={documents}
             currentIndex={currentIndex}
             onSelect={setCurrentIndex}
+            onApprovalToggle={handleApprovalToggle}
             onDelete={handleDeleteDocument}
           />
           <RelevanceWeightsPanel sessionId={resolvedSessionId} />
