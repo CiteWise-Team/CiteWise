@@ -39,7 +39,7 @@ export default function Navbar() {
         }}
       >
         <Link
-          to="/groups"
+          to="/"
           className="navbar-brand text-decoration-none d-flex align-items-center gap-2"
           style={{ margin: 0, flexShrink: 0 }}
         >
@@ -66,10 +66,10 @@ export default function Navbar() {
             className="brand-text"
             style={{
               color: "#e4e4f0",
-              fontFamily: "'Poppins', sans-serif",
+              fontFamily: "'Sora', sans-serif",
               fontWeight: 700,
-              fontSize: "1.1rem",
-              letterSpacing: "-0.01em",
+              fontSize: "1.2rem",
+              letterSpacing: "-0.02em",
               lineHeight: 1,
             }}
           >
