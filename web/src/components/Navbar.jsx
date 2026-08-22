@@ -7,6 +7,7 @@ export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false); // dropdown state
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -103,10 +104,13 @@ export default function Navbar() {
                   display: "block",
                   position: "absolute",
                   right: 0,
+                  top: "calc(100% + 8px)",
                   backgroundColor: "#25253a",
                   border: "1px solid #3a3a55",
                   borderRadius: "10px",
                   padding: "6px",
+                  minWidth: "160px",
+                  boxShadow: "0 16px 32px rgba(0, 0, 0, 0.3)",
                 }}
               >
                 <li>
@@ -115,6 +119,18 @@ export default function Navbar() {
                     style={{
                       color: "#e4e4f0",
                       borderRadius: "6px",
+                      padding: "8px 10px",
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.8rem",
+                      transition: "background 0.2s ease, color 0.2s ease",
+                    }}
+                    onMouseEnter={(event) => {
+                      event.currentTarget.style.background = "rgba(91, 91, 214, 0.14)";
+                      event.currentTarget.style.color = "#a5b4fc";
+                    }}
+                    onMouseLeave={(event) => {
+                      event.currentTarget.style.background = "transparent";
+                      event.currentTarget.style.color = "#e4e4f0";
                     }}
                     onClick={() => {
                       navigate("/settings");
@@ -124,11 +140,30 @@ export default function Navbar() {
                     Settings
                   </button>
                 </li>
-                <li><hr className="dropdown-divider" /></li>
+                <li><hr className="dropdown-divider" style={{ borderColor: "#3a3a55", opacity: 1 }} /></li>
                 <li>
                   <button
-                    className="dropdown-item text-danger"
-                    onClick={handleLogout}
+                    className="dropdown-item"
+                    style={{
+                      color: "#e5544b",
+                      borderRadius: "6px",
+                      padding: "8px 10px",
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.8rem",
+                      transition: "background 0.2s ease, color 0.2s ease",
+                    }}
+                    onMouseEnter={(event) => {
+                      event.currentTarget.style.background = "rgba(229, 84, 75, 0.12)";
+                      event.currentTarget.style.color = "#ff8b84";
+                    }}
+                    onMouseLeave={(event) => {
+                      event.currentTarget.style.background = "transparent";
+                      event.currentTarget.style.color = "#e5544b";
+                    }}
+                    onClick={() => {
+                      setOpen(false);
+                      setShowLogoutConfirm(true);
+                    }}
                   >
                     Logout
                   </button>
@@ -138,6 +173,127 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      {showLogoutConfirm && (
+        <div
+          role="presentation"
+          onClick={() => setShowLogoutConfirm(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1050,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            background: "rgba(14, 12, 10, 0.75)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-confirm-title"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(100%, 420px)",
+              padding: "28px",
+              border: "1px solid #3a3a55",
+              borderRadius: "16px",
+              background: "#25253a",
+              color: "#e4e4f0",
+              fontFamily: "'Poppins', sans-serif",
+              textAlign: "center",
+              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                margin: "0 auto 16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid #e5544b",
+                borderRadius: "50%",
+                background: "rgba(229, 84, 75, 0.14)",
+                color: "#e5544b",
+              }}
+            >
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M10.3 3.3 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.3a2 2 0 0 0-3.4 0Z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+              </svg>
+            </div>
+            <h2 id="logout-confirm-title" style={{ margin: "0 0 8px", fontSize: "1.15rem", fontWeight: 700 }}>
+              Log out of CiteWise?
+            </h2>
+            <p style={{ margin: "0 0 24px", color: "#a1a1b5", fontSize: "0.85rem", lineHeight: 1.6 }}>
+              You will need to sign in again to access your workspaces.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                style={{
+                  padding: "9px 12px",
+                  border: "1px solid #3a3a55",
+                  borderRadius: "10px",
+                  background: "transparent",
+                  color: "#e4e4f0",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
+                }}
+                onMouseEnter={(event) => {
+                  event.currentTarget.style.background = "rgba(91, 91, 214, 0.14)";
+                  event.currentTarget.style.borderColor = "#5b5bd6";
+                  event.currentTarget.style.color = "#a5b4fc";
+                }}
+                onMouseLeave={(event) => {
+                  event.currentTarget.style.background = "transparent";
+                  event.currentTarget.style.borderColor = "#3a3a55";
+                  event.currentTarget.style.color = "#e4e4f0";
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={{
+                  padding: "9px 12px",
+                  border: "1px solid #e5544b",
+                  borderRadius: "10px",
+                  background: "#e5544b",
+                  color: "#fff",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
+                }}
+                onMouseEnter={(event) => {
+                  event.currentTarget.style.background = "#ff6f66";
+                  event.currentTarget.style.borderColor = "#ff6f66";
+                  event.currentTarget.style.color = "#fff";
+                }}
+                onMouseLeave={(event) => {
+                  event.currentTarget.style.background = "#e5544b";
+                  event.currentTarget.style.borderColor = "#e5544b";
+                  event.currentTarget.style.color = "#fff";
+                }}
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
