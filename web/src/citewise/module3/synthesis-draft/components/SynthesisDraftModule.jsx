@@ -164,6 +164,7 @@
     const [generatedContent, setGeneratedContent] = useState("");
     const [references, setReferences] = useState([]);
     const [citationsUsed, setCitationsUsed] = useState([]);
+    const [citationIntegrity, setCitationIntegrity] = useState(null);
     const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
     const [showSuccessToast, setShowSuccessToast] = useState(false);
 
@@ -360,6 +361,7 @@
         setGeneratedContent(mergedContent);
         setReferences(mergedReferences);
         setCitationsUsed(Array.isArray(payload.citationsUsed) ? payload.citationsUsed : []);
+        setCitationIntegrity(payload.citationIntegrity ?? null);
         setShowSuccessToast(true);
         setTimeout(() => setShowSuccessToast(false), 2200);
 
@@ -520,6 +522,7 @@
               sessionId={sessionId}
               documents={approvedDocuments}
               citationsUsed={citationsUsed}
+              citationIntegrity={citationIntegrity}
             />
             <DraftVersionHistory
               sessionId={sessionId}

@@ -5,6 +5,11 @@ import express from 'express';
 import fetch   from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 import supabase from '../../common/config/supabaseClient.js';
+import {
+  extractCitationMetadata,
+  buildReferenceList,
+  reconcileInTextCitations,
+} from './helpers/citationMetadata.js';
 
 const router = express.Router();
 
@@ -82,187 +87,6 @@ function resolveTier(insight, usageChoice, weights) {
   return determineSourceTier(insight);
 }
 
-// Simple citation metadata from filename (mirrors CitationMetadataExtractor minimal logic)
-// Checks whether a string looks like a generic/suspicious author label rather
-// than a real human name (mirrors the same guard in the n8n Build Synthesis Packet node).
-function suspiciousAuthor(value) {
-  const s = String(value ?? '').trim().toLowerCase();
-  if (!s) return true;
-  const match = s.match(/^[a-z]+/);
-  if (!match) return false;
-  const firstWord = match[0];
-  const badWords = new Set(['article', 'articles', 'unknown', 'author', 'authors', 'source', 'sources', 'paper', 'papers', 'research', 'study', 'studies', 'journal', 'document', 'documents', 'untitled', 'input', 'output', 'abstract', 'introduction', 'conclusion', 'chapter', 'background', 'method', 'results', 'discussion']);
-  return badWords.has(firstWord);
-}
-
-// Extracts citation metadata from PDF text content + filename.
-// Order of preference:
-//   1. Stored AI metadata (citation_metadata_json column, populated by the
-//      n8n metadata-extractor webhook after scoring).
-//   2. Heuristic extraction from the parsed PDF text (covers arXiv, IEEE,
-//      ACM, and most standard academic formats).
-//   3. Filename-pattern fallback ("Author (Year) Title.pdf").
-function extractCitationFromFilename(filename, text, storedMetaJson) {
-  // ── 1. Use AI-extracted metadata when available ──────────────────
-  if (storedMetaJson) {
-    try {
-      const stored = typeof storedMetaJson === 'string' ? JSON.parse(storedMetaJson) : storedMetaJson;
-      if (stored && stored.metadataReliable && stored.title && stored.year && stored.authorDisplay) {
-        return {
-          author: stored.authorDisplay,
-          authorDisplay: stored.authorDisplay,
-          authors: Array.isArray(stored.authors) ? stored.authors : [stored.authorDisplay],
-          year: stored.year,
-          title: stored.title,
-          journal: stored.journal || '',
-          volume: stored.volume || '', issue: stored.issue || '', pages: stored.pages || '',
-          doi: stored.doi || '', url: stored.url || '', publisher: stored.publisher || '',
-          sourceType: 'document', metadataReliable: true, warnings: [],
-        };
-      }
-    } catch { /* fall through to heuristic */ }
-  }
-
-  const name = (filename ?? '').replace(/\.pdf$/i, '').trim();
-  const raw  = String(text ?? '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  // First 6 000 chars hold title + authors + abstract for virtually all papers.
-  const head = raw.slice(0, 6000);
-
-  let year = null, title = null, authorDisplay = null, authors = [], journal = null, doi = null;
-
-  // ── DOI ──────────────────────────────────────────────────────────
-  const doiMatch = head.match(/\b(?:doi|DOI)[:\s\/]+([^\s,;)\]]+)/);
-  if (doiMatch) doi = doiMatch[1].replace(/[.,;)\]]+$/, '');
-
-  // ── Year: arXiv ID in filename (YYMM.NNNNN → 20YY) ───────────────
-  const arxivFilename = name.match(/^(\d{2})\d{2}\.\d{4,}/);
-  if (arxivFilename) {
-    const yy = parseInt(arxivFilename[1], 10);
-    year = String(yy <= 30 ? 2000 + yy : 1900 + yy);
-  }
-
-  // ── Year: arXiv header in text ("arXiv:2207.02475v1 [...] Jul 2022") ─
-  if (!year) {
-    const arxivHeader = head.match(/arXiv:\d{4}\.\d+[^\n]*?(20[0-2]\d|19[89]\d)/);
-    if (arxivHeader) year = arxivHeader[1];
-  }
-
-  // ── Year: copyright / submission / publication date ───────────────
-  if (!year) {
-    const patterns = [
-      /(?:©|copyright|\(c\))\s*(20[0-2]\d|19[89]\d)/i,
-      /(?:received|accepted|published|submitted)[^\n]{0,40}(20[0-2]\d|19[89]\d)/i,
-      /\b(20[0-2]\d|19[89]\d)\b/,
-    ];
-    for (const p of patterns) {
-      const m = head.match(p);
-      if (m) { year = m[1]; break; }
-    }
-  }
-
-  // ── Title: first substantial line before "Abstract" ──────────────
-  const abstractIdx = head.search(/\bAbstract\b/i);
-  const zone = abstractIdx > 100 ? head.slice(0, abstractIdx) : head.slice(0, 2500);
-
-  const skipLine = (l) =>
-    /^(arXiv:|doi:|https?:|©|preprint|submitted|received|accepted|proceedings|journal|volume|issue|pages|conference|workshop|email|@|\d+\s*$)/i.test(l);
-
-  const zoneLines = zone.split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length >= 10);
-
-  for (const line of zoneLines) {
-    if (!skipLine(line) && line.length >= 15 && line.length <= 350) {
-      title = line;
-      break;
-    }
-  }
-
-  // ── Authors: lines after the title, before abstract ──────────────
-  if (title) {
-    const titleIdx = zoneLines.findIndex(l => l === title);
-    const candidates = zoneLines.slice(titleIdx + 1, titleIdx + 8);
-    for (const c of candidates) {
-      if (skipLine(c) || /@/.test(c) || /^\d/.test(c)) continue;
-      // Must contain at least one capitalised surname-like word.
-      if (/[A-Z][a-z]{2,}/.test(c) && c.length < 250) {
-        const cleaned = c
-          .replace(/^\s*\d+[-–—]\s*/g, '')           // strip leading "5– " or "1- " markers
-          .replace(/\s*\d+[-–—]\d*\s*/g, ' ')        // strip mid-string page-range style "5–7"
-          .replace(/\s*[²-¹⁰-⁹*†‡§¶#]+\s*/g, ' ') // superscript chars
-          .replace(/\s*\d+\s*(?=[,\s]|$)/g, ' ')     // trailing/isolated digit superscripts
-          .replace(/\s{2,}/g, ' ')
-          .trim();
-
-        // After cleaning, the line must still start with a capital letter (real name).
-        if (!cleaned || !/^[A-Z]/.test(cleaned)) continue;
-        if (suspiciousAuthor(cleaned)) continue; // Reject suspicious lines like sentences starting with 'Input'
-
-        authorDisplay = cleaned;
-        authors = authorDisplay
-          .replace(/\s+(?:and|AND|&)\s+/g, ', ')
-          .split(/\s*,\s*/)
-          .map(a => a.replace(/\s*\d+\s*$/, '').trim())
-          .filter(a => a.length >= 3 && /^[A-Z]/.test(a));
-        if (authors.length === 0) { authorDisplay = null; continue; }
-        break;
-      }
-    }
-  }
-
-  // ── Journal / conference ──────────────────────────────────────────
-  const journalPat = [
-    /(?:published in|in:)\s+([^\n]{10,80})/i,
-    /\b(?:IEEE|ACM|Nature|Science|Springer|Elsevier|AAAI|NeurIPS|ICML|ICLR)\b[^\n]{0,60}/,
-  ];
-  for (const p of journalPat) {
-    const m = head.match(p);
-    if (m) { journal = (m[1] ?? m[0]).trim(); break; }
-  }
-
-  // ── Filename fallback ("Author (Year) Title.pdf") ─────────────────
-  if (!title || !authorDisplay) {
-    const patterns = [
-      /^([A-Z][a-zA-Z\s&.-]{2,40})\s+\(?(20[0-2]\d|19[89]\d)\)?\s+(.{10,})$/,
-      /^(20[0-2]\d|19[89]\d)[_\s-]+([A-Z][a-zA-Z\s.-]{2,30})[_\s-]+(.{10,})$/,
-    ];
-    for (const p of patterns) {
-      const m = name.match(p);
-      if (m) {
-        if (!authorDisplay) { authorDisplay = m[1].trim(); authors = [authorDisplay]; }
-        if (!year) year = m[2];
-        if (!title) title = m[3].replace(/[_-]/g, ' ').trim();
-        break;
-      }
-    }
-  }
-
-  // Last resort: use the filename stem as title so the document isn't
-  // discarded completely when no other title can be found.
-  if (!title && name) {
-    title = name.replace(/[_-]/g, ' ').replace(/\b\d{4,}\b/g, '').trim() || null;
-  }
-
-  const metadataReliable = Boolean(title && year && authorDisplay && !suspiciousAuthor(authorDisplay));
-  const warnings = [];
-  if (!authorDisplay) warnings.push('MISSING_AUTHOR');
-  if (!year)          warnings.push('MISSING_YEAR');
-  if (!title)         warnings.push('MISSING_TITLE');
-  if (!metadataReliable) warnings.push('LOW_CONFIDENCE_METADATA');
-
-  return {
-    author: authorDisplay,
-    authorDisplay,
-    authors,
-    year,
-    title,
-    journal: journal || '',
-    volume: '', issue: '', pages: '',
-    doi: doi || '', url: '', publisher: '',
-    sourceType: 'document',
-    metadataReliable,
-    warnings: [...new Set(warnings)],
-  };
-}
-
 function parseJsonArray(str) {
   if (!str) return [];
   try {
@@ -333,6 +157,35 @@ router.post('/generate', async (req, res) => {
   const baselineGaps = Array.isArray(gapsRaw) ? gapsRaw : (gapsRaw ? [gapsRaw] : []);
   const gapsArray = userGaps && userGaps.length ? userGaps : baselineGaps;
 
+  // Authoritative citation metadata, derived only from each uploaded PDF's own
+  // front matter. Computed once here so the same strings drive both the model
+  // prompt and the post-generation reference list.
+  const citationByDocId = new Map();
+  for (const { doc } of usableDocs) {
+    citationByDocId.set(
+      String(doc.id),
+      extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json),
+    );
+  }
+  const allCitationMetas = [...citationByDocId.values()];
+  const lowConfidence = allCitationMetas.filter((m) => !m.metadataReliable);
+  if (lowConfidence.length) {
+    console.warn(
+      `[synthesis] ${lowConfidence.length}/${allCitationMetas.length} source(s) have low-confidence citation metadata:`,
+      lowConfidence.map((m) => `${m.citation.sourceFile} -> ${m.citation.inTextParenthetical}`).join('; '),
+    );
+  }
+
+  const citationRules =
+    'CITATION RULES (STRICT): every approved document carries a `citation` object '
+    + '(`inTextParenthetical`, `inTextNarrative`, `reference`) extracted from that PDF\'s own '
+    + 'front matter. Cite ONLY by copying those strings verbatim. Never invent, guess, shorten, '
+    + 'reorder or re-date an author. Never place a paper\'s TITLE in the author position. Never take '
+    + 'a year from the body text, a dataset name, or another work\'s in-text citation. '
+    + 'When `citation.reliable` is false the metadata could not be verified: cite it exactly as '
+    + 'supplied (APA title-in-author-position and/or "n.d.") and do not substitute a guessed author or year. '
+    + 'The References section must contain exactly one entry per cited source, copied verbatim from `citation.reference`.';
+
   const baseInstructions =
     'The CATalyst Title, Rationale, and Research Gap are the primary source of truth. '
     + 'Approved documents are supplementary. Use Core Sources as the main evidence, '
@@ -340,7 +193,8 @@ router.post('/generate', async (req, res) => {
     + 'and Excluded Sources not at all. Do not let a low-relevance approved document redirect the topic. '
     + 'The primaryFocusGap is the user\'s selected gap and should be treated as the main structural narrative pivot. '
     + 'The remaining gaps provide supporting context. '
-    + 'When a source provides emphasizedExcerpts, treat those passages as the user\'s highlighted, highest-priority evidence.';
+    + 'When a source provides emphasizedExcerpts, treat those passages as the user\'s highlighted, highest-priority evidence. '
+    + citationRules;
 
   const payload = {
     sessionId,
@@ -359,8 +213,11 @@ router.post('/generate', async (req, res) => {
       supporting: usableDocs.filter(d => d.tier === 'SUPPORTING').length,
       tangential: usableDocs.filter(d => d.tier === 'TANGENTIAL').length,
     },
+    citationRules,
+    // The exact reference list the draft must reproduce, in APA order.
+    referenceList: buildReferenceList(allCitationMetas),
     approvedDocuments: usableDocs.map(({ doc, insight, tier, emphasizedExcerpts }) => {
-      const meta = extractCitationFromFilename(doc.file_name, doc.parsed_text, doc.citation_metadata_json);
+      const meta = citationByDocId.get(String(doc.id));
       const emphasizeSet = new Set((emphasizedExcerpts || []).map(Number));
       const allExcerpts = (insight?.evidenceExcerpts ?? []).map((e, idx) => ({
         quoteText:     e.quote_text,
@@ -398,6 +255,7 @@ router.post('/generate', async (req, res) => {
         evidenceExcerpts: excerpts,
         emphasizedExcerpts: userEmphasizedExcerpts,
         metadata: meta,
+        citation: meta.citation,
       };
     }),
   };
@@ -427,12 +285,58 @@ router.post('/generate', async (req, res) => {
     return res.status(502).json({ success: false, message: `Synthesis failed: ${err.message}` });
   }
 
-  const contentText   = n8nData.contentText   ?? '';
-  const referencesText= n8nData.referencesText ?? '';
   const success       = n8nData.success        !== false;
   const message       = n8nData.message        ?? '';
   const validationStatus = n8nData.validationStatus ?? '';
   const validationFlags  = Array.isArray(n8nData.validationFlags) ? n8nData.validationFlags : [];
+
+  // ── Citation integrity pass ────────────────────────────────────────
+  // Last line of defence: whatever the model returned, in-text citations are
+  // reconciled against the metadata extracted from the uploaded PDFs and the
+  // reference list is rebuilt from that same metadata. A generated draft can
+  // therefore never carry an author or year the source files don't support.
+  const citationFixes = [];
+  const unverifiedCitations = [];
+
+  const reconcile = (text) => {
+    const { text: fixed, fixes, unverified } = reconcileInTextCitations(text, allCitationMetas);
+    citationFixes.push(...fixes);
+    unverifiedCitations.push(...unverified);
+    return fixed;
+  };
+
+  const contentText = reconcile(n8nData.contentText ?? '');
+  const sections = n8nData.sections
+    ? {
+        ...n8nData.sections,
+        background: reconcile(n8nData.sections.background),
+        rationale:  reconcile(n8nData.sections.rationale),
+        gap:        reconcile(n8nData.sections.gap),
+      }
+    : null;
+
+  // The reference list is regenerated, never taken from the model.
+  const referencesText = buildReferenceList(allCitationMetas) || (n8nData.referencesText ?? '');
+
+  if (citationFixes.length) {
+    console.warn(`[synthesis] corrected ${citationFixes.length} in-text citation(s):`,
+      citationFixes.map((f) => `${f.from} -> ${f.to}`).join('; '));
+  }
+  if (unverifiedCitations.length) {
+    console.warn('[synthesis] in-text citations not traceable to any uploaded source:',
+      [...new Set(unverifiedCitations)].join('; '));
+  }
+
+  const citationIntegrity = {
+    correctedCount:  citationFixes.length,
+    corrections:     citationFixes,
+    unverified:      [...new Set(unverifiedCitations)],
+    lowConfidenceSources: lowConfidence.map((m) => ({
+      file:     m.citation.sourceFile,
+      citation: m.citation.inTextParenthetical,
+      warnings: m.warnings,
+    })),
+  };
 
   if (!success || (validationStatus && validationStatus.toUpperCase() !== 'PASSED')) {
     return res.json({
@@ -453,9 +357,9 @@ router.post('/generate', async (req, res) => {
       session_id:                  sessionId,
       content_text:                contentText,
       references_text:             referencesText,
-      background_text:             n8nData.sections?.background    ?? null,
-      rationale_text:              n8nData.sections?.rationale     ?? null,
-      gap_text:                    n8nData.sections?.gap           ?? null,
+      background_text:             sections?.background ?? null,
+      rationale_text:              sections?.rationale  ?? null,
+      gap_text:                    sections?.gap        ?? null,
       citations_used_json:         n8nData.citationsUsed ? JSON.stringify(n8nData.citationsUsed) : '[]',
       validation_status:           n8nData.validationStatus        ?? null,
       validation_flags_json:       n8nData.validationFlags ? JSON.stringify(n8nData.validationFlags) : '[]',
@@ -473,8 +377,9 @@ router.post('/generate', async (req, res) => {
     sessionId,
     contentText,
     referencesText,
-    sections:       n8nData.sections    ?? null,
+    sections,
     citationsUsed:  n8nData.citationsUsed ?? [],
+    citationIntegrity,
     validationStatus: draft.validation_status,
     validationFlags,
     metrics:        n8nData.metrics ?? null,

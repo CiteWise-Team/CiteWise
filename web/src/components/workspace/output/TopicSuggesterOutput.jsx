@@ -93,6 +93,7 @@ export default function TopicSuggesterOutput({ result }) {
             width: "200px",
             maxWidth: "35%",
             borderRight: "1px solid #3a3a55",
+            paddingRight: "0.75rem",
             minHeight: 0,
           }}
         >

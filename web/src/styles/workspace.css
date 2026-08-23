@@ -190,7 +190,7 @@
 .workflow-panel {
   min-width: 0;
   min-height: 0;
-  animation: workflow-panel-in 0.35s ease both;
+  animation: workflow-panel-in 0.35s ease backwards;
 }
 
 .workflow-panel + .workflow-panel {
