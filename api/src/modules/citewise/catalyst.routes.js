@@ -3,9 +3,7 @@
 
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import crypto from 'crypto';
 import supabase from '../../common/config/supabaseClient.js';
-import { scoringPipeline } from './rrl.routes.js';
 
 const router = express.Router();
 
@@ -143,52 +141,6 @@ router.post('/import', async (req, res) => {
     if (insertError) throw new Error(`Failed to persist baseline: ${insertError.message}`);
 
     console.log(`✓ Created session ${sessionId} for workspace ${workspaceId} - title: ${finalTitle?.slice(0,60)}`);
-
-    // Fetch documents (Extractor) and port them over to CiteWise uploaded_documents
-    const { data: extractors } = await supabase
-      .from('Extractor')
-      .select('*')
-      .eq('group_id', workspaceId.trim());
-
-    if (extractors && extractors.length > 0) {
-      for (const ext of extractors) {
-        const textParts = [
-          ext.title, 
-          ext.abstract, 
-          ext.introduction, 
-          ext.literature_review, 
-          ext.methodology, 
-          ext.discussion, 
-          ext.results, 
-          ext.conclusion
-        ].filter(Boolean);
-        
-        const text = textParts.join('\n\n').trim();
-        if (!text) continue;
-
-        const baseName = ext.title?.slice(0, 30)?.replace(/[^a-z0-9]/gi, '_') || 'catalyst_document';
-        const fileName = `${baseName}.pdf`;
-        const hash = crypto.createHash('sha256').update(text).digest('hex');
-
-        const { data: saved, error: saveErr } = await supabase
-          .from('uploaded_documents')
-          .insert({
-            session_id: sessionId,
-            file_name: fileName,
-            file_hash: hash,
-            size_bytes: text.length, // approximation
-            character_count: text.length,
-            uploaded_at: new Date().toISOString(),
-            parsed_text: text,
-            approved: false,
-            scoring_status: 'PENDING',
-          }).select().single();
-
-        if (saved) {
-          setImmediate(() => scoringPipeline(saved.id, sessionId));
-        }
-      }
-    }
 
     return res.json({
       success: true,
