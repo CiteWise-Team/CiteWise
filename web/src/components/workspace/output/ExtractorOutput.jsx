@@ -129,6 +129,17 @@ export default function ExtractorOutput({ result }) {
               paddingRight: "4px"
             }}
           >
+            {selectedPaper.file_url && (
+              <a
+                href={selectedPaper.file_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-sm align-self-start"
+                style={{ backgroundColor: "#5b5bd6", color: "#fff", border: "none" }}
+              >
+                View Original PDF
+              </a>
+            )}
             {[
               "title",
               "abstract",

@@ -16,7 +16,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const { config, showFeedback } = useFeedbackModal();
+  const { config, showFeedback, hideFeedback } = useFeedbackModal();
 
   const navigate = useNavigate();
 
@@ -469,7 +469,7 @@ export default function Register() {
         }
       `}</style>
 
-      <FeedbackModal type={config.type} title={config.title} message={config.message} />
+      <FeedbackModal isOpen={config.isOpen} type={config.type} title={config.title} message={config.message} onClose={hideFeedback} />
     </PublicLayout>
   );
 }

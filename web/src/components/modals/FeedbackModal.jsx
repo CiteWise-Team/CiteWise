@@ -1,12 +1,18 @@
-export default function FeedbackModal({ type, title, message }) {
+export default function FeedbackModal({ isOpen, type, title, message, onClose }) {
+  if (!isOpen) return null;
+
   const isSuccess = type === "success";
 
   return (
     <div
-      className="modal fade"
-      id="feedbackModal"
+      className="modal fade show d-block"
       tabIndex="-1"
-      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose?.();
+      }}
     >
       <div className="modal-dialog modal-dialog-centered">
         <div
@@ -61,7 +67,7 @@ export default function FeedbackModal({ type, title, message }) {
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 600,
             }}
-            data-bs-dismiss="modal"
+            onClick={onClose}
           >
             OK
           </button>

@@ -26,7 +26,7 @@ export default function Groups() {
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState(null);
 
-  const { config, showFeedback } = useFeedbackModal();
+  const { config, showFeedback, hideFeedback } = useFeedbackModal();
 
   const openModal = (modalId) => {
     const modalEl = document.getElementById(modalId);
@@ -249,7 +249,7 @@ export default function Groups() {
           onSubmit={handleEditWorkspace}
         />
 
-        <FeedbackModal {...config} />
+        <FeedbackModal {...config} onClose={hideFeedback} />
 
       </div>
     </GroupsLayout>

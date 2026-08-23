@@ -20,7 +20,7 @@ export default function SummarizerInput({ setResult }) {
   const [running, setRunning] = useState(false);
   const [selectedInstruction, setSelectedInstruction] = useState(null);
 
-  const { config, showFeedback } = useFeedbackModal();
+  const { config, showFeedback, hideFeedback } = useFeedbackModal();
 
   function handleFile(selectedFiles) {
     const picked = selectedFiles[0];
@@ -183,7 +183,7 @@ export default function SummarizerInput({ setResult }) {
         </div>
       </div>
 
-      <FeedbackModal {...config} />
+      <FeedbackModal {...config} onClose={hideFeedback} />
     </>
   );
 }
