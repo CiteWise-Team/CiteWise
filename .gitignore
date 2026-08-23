@@ -8,6 +8,9 @@ antigravity/
 antigravity
 .antigravity
 
+# graphify knowledge graph output — local-only, not shared via git
+graphify-out/
+
 # -------------------------------------------------------------------------
 # Dependencies & Build Outputs
 # -------------------------------------------------------------------------
