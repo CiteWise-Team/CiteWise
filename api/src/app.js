@@ -23,6 +23,10 @@ const allowedOrigins = [
   'https://catalyst-nu-gilt.vercel.app'  // Production frontend
 ];
 
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 // Configure CORS middleware
 app.use(
   cors({

@@ -253,17 +253,16 @@ export default function GroupCard({
             {importing ? "Loading..." : "CiteWise →"}
           </button>
         </div>
-
-        {/* Confirm Delete Modal */}
-        <ConfirmModal
-          id={`delete-${group_id}`}
-          title="Delete Group"
-          message="Are you sure you want to delete this group? This action cannot be undone."
-          type="danger"
-          confirmText="Delete"
-          onConfirm={handleDelete}
-        />
       </div>
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        id={`delete-${group_id}`}
+        title="Delete Group"
+        message="Are you sure you want to delete this group? This action cannot be undone."
+        type="danger"
+        confirmText="Delete"
+        onConfirm={handleDelete}
+      />
     </>
   );
 }

@@ -262,6 +262,18 @@ export function toggleEmphasizedExcerpt(sessionId, docId, excerptIndex) {
   return setRrlUsageFor(sessionId, docId, { emphasizedExcerpts: [...set] });
 }
 
+export function addCustomExcerpt(sessionId, docId, text) {
+  const current = getRrlUsageFor(sessionId, docId);
+  const custom = current.customExcerpts || [];
+  return setRrlUsageFor(sessionId, docId, { customExcerpts: [...custom, text] });
+}
+
+export function removeCustomExcerpt(sessionId, docId, index) {
+  const current = getRrlUsageFor(sessionId, docId);
+  const custom = current.customExcerpts || [];
+  return setRrlUsageFor(sessionId, docId, { customExcerpts: custom.filter((_, i) => i !== index) });
+}
+
 // ── Draft version history ──────────────────────────────────────────
 // version: { id, content, references[], label, timestamp, source: 'generated'|'edited' }
 

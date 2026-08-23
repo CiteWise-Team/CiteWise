@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * Shown when a group has 2+ suggested topics.
@@ -15,7 +16,7 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
     setImporting(false);
   }
 
-  return (
+  return createPortal(
     <div style={styles.overlay}>
       <div style={styles.modal}>
 
@@ -94,7 +95,8 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

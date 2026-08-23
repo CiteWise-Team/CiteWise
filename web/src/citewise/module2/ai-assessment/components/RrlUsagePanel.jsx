@@ -11,6 +11,7 @@ import * as store from "../../../lib/citewiseStore";
 
 export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) {
   const [usage, setUsage] = useState(() => store.getRrlUsageFor(sessionId, documentId));
+  const [customHighlightText, setCustomHighlightText] = useState("");
 
   useEffect(() => {
     setUsage(store.getRrlUsageFor(sessionId, documentId));
@@ -118,6 +119,71 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
           </div>
         </div>
       )}
+
+      {/* Custom Highlights */}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ ...ui.label, marginBottom: 8 }}>Custom Highlights</div>
+        <p style={{ margin: "0 0 10px", fontSize: "0.74rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
+          Paste or type any specific text from the PDF you want the AI to emphasize.
+        </p>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <textarea
+            value={customHighlightText}
+            onChange={(e) => setCustomHighlightText(e.target.value)}
+            placeholder="Paste highlight here..."
+            style={{ ...ui.input, flex: 1, minHeight: 60, resize: "vertical", fontSize: "0.78rem" }}
+          />
+          <button
+            onClick={() => {
+              if (customHighlightText.trim()) {
+                setUsage(store.addCustomExcerpt(sessionId, documentId, customHighlightText.trim()));
+                setCustomHighlightText("");
+              }
+            }}
+            style={{ ...ui.primaryBtn, padding: "6px 12px", fontSize: "0.76rem" }}
+            disabled={!customHighlightText.trim()}
+          >
+            Add
+          </button>
+        </div>
+        
+        {usage.customExcerpts && usage.customExcerpts.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
+            {usage.customExcerpts.map((text, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "flex-start",
+                  background: theme.accentSoft,
+                  border: `1px solid ${theme.accent}`,
+                  borderRadius: "8px",
+                  padding: "8px 10px",
+                }}
+              >
+                <span style={{ flex: 1, fontSize: "0.78rem", color: theme.text, fontFamily: theme.font, lineHeight: 1.5, fontStyle: "italic" }}>
+                  “{text}”
+                </span>
+                <button
+                  onClick={() => setUsage(store.removeCustomExcerpt(sessionId, documentId, idx))}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: theme.danger,
+                    cursor: "pointer",
+                    fontSize: "0.78rem",
+                    padding: "0 4px",
+                  }}
+                  title="Remove highlight"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

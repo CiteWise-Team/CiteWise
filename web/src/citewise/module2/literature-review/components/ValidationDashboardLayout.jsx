@@ -480,31 +480,15 @@ const handleProceed = () => {
             <h3 style={{
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 800,
-              fontSize: "1.5rem",
+              fontSize: "1.2rem",
               color: "#e4e4f0",
               margin: "0 0 0.75rem 0",
               letterSpacing: "0.01em",
-            }}>
-              Warning message
-            </h3>
-            <p style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "1.05rem",
-              fontWeight: 700,
-              color: "#c7c7f5",
-              lineHeight: "1.55",
-              margin: "0 0 0.85rem 0",
-              padding: "0.9rem 1rem",
-              borderRadius: "12px",
-              border: "1px solid rgba(91, 91, 214, 0.5)",
-              background: "linear-gradient(135deg, rgba(91, 91, 214, 0.2), rgba(91, 91, 214, 0.12))",
-              boxShadow: "0 0 0 1px rgba(91, 91, 214, 0.15) inset, 0 8px 24px rgba(91, 91, 214, 0.18)",
-              letterSpacing: "0.01em",
-              whiteSpace: "nowrap",
-              minWidth: "max-content",
+              maxWidth: "600px",
+              lineHeight: "1.4"
             }}>
               {approvalWarningModal.message}
-            </p>
+            </h3>
             <p style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.95rem",
