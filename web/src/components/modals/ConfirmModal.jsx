@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Modal } from "bootstrap";
 
 export default function ConfirmModal({
@@ -41,7 +42,7 @@ export default function ConfirmModal({
     }
   };
 
-  return (
+  return createPortal(
     <div className="modal fade" id={id} tabIndex="-1" aria-hidden="true">
       <div className="modal-dialog modal-dialog-centered">
         <div
@@ -87,6 +88,7 @@ export default function ConfirmModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

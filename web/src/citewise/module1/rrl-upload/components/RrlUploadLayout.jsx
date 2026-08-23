@@ -33,6 +33,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
   const [uploadState, setUploadState] = useState("ready");
   const [statusMessage, setStatusMessage] = useState("Ready to upload");
   const [duplicateToast, setDuplicateToast] = useState({ show: false, message: "" });
+  const [uploadedCount, setUploadedCount] = useState(0);
 
   const triggerDuplicateToast = useCallback((filenames) => {
     if (!filenames?.length) return;
@@ -62,6 +63,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
         uploadedFileNamesRef.current = new Set(
           docs.map((d) => d.fileName?.toLowerCase()).filter(Boolean)
         );
+        setUploadedCount(docs.length);
       }
     } catch (err) {
       // ignore fetch errors
@@ -377,11 +379,16 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
         >
           <div>
             <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#6f6fe0", margin: 0 }}>
-              RRL document upload
+              RRL Document Upload
             </h2>
             <p style={{ fontSize: "0.8rem", color: "#a1a1b5", margin: "0.25rem 0 0" }}>
               Upload candidate Review of Related Literature PDFs for parsing.
             </p>
+            {uploadedCount > 0 && (
+              <p style={{ fontSize: "0.85rem", color: "#22c55e", margin: "0.5rem 0 0", fontWeight: 600 }}>
+                {uploadedCount} document{uploadedCount !== 1 && "s"} already imported into CiteWise session
+              </p>
+            )}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
             <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#a1a1b5" }}>Session ID</span>

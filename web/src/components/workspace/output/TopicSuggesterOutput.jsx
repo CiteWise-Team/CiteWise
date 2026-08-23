@@ -38,6 +38,42 @@ export default function TopicSuggesterOutput({ result }) {
     fetchTopics();
   }, [group_id, result]);
 
+  const [importing, setImporting] = useState(false);
+
+  const handleDraftIntroduction = async () => {
+    if (!activeItem) return;
+    setImporting(true);
+    try {
+      // Clear only this group's previous CiteWise keys
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key?.startsWith(`citewise.${group_id}.`)) localStorage.removeItem(key);
+      }
+
+      const res = await fetch("/api/catalyst/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId: group_id, title: activeItem.title, rationale: activeItem.rationale }),
+      });
+      const payload = await res.json();
+
+      if (!res.ok || !payload?.success) {
+        alert(payload?.message || "Failed to import workspace into CiteWise.");
+        return;
+      }
+
+      const { sessionId, title: savedTitle, rationale: savedRationale, gaps } = payload.data;
+      localStorage.setItem(`citewise.${group_id}.sessionId`, sessionId);
+      localStorage.setItem(`citewise.${group_id}.catalystData`, JSON.stringify({ title: savedTitle, rationale: savedRationale, gaps }));
+      
+      navigate(`/citewise/${group_id}`);
+    } catch (err) {
+      alert("Could not connect to CiteWise: " + err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const activeItem = items.find((p) => p.id === activeId);
 
   return (
@@ -111,12 +147,13 @@ export default function TopicSuggesterOutput({ result }) {
             type="button"
             className="topic-citewise-link topic-citewise-link-large"
             aria-label="Open CiteWise to draft your introduction"
-            onClick={() => navigate(`/citewise/${group_id}`)}
+            onClick={handleDraftIntroduction}
+            disabled={importing}
           >
             <span className="topic-citewise-tooltip" role="tooltip">
               Ready to draft your introduction? Open CiteWise.
             </span>
-            <span>Draft your introduction in CiteWise</span>
+            <span>{importing ? "Loading..." : "Draft your introduction in CiteWise"}</span>
             <FaArrowRight size={13} aria-hidden="true" />
           </button>
         </div>

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import PublicLayout from "../layouts/PublicLayout";
 import "../styles/landing.css";
+import { useAuth } from "../context/AuthContext";
 
 function useScrollReveal() {
   const rootRef = useRef(null);
@@ -55,6 +57,7 @@ const FEATURES = [
 
 export default function Home() {
   const containerRef = useScrollReveal();
+  const { user } = useAuth();
 
   return (
     <PublicLayout>
@@ -102,9 +105,9 @@ export default function Home() {
               </p>
 
               <div className="mt-4 d-flex gap-3 justify-content-center flex-wrap">
-                <a href="/login" className="btn btn-glow">
+                <Link to={user ? "/groups" : "/login"} className="btn btn-glow">
                   Get Started
-                </a>
+                </Link>
                 <button className="btn btn-ghost">Watch Demo</button>
               </div>
 
@@ -241,7 +244,7 @@ export default function Home() {
             <p className="mb-4" style={{ color: "var(--text-body)" }}>
               Use CATalyst to analyze literature and discover research gaps faster.
             </p>
-            <a href="/login" className="btn btn-glow">Start Exploring</a>
+            <Link to={user ? "/groups" : "/login"} className="btn btn-glow">Start Exploring</Link>
           </div>
         </section>
 

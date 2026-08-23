@@ -88,8 +88,11 @@ function resolveTier(insight, usageChoice, weights) {
 function suspiciousAuthor(value) {
   const s = String(value ?? '').trim().toLowerCase();
   if (!s) return true;
-  return /^(article|articles|unknown|author|authors|source|sources|paper|papers|research|study|studies|journal|document|documents|untitled)$/.test(s)
-    || /^(article|articles)\b/.test(s);
+  const match = s.match(/^[a-z]+/);
+  if (!match) return false;
+  const firstWord = match[0];
+  const badWords = new Set(['article', 'articles', 'unknown', 'author', 'authors', 'source', 'sources', 'paper', 'papers', 'research', 'study', 'studies', 'journal', 'document', 'documents', 'untitled', 'input', 'output', 'abstract', 'introduction', 'conclusion', 'chapter', 'background', 'method', 'results', 'discussion']);
+  return badWords.has(firstWord);
 }
 
 // Extracts citation metadata from PDF text content + filename.
@@ -191,6 +194,7 @@ function extractCitationFromFilename(filename, text, storedMetaJson) {
 
         // After cleaning, the line must still start with a capital letter (real name).
         if (!cleaned || !/^[A-Z]/.test(cleaned)) continue;
+        if (suspiciousAuthor(cleaned)) continue; // Reject suspicious lines like sentences starting with 'Input'
 
         authorDisplay = cleaned;
         authors = authorDisplay
@@ -207,7 +211,7 @@ function extractCitationFromFilename(filename, text, storedMetaJson) {
   // ── Journal / conference ──────────────────────────────────────────
   const journalPat = [
     /(?:published in|in:)\s+([^\n]{10,80})/i,
-    /(?:IEEE|ACM|Nature|Science|Springer|Elsevier|AAAI|NeurIPS|ICML|ICLR)[^\n]{0,60}/i,
+    /\b(?:IEEE|ACM|Nature|Science|Springer|Elsevier|AAAI|NeurIPS|ICML|ICLR)\b[^\n]{0,60}/,
   ];
   for (const p of journalPat) {
     const m = head.match(p);

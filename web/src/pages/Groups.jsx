@@ -46,12 +46,13 @@ export default function Groups() {
       const normalized = {
         id: newGroup.data.id,
         name: newGroup.data.name,
+        description: newGroup.data.description || data.description,
         members: newGroup.data.members ?? 1,
         color: newGroup.data.color,
         is_active : true
       };
 
-      setGroups((prev) => [normalized, ...prev]);
+      setGroups((prev) => [...prev, normalized]);
 
       const modalEl = document.getElementById("createGroupModal");
       const modal = Modal.getInstance(modalEl) || new Modal(modalEl);
@@ -178,6 +179,8 @@ export default function Groups() {
     fetchGroups();
   }, [id]);
 
+  const activeGroups = groups.filter((g) => g.is_active === true || g.is_active === 1);
+
   return (
     <GroupsLayout>
       <div className="groups-page">
@@ -189,9 +192,9 @@ export default function Groups() {
               Organize your research and move from ideas to evidence in one focused workspace.
             </p>
           </div>
-          <div className="groups-summary" aria-label={`${groups.length} workspaces`}>
-            <strong>{groups.length}</strong>
-            <span>{groups.length === 1 ? "workspace" : "workspaces"}</span>
+          <div className="groups-summary" aria-label={`${activeGroups.length} workspaces`}>
+            <strong>{activeGroups.length}</strong>
+            <span>{activeGroups.length === 1 ? "workspace" : "workspaces"}</span>
           </div>
         </header>
 
@@ -207,7 +210,7 @@ export default function Groups() {
               <div className="groups-loading-bar" />
               <p>Loading workspaces...</p>
             </div>
-          ) : groups.length === 0 ? (
+          ) : activeGroups.length === 0 ? (
             <div className="groups-empty-state">
               <div className="groups-empty-icon"><IoIosAddCircle size={26} /></div>
               <h3>Start your first workspace</h3>
@@ -217,8 +220,7 @@ export default function Groups() {
               </button>
             </div>
           ) : (
-            groups.filter((group) => group.is_active == true).
-            map((group) => (
+            activeGroups.map((group) => (
               <div className="col-xl-4 col-md-6" key={group.id}>
                 <GroupCard
                   name={group.name}

@@ -35,12 +35,10 @@ function computeTier(doc, usageChoice, prefs) {
 
   let tier = "SUPPORTING";
   if (overall != null) {
-    if (overall < 40 || rec === "low relevance" || rel === "low") tier = "EXCLUDED";
-    else if (overall >= 75) tier = "CORE";
-    else if (overall >= 60) tier = "SUPPORTING";
-    else if (overall >= 40) tier = "TANGENTIAL";
+    if (overall >= 75) tier = "CORE";
+    else tier = "SUPPORTING"; // AI auto-tiering is restricted to min SUPPORTING
   }
-  return { tier, reason: `Weighted relevance ${overall != null ? Math.round(overall) : "—"}`, overall };
+  return { tier, reason: `Weighted relevance ${overall != null ? Math.round(overall) : "—"} (Auto Min: Supporting)`, overall };
 }
 
 export default function SourceUsageTransparency({ sessionId, documents, citationsUsed }) {
