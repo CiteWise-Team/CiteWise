@@ -20,7 +20,7 @@ export default function GapInput({ setResult }) {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
 
-  const { config, showFeedback } = useFeedbackModal();
+  const { config, showFeedback, hideFeedback } = useFeedbackModal();
 
   function handleFile(selectedFiles) {
     const picked = selectedFiles[0];
@@ -188,7 +188,7 @@ export default function GapInput({ setResult }) {
         </div>
       </div>
 
-      <FeedbackModal {...config} />
+      <FeedbackModal {...config} onClose={hideFeedback} />
     </>
   );
 }

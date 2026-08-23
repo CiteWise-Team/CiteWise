@@ -17,7 +17,7 @@ export default function TopicSuggesterInput({ setResult }) {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
 
-  const { config, showFeedback } = useFeedbackModal();
+  const { config, showFeedback, hideFeedback } = useFeedbackModal();
 
   useEffect(() => {
     async function fetchGaps() {
@@ -171,7 +171,7 @@ export default function TopicSuggesterInput({ setResult }) {
         </div>
       </div>
 
-      <FeedbackModal {...config} />
+      <FeedbackModal {...config} onClose={hideFeedback} />
     </>
   );
 }

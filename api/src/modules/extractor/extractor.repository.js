@@ -34,7 +34,7 @@ export async function   triggerExtractorWorkflow(file, filename) {
   }
 }
 
-export async function insertExtractorRepo(group_id, extractedData) {
+export async function insertExtractorRepo(group_id, extractedData, fileMeta = null) {
   try {
     const {
       title,
@@ -64,6 +64,8 @@ export async function insertExtractorRepo(group_id, extractedData) {
           results,
           conclusion,
           keywords,
+          file_url: fileMeta?.fileUrl || null,
+          file_name: fileMeta?.fileName || null,
         },
       ])
       .select()
@@ -78,6 +80,43 @@ export async function insertExtractorRepo(group_id, extractedData) {
     console.error("Extractor Repo Error:", err);
     throw err;
   }
+}
+
+const EXTRACTOR_BUCKET = process.env.SUPABASE_EXTRACTOR_BUCKET || "extractor-files";
+
+/**
+ * Uploads the original PDF to Supabase Storage so it survives page refreshes
+ * (previously only the extracted text fields were persisted).
+ */
+export async function uploadExtractorFileToStorage(group_id, file, filename) {
+  const safeName = (filename || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${group_id}/${Date.now()}-${safeName}`;
+
+  const doUpload = () =>
+    supabase.storage.from(EXTRACTOR_BUCKET).upload(path, file, {
+      contentType: "application/pdf",
+      upsert: false,
+    });
+
+  let { error } = await doUpload();
+
+  if (error && /bucket not found/i.test(error.message || "")) {
+    const { error: createError } = await supabase.storage.createBucket(EXTRACTOR_BUCKET, {
+      public: true,
+    });
+    if (createError && !/already exists/i.test(createError.message || "")) {
+      throw new Error("Failed to create storage bucket: " + createError.message);
+    }
+    ({ error } = await doUpload());
+  }
+
+  if (error) {
+    throw new Error("Failed to upload file to storage: " + error.message);
+  }
+
+  const { data: publicUrlData } = supabase.storage.from(EXTRACTOR_BUCKET).getPublicUrl(path);
+
+  return { fileUrl: publicUrlData?.publicUrl || null, fileName: filename || safeName };
 }
 
 export async function getExtractorDataByGroupIdRepo(groupId) {

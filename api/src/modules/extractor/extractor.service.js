@@ -1,4 +1,4 @@
-import { triggerExtractorWorkflow, insertExtractorRepo, getExtractorDataByGroupIdRepo } from "./extractor.repository.js";
+import { triggerExtractorWorkflow, insertExtractorRepo, getExtractorDataByGroupIdRepo, uploadExtractorFileToStorage } from "./extractor.repository.js";
 
 export async function runExtractorService(file, filename,group_id) {
   if (!file) {
@@ -6,8 +6,14 @@ export async function runExtractorService(file, filename,group_id) {
   }
 
   try {
-    const result = await triggerExtractorWorkflow(file, filename);
-    const insertedData = await insertExtractorRepo(group_id,result[0]);
+    const [result, fileMeta] = await Promise.all([
+      triggerExtractorWorkflow(file, filename),
+      uploadExtractorFileToStorage(group_id, file, filename).catch((err) => {
+        console.error("File storage upload failed (continuing without it):", err);
+        return null;
+      }),
+    ]);
+    const insertedData = await insertExtractorRepo(group_id, result[0], fileMeta);
     return { status: 200, message: "Workflow triggered successfully", data: insertedData || null };
   } catch (err) {
     console.error("Service error:", err);

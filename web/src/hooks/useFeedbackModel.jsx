@@ -1,22 +1,20 @@
-import { Modal } from "bootstrap";
 import { useState } from "react";
 
 export function useFeedbackModal() {
   const [config, setConfig] = useState({
+    isOpen: false,
     type: "success",
     title: "",
     message: "",
   });
 
   function showFeedback({ type, title, message }) {
-    setConfig({ type, title, message });
-
-    const modalEl = document.getElementById("feedbackModal");
-    const modal =
-      Modal.getInstance(modalEl) || new Modal(modalEl);
-
-    modal.show();
+    setConfig({ isOpen: true, type, title, message });
   }
 
-  return { config, showFeedback };
+  function hideFeedback() {
+    setConfig((prev) => ({ ...prev, isOpen: false }));
+  }
+
+  return { config, showFeedback, hideFeedback };
 }
