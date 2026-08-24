@@ -20,15 +20,16 @@ const AIAssessmentPanel = ({
   onPdfUploaded: externalPdfUploaded,
 }) => {
   const useExternal = externalInsights !== undefined || externalLoading !== undefined;
-  const resolvedInsights = useExternal ? externalInsights : insights;
-  const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
-  const resolvedError = useExternal ? null : error;
 
   const [insights, setInsights] = useState(externalInsights || null);
   const [loading, setLoading] = useState(useExternal ? externalLoading : true);
   const [error, setError] = useState(useExternal ? externalError : null);
   const [isAssessing, setIsAssessing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const resolvedInsights = useExternal ? externalInsights : insights;
+  const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
+  const resolvedError = useExternal ? null : error;
   // Re-render the recomputed overall score when the user changes weight prefs.
   const [prefsVersion, setPrefsVersion] = useState(0);
 
