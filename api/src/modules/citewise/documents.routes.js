@@ -149,19 +149,31 @@ router.post('/:id/assess', async (req, res) => {
   return res.json({ success: true, message: 'Assessment queued', data: 'queued' });
 });
 
+// Helper to safely parse doc ID as number or string
+const parseDocId = (idParam) => {
+  if (!idParam) return idParam;
+  const num = Number(idParam);
+  return isNaN(num) ? idParam : num;
+};
+
 // PATCH /api/v1/documents/:id/approval
 router.patch('/:id/approval', async (req, res) => {
-  const docId     = Number(req.params.id);
+  const rawId     = req.params.id;
+  const docId     = parseDocId(rawId);
   const sessionId = req.headers['x-session-id'];
 
-  const { data: doc } = await supabase.from('uploaded_documents').select('*').eq('id', docId).maybeSingle();
-  if (!doc) return res.status(404).end();
-  if (sessionId && doc.session_id !== sessionId) return res.status(404).end();
+  let { data: doc } = await supabase.from('uploaded_documents').select('*').eq('id', docId).maybeSingle();
+  if (!doc && docId !== rawId) {
+    const { data: docRaw } = await supabase.from('uploaded_documents').select('*').eq('id', rawId).maybeSingle();
+    doc = docRaw;
+  }
+  if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
+  if (sessionId && doc.session_id !== sessionId) return res.status(404).json({ success: false, message: 'Session mismatch' });
 
   const status   = req.body?.status ?? 'READY';
   const approved = status.toUpperCase() === 'APPROVED';
 
-  await supabase.from('uploaded_documents').update({ approved }).eq('id', docId);
+  await supabase.from('uploaded_documents').update({ approved }).eq('id', doc.id);
 
   const { data: approvedDocs } = await supabase
     .from('uploaded_documents').select('id')
