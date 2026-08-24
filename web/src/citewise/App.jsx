@@ -16,6 +16,10 @@ export default function CiteWiseApp() {
   const navigate = useNavigate();
   const { groupId } = useParams();
 
+  const [sessionId, setSessionId] = useState(
+    () => localStorage.getItem(scopedKey(groupId, "sessionId")) || ""
+  );
+
   const [step, setStep] = useState(() => {
     const saved = localStorage.getItem(scopedKey(groupId, "step"));
     const parsed = saved !== null ? parseInt(saved, 10) : 0;
@@ -25,13 +29,10 @@ export default function CiteWiseApp() {
   const [maxUnlockedStep, setMaxUnlockedStep] = useState(() => {
     const saved = localStorage.getItem(scopedKey(groupId, "maxUnlockedStep"));
     const parsed = saved !== null ? parseInt(saved, 10) : NaN;
-    const floor = step >= 0 ? step : 0;
+    const initialSession = localStorage.getItem(scopedKey(groupId, "sessionId"));
+    const floor = initialSession ? Math.max(step, 1) : Math.max(step, 0);
     return !Number.isNaN(parsed) ? Math.max(parsed, floor) : floor;
   });
-
-  const [sessionId, setSessionId] = useState(
-    () => localStorage.getItem(scopedKey(groupId, "sessionId")) || ""
-  );
 
   useEffect(() => {
     if (groupId) localStorage.setItem(scopedKey(groupId, "step"), step.toString());

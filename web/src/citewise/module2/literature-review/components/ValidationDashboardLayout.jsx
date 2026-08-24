@@ -118,13 +118,12 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   const fetchDocuments = useCallback(async () => {
     if (!resolvedSessionId) return;
     try {
-      const response = await fetch(`/api/v1/documents/session/${resolvedSessionId}`, {
+      const { res: response, data } = await apiFetch(`/api/v1/documents/session/${resolvedSessionId}`, {
         headers: {
           'X-Session-Id': resolvedSessionId,
         }
       });
       if (!response.ok) return;
-      const data = await response.json();
       setDocuments((prev) => mapDocuments(Array.isArray(data) ? data : [], prev));
     } catch (err) {
       console.warn("Error loading session documents:", err);
