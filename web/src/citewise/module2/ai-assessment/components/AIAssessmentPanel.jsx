@@ -19,7 +19,10 @@ const AIAssessmentPanel = ({
   onUploadPDF: externalUploadPDF,
   onPdfUploaded: externalPdfUploaded,
 }) => {
-  const useExternal = externalInsights !== undefined;
+  const useExternal = externalInsights !== undefined || externalLoading !== undefined;
+  const resolvedInsights = useExternal ? externalInsights : insights;
+  const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
+  const resolvedError = useExternal ? null : error;
 
   const [insights, setInsights] = useState(externalInsights || null);
   const [loading, setLoading] = useState(useExternal ? externalLoading : true);
