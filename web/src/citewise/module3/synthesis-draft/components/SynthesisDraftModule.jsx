@@ -337,6 +337,7 @@
           gaps: (store.getGaps(sessionId) || []).map((g) => g.text),
           primaryFocusGap: chosenGap,
           rrlUsage: store.getRrlUsage(sessionId),
+          approvedDocumentIds: approvedDocuments.map((d) => d.id).filter(Boolean),
         };
         const { res: response, data: payload } = await apiFetch(synthesisUrl, {
           method: "POST",
