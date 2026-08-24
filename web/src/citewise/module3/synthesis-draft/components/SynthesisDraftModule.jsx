@@ -254,6 +254,12 @@
                 name: doc.fileName || doc.name || localDoc?.name || "Untitled.pdf",
                 size: doc.size || localDoc?.size || "-",
                 relevancyScore: doc.relevancyScore ?? localDoc?.relevancyScore ?? 0,
+                gapAlignmentScore: doc.gapAlignmentScore ?? localDoc?.gapAlignmentScore ?? 0, //
+                methodologyScore: doc.methodologyScore ?? localDoc?.methodologyScore ?? 0,
+                theoreticalScore: doc.theoreticalScore ?? localDoc?.theoreticalScore ?? 0,
+                citationScore: doc.citationScore ?? localDoc?.citationScore ?? 0,
+                recommendationStatus: doc.recommendationStatus ?? localDoc?.recommendationStatus ?? null, 
+                relevanceLevel: doc.relevanceLevel ?? localDoc?.relevanceLevel ?? null, //
                 approved: true,
               };
             });

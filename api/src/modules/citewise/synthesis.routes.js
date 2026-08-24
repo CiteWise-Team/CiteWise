@@ -22,7 +22,7 @@ function determineSourceTier(insight) {
 
   const hasMismatch = mismatchJson.toUpperCase().includes('TOPIC_MISMATCH');
 
-  if ((overall !== null && overall < 40) || rec === 'Low Relevance' || rel === 'Low' || hasMismatch) return 'EXCLUDED';
+  if ((overall !== null && overall < 40) || rec === 'Low Relevance' || rel === 'Low' || hasMismatch) return 'TANGENTIAL';
   if ((overall !== null && overall >= 75) || rec === 'Recommended' || rel === 'High') return 'CORE';
   if ((overall !== null && overall >= 60 && overall < 75) || rec === 'Needs Review' || rel === 'Medium') return 'SUPPORTING';
   if (overall !== null && overall >= 40 && overall < 60) return 'TANGENTIAL';
@@ -77,7 +77,7 @@ function resolveTier(insight, usageChoice, weights) {
       const rec = insight?.recommendation_status ?? null;
       const rel = insight?.relevance_level ?? null;
       const hasMismatch = (insight?.mismatch_flags_json ?? '').toUpperCase().includes('TOPIC_MISMATCH');
-      if (overall < 40 || rec === 'Low Relevance' || rel === 'Low' || hasMismatch) return 'EXCLUDED';
+      if (overall < 40 || rec === 'Low Relevance' || rel === 'Low' || hasMismatch) return 'TANGENTIAL';
       if (overall >= 75) return 'CORE';
       if (overall >= 60) return 'SUPPORTING';
       if (overall >= 40) return 'TANGENTIAL';

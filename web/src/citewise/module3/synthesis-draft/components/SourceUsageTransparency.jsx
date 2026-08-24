@@ -34,11 +34,28 @@ function computeTier(doc, usageChoice, prefs) {
   const rel = String(doc.relevanceLevel || "").toLowerCase();
 
   let tier = "SUPPORTING";
+  let reason = "";
+
   if (overall != null) {
-    if (overall >= 75) tier = "CORE";
-    else tier = "SUPPORTING"; // AI auto-tiering is restricted to min SUPPORTING
+    if (overall < 40 || rec === "low relevance" || rel === "low") {
+      tier = "TANGENTIAL";
+      reason = `Weighted relevance ${Math.round(overall)} (Low Relevance)`;
+    } else if (overall >= 75) {
+      tier = "CORE";
+      reason = `Weighted relevance ${Math.round(overall)} (Core Source)`;
+    } else if (overall >= 60) {
+      tier = "SUPPORTING";
+      reason = `Weighted relevance ${Math.round(overall)} (Supporting Source)`;
+    } else {
+      tier = "TANGENTIAL";
+      reason = `Weighted relevance ${Math.round(overall)} (Tangential Source)`;
+    }
+  } else {
+    tier = "SUPPORTING";
+    reason = "Auto (Supporting)";
   }
-  return { tier, reason: `Weighted relevance ${overall != null ? Math.round(overall) : "—"} (Auto Min: Supporting)`, overall };
+
+  return { tier, reason, overall };
 }
 
 export default function SourceUsageTransparency({ sessionId, documents, citationsUsed, citationIntegrity }) {
