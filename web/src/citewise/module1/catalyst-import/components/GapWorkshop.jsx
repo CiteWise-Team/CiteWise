@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
+import { apiFetch } from "../../../../api/http";
 
 const SOURCE_BADGE = {
   catalyst: { label: "CATalyst", color: theme.accent },
@@ -65,7 +66,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
     setShowTitlePanel(true);
     try {
       const focus = selectedGaps.length ? selectedGaps : gaps;
-      const res = await fetch("/api/v1/synthesis/titles", {
+      const { res, data: payload } = await apiFetch("/api/v1/synthesis/titles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -75,7 +76,6 @@ export default function GapWorkshop({ sessionId, catalystData }) {
           rationale: catalystData?.rationale || "",
         }),
       });
-      const payload = await res.json().catch(() => null);
       if (!res.ok || !payload?.success) throw new Error(payload?.message || "Could not derive titles.");
       setTitleSuggestions(payload.data?.titles || []);
     } catch (err) {

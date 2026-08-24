@@ -55,11 +55,10 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
   const fetchUploadedFiles = useCallback(async () => {
     if (!sessionId) return;
     try {
-      const res = await fetch(`/api/v1/documents/session/${sessionId}`, {
+      const { res, data: docs } = await apiFetch(`/api/v1/documents/session/${sessionId}`, {
         headers: { "X-Session-Id": sessionId },
       });
-      if (res.ok) {
-        const docs = await res.json();
+      if (res.ok && Array.isArray(docs)) {
         uploadedFileNamesRef.current = new Set(
           docs.map((d) => d.fileName?.toLowerCase()).filter(Boolean)
         );
@@ -226,12 +225,11 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
     const formData = new FormData();
     readyFiles.forEach((item) => formData.append("files", item.file));
     try {
-      const response = await fetch("/api/rrl/upload", {
+      const { res: response, data: payload } = await apiFetch("/api/rrl/upload", {
         method: "POST",
         headers: { "X-Session-Id": sessionId.trim() },
         body: formData,
       });
-      const payload = await response.json().catch(() => null);
       if (!response.ok) throw new Error(payload?.message || "Upload failed.");
       const results = payload?.data?.results || [];
       const accepted = payload?.data?.acceptedFiles || 0;

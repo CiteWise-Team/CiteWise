@@ -4,6 +4,7 @@ import SemanticScoreDashboard from './SemanticScoreDashboard';
 import UploadNewPDFButton from './UploadNewPDFButton';
 import RrlUsagePanel from './RrlUsagePanel';
 import * as store from '../../../lib/citewiseStore';
+import { apiFetch } from '../../../../api/http';
 
 const PANEL_HEADER_PADDING = '1.125rem 1.5rem';
 const PANEL_CONTENT_PADDING = '24px';
@@ -13,14 +14,16 @@ const AIAssessmentPanel = ({
   sessionId,
   insights: externalInsights,
   isLoading: externalLoading,
+  error: externalError,
   onAssess: externalAssess,
-  assessmentTimedOut = false,
-  onUploadClick,
-  onUploadNew,
+  onUploadPDF: externalUploadPDF,
+  onPdfUploaded: externalPdfUploaded,
 }) => {
-  const [insights, setInsights] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const useExternal = externalInsights !== undefined;
+
+  const [insights, setInsights] = useState(externalInsights || null);
+  const [loading, setLoading] = useState(useExternal ? externalLoading : true);
+  const [error, setError] = useState(useExternal ? externalError : null);
   const [isAssessing, setIsAssessing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   // Re-render the recomputed overall score when the user changes weight prefs.
@@ -32,10 +35,15 @@ const AIAssessmentPanel = ({
     });
     return unsub;
   }, []);
-  const useExternal = externalInsights !== undefined || externalLoading !== undefined;
-  const resolvedInsights = useExternal ? externalInsights : insights;
-  const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
-  const resolvedError = useExternal ? null : error;
+
+  // Sync state if props change (when external insights provided)
+  useEffect(() => {
+    if (useExternal) {
+      setInsights(externalInsights);
+      setLoading(externalLoading);
+      setError(externalError);
+    }
+  }, [useExternal, externalInsights, externalLoading, externalError]);
 
   // Polling / fetch logic (identical to first file)
   useEffect(() => {
@@ -47,7 +55,7 @@ const AIAssessmentPanel = ({
     const fetchInsights = async () => {
       if (isMounted && !pollTimeout) setLoading(true);
       try {
-        const response = await fetch(`/api/v1/documents/${documentId}/insights`);
+        const { res: response, data } = await apiFetch(`/api/v1/documents/${documentId}/insights`);
 
         if (response.status === 404) {
           if (isMounted) {
@@ -63,7 +71,6 @@ const AIAssessmentPanel = ({
           throw new Error('Failed to fetch document insights');
         }
 
-        const data = await response.json();
         if (isMounted) {
           setInsights(data);
           setError(null);
@@ -97,7 +104,7 @@ const AIAssessmentPanel = ({
         return;
       }
 
-      const response = await fetch(`/api/v1/documents/${documentId}/assess`, {
+      const { res: response } = await apiFetch(`/api/v1/documents/${documentId}/assess`, {
         method: 'POST',
       });
 

@@ -50,12 +50,11 @@ export default function TopicSuggesterOutput({ result }) {
         if (key?.startsWith(`citewise.${group_id}.`)) localStorage.removeItem(key);
       }
 
-      const res = await fetch("/api/catalyst/import", {
+      const { res, data: payload } = await apiFetch("/api/catalyst/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ workspaceId: group_id, title: activeItem.title, rationale: activeItem.rationale }),
       });
-      const payload = await res.json();
 
       if (!res.ok || !payload?.success) {
         alert(payload?.message || "Failed to import workspace into CiteWise.");

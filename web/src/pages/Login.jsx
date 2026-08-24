@@ -31,7 +31,7 @@ export default function Login() {
       showFeedback({
         type: "error",
         title: "Login Failed",
-        message: err.response?.data?.message || "Invalid credentials",
+        message: err.message || "Invalid credentials",
       });
     } finally {
       setIsLoading(false);
