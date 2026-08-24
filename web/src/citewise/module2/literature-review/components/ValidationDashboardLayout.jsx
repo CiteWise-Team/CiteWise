@@ -96,7 +96,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         size: formatBytes(item.sizeBytes),
         pages: prev?.pages ?? "-",
         status: mapStatus(item.status),
-        approved: item.approved ?? prev?.approved ?? false,
+        approved: item.approved === true ? true : (prev?.approved ?? false),
         relevancyScore: overallFromInsight ?? item.relevancyScore ?? null,
         recommendationStatus: item.recommendationStatus ?? item.insight?.recommendationStatus ?? null,
         relevanceLevel: item.relevanceLevel ?? item.insight?.relevanceLevel ?? null,
