@@ -18,6 +18,8 @@ const AIAssessmentPanel = ({
   onAssess: externalAssess,
   onUploadPDF: externalUploadPDF,
   onPdfUploaded: externalPdfUploaded,
+  onUploadClick,
+  assessmentTimedOut = false,
 }) => {
   const useExternal = externalInsights !== undefined || externalLoading !== undefined;
 
@@ -195,7 +197,7 @@ const AIAssessmentPanel = ({
       </h2>
       <div style={{ display: 'flex', gap: '12px' }}>
 
-        <UploadNewPDFButton onClick={onUploadClick || onUploadNew} />
+        <UploadNewPDFButton onClick={onUploadClick || externalUploadPDF} />
       </div>
     </div>
   );
