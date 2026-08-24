@@ -106,8 +106,16 @@ router.post('/generate', async (req, res) => {
   const weights = body.weights && typeof body.weights === 'object' ? body.weights : null;
   const userGaps = Array.isArray(body.gaps) ? body.gaps.map((g) => String(g).trim()).filter(Boolean) : null;
   const rrlUsage = body.rrlUsage && typeof body.rrlUsage === 'object' ? body.rrlUsage : {};
+  const approvedDocumentIds = Array.isArray(body.approvedDocumentIds) ? body.approvedDocumentIds : null;
 
   if (!sessionId) return res.status(400).json({ success: false, message: 'sessionId is required', data: null });
+
+  // Sync approved IDs from client payload to database if provided
+  if (approvedDocumentIds && approvedDocumentIds.length > 0) {
+    const parseId = (id) => (isNaN(Number(id)) ? id : Number(id));
+    const ids = approvedDocumentIds.map(parseId);
+    await supabase.from('uploaded_documents').update({ approved: true, session_id: sessionId }).in('id', ids);
+  }
 
   // Load baseline
   const { data: baselines } = await supabase

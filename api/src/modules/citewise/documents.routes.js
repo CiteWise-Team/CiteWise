@@ -168,16 +168,21 @@ router.patch('/:id/approval', async (req, res) => {
     doc = docRaw;
   }
   if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
-  if (sessionId && doc.session_id !== sessionId) return res.status(404).json({ success: false, message: 'Session mismatch' });
 
   const status   = req.body?.status ?? 'READY';
   const approved = status.toUpperCase() === 'APPROVED';
 
-  await supabase.from('uploaded_documents').update({ approved }).eq('id', doc.id);
+  const updatePayload = { approved };
+  if (sessionId && (!doc.session_id || doc.session_id !== sessionId)) {
+    updatePayload.session_id = sessionId;
+  }
 
+  await supabase.from('uploaded_documents').update(updatePayload).eq('id', doc.id);
+
+  const activeSession = sessionId || doc.session_id;
   const { data: approvedDocs } = await supabase
     .from('uploaded_documents').select('id')
-    .eq('session_id', doc.session_id).eq('approved', true);
+    .eq('session_id', activeSession).eq('approved', true);
 
   return res.json({
     success: true,
