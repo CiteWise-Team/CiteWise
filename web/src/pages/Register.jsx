@@ -31,7 +31,7 @@ export default function Register() {
       showFeedback({
         type: "error",
         title: "Registration Failed",
-        message: err.response?.data?.message || "Something went wrong",
+        message: err.message || "Something went wrong",
       });
     } finally {
       setIsLoading(false);

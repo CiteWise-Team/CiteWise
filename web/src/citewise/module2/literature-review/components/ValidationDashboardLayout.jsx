@@ -5,6 +5,7 @@ import AIAssessmentPanel from "../../ai-assessment/components/AIAssessmentPanel"
 import ValidationSummaryFooter from "./ValidationSummaryFooter";
 import RrlUploadLayout from "../../../module1/rrl-upload/components/RrlUploadLayout";
 import RelevanceWeightsPanel from "../../ai-assessment/components/RelevanceWeightsPanel";
+import { apiFetch } from "../../../../api/http";
 
 export default function ValidationDashboardLayout({ groupId, sessionId: propSessionId, onStepChange }) {
   const STORAGE_SESSION_KEY = groupId ? `citewise.${groupId}.sessionId` : "citewise.session_id";
@@ -23,12 +24,14 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
   const [documents, setDocuments] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showRrlUpload, setShowRrlUpload] = useState(false);
   const [activeInsights, setActiveInsights] = useState(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
   const [insightsPollExhausted, setInsightsPollExhausted] = useState(false);
   const [assessVersion, setAssessVersion] = useState(0);
   const pollAttemptsRef = useRef(0);
-  const MAX_INSIGHTS_POLL_ATTEMPTS = 50;
+  const [showLowRelevanceWarningModal, setShowLowRelevanceWarningModal] = useState(false);
+  const [pendingApprovalIndex, setPendingApprovalIndex] = useState(null);
   const [batchStats, setBatchStats] = useState({
     approvedCount: 0,
     totalCount: 0,
@@ -158,7 +161,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       if (cancelled) return;
       setIsInsightsLoading(true);
       try {
-        const response = await fetch(`/api/v1/documents/${activeDoc.id}/insights`, {
+        const { res: response, data } = await apiFetch(`/api/v1/documents/${activeDoc.id}/insights`, {
           cache: "no-store",
           headers: {
             'X-Session-Id': resolvedSessionId,
@@ -167,7 +170,6 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         if (cancelled) return;
 
         if (response.ok) {
-          const data = await response.json();
           setActiveInsights(data);
           setIsInsightsLoading(false);
           setInsightsPollExhausted(false);
@@ -175,28 +177,23 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         }
 
         if (response.status === 404) {
-          setActiveInsights(null);
           pollAttemptsRef.current += 1;
-          if (pollAttemptsRef.current >= MAX_INSIGHTS_POLL_ATTEMPTS) {
+          if (pollAttemptsRef.current >= 50) {
             setIsInsightsLoading(false);
             setInsightsPollExhausted(true);
             return;
           }
-          setIsInsightsLoading(false);
-          pollTimeout = setTimeout(fetchInsightsData, 3000);
+          pollTimeout = setTimeout(fetchInsightsData, 5000);
           return;
         }
 
-        setActiveInsights(null);
         setIsInsightsLoading(false);
         setInsightsPollExhausted(true);
       } catch (err) {
-        if (!cancelled) {
-          console.error("Error fetching AI Insights:", err);
-          setActiveInsights(null);
-          setIsInsightsLoading(false);
-          setInsightsPollExhausted(true);
-        }
+        if (cancelled) return;
+        console.warn("Failed to load insights:", err);
+        setIsInsightsLoading(false);
+        setInsightsPollExhausted(true);
       }
     };
 
@@ -206,7 +203,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       cancelled = true;
       if (pollTimeout) clearTimeout(pollTimeout);
     };
-  }, [activeDoc?.id, assessVersion, resolvedSessionId]);
+  }, [activeDoc?.id, resolvedSessionId, assessVersion]);
 
   const handleAssessDocument = useCallback(async () => {
     if (!activeDoc?.id) return;
@@ -215,7 +212,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     setInsightsPollExhausted(false);
     pollAttemptsRef.current = 0;
     try {
-      const response = await fetch(`/api/v1/documents/${activeDoc.id}/assess`, {
+      const { res: response } = await apiFetch(`/api/v1/documents/${activeDoc.id}/assess`, {
         method: "POST",
         headers: {
           'X-Session-Id': resolvedSessionId,
@@ -265,7 +262,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     }));
 
     try {
-      const response = await fetch(`/api/v1/documents/${docToToggle.id}/approval`, {
+      const { res: response, data } = await apiFetch(`/api/v1/documents/${docToToggle.id}/approval`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -276,8 +273,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (response.ok && data) {
         const approvedDocs = updatedDocs.filter((d) => d.approved);
         const scoredApproved = approvedDocs.filter((d) => typeof d.relevancyScore === "number");
         const avgScore = scoredApproved.length
@@ -285,7 +281,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
           : 0;
 
         setBatchStats({
-          approvedCount: data.batchStats.approvedCount,
+          approvedCount: data.batchStats?.approvedCount ?? approvedDocs.length,
           totalCount: updatedDocs.length,
           averageScore: avgScore,
         });
@@ -347,7 +343,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     }
 
     try {
-      const response = await fetch(`/api/v1/documents/${docToDelete.id}`, {
+      const { res: response } = await apiFetch(`/api/v1/documents/${docToDelete.id}`, {
         method: "DELETE",
         headers: {
           'X-Session-Id': resolvedSessionId,

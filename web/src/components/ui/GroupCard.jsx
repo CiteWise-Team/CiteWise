@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Modal } from "bootstrap";
 import ConfirmModal from "../modals/ConfirmModal";
 import TopicSelectModal from "../modals/TopicSelectModal";
+import { apiFetch } from "../../api/http.js";
 
 export default function GroupCard({
   name,
@@ -46,8 +47,7 @@ export default function GroupCard({
 
     setImporting(true);
     try {
-      const res = await fetch(`/api/catalyst/${encodeURIComponent(group_id)}/topics`);
-      const payload = await res.json();
+      const { res, data: payload } = await apiFetch(`/api/catalyst/${encodeURIComponent(group_id)}/topics`);
 
       if (!res.ok || !payload?.success) {
         alert(payload?.message || "Failed to load workspace data.");
@@ -84,12 +84,11 @@ export default function GroupCard({
       if (key?.startsWith(`citewise.${group_id}.`)) localStorage.removeItem(key);
     }
 
-    const res = await fetch("/api/catalyst/import", {
+    const { res, data: payload } = await apiFetch("/api/catalyst/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ workspaceId: group_id, title, rationale }),
     });
-    const payload = await res.json();
 
     if (!res.ok || !payload?.success) {
       alert(payload?.message || "Failed to import workspace into CiteWise.");

@@ -4,14 +4,12 @@ import fetch from 'node-fetch';
 async function signup(req, res) {
   try {
     const { email, password } = req.body;
-    const username = email.split("@")[0];
-
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email, password required' });
+      return res.status(400).json({ error: 'Email and password are required', message: 'Email and password are required' });
     }
 
-    console.log('Signup request received for email:', email,password);
-
+    const username = email.split("@")[0];
+    console.log('Signup request received for email:', email);
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
@@ -19,20 +17,33 @@ async function signup(req, res) {
       email_confirm: true
     });
 
-    if (authError) return res.status(400).json({ error: authError.message });
+    if (authError) {
+      console.error('Supabase createUser error:', authError);
+      const isDuplicate = authError.message?.toLowerCase().includes('already registered') || 
+                          authError.message?.toLowerCase().includes('already exists') || 
+                          authError.status === 422 || 
+                          authError.code === 'email_exists';
+      const errorMessage = isDuplicate 
+        ? 'An account with this email address already exists. Please sign in instead.' 
+        : (authError.message || 'Failed to create account');
+      return res.status(400).json({ error: errorMessage, message: errorMessage });
+    }
 
     const userId = authData.user.id;
 
-    // console.log('Created user with ID:', userId);
     const { error: profileError } = await supabase
       .from('Profile')
       .insert([{ id: userId, username }]);
 
-    if (profileError) return res.status(400).json({ error: profileError.message });
+    if (profileError) {
+      console.error('Profile creation error:', profileError);
+      return res.status(400).json({ error: profileError.message, message: profileError.message });
+    }
 
     res.status(201).json({ ok: true, user: { id: userId, email, username } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Signup exception:', err);
+    res.status(500).json({ error: err.message, message: err.message });
   }
 }
 

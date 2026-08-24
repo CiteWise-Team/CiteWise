@@ -8,6 +8,7 @@
   import SourceUsageTransparency from "./SourceUsageTransparency";
   import DraftVersionHistory from "./DraftVersionHistory";
   import * as store from "../../../lib/citewiseStore";
+  import { apiFetch } from "../../../../api/http";
 
   const crcTable = Array.from({ length: 256 }, (_, index) => {
     let c = index;
@@ -231,7 +232,7 @@
         // Fetch current approved documents from API to get the absolute source of truth
         try {
           console.log("Fetching up-to-date documents from session API...");
-          const response = await fetch(`/api/v1/documents/session/${sessionId}`, {
+          const { res: response, data } = await apiFetch(`/api/v1/documents/session/${sessionId}`, {
             headers: {
               'X-Session-Id': sessionId,
             }
@@ -241,8 +242,7 @@
             throw new Error(`HTTP ${response.status}`);
           }
           
-          const data = await response.json();
-          const approvedDocs = data.filter(doc => doc.approved === true);
+          const approvedDocs = (Array.isArray(data) ? data : []).filter(doc => doc.approved === true);
           
           console.log("Current approved documents from API:", approvedDocs);
           setApprovedDocuments(approvedDocs);
@@ -323,12 +323,11 @@
           primaryFocusGap: chosenGap,
           rrlUsage: store.getRrlUsage(sessionId),
         };
-        const response = await fetch(synthesisUrl, {
+        const { res: response, data: payload } = await apiFetch(synthesisUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(requestBody),
         });
-        const payload = await response.json().catch(() => null);
         clearInterval(interval);
 
         if (!response.ok || !payload || payload.success === false) {

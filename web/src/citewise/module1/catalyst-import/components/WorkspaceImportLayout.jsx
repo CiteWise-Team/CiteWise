@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";  // ← ADDED useCallback, useRef
+import { useState, useEffect, useCallback, useRef } from "react";
 import ImportHeaderBar from "./ImportHeaderBar";
 import DataDisplayGrid from "./DataDisplayGrid";
 import GapWorkshop from "./GapWorkshop";
 import DragDropZone from "../../rrl-upload/components/DragDropZone";
 import SelectedFilesList from "../../rrl-upload/components/SelectedFilesList";
 import UploadAllButton from "../../rrl-upload/components/UploadAllButton";
+import { apiFetch } from "../../../../api/http";
 
 const MAX_FILE_MB = 20;
 const DUPLICATE_REMOVE_DELAY = 3000;
@@ -64,11 +65,10 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   const fetchUploadedFiles = useCallback(async () => {
     if (!sessionId) return;
     try {
-      const res = await fetch(`/api/v1/documents/session/${sessionId}`, {
+      const { res, data: docs } = await apiFetch(`/api/v1/documents/session/${sessionId}`, {
         headers: { "X-Session-Id": sessionId },
       });
-      if (res.ok) {
-        const docs = await res.json();
+      if (res.ok && Array.isArray(docs)) {
         uploadedFileNamesRef.current = new Set(
           docs.map((d) => d.fileName?.toLowerCase()).filter(Boolean)
         );
@@ -129,8 +129,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
       
       // Just refresh the catalyst data, don't create new session
       try {
-        const response = await fetch(`/api/catalyst/${encodeURIComponent(trimmed)}`);
-        const payload = await response.json();
+        const { data: payload } = await apiFetch(`/api/catalyst/${encodeURIComponent(trimmed)}`);
         if (payload?.success) {
           const catalystData = {
             title: payload.data?.title,
@@ -154,13 +153,11 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
     setIsLoading(true);
     
     try {
-      const response = await fetch(`/api/catalyst/import`, {
+      const { res: response, data: payload } = await apiFetch(`/api/catalyst/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ workspaceId: trimmed })
       });
-      
-      const payload = await response.json();
       
       if (!response.ok || !payload?.success) {
         throw new Error(payload?.message || "Unable to import CATalyst workspace.");
@@ -327,12 +324,11 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
     const formData = new FormData();
     readyFiles.forEach((item) => formData.append("files", item.file));
     try {
-      const response = await fetch("/api/rrl/upload", {
+      const { res: response, data: payload } = await apiFetch("/api/rrl/upload", {
         method: "POST",
         headers: { "X-Session-Id": sessionId.trim() },
         body: formData,
       });
-      const payload = await response.json().catch(() => null);
       if (!response.ok) throw new Error(payload?.message || "Upload failed.");
       const results = payload?.data?.results || [];
       const accepted = payload?.data?.acceptedFiles || 0;

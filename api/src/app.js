@@ -20,7 +20,9 @@ const app = express();
 // Define allowed origins for CORS
 const allowedOrigins = [
   'http://localhost:5173',               // Local development
-  'https://catalyst-nu-gilt.vercel.app'  // Production frontend
+  'http://localhost:3000',
+  'https://catalyst-nu-gilt.vercel.app',  // Production frontend
+  'https://citewise-seven.vercel.app'
 ];
 
 if (process.env.FRONTEND_URL) {
@@ -34,7 +36,8 @@ app.use(
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.indexOf(origin) === -1) {
+      const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.vercel.app');
+      if (!isAllowed) {
         const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
         return callback(new Error(msg), false);
       }
