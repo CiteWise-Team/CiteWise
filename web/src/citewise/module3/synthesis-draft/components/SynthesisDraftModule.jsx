@@ -215,40 +215,55 @@
       const loadApprovedDocuments = async () => {
         setLoading(true);
         
-        // Get existing approved documents from localStorage first to display immediately
         let initialDocs = [];
-        const storedApproved = localStorage.getItem(DOCS_STORAGE_KEY);
+        const storedApproved = localStorage.getItem(DOCS_STORAGE_KEY) || sessionStorage.getItem(DOCS_STORAGE_KEY);
         
         if (storedApproved) {
           try {
             initialDocs = JSON.parse(storedApproved);
-            setApprovedDocuments(initialDocs);
-            console.log("Initial approved documents from localStorage:", initialDocs);
+            if (Array.isArray(initialDocs) && initialDocs.length > 0) {
+              setApprovedDocuments(initialDocs);
+            }
           } catch (err) {
             console.error("Error parsing stored approved docs:", err);
           }
         }
         
-        // Fetch current approved documents from API to get the absolute source of truth
         try {
-          console.log("Fetching up-to-date documents from session API...");
           const { res: response, data } = await apiFetch(`/api/v1/documents/session/${sessionId}`, {
             headers: {
               'X-Session-Id': sessionId,
             }
           });
           
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+          if (response.ok && Array.isArray(data)) {
+            const storedDocIds = new Set((initialDocs || []).map(d => String(d.id || d.name || d.fileName)));
+            
+            const apiApproved = data.filter(doc => 
+              doc.approved === true || 
+              doc.approved === 1 || 
+              doc.approved === "true" ||
+              storedDocIds.has(String(doc.id)) ||
+              storedDocIds.has(String(doc.fileName))
+            );
+
+            const merged = apiApproved.map(doc => {
+              const localDoc = (initialDocs || []).find(d => String(d.id) === String(doc.id) || String(d.name) === String(doc.fileName));
+              return {
+                id: doc.id,
+                name: doc.fileName || doc.name || localDoc?.name || "Untitled.pdf",
+                size: doc.size || localDoc?.size || "-",
+                relevancyScore: doc.relevancyScore ?? localDoc?.relevancyScore ?? 0,
+                approved: true,
+              };
+            });
+
+            const finalDocs = merged.length > 0 ? merged : initialDocs;
+            if (finalDocs && finalDocs.length > 0) {
+              setApprovedDocuments(finalDocs);
+              localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(finalDocs));
+            }
           }
-          
-          const approvedDocs = (Array.isArray(data) ? data : []).filter(doc => doc.approved === true);
-          
-          console.log("Current approved documents from API:", approvedDocs);
-          setApprovedDocuments(approvedDocs);
-          
-          // Save up-to-date approved list back to localStorage
-          localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(approvedDocs));
         } catch (err) {
           console.error("Error fetching documents:", err);
         } finally {
