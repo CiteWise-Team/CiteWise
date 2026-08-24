@@ -5,8 +5,14 @@ export function getApiUrl(endpoint) {
   if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
     return endpoint;
   }
+  let base = API_URL;
   const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-  return `${API_URL}${path}`;
+
+  if (base.endsWith("/api") && path.startsWith("/api/")) {
+    base = base.slice(0, -4);
+  }
+
+  return `${base}${path}`;
 }
 
 export async function apiFetch(endpoint, options = {}) {
