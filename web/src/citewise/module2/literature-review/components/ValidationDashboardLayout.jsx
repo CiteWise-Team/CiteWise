@@ -254,6 +254,11 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     );
     setDocuments(updatedDocs);
 
+    const approvedList = updatedDocs.filter((d) => d.approved === true);
+    const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
+    localStorage.setItem(storageKey, JSON.stringify(approvedList));
+    sessionStorage.setItem(storageKey, JSON.stringify(approvedList));
+
     setBatchStats((prev) => ({
       ...prev,
       approvedCount: updatedDocs.filter((d) => d.approved).length,
