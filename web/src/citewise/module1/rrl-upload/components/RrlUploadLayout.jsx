@@ -3,6 +3,7 @@ import DragDropZone from "./DragDropZone";
 import SelectedFilesList from "./SelectedFilesList";
 import UploadAllButton from "./UploadAllButton";
 import UploadStatusBar from "./UploadStatusBar";
+import { apiFetch } from "../../../../api/http";
 
 const MAX_FILE_MB = 20;
 const STORAGE_SESSION_KEY = "citewise.session_id";

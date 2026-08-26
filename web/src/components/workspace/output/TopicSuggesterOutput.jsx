@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useGroup } from "../../../context/GroupContext";
 import { getTopicsByGroupIdAPI } from "../../../api/workflow.topic";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
+import { apiFetch } from "../../../api/http";
 
 export default function TopicSuggesterOutput({ result }) {
   const group_id = useGroup().groupId;
