@@ -9,6 +9,9 @@ import { apiFetch } from '../../../../api/http';
 const PANEL_HEADER_PADDING = '1.125rem 1.5rem';
 const PANEL_CONTENT_PADDING = '24px';
 
+// Global cache to prevent re-fetching when switching tabs
+const insightsCache = new Map();
+
 const AIAssessmentPanel = ({
   documentId,
   sessionId,
@@ -23,8 +26,18 @@ const AIAssessmentPanel = ({
 }) => {
   const useExternal = externalInsights !== undefined || externalLoading !== undefined;
 
-  const [insights, setInsights] = useState(externalInsights || null);
-  const [loading, setLoading] = useState(useExternal ? externalLoading : true);
+  const [insights, setInsights] = useState(() => {
+    if (useExternal) return externalInsights;
+    if (documentId && insightsCache.has(documentId)) return insightsCache.get(documentId);
+    return null;
+  });
+  
+  const [loading, setLoading] = useState(() => {
+    if (useExternal) return externalLoading;
+    if (documentId && insightsCache.has(documentId)) return false;
+    return true;
+  });
+
   const [error, setError] = useState(useExternal ? externalError : null);
   const [isAssessing, setIsAssessing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -55,11 +68,21 @@ const AIAssessmentPanel = ({
   useEffect(() => {
     if (!documentId || useExternal) return;
 
+    // Immediately load from cache when documentId changes
+    if (insightsCache.has(documentId)) {
+      setInsights(insightsCache.get(documentId));
+      setLoading(false);
+    } else {
+      setInsights(null);
+      setLoading(true);
+    }
+
     let pollTimeout = null;
     let isMounted = true;
 
     const fetchInsights = async () => {
-      if (isMounted && !pollTimeout) setLoading(true);
+      // Don't show loading if we already have it in cache for this exact document
+      if (isMounted && !pollTimeout && !insightsCache.has(documentId)) setLoading(true);
       try {
         const { res: response, data } = await apiFetch(`/api/v1/documents/${documentId}/insights`);
 
@@ -78,6 +101,7 @@ const AIAssessmentPanel = ({
         }
 
         if (isMounted) {
+          insightsCache.set(documentId, data);
           setInsights(data);
           setError(null);
           setLoading(false);
@@ -118,6 +142,7 @@ const AIAssessmentPanel = ({
         throw new Error('Failed to start assessment');
       }
 
+      insightsCache.delete(documentId);
       setInsights(null);
       setLoading(true);
       setRefreshKey((prev) => prev + 1);
