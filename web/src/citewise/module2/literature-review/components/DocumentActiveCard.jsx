@@ -228,7 +228,7 @@ export default function DocumentActiveCard({
               color: "#a1a1b5",
             }}
           >
-            {doc.size} - {doc.pages} pages
+            {doc.size}
           </div>
         </div>
       </div>

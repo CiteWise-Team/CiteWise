@@ -340,16 +340,52 @@ export function extractCitationMetadata(filename, text, storedMetaJson) {
   if (storedMetaJson) {
     try {
       const stored = typeof storedMetaJson === 'string' ? JSON.parse(storedMetaJson) : storedMetaJson;
-      if (stored && stored.metadataReliable && stored.title && stored.year && stored.authorDisplay) {
+      if (stored) {
+        // If an explicit override citation object was provided, use it verbatim
+        if (stored.citation) {
+          return {
+            ...stored,
+            authors: stored.authors || [stored.authorDisplay],
+            citation: stored.citation
+          };
+        }
+
         const authors = Array.isArray(stored.authors) && stored.authors.length
           ? stored.authors
           : [stored.authorDisplay];
+        
+        let fallbackYear = null;
+        let fallbackDoi = stored.doi || '';
+
+        // If the AI metadata is missing the year, or if it provided a DOI that might be a hallucination, 
+        // we need to parse the text.
+        if (!stored.year || stored.doi) {
+          const name = String(filename ?? '').replace(/\.pdf$/i, '').trim();
+          const raw = normalizeHeaderText(text);
+          const head = raw.slice(0, 6000);
+          
+          if (!stored.year) {
+            fallbackYear = extractYear(head, name);
+          }
+          
+          if (stored.doi) {
+            // Verify the DOI actually exists in the text (removing whitespace to defeat PDF line breaks)
+            const cleanText = raw.replace(/\s+/g, '');
+            const cleanDoi = String(stored.doi).replace(/\s+/g, '');
+            if (!cleanText.includes(cleanDoi)) {
+              // The AI hallucinated this DOI. Fall back to local regex extraction.
+              const doiMatch = head.match(/\b(?:doi|DOI)[:\s/]+([^\s,;)\]]+)/);
+              fallbackDoi = doiMatch ? doiMatch[1].replace(/[.,;)\]]+$/, '') : '';
+            }
+          }
+        }
+
         return finalize({
           authors,
-          year: String(stored.year),
+          year: stored.year ? String(stored.year) : fallbackYear,
           title: stored.title,
           journal: stored.journal || '',
-          doi: stored.doi || '',
+          doi: fallbackDoi,
           publisher: stored.publisher || '',
           filename,
         });
@@ -519,33 +555,67 @@ export function reconcileInTextCitations(text, metas) {
 
   const pool = (metas ?? []).filter((m) => m?.citation);
 
-  // Matches "(Author, 2017)", "(Title, n.d.)", "(Author et al., 2019b)" and the
-  // degenerate "(Title,)" the model emits when it has no year to substitute.
-  const out = text.replace(/\(([^()]{2,160}?),\s*(?:n\.d\.|\d{4}[a-z]?)?\s*\)/gi, (full, authorPart) => {
-    const key = normalizeForCompare(authorPart);
-    if (!key) return full;
-    const authorWords = new Set(key.split(' '));
+  // Matches "(Author, 2017)", "(Title, n.d.)", "(Author et al., 2019b)", or multiple separated by semicolons
+  const out = text.replace(/\(([^()]{2,250}?)\)/gi, (full, inside) => {
+    // If it doesn't look like a citation (no year or n.d.), leave it alone
+    if (!/(?:19\d{2}|20\d{2}|n\.d\.)/.test(inside)) return full;
 
-    const matches = pool.filter((meta) => {
-      const titleKey = normalizeForCompare(meta.title);
-      // Title was used where the author belongs.
-      if (titleKey && (key === titleKey || (key.length >= 8 && titleKey.startsWith(key)))) return true;
-      // Correct author surname(s) present -> trust the source's year over the model's.
-      const surnames = normalizeForCompare(
-        String(meta.citation.inTextAuthors).replace(/\bet al\.?/i, ' ').replace(/&/g, ' ')
-      ).split(' ').filter(Boolean);
-      return surnames.length > 0 && surnames.every((s) => authorWords.has(s));
-    });
+    const parts = inside.split(';');
+    const newParts = [];
+    let hasChanges = false;
 
-    if (matches.length !== 1) {
-      if (matches.length === 0) unverified.push(full);
-      return full;
+    for (const part of parts) {
+      const match = part.match(/^\s*(.*?),\s*(?:n\.d\.|\d{4}[a-z]?)\s*$/i);
+      if (!match) {
+        newParts.push(part);
+        continue;
+      }
+      
+      const authorPart = match[1];
+      const key = normalizeForCompare(authorPart);
+      if (!key) {
+        newParts.push(part);
+        continue;
+      }
+      
+      const authorWords = new Set(key.split(' ').filter(w => w !== 'et' && w !== 'al'));
+
+      const matches = pool.filter((meta) => {
+        const titleKey = normalizeForCompare(meta.title);
+        if (titleKey && (key === titleKey || (key.length >= 8 && titleKey.startsWith(key)))) return true;
+        
+        const allSurnames = new Set();
+        normalizeForCompare(String(meta.citation.inTextAuthors).replace(/\bet al\.?/i, ' ').replace(/&/g, ' '))
+          .split(' ').forEach((s) => s && allSurnames.add(s));
+        
+        if (Array.isArray(meta.authors)) {
+          meta.authors.forEach(a => {
+            const nameParts = normalizeForCompare(a).split(' ').filter(Boolean);
+            if (nameParts.length > 0) {
+              allSurnames.add(nameParts[0]);
+              allSurnames.add(nameParts[nameParts.length - 1]);
+            }
+          });
+        }
+
+        return authorWords.size > 0 && Array.from(authorWords).every((s) => allSurnames.has(s));
+      });
+
+      if (matches.length === 1) {
+        // Strip the parentheses from the corrected citation to place inside the joined list
+        const corrected = matches[0].citation.inTextParenthetical.replace(/^\(|\)$/g, '');
+        if (corrected.trim() !== part.trim()) {
+          fixes.push({ from: part.trim(), to: corrected, source: matches[0].citation.sourceFile });
+          hasChanges = true;
+        }
+        newParts.push(corrected);
+      } else {
+        if (matches.length === 0) unverified.push(part.trim());
+        newParts.push(part);
+      }
     }
-    const corrected = matches[0].citation.inTextParenthetical;
-    if (corrected !== full) {
-      fixes.push({ from: full, to: corrected, source: matches[0].citation.sourceFile });
-    }
-    return corrected;
+
+    return hasChanges ? `(${newParts.join('; ').replace(/\s+;/g, ';')})` : full;
   });
 
   return { text: out, fixes, unverified };
