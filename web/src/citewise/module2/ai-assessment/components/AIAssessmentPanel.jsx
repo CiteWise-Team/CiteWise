@@ -249,6 +249,7 @@ const AIAssessmentPanel = ({
                 e.currentTarget.style.background = 'transparent';
               }
             }}
+          >
             {isAssessing ? (
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>

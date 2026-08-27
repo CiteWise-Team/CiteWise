@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import routes from './routes/index.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import errorHandler from './common/middlewares/errorHandler.js';
@@ -16,6 +17,19 @@ import documentsRoutes   from './modules/citewise/documents.routes.js';
 import synthesisRoutes   from './modules/citewise/synthesis.routes.js';
 
 const app = express();
+
+// Global Rate Limiting: max 200 requests per 10 minutes per IP
+// This prevents users from spamming the server or accidentally exhausting AI limits.
+const limiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 200, 
+  message: { success: false, message: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiter to all API routes
+app.use('/api', limiter);
 
 // Define allowed origins for CORS
 const allowedOrigins = [

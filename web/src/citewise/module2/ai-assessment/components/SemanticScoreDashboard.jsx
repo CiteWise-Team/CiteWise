@@ -136,7 +136,24 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
   });
 
   const renderFlagList = (flags, variant) => {
-    if (!flags || flags.length === 0) return null;
+    if (!flags || flags.length === 0) {
+      return (
+        <li
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: "13px",
+            color: "#a1a1b5",
+            lineHeight: 1.65,
+            marginBottom: "6px",
+            fontWeight: 400,
+            listStyle: "none",
+            marginLeft: "-22px"
+          }}
+        >
+          None detected.
+        </li>
+      );
+    }
 
     return flags.map((flag, idx) => {
       const label = formatFlagLabel(flag);

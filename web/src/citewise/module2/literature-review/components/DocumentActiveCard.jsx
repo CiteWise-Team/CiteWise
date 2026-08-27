@@ -83,89 +83,21 @@ export default function DocumentActiveCard({
         background: "#1e1e2f",
         border: "1px solid #3a3a55",
         borderRadius: "16px",
-        padding: 0,
+        padding: "16px",
         display: "flex",
         flexDirection: "column",
         boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
         overflow: "hidden",
       }}
     >
-      {/* Header: doc count + pagination */}
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 0,
-          padding: "1.125rem 1.5rem",
-          background: "rgba(0, 0, 0, 0.15)",
-          borderBottom: "1px solid #3a3a55",
+          alignItems: "flex-start",
+          justifyContent: "flex-start",
+          gap: "14px",
         }}
       >
-        <span
-          style={{
-            fontFamily: "'Poppins', sans-serif",
-            fontSize: "15px",
-            fontWeight: "700",
-            color: "#5b5bd6",
-          }}
-        >
-          Document {currentIndex + 1} of {documents.length}
-        </span>
-
-        <div style={{ display: "flex", gap: "10px" }}>
-          {["‹", "›"].map((arrow, i) => (
-            <button
-              key={arrow}
-              onClick={() => onNavigate && onNavigate(i === 0 ? currentIndex - 1 : currentIndex + 1)}
-              style={{
-                background: "#5b5bd6",
-                border: "1px solid #5b5bd6",
-                color: "#ffffff",
-                cursor: "pointer",
-                width: "30px",
-                height: "30px",
-                borderRadius: "8px",
-                fontSize: "22px",
-                fontWeight: "700",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                padding: 0,
-                boxShadow: "0 0 10px rgba(91, 91, 214, 0.35)",
-                transition: "transform 0.15s, opacity 0.15s, box-shadow 0.15s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.2)";
-                e.currentTarget.style.boxShadow = "0 0 14px rgba(91, 91, 214, 0.55)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow = "0 0 10px rgba(91, 91, 214, 0.35)";
-              }}
-            >
-              {arrow}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ padding: "12px 20px 14px" }}>
-
-        {/* Separator removed as requested */}
-
-        {/* Document Info - Flat layout */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            gap: "14px",
-            marginBottom: 0,
-            padding: 0,
-          }}
-        >
         {/* PDF folding dog-ear icon */}
         <div
           style={{
@@ -209,18 +141,35 @@ export default function DocumentActiveCard({
           </span>
         </div>
 
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
               fontFamily: "'Poppins', sans-serif",
-              fontSize: "15px",
+              fontSize: "14px",
               fontWeight: "600",
               color: "#e4e4f0",
-              marginBottom: "3px",
+              marginBottom: "4px",
+              wordWrap: "break-word",
+              whiteSpace: "normal"
             }}
           >
             {doc.name}
           </div>
+          {doc.title && doc.title !== doc.name && (
+            <div
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "12px",
+                color: "#a1a1b5",
+                marginBottom: "4px",
+                fontStyle: "italic",
+                wordWrap: "break-word",
+                whiteSpace: "normal"
+              }}
+            >
+              {doc.title}
+            </div>
+          )}
           <div
             style={{
               fontFamily: "'Poppins', sans-serif",
@@ -231,8 +180,6 @@ export default function DocumentActiveCard({
             {doc.size}
           </div>
         </div>
-      </div>
-
       </div>
     </div>
   );

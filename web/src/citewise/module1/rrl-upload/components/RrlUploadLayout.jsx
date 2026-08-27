@@ -198,7 +198,20 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
     });
   };
 
-  const removeFileItem = (id) => {
+  const removeFileItem = async (id) => {
+    const itemToRemove = fileQueue.find((item) => item.id === id);
+    if (itemToRemove?.docId) {
+      try {
+        await apiFetch(`/api/v1/documents/${itemToRemove.docId}`, {
+          method: "DELETE",
+          headers: { "X-Session-Id": sessionId.trim() },
+        });
+        // Decrease the uploaded count so the UI reflects the deletion instantly
+        if (onUploadComplete) onUploadComplete();
+      } catch (e) {
+        console.warn("Failed to delete from DB:", e);
+      }
+    }
     setFileQueue((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -259,6 +272,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
             ...item,
             status: isDupe ? "duplicate" : match.success ? "uploaded" : "failed",
             message: isDupe ? "Duplicate — removing from queue" : match.message,
+            docId: match.success ? match.docId : undefined,
           };
         })
       );

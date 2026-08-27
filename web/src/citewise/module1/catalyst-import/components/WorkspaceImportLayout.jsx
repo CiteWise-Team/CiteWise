@@ -545,7 +545,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
               lineHeight: "1.6",
               margin: "0 0 1.75rem 0",
             }}>
-              Your research literature has been successfully synchronized. Preparing the validation dashboard.
+              Your research literature has been successfully uploaded and is ready for AI Assessment.
             </p>
 
             <div style={{
