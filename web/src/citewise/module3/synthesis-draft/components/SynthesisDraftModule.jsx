@@ -255,6 +255,7 @@
               return {
                 id: doc.id,
                 name: doc.fileName || doc.name || localDoc?.name || "Untitled.pdf",
+                title: doc.title || localDoc?.title || null,
                 size: doc.size || localDoc?.size || "-",
                 relevancyScore: doc.relevancyScore ?? localDoc?.relevancyScore ?? 0,
                 approved: true,
@@ -267,6 +268,7 @@
                 merged.push({
                   id: localDoc.id,
                   name: localDoc.name || localDoc.fileName || "Untitled.pdf",
+                  title: localDoc.title || null,
                   size: localDoc.size || "-",
                   relevancyScore: localDoc.relevancyScore ?? 0,
                   approved: true,

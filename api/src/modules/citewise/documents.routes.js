@@ -4,6 +4,7 @@
 import express from 'express';
 import supabase from '../../common/config/supabaseClient.js';
 import { scoringPipeline } from './rrl.routes.js';
+import { extractCitationMetadata } from './helpers/citationMetadata.js';
 
 const router = express.Router();
 
@@ -42,6 +43,7 @@ router.get('/session/:sessionId', async (req, res) => {
   if (error) return res.status(500).json({ message: error.message });
 
   const summaries = await Promise.all((docs ?? []).map(async (doc) => {
+    const title = extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json).title;
     const insight = await loadInsight(doc.id);
     if (insight) {
       const g  = insight.gap_alignment_score  ?? 0;
@@ -52,6 +54,7 @@ router.get('/session/:sessionId', async (req, res) => {
       return {
         id:                   doc.id,
         fileName:             doc.file_name,
+        title,
         sizeBytes:            doc.size_bytes,
         scoringStatus:        'complete',
         relevancyScore:       relevancy,
@@ -67,6 +70,7 @@ router.get('/session/:sessionId', async (req, res) => {
     return {
       id:           doc.id,
       fileName:     doc.file_name,
+      title,
       sizeBytes:    doc.size_bytes,
       scoringStatus:(doc.scoring_status ?? 'pending').toLowerCase(),
       relevancyScore: null,

@@ -127,6 +127,21 @@ export default function ApprovedSourceList({ documents, loading, onOverrideCompl
                 >
                   {doc.fileName || doc.name}
                 </span>
+                {doc.title && (
+                  <span
+                    style={{
+                      fontSize: "0.7rem",
+                      color: "#7d7d95",
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      whiteSpace: "nowrap",
+                      maxWidth: "200px",
+                    }}
+                    title={doc.title}
+                  >
+                    {doc.title}
+                  </span>
+                )}
                 <span
                   onClick={() => handleEditClick(doc)}
                   style={{
