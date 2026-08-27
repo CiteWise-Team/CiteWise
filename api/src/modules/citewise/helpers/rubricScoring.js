@@ -114,8 +114,12 @@ function unwrapPayload(root) {
   return root;
 }
 
-export function computeOverallScore(gap, method, theory, citation) {
-  return (gap * WEIGHT_GAP) + (method * WEIGHT_METHOD) + (theory * WEIGHT_THEORY) + (citation * WEIGHT_CITATION);
+export function computeOverallScore(gap, method, theory, citation, weights = null) {
+  const wGap = weights?.gap ?? WEIGHT_GAP;
+  const wMethod = weights?.methodology ?? WEIGHT_METHOD;
+  const wTheory = weights?.theory ?? WEIGHT_THEORY;
+  const wCitation = weights?.citation ?? WEIGHT_CITATION;
+  return (gap * wGap) + (method * wMethod) + (theory * wTheory) + (citation * wCitation);
 }
 
 export function computeRecommendation(overall, gapAlignment, methodology, theoretical, citation, confidenceLevel, mismatchFlags, excerpts) {
@@ -137,7 +141,7 @@ export function computeRelevanceLevel(recommendationStatus, overall) {
   return overall >= 60 ? 'Medium' : 'Low';
 }
 
-export function parseAIResponse(rawJson, documentId) {
+export function parseAIResponse(rawJson, documentId, customWeights = null) {
   if (!rawJson?.trim()) return null;
 
   let parsed;
@@ -157,10 +161,14 @@ export function parseAIResponse(rawJson, documentId) {
   const validationFlags= parseStringArray(root, 'validationFlags','validation_flags');
 
   let overall = readOptionalScore(root, 'overall','overallScore','overall_score');
-  if (overall !== null) {
+  
+  if (customWeights) {
+    console.log(`[Scoring] Recalculating overall score for doc ${documentId} using custom weights:`, customWeights);
+    overall = computeOverallScore(gapAlignment, methodology, theoretical, citation, customWeights);
+  } else if (overall !== null) {
     overall = clamp(normalizeScore(overall));
   } else {
-    overall = computeOverallScore(gapAlignment, methodology, theoretical, citation);
+    overall = computeOverallScore(gapAlignment, methodology, theoretical, citation, null);
   }
 
   let confidence = readText(root, 'confidenceLevel','confidence_level','confidence') ?? 'Low';

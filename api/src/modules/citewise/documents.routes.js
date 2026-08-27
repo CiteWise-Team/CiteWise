@@ -131,6 +131,51 @@ router.get('/:id/insights', async (req, res) => {
   });
 });
 
+  // POST /api/v1/documents/assess-batch
+router.post('/assess-batch', async (req, res) => {
+  const { documentIds, weights, onlyApplyWeights, overwriteWeights } = req.body;
+  const sessionId = req.headers['x-session-id'];
+
+  if (!Array.isArray(documentIds) || documentIds.length === 0) {
+    return res.status(400).json({ success: false, message: 'Invalid documentIds array' });
+  }
+
+  // Update weights for the selected documents
+  if (weights) {
+    console.log(`[Batch Assess] Received custom weights for ${documentIds.length} docs (overwrite: ${overwriteWeights}):`, weights);
+    
+    let query = supabase.from('uploaded_documents')
+      .update({ metric_weights_json: JSON.stringify(weights) })
+      .in('id', documentIds)
+      .eq('session_id', sessionId);
+      
+    if (!overwriteWeights) {
+      query = query.is('metric_weights_json', null);
+    }
+    
+    await query;
+  } else {
+    console.log(`[Batch Assess] No custom weights provided for ${documentIds.length} docs. They will use the default base weights.`);
+  }
+
+  if (onlyApplyWeights) {
+    return res.json({ success: true, message: 'Weights applied successfully' });
+  }
+
+  // Reset scoring status
+  await supabase.from('uploaded_documents')
+    .update({ scoring_status: 'PENDING', scoring_error_message: null })
+    .in('id', documentIds);
+
+  // We no longer delete existing insights here. The scoringPipeline will check for them
+  // and reuse their raw_ai_response_json if available to prevent redundant AI API calls.
+
+  // Run in parallel for faster processing
+  await Promise.all(documentIds.map(docId => scoringPipeline(docId, sessionId)));
+
+  return res.json({ success: true, message: 'Batch assessment completed' });
+});
+
 // POST /api/v1/documents/:id/assess  – re-trigger n8n scoring
 router.post('/:id/assess', async (req, res) => {
   const docId     = Number(req.params.id);
