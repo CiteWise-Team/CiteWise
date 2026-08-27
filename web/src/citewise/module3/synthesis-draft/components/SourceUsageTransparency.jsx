@@ -173,18 +173,7 @@ export default function SourceUsageTransparency({ sessionId, documents, citation
           })
         )}
 
-        {cited.length > 0 && (
-          <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: `1px solid ${theme.border}` }}>
-            <div style={{ fontSize: "0.7rem", fontWeight: 700, color: theme.accent, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, fontFamily: theme.font }}>
-              Actually cited in this draft ({cited.length})
-            </div>
-            {cited.map((c, i) => (
-              <div key={i} style={{ fontSize: "0.74rem", color: theme.textMuted, fontFamily: theme.font, marginBottom: 3 }}>
-                • {typeof c === "string" ? c : c.filename || c.title || JSON.stringify(c)}
-              </div>
-            ))}
-          </div>
-        )}
+        
       </div>
     </div>
   );

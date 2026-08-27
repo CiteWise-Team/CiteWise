@@ -3,12 +3,16 @@ import { useEffect, useRef, useState } from "react";
 export default function GeneratedDraftDisplay({ generationStatus, content, references, onSaveEdit }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(content || "");
+  const [draftRefs, setDraftRefs] = useState((references || []).join("\n\n"));
   const textareaRef = useRef(null);
 
   // Keep the local edit buffer in sync when new content arrives (e.g. restore).
   useEffect(() => {
-    if (!editing) setDraft(content || "");
-  }, [content, editing]);
+    if (!editing) {
+      setDraft(content || "");
+      setDraftRefs((references || []).join("\n\n"));
+    }
+  }, [content, references, editing]);
 
   if (generationStatus === "idle") {
     return (
@@ -51,12 +55,14 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
 
   const saveEdit = () => {
     setEditing(false);
-    onSaveEdit?.(draft);
+    const newRefs = draftRefs.split("\n").map(r => r.trim()).filter(Boolean);
+    onSaveEdit?.(draft, newRefs);
   };
 
   const cancelEdit = () => {
     setEditing(false);
     setDraft(content || "");
+    setDraftRefs((references || []).join("\n\n"));
   };
 
   // Complete state - show (or edit) the generated content
@@ -116,18 +122,41 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
         </div>
       )}
 
-      {/* Display references if they exist */}
-      {references && references.length > 0 && (
+      {/* Display references if they exist or if editing */}
+      {(references && references.length > 0 || editing) && (
         <>
           <div style={{ margin: "40px 0 20px 0", height: "1px", background: "#3a3a55" }} />
-          <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#5b5bd6", marginBottom: "12px", fontFamily: "'Poppins', sans-serif" }}>
-            References
+          <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "1rem", fontWeight: 700, color: "#5b5bd6", marginBottom: "12px", fontFamily: "'Poppins', sans-serif" }}>
+            References <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "#a1a1b5" }}>(APA 7th ed.)</span>
           </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.8rem", color: "#a1a1b5" }}>
-            {references.map((ref, idx) => (
-              <div key={idx}>{ref}</div>
-            ))}
-          </div>
+          {editing ? (
+            <textarea
+              value={draftRefs}
+              onChange={(e) => setDraftRefs(e.target.value)}
+              placeholder="Add or edit your APA citations here... (one per line)"
+              style={{
+                width: "100%",
+                minHeight: "150px",
+                background: "#25253a",
+                color: "#e4e4f0",
+                border: "1px solid #3a3a55",
+                borderRadius: "10px",
+                padding: "16px",
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.85rem",
+                lineHeight: "1.6",
+                resize: "vertical",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.8rem", color: "#a1a1b5" }}>
+              {references.map((ref, idx) => (
+                <div key={idx}>{ref}</div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>

@@ -4,6 +4,7 @@
 import express from 'express';
 import supabase from '../../common/config/supabaseClient.js';
 import { scoringPipeline } from './rrl.routes.js';
+import { extractCitationMetadata } from './helpers/citationMetadata.js';
 
 const router = express.Router();
 
@@ -42,6 +43,7 @@ router.get('/session/:sessionId', async (req, res) => {
   if (error) return res.status(500).json({ message: error.message });
 
   const summaries = await Promise.all((docs ?? []).map(async (doc) => {
+    const title = extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json).title;
     const insight = await loadInsight(doc.id);
     if (insight) {
       const g  = insight.gap_alignment_score  ?? 0;
@@ -52,6 +54,7 @@ router.get('/session/:sessionId', async (req, res) => {
       return {
         id:                   doc.id,
         fileName:             doc.file_name,
+        title,
         sizeBytes:            doc.size_bytes,
         scoringStatus:        'complete',
         relevancyScore:       relevancy,
@@ -67,6 +70,7 @@ router.get('/session/:sessionId', async (req, res) => {
     return {
       id:           doc.id,
       fileName:     doc.file_name,
+      title,
       sizeBytes:    doc.size_bytes,
       scoringStatus:(doc.scoring_status ?? 'pending').toLowerCase(),
       relevancyScore: null,
@@ -188,6 +192,93 @@ router.patch('/:id/approval', async (req, res) => {
     success: true,
     message: 'Approval updated',
     data: { approvedCount: approvedDocs?.length ?? 0, averageScore: 0 },
+  });
+});
+
+// PATCH /api/v1/documents/:id/citation_override
+router.patch('/:id/citation_override', async (req, res) => {
+  const docId = Number(req.params.id);
+  const sessionId = req.headers['x-session-id'];
+  const { reference } = req.body;
+
+  if (!reference || typeof reference !== 'string') {
+    return res.status(400).json({ success: false, message: 'Reference string is required' });
+  }
+
+  const { data: doc } = await supabase.from('uploaded_documents').select('*').eq('id', docId).maybeSingle();
+  if (!doc || (sessionId && doc.session_id !== sessionId)) {
+    return res.status(404).json({ success: false, message: 'Document not found' });
+  }
+
+  // Parse the reference string to build the citation metadata
+  const refString = reference.trim();
+  const dateMatch = refString.match(/\(\s*((?:19|20)\d{2}|n\.d\.)[^)]*\)\./);
+  let year = 'n.d.';
+  let authorPart = refString;
+  let titlePart = '';
+  
+  if (dateMatch) {
+    year = dateMatch[1];
+    const idx = dateMatch.index;
+    authorPart = refString.slice(0, idx).trim();
+    titlePart = refString.slice(idx + dateMatch[0].length).trim();
+  }
+
+  const firstComma = authorPart.indexOf(',');
+  let firstAuthor = firstComma > 0 ? authorPart.slice(0, firstComma).trim() : authorPart.replace(/\.$/, '').trim();
+  
+  const commaCount = (authorPart.match(/,/g) || []).length;
+  const isMulti = authorPart.includes('&') || commaCount > 3;
+  const isTwo = authorPart.includes('&') && commaCount <= 3;
+  
+  let inTextAuthors = firstAuthor;
+  if (isMulti && !isTwo) {
+    inTextAuthors = `${firstAuthor} et al.`;
+  } else if (isTwo) {
+    const afterAmp = authorPart.split('&')[1] || '';
+    const secondComma = afterAmp.indexOf(',');
+    const secondAuthor = secondComma > 0 ? afterAmp.slice(0, secondComma).trim() : afterAmp.replace(/\.$/, '').trim();
+    if (secondAuthor) inTextAuthors = `${firstAuthor} & ${secondAuthor}`;
+  }
+
+  const existingMeta = doc.citation_metadata_json ? JSON.parse(doc.citation_metadata_json) : {};
+  const oldCitation = existingMeta.citation || {};
+
+  // If they just pasted a title and link (no APA year detected), keep the old in-text authors/year!
+  if (!dateMatch && oldCitation.inTextAuthors) {
+    inTextAuthors = oldCitation.inTextAuthors;
+    year = oldCitation.year || 'n.d.';
+  }
+
+  const yearLabel = year || 'n.d.';
+  const citationObj = {
+    reference: refString,
+    inTextParenthetical: `(${inTextAuthors}, ${yearLabel})`,
+    inTextNarrative: `${inTextAuthors} (${yearLabel})`,
+    inTextAuthors,
+    year: yearLabel,
+    shortTitle: titlePart ? titlePart.split(/\s+/).slice(0, 4).join(' ') : (oldCitation.shortTitle || 'Untitled'),
+    reliable: true,
+    sourceFile: doc.file_name
+  };
+
+  const newMeta = {
+    ...existingMeta,
+    title: titlePart || existingMeta.title || '',
+    authorDisplay: authorPart,
+    year: year !== 'n.d.' ? year : null,
+    metadataReliable: true,
+    citation: citationObj
+  };
+
+  await supabase.from('uploaded_documents')
+    .update({ citation_metadata_json: JSON.stringify(newMeta) })
+    .eq('id', docId);
+
+  return res.json({
+    success: true,
+    message: 'Citation overridden successfully',
+    citation: citationObj
   });
 });
 

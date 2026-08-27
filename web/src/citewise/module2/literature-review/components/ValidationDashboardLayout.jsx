@@ -299,21 +299,6 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     const docToToggle = documents[index];
     if (!docToToggle) return;
     const targetApprovalState = !docToToggle.approved;
-
-    if (
-      targetApprovalState &&
-      typeof docToToggle.relevancyScore === "number" &&
-      docToToggle.relevancyScore < LOW_RELEVANCE_APPROVAL_THRESHOLD
-    ) {
-      const docName = docToToggle.name || "This document";
-      setApprovalWarningModal({
-        show: true,
-        docId: docToToggle.id,
-        message: `${docName} shows low relevance to the topic.`,
-      });
-      return;
-    }
-
     await applyApprovalToggle(index, targetApprovalState);
   };
 

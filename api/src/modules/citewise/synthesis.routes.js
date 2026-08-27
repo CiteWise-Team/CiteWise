@@ -14,15 +14,14 @@ import {
 const router = express.Router();
 
 // Source tier logic (port of RAGSynthesisService.determineSourceTier)
+// Note: Since all documents in this pipeline have been explicitly approved by the user,
+// user approval overrides low AI relevance scores. Approved docs default to SUPPORTING
+// rather than EXCLUDED unless explicitly excluded by the user.
 function determineSourceTier(insight) {
   const overall    = insight?.overall_score ?? null;
   const rec        = insight?.recommendation_status ?? null;
   const rel        = insight?.relevance_level ?? null;
-  const mismatchJson = insight?.mismatch_flags_json ?? '';
 
-  const hasMismatch = mismatchJson.toUpperCase().includes('TOPIC_MISMATCH');
-
-  if ((overall !== null && overall < 40) || rec === 'Low Relevance' || rel === 'Low' || hasMismatch) return 'EXCLUDED';
   if ((overall !== null && overall >= 75) || rec === 'Recommended' || rel === 'High') return 'CORE';
   if ((overall !== null && overall >= 60 && overall < 75) || rec === 'Needs Review' || rel === 'Medium') return 'SUPPORTING';
   if (overall !== null && overall >= 40 && overall < 60) return 'TANGENTIAL';
@@ -31,8 +30,8 @@ function determineSourceTier(insight) {
 
 const TIER_META = {
   CORE:       { payloadValue: 'Core Source',       guidance: 'Use as main synthesis evidence.' },
-  SUPPORTING: { payloadValue: 'Supporting Source', guidance: 'Use cautiously as supporting evidence.' },
-  TANGENTIAL: { payloadValue: 'Tangential Source', guidance: 'Do not center the generated introduction on this source; use only for broad background if needed.' },
+  SUPPORTING: { payloadValue: 'Supporting Source', guidance: 'Use as supporting evidence.' },
+  TANGENTIAL: { payloadValue: 'Tangential Source', guidance: 'Use for broad background.' },
   EXCLUDED:   { payloadValue: 'Excluded Source',   guidance: 'Do not include this document text as synthesis evidence.' },
 };
 
@@ -74,10 +73,6 @@ function resolveTier(insight, usageChoice, weights) {
   if (weights) {
     const overall = weightedOverall(insight, weights);
     if (overall != null) {
-      const rec = insight?.recommendation_status ?? null;
-      const rel = insight?.relevance_level ?? null;
-      const hasMismatch = (insight?.mismatch_flags_json ?? '').toUpperCase().includes('TOPIC_MISMATCH');
-      if (overall < 40 || rec === 'Low Relevance' || rel === 'Low' || hasMismatch) return 'EXCLUDED';
       if (overall >= 75) return 'CORE';
       if (overall >= 60) return 'SUPPORTING';
       if (overall >= 40) return 'TANGENTIAL';
@@ -111,10 +106,16 @@ router.post('/generate', async (req, res) => {
   if (!sessionId) return res.status(400).json({ success: false, message: 'sessionId is required', data: null });
 
   // Sync approved IDs from client payload to database if provided
-  if (approvedDocumentIds && approvedDocumentIds.length > 0) {
-    const parseId = (id) => (isNaN(Number(id)) ? id : Number(id));
-    const ids = approvedDocumentIds.map(parseId);
-    await supabase.from('uploaded_documents').update({ approved: true, session_id: sessionId }).in('id', ids);
+  const parseId = (id) => (isNaN(Number(id)) ? id : Number(id));
+  const payloadDocIds = (approvedDocumentIds || []).map(parseId).filter(Boolean);
+  const rrlDocIds = Object.keys(rrlUsage || {})
+    .filter((id) => rrlUsage[id]?.usage !== 'exclude')
+    .map(parseId)
+    .filter(Boolean);
+  const allApprovedIds = [...new Set([...payloadDocIds, ...rrlDocIds])];
+
+  if (allApprovedIds.length > 0) {
+    await supabase.from('uploaded_documents').update({ approved: true, session_id: sessionId }).in('id', allApprovedIds);
   }
 
   // Load baseline
@@ -126,10 +127,21 @@ router.post('/generate', async (req, res) => {
   if (!baseline) console.warn(`[synthesis] no baseline for session ${sessionId}`);
 
   // Load approved documents with text
-  const { data: approvedDocs, error: docsErr } = await supabase
+  let { data: approvedDocs, error: docsErr } = await supabase
     .from('uploaded_documents').select('*')
     .eq('session_id', sessionId).eq('approved', true);
   if (docsErr) return res.status(500).json({ success: false, message: docsErr.message });
+
+  if (allApprovedIds.length > 0) {
+    const existingIds = new Set((approvedDocs || []).map((d) => String(d.id)));
+    const missingIds = allApprovedIds.filter((id) => !existingIds.has(String(id)));
+    if (missingIds.length > 0) {
+      const { data: docsById } = await supabase.from('uploaded_documents').select('*').in('id', missingIds);
+      if (docsById && docsById.length > 0) {
+        approvedDocs = [...(approvedDocs || []), ...docsById];
+      }
+    }
+  }
 
   const docsWithText = (approvedDocs ?? []).filter(d => d.parsed_text?.trim());
   if (!docsWithText.length) {
@@ -137,16 +149,19 @@ router.post('/generate', async (req, res) => {
   }
 
   // Load insights + determine tiers
+  // Load insights + determine tiers
   const tieredDocs = await Promise.all(docsWithText.map(async (doc) => {
     const { data: insight } = await supabase.from('document_insights').select('*').eq('document_id', doc.id).maybeSingle();
     const { data: excerpts } = insight
       ? await supabase.from('evidence_excerpts').select('*').eq('document_insight_id', insight.id).order('display_order')
       : { data: [] };
     const fullInsight = insight ? { ...insight, evidenceExcerpts: excerpts ?? [] } : null;
-    const usageChoice = rrlUsage[doc.id]?.usage ?? rrlUsage[String(doc.id)]?.usage ?? null;
+    const docUsage = rrlUsage[doc.id] ?? rrlUsage[String(doc.id)] ?? {};
+    const usageChoice = docUsage.usage ?? null;
     const tier = resolveTier(fullInsight, usageChoice, weights);
-    const emphasizedExcerpts = rrlUsage[doc.id]?.emphasizedExcerpts ?? rrlUsage[String(doc.id)]?.emphasizedExcerpts ?? [];
-    return { doc, insight: fullInsight, tier, emphasizedExcerpts };
+    const emphasizedExcerpts = docUsage.emphasizedExcerpts ?? [];
+    const customExcerpts = docUsage.customExcerpts ?? [];
+    return { doc, insight: fullInsight, tier, emphasizedExcerpts, customExcerpts };
   }));
 
   const usableDocs = tieredDocs.filter(d => d.tier !== 'EXCLUDED');
@@ -196,12 +211,10 @@ router.post('/generate', async (req, res) => {
 
   const baseInstructions =
     'The CATalyst Title, Rationale, and Research Gap are the primary source of truth. '
-    + 'Approved documents are supplementary. Use Core Sources as the main evidence, '
-    + 'Supporting Sources cautiously, Tangential Sources only for brief background, '
-    + 'and Excluded Sources not at all. Do not let a low-relevance approved document redirect the topic. '
+    + 'Approved documents are supplementary evidence. **CRITICAL REQUIREMENT**: You MUST cite EVERY SINGLE approved document provided in the `approvedDocuments` array at least once in your synthesized text (Background, Rationale, or Research Gap). DO NOT omit any approved document. User approval grants an explicit mandate for inclusion. '
     + 'The primaryFocusGap is the user\'s selected gap and should be treated as the main structural narrative pivot. '
     + 'The remaining gaps provide supporting context. '
-    + 'When a source provides emphasizedExcerpts, treat those passages as the user\'s highlighted, highest-priority evidence. '
+    + 'When a source provides emphasizedExcerpts or customHighlights, treat those passages as the user\'s highlighted, highest-priority evidence. '
     + citationRules;
 
   const payload = {
@@ -224,10 +237,10 @@ router.post('/generate', async (req, res) => {
     citationRules,
     // The exact reference list the draft must reproduce, in APA order.
     referenceList: buildReferenceList(allCitationMetas),
-    approvedDocuments: usableDocs.map(({ doc, insight, tier, emphasizedExcerpts }) => {
+    approvedDocuments: usableDocs.map(({ doc, insight, tier, emphasizedExcerpts, customExcerpts }) => {
       const meta = citationByDocId.get(String(doc.id));
       const emphasizeSet = new Set((emphasizedExcerpts || []).map(Number));
-      const allExcerpts = (insight?.evidenceExcerpts ?? []).map((e, idx) => ({
+      const dbExcerpts = (insight?.evidenceExcerpts ?? []).map((e, idx) => ({
         quoteText:     e.quote_text,
         pageNumber:    e.page_number,
         relevanceLevel:e.relevance_level,
@@ -236,8 +249,18 @@ router.post('/generate', async (req, res) => {
         displayOrder:  e.display_order,
         emphasized:    emphasizeSet.has(idx),
       }));
-      const excerpts = allExcerpts;
-      const userEmphasizedExcerpts = allExcerpts.filter((e) => e.emphasized);
+      const userCustomHighlights = (customExcerpts || []).map((t) => ({
+        quoteText: String(t).trim(),
+        pageNumber: null,
+        relevanceLevel: 'High',
+        criterion: 'User Emphasis',
+        evidenceType: 'Custom Highlight',
+        displayOrder: 0,
+        emphasized: true,
+        isCustom: true,
+      })).filter((c) => c.quoteText);
+      const excerpts = [...userCustomHighlights, ...dbExcerpts];
+      const userEmphasizedExcerpts = excerpts.filter((e) => e.emphasized);
       const scores = {
         gapAlignment:  insight?.gap_alignment_score ?? null,
         methodology:   insight?.methodology_score    ?? null,
@@ -262,6 +285,7 @@ router.post('/generate', async (req, res) => {
         scores,
         evidenceExcerpts: excerpts,
         emphasizedExcerpts: userEmphasizedExcerpts,
+        customHighlights: (customExcerpts || []).map((t) => String(t).trim()).filter(Boolean),
         metadata: meta,
         citation: meta.citation,
       };
@@ -269,7 +293,7 @@ router.post('/generate', async (req, res) => {
   };
 
   const webhookUrl = process.env.CITEWISE_N8N_SYNTHESIS_WEBHOOK_URL
-    || 'http://localhost:5678/webhook/citewise-synthesizer-v2';
+    || 'http://localhost:5678/webhook/citewise-synthesizer-fixed';
 
   let n8nData;
   try {
@@ -323,8 +347,26 @@ router.post('/generate', async (req, res) => {
       }
     : null;
 
-  // The reference list is regenerated, never taken from the model.
-  const referencesText = buildReferenceList(allCitationMetas) || (n8nData.referencesText ?? '');
+  const fullTextToCheck = contentText + ' ' + 
+    (sections?.background || '') + ' ' + 
+    (sections?.rationale || '') + ' ' + 
+    (sections?.gap || '');
+
+  // The reference list is regenerated, filtered strictly to sources actually cited in the generated draft body.
+  const citedMetas = allCitationMetas.filter((meta) => {
+    if (!meta?.citation) return false;
+    const inTextP = meta.citation.inTextParenthetical;
+    const inTextAuthors = meta.citation.inTextAuthors;
+    const shortTitle = meta.citation.shortTitle;
+    const srcFile = meta.citation.sourceFile;
+    if (inTextP && fullTextToCheck.includes(inTextP)) return true;
+    if (inTextAuthors && fullTextToCheck.includes(inTextAuthors)) return true;
+    if (shortTitle && fullTextToCheck.includes(shortTitle)) return true;
+    if (srcFile && fullTextToCheck.includes(srcFile)) return true;
+    return false;
+  });
+
+  const referencesText = (citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas)) || (n8nData.referencesText ?? '');
 
   if (citationFixes.length) {
     console.warn(`[synthesis] corrected ${citationFixes.length} in-text citation(s):`,
@@ -535,6 +577,57 @@ router.post('/titles', async (req, res) => {
   const contextTerms = keyphrasesFromText([rationale, ...gaps.slice(1)].join('. '), 5);
   const titles = buildTitleCandidates(gapText, rationale, contextTerms);
   return res.json({ success: true, data: { titles, source: 'derived' } });
+});
+
+// POST /api/v1/synthesis/update-citations
+// Updates the current draft's citations locally without calling the LLM.
+router.post('/update-citations', async (req, res) => {
+  const { sessionId } = req.body;
+  if (!sessionId) return res.status(400).json({ success: false, message: 'sessionId is required' });
+
+  const { data: draft } = await supabase.from('generated_draft').select('*').eq('session_id', sessionId).maybeSingle();
+  if (!draft) return res.status(404).json({ success: false, message: 'No draft found' });
+
+  const { data: approvedDocs } = await supabase.from('uploaded_documents').select('*').eq('session_id', sessionId).eq('approved', true);
+  if (!approvedDocs) return res.status(500).json({ success: false, message: 'Failed to load documents' });
+
+  const allCitationMetas = approvedDocs.map((doc) => 
+    extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json)
+  );
+
+  const reconcile = (text) => {
+    const { text: fixed } = reconcileInTextCitations(text, allCitationMetas);
+    return fixed;
+  };
+
+  const contentText = reconcile(draft.content_text || '');
+  const background = reconcile(draft.background_text || '');
+  const rationale = reconcile(draft.rationale_text || '');
+  const gap = reconcile(draft.gap_text || '');
+
+  const fullTextToCheck = contentText + ' ' + background + ' ' + rationale + ' ' + gap;
+
+  const citedMetas = allCitationMetas.filter((meta) => {
+    if (!meta?.citation) return false;
+    const { inTextParenthetical, inTextAuthors, shortTitle, sourceFile } = meta.citation;
+    if (inTextParenthetical && fullTextToCheck.includes(inTextParenthetical)) return true;
+    if (inTextAuthors && fullTextToCheck.includes(inTextAuthors)) return true;
+    if (shortTitle && fullTextToCheck.includes(shortTitle)) return true;
+    if (sourceFile && fullTextToCheck.includes(sourceFile)) return true;
+    return false;
+  });
+
+  const referencesText = citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas);
+
+  await supabase.from('generated_draft').update({
+    content_text: contentText,
+    background_text: background,
+    rationale_text: rationale,
+    gap_text: gap,
+    references_text: referencesText
+  }).eq('id', draft.id);
+
+  return res.json({ success: true, contentText, referencesText });
 });
 
 export default router;

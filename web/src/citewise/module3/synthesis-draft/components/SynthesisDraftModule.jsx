@@ -238,13 +238,16 @@
           
           if (response.ok && Array.isArray(data)) {
             const storedDocIds = new Set((initialDocs || []).map(d => String(d.id || d.name || d.fileName)));
-            
+            const rrlUsage = store.getRrlUsage(sessionId) || {};
+            const rrlDocIds = new Set(Object.keys(rrlUsage).filter(id => rrlUsage[id]?.usage !== 'exclude'));
+
             const apiApproved = data.filter(doc => 
               doc.approved === true || 
               doc.approved === 1 || 
               doc.approved === "true" ||
               storedDocIds.has(String(doc.id)) ||
-              storedDocIds.has(String(doc.fileName))
+              storedDocIds.has(String(doc.fileName)) ||
+              rrlDocIds.has(String(doc.id))
             );
 
             const merged = apiApproved.map(doc => {
@@ -252,11 +255,26 @@
               return {
                 id: doc.id,
                 name: doc.fileName || doc.name || localDoc?.name || "Untitled.pdf",
+                title: doc.title || localDoc?.title || null,
                 size: doc.size || localDoc?.size || "-",
                 relevancyScore: doc.relevancyScore ?? localDoc?.relevancyScore ?? 0,
                 approved: true,
               };
             });
+
+            // Ensure any local initialDocs not in API data are also preserved
+            for (const localDoc of (initialDocs || [])) {
+              if (localDoc.id && !merged.some(m => String(m.id) === String(localDoc.id))) {
+                merged.push({
+                  id: localDoc.id,
+                  name: localDoc.name || localDoc.fileName || "Untitled.pdf",
+                  title: localDoc.title || null,
+                  size: localDoc.size || "-",
+                  relevancyScore: localDoc.relevancyScore ?? 0,
+                  approved: true,
+                });
+              }
+            }
 
             const finalDocs = merged.length > 0 ? merged : initialDocs;
             if (finalDocs && finalDocs.length > 0) {
@@ -413,14 +431,42 @@
       localStorage.removeItem(DRAFT_STORAGE_KEY);
     };
 
+    const fastUpdateCitations = async () => {
+      try {
+        const { res, data } = await apiFetch(`/api/v1/synthesis/update-citations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId })
+        });
+        if (res.ok && data.success) {
+          setGeneratedContent(data.contentText);
+          setReferences((data.referencesText || "").split("\n").filter(Boolean));
+          // Save back to local storage so it persists
+          const draftToSave = {
+            content: data.contentText,
+            references: (data.referencesText || "").split("\n").filter(Boolean),
+            timestamp: new Date().toISOString(),
+          };
+          localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
+        }
+      } catch (err) {
+        console.error("Failed to fast-update citations", err);
+      }
+    };
+
     // Req 6: persist a manual edit to the draft and snapshot it as a version.
-    const handleSaveEdit = (edited) => {
-      setGeneratedContent(edited);
-      const draftToSave = { content: edited, references, timestamp: new Date().toISOString() };
+    const handleSaveEdit = (editedContent, editedReferences) => {
+      setGeneratedContent(editedContent);
+      const newRefs = editedReferences || references;
+      if (editedReferences) {
+        setReferences(editedReferences);
+      }
+      
+      const draftToSave = { content: editedContent, references: newRefs, timestamp: new Date().toISOString() };
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
       store.addDraftVersion(sessionId, {
-        content: edited,
-        references,
+        content: editedContent,
+        references: newRefs,
         label: `Edited v${store.getDraftVersions(sessionId).length + 1}`,
         source: "edited",
       });
@@ -544,7 +590,15 @@
               currentContent={generatedContent}
               onRestore={handleRestoreVersion}
             />
-            <ApprovedSourceList documents={approvedDocuments} loading={loading} />
+            <ApprovedSourceList 
+              documents={approvedDocuments} 
+              loading={loading} 
+              onOverrideComplete={() => {
+                if (approvedDocuments.length > 0 && sessionId && generationStatus === "complete") {
+                  fastUpdateCitations();
+                }
+              }}
+            />
           </div>
 
           <div style={styles.rightColumn}>
