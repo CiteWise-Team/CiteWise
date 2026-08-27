@@ -293,7 +293,7 @@ router.post('/generate', async (req, res) => {
   };
 
   const webhookUrl = process.env.CITEWISE_N8N_SYNTHESIS_WEBHOOK_URL
-    || 'http://localhost:5678/webhook/citewise-synthesizer-v2';
+    || 'http://localhost:5678/webhook/citewise-synthesizer-fixed';
 
   let n8nData;
   try {
