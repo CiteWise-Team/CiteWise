@@ -6,6 +6,7 @@ import ValidationSummaryFooter from "./ValidationSummaryFooter";
 import RrlUploadLayout from "../../../module1/rrl-upload/components/RrlUploadLayout";
 import MetricWeightCustomization from "../../ai-assessment/components/MetricWeightCustomization";
 import { apiFetch } from "../../../../api/http";
+import * as store from "../../../lib/citewiseStore";
 
 export default function ValidationDashboardLayout({ groupId, sessionId: propSessionId, onStepChange }) {
   const STORAGE_SESSION_KEY = groupId ? `citewise.${groupId}.sessionId` : "citewise.session_id";
@@ -28,6 +29,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   const [activeInsights, setActiveInsights] = useState(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
   const [insightsPollExhausted, setInsightsPollExhausted] = useState(false);
+  const [insightsErrorMsg, setInsightsErrorMsg] = useState(null);
   const [assessVersion, setAssessVersion] = useState(0);
   const pollAttemptsRef = useRef(0);
   const insightsCacheRef = useRef(new Map());
@@ -174,6 +176,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       if (insightsCacheRef.current.has(activeDoc.id)) {
         setActiveInsights(insightsCacheRef.current.get(activeDoc.id));
         setIsInsightsLoading(false);
+        setInsightsErrorMsg(null);
       } else {
         setIsInsightsLoading(true);
       }
@@ -187,17 +190,32 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         });
         if (cancelled) return;
 
+        if (response.status === 202) {
+          // Document is processing, continue polling
+          pollAttemptsRef.current += 1;
+          if (pollAttemptsRef.current >= 50) {
+            setIsInsightsLoading(false);
+            setInsightsPollExhausted(true);
+            setInsightsErrorMsg("Assessment took too long.");
+            return;
+          }
+          pollTimeout = setTimeout(fetchInsightsData, 5000);
+          return;
+        }
+
         if (response.ok) {
           insightsCacheRef.current.set(activeDoc.id, data);
           setActiveInsights(data);
           setIsInsightsLoading(false);
           setInsightsPollExhausted(false);
+          setInsightsErrorMsg(null);
           return;
         }
 
         if (response.status === 404) {
-          // If the document is explicitly pending or not started, don't poll
-          if (activeDoc.rawStatus === 'pending') {
+          // If the document is explicitly pending, it might be about to start (race condition).
+          // Give it a few seconds (e.g., 3 polls) to transition to processing before giving up.
+          if (activeDoc.rawStatus === 'pending' && pollAttemptsRef.current > 3) {
             setIsInsightsLoading(false);
             setInsightsPollExhausted(true); // Treated as not assessed
             return;
@@ -215,11 +233,13 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
         setIsInsightsLoading(false);
         setInsightsPollExhausted(true);
+        setInsightsErrorMsg(data?.message || "Assessment failed.");
       } catch (err) {
         if (cancelled) return;
         console.warn("Failed to load insights:", err);
         setIsInsightsLoading(false);
         setInsightsPollExhausted(true);
+        setInsightsErrorMsg(err.message || "Failed to load insights.");
       }
     };
 
@@ -237,6 +257,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     setActiveInsights(null);
     setIsInsightsLoading(true);
     setInsightsPollExhausted(false);
+    setInsightsErrorMsg(null);
     pollAttemptsRef.current = 0;
     try {
       const prefs = store.getScorePrefs(resolvedSessionId);
@@ -247,17 +268,18 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         citation: prefs.enabled.citation ? prefs.weights.citation : 0,
       };
 
-      const { res: response } = await apiFetch(`/api/v1/documents/assess-batch`, {
+      const { res: response, data } = await apiFetch(`/api/v1/documents/assess-batch`, {
         method: "POST",
         headers: {
           'X-Session-Id': resolvedSessionId,
         },
-        body: JSON.stringify({ documentIds: [activeDoc.id], weights, overwriteWeights: false })
+        body: JSON.stringify({ documentIds: [activeDoc.id], weights, overwriteWeights: true })
       });
       if (!response.ok) {
         console.warn("Failed to start assessment");
         setIsInsightsLoading(false);
         setInsightsPollExhausted(true);
+        setInsightsErrorMsg(data?.message || `Failed to start assessment: ${response.status}`);
       } else {
         setAssessVersion((v) => v + 1);
       }
@@ -265,6 +287,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       console.warn("Failed to start assessment:", err);
       setIsInsightsLoading(false);
       setInsightsPollExhausted(true);
+      setInsightsErrorMsg(err.message || "Failed to start assessment");
     }
   }, [activeDoc?.id, resolvedSessionId]);
 
@@ -771,10 +794,17 @@ const handleProceed = () => {
             <MetricWeightCustomization 
               sessionId={resolvedSessionId} 
               documents={documents}
-              onAssessmentTriggered={() => {
+              onAssessmentTriggered={(assessedDocIds) => {
                 insightsCacheRef.current.clear();
                 setAssessVersion(v => v + 1);
                 fetchDocuments();
+                if (assessedDocIds && assessedDocIds.length > 0) {
+                  const targetId = assessedDocIds[0];
+                  const idx = documents.findIndex(d => d.id === targetId);
+                  if (idx !== -1) {
+                    setCurrentIndex(idx);
+                  }
+                }
               }}
             />
           )}
@@ -784,10 +814,17 @@ const handleProceed = () => {
           <MetricWeightCustomization 
             sessionId={resolvedSessionId} 
             documents={documents}
-            onAssessmentTriggered={() => {
+            onAssessmentTriggered={(assessedDocIds) => {
               insightsCacheRef.current.clear();
               setAssessVersion(v => v + 1);
               fetchDocuments();
+              if (assessedDocIds && assessedDocIds.length > 0) {
+                const targetId = assessedDocIds[0];
+                const idx = documents.findIndex(d => d.id === targetId);
+                if (idx !== -1) {
+                  setCurrentIndex(idx);
+                }
+              }
             }}
             isHero={true}
           />
@@ -797,6 +834,7 @@ const handleProceed = () => {
             sessionId={resolvedSessionId}
             insights={activeInsights}
             isLoading={isInsightsLoading}
+            error={insightsErrorMsg || (insightsPollExhausted ? "poll exhausted" : null)}
             assessmentTimedOut={insightsPollExhausted}
             onAssess={handleAssessDocument}
             onUploadClick={handleUploadNew}

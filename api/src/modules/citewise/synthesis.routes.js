@@ -630,4 +630,46 @@ router.post('/update-citations', async (req, res) => {
   return res.json({ success: true, contentText, referencesText });
 });
 
+// POST /api/v1/synthesis/paraphrase
+// Paraphrases text to remove AI slop using an n8n workflow load balancer.
+router.post('/paraphrase', async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ success: false, message: 'Text is required' });
+
+  const baseUrl = (process.env.N8N_BASE_URL || '').replace(/\/$/, '');
+  const webhookUrl = process.env.CITEWISE_N8N_PARAPHRASE_WEBHOOK_URL
+    || (baseUrl ? `${baseUrl}/webhook/citewise-paraphraser-lb` : 'http://localhost:5678/webhook/citewise-paraphraser-lb');
+
+  try {
+    const n8nRes = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Connection: 'close' },
+      body: JSON.stringify({ text }),
+      timeout: parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS) || 120000,
+    });
+    const raw = await n8nRes.text();
+    if (!raw?.trim()) throw new Error('Paraphraser webhook returned empty response');
+    
+    let root = JSON.parse(raw);
+    if (Array.isArray(root) && root.length) root = root[0];
+    for (const f of ['output', 'body', 'data', 'json', 'result', 'paraphrasedText']) {
+      if (root[f] && typeof root[f] === 'string') { 
+        return res.json({ success: true, text: root[f] });
+      }
+      if (root[f] && typeof root[f] === 'object' && typeof root[f].paraphrasedText === 'string') {
+        return res.json({ success: true, text: root[f].paraphrasedText });
+      }
+    }
+
+    if (root.paraphrasedText) {
+      return res.json({ success: true, text: root.paraphrasedText });
+    }
+
+    return res.status(502).json({ success: false, message: 'Could not extract paraphrased text from response' });
+  } catch (err) {
+    console.error('[paraphrase] n8n call failed:', err.message);
+    return res.status(502).json({ success: false, message: `Paraphrase failed: ${err.message}` });
+  }
+});
+
 export default router;

@@ -43,7 +43,7 @@ export default function MetricWeightCustomization({
 
   const handleApplyToAll = async () => {
     const docIds = documents.map(d => d.id);
-    await triggerBatchAssess(docIds, false, false);
+    await triggerBatchAssess(docIds, true, false);
   };
 
   const handleApplyToSelected = async () => {
@@ -63,7 +63,7 @@ export default function MetricWeightCustomization({
   const handleAssessSelected = async () => {
     if (selectedDocs.size === 0) return;
     const docIds = Array.from(selectedDocs);
-    await triggerBatchAssess(docIds, false, false);
+    await triggerBatchAssess(docIds, true, false);
     setShowSelectModal(false);
   };
 
@@ -94,7 +94,7 @@ export default function MetricWeightCustomization({
       
       if (res.ok) {
         setHasChanged(false);
-        if (onAssessmentTriggered) onAssessmentTriggered();
+        if (onAssessmentTriggered) onAssessmentTriggered(docIds);
       }
     } catch (e) {
       console.warn("Batch assess failed:", e);

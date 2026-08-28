@@ -36,7 +36,7 @@ async function loadInsight(docId) {
 router.get('/session/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   const headerSession = req.headers['x-session-id'];
-  if (headerSession && headerSession !== sessionId) return res.status(404).end();
+  if (headerSession && headerSession !== sessionId) return res.status(404).json({ success: false, message: 'Not found' });
 
   const { data: docs, error } = await supabase
     .from('uploaded_documents').select('*').eq('session_id', sessionId);
@@ -90,21 +90,24 @@ router.get('/:id/insights', async (req, res) => {
   const docId     = Number(req.params.id);
   const sessionId = req.headers['x-session-id'];
 
-  if (sessionId) {
-    const { data: doc } = await supabase.from('uploaded_documents').select('session_id').eq('id', docId).maybeSingle();
-    if (!doc || (sessionId && doc.session_id !== sessionId)) return res.status(404).end();
+  const { data: docInfo } = await supabase.from('uploaded_documents').select('session_id, scoring_status, scoring_error_message, file_name, metric_weights_json').eq('id', docId).maybeSingle();
+  
+  if (!docInfo || (sessionId && docInfo.session_id !== sessionId)) return res.status(404).json({ success: false, message: 'Not found' });
+  if (docInfo.scoring_status === 'PENDING' || docInfo.scoring_status === 'PROCESSING') return res.status(202).json({ success: true, message: 'Processing' });
+  
+  if (docInfo.scoring_status === 'FAILED') {
+    return res.status(400).json({ success: false, message: docInfo.scoring_error_message || 'Assessment failed' });
   }
 
   const insight = await loadInsight(docId);
-  if (!insight) return res.status(404).end();
+  if (!insight) return res.status(404).json({ success: false, message: 'Not found' });
 
-  const { data: doc } = await supabase.from('uploaded_documents').select('file_name, metric_weights_json').eq('id', docId).maybeSingle();
   const overallScore  = insight.overall_score ?? insight.average_overall_score;
 
-  return res.json({
-    documentId:          insight.document_id,
-    filename:            doc?.file_name ?? null,
-    metricWeights:       doc?.metric_weights_json ? (typeof doc.metric_weights_json === 'string' ? JSON.parse(doc.metric_weights_json) : doc.metric_weights_json) : null,
+    return res.json({
+      documentId:          insight.document_id,
+      filename:            docInfo?.file_name ?? null,
+      metricWeights:       docInfo?.metric_weights_json ? (typeof docInfo.metric_weights_json === 'string' ? JSON.parse(docInfo.metric_weights_json) : docInfo.metric_weights_json) : null,
     gapAlignmentScore:   insight.gap_alignment_score,
     methodologyScore:    insight.methodology_score,
     theoreticalScore:    insight.theoretical_score,
@@ -165,13 +168,16 @@ router.post('/assess-batch', async (req, res) => {
     return res.json({ success: true, message: 'Weights applied successfully' });
   }
 
+  // Delete existing insights so the workflow will actually re-run with the new weights
+  const { data: existing } = await supabase.from('document_insights').select('id').in('document_id', documentIds);
+  if (existing && existing.length > 0) {
+    await supabase.from('document_insights').delete().in('id', existing.map(e => e.id));
+  }
+
   // Reset scoring status
   await supabase.from('uploaded_documents')
     .update({ scoring_status: 'PENDING', scoring_error_message: null })
     .in('id', documentIds);
-
-  // We no longer delete existing insights here. The scoringPipeline will check for them
-  // and reuse their raw_ai_response_json if available to prevent redundant AI API calls.
 
   // Run with bounded concurrency (e.g., max 15 at a time) to prevent overwhelming n8n
   const CONCURRENCY_LIMIT = 15;
@@ -186,9 +192,10 @@ router.post('/assess-batch', async (req, res) => {
       }
     }
   });
-  await Promise.all(workers);
+  // Fire and forget the workers so the API returns immediately
+  Promise.all(workers).catch(e => console.error("[Batch Assess] Unhandled worker error:", e));
 
-  return res.json({ success: true, message: 'Batch assessment completed' });
+  return res.json({ success: true, message: 'Batch assessment started' });
 });
 
 // POST /api/v1/documents/:id/assess  – re-trigger n8n scoring
@@ -348,7 +355,7 @@ router.delete('/:id', async (req, res) => {
   const sessionId = req.headers['x-session-id'];
 
   const { data: doc } = await supabase.from('uploaded_documents').select('*').eq('id', docId).maybeSingle();
-  if (!doc || (sessionId && doc.session_id !== sessionId)) return res.status(404).end();
+  if (!doc || (sessionId && doc.session_id !== sessionId)) return res.status(404).json({ success: false, message: 'Not found' });
 
   const { data: insight } = await supabase.from('document_insights').select('id').eq('document_id', docId).maybeSingle();
   if (insight) await supabase.from('document_insights').delete().eq('id', insight.id);

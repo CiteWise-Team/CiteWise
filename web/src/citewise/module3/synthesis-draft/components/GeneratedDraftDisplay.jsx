@@ -1,18 +1,32 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { diffWords } from 'diff';
+import { apiFetch } from "../../../../api/http";
+import { Sparkles } from "lucide-react";
 
 export default function GeneratedDraftDisplay({ generationStatus, content, references, onSaveEdit }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(content || "");
   const [draftRefs, setDraftRefs] = useState((references || []).join("\n\n"));
   const textareaRef = useRef(null);
+  
+  // Paraphraser state
+  const [isParaphrasing, setIsParaphrasing] = useState(false);
+  const [paraphrasedDraft, setParaphrasedDraft] = useState(null);
+
+  const diffParts = useMemo(() => {
+    if (!draft || !paraphrasedDraft) return [];
+    const cleanDraft = draft.replace(/\*\*/g, '');
+    const cleanParaphrased = paraphrasedDraft.replace(/\*\*/g, '');
+    return diffWords(cleanDraft, cleanParaphrased);
+  }, [draft, paraphrasedDraft]);
 
   // Keep the local edit buffer in sync when new content arrives (e.g. restore).
   useEffect(() => {
-    if (!editing) {
+    if (!editing && !paraphrasedDraft) {
       setDraft(content || "");
       setDraftRefs((references || []).join("\n\n"));
     }
-  }, [content, references, editing]);
+  }, [content, references, editing, paraphrasedDraft]);
 
   if (generationStatus === "idle") {
     return (
@@ -65,10 +79,42 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
     setDraftRefs((references || []).join("\n\n"));
   };
 
+  const handleParaphrase = async () => {
+    setIsParaphrasing(true);
+    setParaphrasedDraft(null);
+    try {
+      const { res, data } = await apiFetch('/api/v1/synthesis/paraphrase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: draft })
+      });
+      if (res.ok && data.success && data.text) {
+        setParaphrasedDraft(data.text.replace(/\*\*/g, ''));
+      } else {
+        alert("Paraphrasing failed. Please check n8n workflow credentials.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Paraphrasing failed. Please check the network.");
+    } finally {
+      setIsParaphrasing(false);
+    }
+  };
+
+  const acceptParaphrase = () => {
+    setDraft(paraphrasedDraft);
+    onSaveEdit?.(paraphrasedDraft, references);
+    setParaphrasedDraft(null);
+  };
+
+  const discardParaphrase = () => {
+    setParaphrasedDraft(null);
+  };
+
   // Complete state - show (or edit) the generated content
   return (
-    <div data-citewise-draft="true" style={{ lineHeight: "1.7", fontSize: "0.95rem", color: "#e4e4f0", maxWidth: "800px", margin: "0 auto", width: "100%", fontFamily: "'Poppins', sans-serif" }}>
-      {/* Edit controls — Req 6: AI output is a draft, the user has the final say */}
+    <div data-citewise-draft="true" style={{ lineHeight: "1.7", fontSize: "0.95rem", color: "#e4e4f0", maxWidth: "100%", margin: "0 auto", width: "100%", fontFamily: "'Poppins', sans-serif" }}>
+      {/* Edit controls */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "12px" }}>
         {editing ? (
           <>
@@ -86,16 +132,85 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
             </button>
           </>
         ) : (
-          <button
-            onClick={() => setEditing(true)}
-            style={{ background: "transparent", color: "#5b5bd6", border: "1px solid rgba(91,91,214,0.5)", borderRadius: "8px", padding: "6px 16px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", fontWeight: 700 }}
-          >
-            ✎ Edit draft
-          </button>
+          <>
+            <button
+              onClick={handleParaphrase}
+              disabled={isParaphrasing || !!paraphrasedDraft}
+              style={{ background: "transparent", color: "#ff9900", border: "1px solid rgba(255,153,0,0.5)", borderRadius: "8px", padding: "6px 16px", cursor: (isParaphrasing || !!paraphrasedDraft) ? "not-allowed" : "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              {isParaphrasing ? (
+                <>Paraphrasing...</>
+              ) : (
+                <><Sparkles size={16} /> Remove AI Slop</>
+              )}
+            </button>
+            {!paraphrasedDraft && (
+              <button
+                onClick={() => setEditing(true)}
+                style={{ background: "transparent", color: "#5b5bd6", border: "1px solid rgba(91,91,214,0.5)", borderRadius: "8px", padding: "6px 16px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", fontWeight: 700 }}
+              >
+                ✎ Edit draft
+              </button>
+            )}
+          </>
         )}
       </div>
 
-      {editing ? (
+      {paraphrasedDraft ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ 
+            display: "grid", 
+            gridTemplateColumns: "1fr 1fr", 
+            gap: "24px",
+            background: "#1a1a2e",
+            borderRadius: "12px",
+            padding: "20px",
+            border: "1px solid #3a3a55"
+          }}>
+            {/* Original Column */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <h4 style={{ margin: 0, color: "#a1a1b5", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>Original Draft</h4>
+              <div style={{ whiteSpace: "pre-wrap", color: "#a1a1b5", opacity: 0.9 }}>
+                {diffParts.map((part, i) => {
+                  if (part.added) return null;
+                  if (part.removed) {
+                    return <span key={i} style={{ backgroundColor: 'rgba(220, 53, 69, 0.2)', color: '#ff6b6b', textDecoration: 'line-through', borderRadius: '3px', padding: '0 2px' }}>{part.value}</span>;
+                  }
+                  return <span key={i}>{part.value}</span>;
+                })}
+              </div>
+            </div>
+
+            {/* Edited Column */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <h4 style={{ margin: 0, color: "#4ade80", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>Edited Draft</h4>
+              <div style={{ whiteSpace: "pre-wrap", color: "#e4e4f0" }}>
+                {diffParts.map((part, i) => {
+                  if (part.removed) return null;
+                  if (part.added) {
+                    return <span key={i} style={{ backgroundColor: 'rgba(40, 167, 69, 0.2)', color: '#4ade80', borderRadius: '3px', padding: '0 2px' }}>{part.value}</span>;
+                  }
+                  return <span key={i}>{part.value}</span>;
+                })}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+            <button
+              onClick={acceptParaphrase}
+              style={{ background: "#28a745", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 24px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.9rem", fontWeight: 700 }}
+            >
+              Accept Changes
+            </button>
+            <button
+              onClick={discardParaphrase}
+              style={{ background: "#dc3545", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 24px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.9rem", fontWeight: 700 }}
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      ) : editing ? (
         <textarea
           ref={textareaRef}
           value={draft}
@@ -123,7 +238,7 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
       )}
 
       {/* Display references if they exist or if editing */}
-      {(references && references.length > 0 || editing) && (
+      {(references && references.length > 0 || editing) && !paraphrasedDraft && (
         <>
           <div style={{ margin: "40px 0 20px 0", height: "1px", background: "#3a3a55" }} />
           <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "1rem", fontWeight: 700, color: "#5b5bd6", marginBottom: "12px", fontFamily: "'Poppins', sans-serif" }}>

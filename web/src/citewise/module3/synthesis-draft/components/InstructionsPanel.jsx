@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 const PRESETS = [
   "Focus on the technological limitations discussed in the core sources.",
@@ -17,6 +18,7 @@ const PRESETS = [
 
 export default function InstructionsPanel({ sessionId }) {
   const [text, setText] = useState(() => store.getInstructions(sessionId));
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     setText(store.getInstructions(sessionId));
@@ -34,11 +36,17 @@ export default function InstructionsPanel({ sessionId }) {
 
   return (
     <div style={ui.card}>
-      <div style={ui.cardHeader}>
+      <div 
+        style={{ ...ui.cardHeader, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}
+        onClick={() => setIsOpen(!isOpen)}
+      >
         <span style={ui.cardTitle}>Guide the AI</span>
+        {isOpen ? <ChevronDown size={18} color={theme.accent} /> : <ChevronRight size={18} color={theme.textMuted} />}
       </div>
-      <div style={{ padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-        <p style={{ margin: 0, fontSize: "0.78rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
+      
+      {isOpen && (
+        <div style={{ padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <p style={{ margin: 0, fontSize: "0.78rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
           Tell the AI how to write the introduction. These instructions are followed during generation.
         </p>
         <textarea
@@ -74,6 +82,7 @@ export default function InstructionsPanel({ sessionId }) {
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }

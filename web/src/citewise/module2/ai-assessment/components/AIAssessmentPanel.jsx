@@ -46,7 +46,7 @@ const AIAssessmentPanel = ({
 
   const resolvedInsights = useExternal ? externalInsights : insights;
   const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
-  const resolvedError = useExternal ? null : error;
+  const resolvedError = useExternal ? externalError : error;
   // Re-render the recomputed overall score when the user changes weight prefs.
   const [prefsVersion, setPrefsVersion] = useState(0);
 

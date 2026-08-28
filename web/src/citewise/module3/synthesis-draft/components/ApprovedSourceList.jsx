@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { apiRequest } from "../../../../api/http";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 export default function ApprovedSourceList({ documents, loading, onOverrideComplete }) {
   const [editingDoc, setEditingDoc] = useState(null);
   const [citationText, setCitationText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleEditClick = (doc) => {
     setEditingDoc(doc);
@@ -36,149 +38,169 @@ export default function ApprovedSourceList({ documents, loading, onOverrideCompl
         background: "#1e1e2f",
         border: "1px solid #3a3a55",
         borderRadius: "16px",
-        padding: "20px",
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
-        position: "relative"
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <span
-        style={{
-          fontFamily: "'Poppins', sans-serif",
-          fontWeight: 700,
-          fontSize: "1.05rem",
-          color: "#5b5bd6",
-          letterSpacing: "0.01em",
+      <div 
+        style={{ 
+          padding: "16px 20px", 
+          background: "rgba(0, 0, 0, 0.15)",
+          borderBottom: isOpen ? "1px solid #3a3a55" : "none",
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center",
+          cursor: "pointer",
+          userSelect: "none"
         }}
+        onClick={() => setIsOpen(!isOpen)}
       >
-        Source Documents ({documents.length})
-      </span>
-
-      <div style={{ height: "1px", background: "#3a3a55" }} />
-
-      {loading ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "12px",
-            padding: "40px 20px",
-            background: "rgba(0, 0, 0, 0.15)",
-            borderRadius: "8px",
-          }}
-        >
-          <div
+        <div>
+          <span
             style={{
-              width: "32px",
-              height: "32px",
-              border: "2px solid #3a3a55",
-              borderTop: "2px solid #5b5bd6",
-              borderRadius: "50%",
-              animation: "spin 0.8s linear infinite",
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 700,
+              fontSize: "1.05rem",
+              color: "#5b5bd6",
+              letterSpacing: "0.01em",
             }}
-          />
-          <span style={{ color: "#a1a1b5", fontSize: "0.85rem" }}>
-            Loading documents...
+          >
+            Source Documents ({documents.length})
           </span>
         </div>
-      ) : documents.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px 20px",
-            color: "#a1a1b5",
-            fontSize: "0.85rem",
-            background: "rgba(0, 0, 0, 0.15)",
-            borderRadius: "8px",
-          }}
-        >
-          No approved documents yet
+        <div style={{ display: "flex", alignItems: "center" }}>
+          {isOpen ? <ChevronDown size={18} color="#5b5bd6" /> : <ChevronRight size={18} color="#a1a1b5" />}
         </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {documents.map((doc, idx) => (
+      </div>
+
+      {isOpen && (
+        <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+          {loading ? (
             <div
-              key={idx}
               style={{
-                background: "rgba(0, 0, 0, 0.15)",
-                border: "1px solid #3a3a55",
-                borderRadius: "8px",
-                padding: "10px 14px",
                 display: "flex",
-                justifyContent: "space-between",
+                flexDirection: "column",
                 alignItems: "center",
-                transition: "border-color 0.2s ease",
+                justifyContent: "center",
+                gap: "12px",
+                padding: "40px 20px",
+                background: "rgba(0, 0, 0, 0.15)",
+                borderRadius: "8px",
               }}
             >
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span
-                  style={{
-                    fontSize: "0.85rem",
-                    color: "#e4e4f0",
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                    whiteSpace: "nowrap",
-                    maxWidth: "200px",
-                  }}
-                  title={doc.fileName || doc.name}
-                >
-                  {doc.fileName || doc.name}
-                </span>
-                {doc.title && (
-                  <span
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "#7d7d95",
-                      textOverflow: "ellipsis",
-                      overflow: "hidden",
-                      whiteSpace: "nowrap",
-                      maxWidth: "200px",
-                    }}
-                    title={doc.title}
-                  >
-                    {doc.title}
-                  </span>
-                )}
-                <span
-                  onClick={() => handleEditClick(doc)}
-                  style={{
-                    fontSize: "0.7rem",
-                    color: "#a1a1b5",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                  }}
-                >
-                  Override Citation
-                </span>
-              </div>
-
               <div
                 style={{
-                  width: "16px",
-                  height: "16px",
+                  width: "32px",
+                  height: "32px",
+                  border: "2px solid #3a3a55",
+                  borderTop: "2px solid #5b5bd6",
                   borderRadius: "50%",
-                  background: "#5b5bd6",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
+                  animation: "spin 0.8s linear infinite",
                 }}
-              >
-                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                  <path
-                    d="M1 4L3.5 6.5L9 1"
-                    stroke="#e4e4f0"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
+              />
+              <span style={{ color: "#a1a1b5", fontSize: "0.85rem" }}>
+                Loading documents...
+              </span>
             </div>
-          ))}
+          ) : documents.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "40px 20px",
+                color: "#a1a1b5",
+                fontSize: "0.85rem",
+                background: "rgba(0, 0, 0, 0.15)",
+                borderRadius: "8px",
+              }}
+            >
+              No approved documents yet
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {documents.map((doc, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: "rgba(0, 0, 0, 0.15)",
+                    border: "1px solid #3a3a55",
+                    borderRadius: "8px",
+                    padding: "10px 14px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    transition: "border-color 0.2s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <span
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "#e4e4f0",
+                        textOverflow: "ellipsis",
+                        overflow: "hidden",
+                        whiteSpace: "nowrap",
+                        maxWidth: "200px",
+                      }}
+                      title={doc.fileName || doc.name}
+                    >
+                      {doc.fileName || doc.name}
+                    </span>
+                    {doc.title && (
+                      <span
+                        style={{
+                          fontSize: "0.7rem",
+                          color: "#7d7d95",
+                          textOverflow: "ellipsis",
+                          overflow: "hidden",
+                          whiteSpace: "nowrap",
+                          maxWidth: "200px",
+                        }}
+                        title={doc.title}
+                      >
+                        {doc.title}
+                      </span>
+                    )}
+                    <span
+                      onClick={() => handleEditClick(doc)}
+                      style={{
+                        fontSize: "0.7rem",
+                        color: "#a1a1b5",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      Override Citation
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      borderRadius: "50%",
+                      background: "#5b5bd6",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4L3.5 6.5L9 1"
+                        stroke="#e4e4f0"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
