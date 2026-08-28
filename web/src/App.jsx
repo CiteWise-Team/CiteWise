@@ -7,13 +7,8 @@ import Upload from "./pages/Upload";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import GroupWorkflow from "./pages/Workspace";
 import CiteWiseApp from "./citewise/App";
-import { useAuth } from "./context/AuthContext";
 
 export default function App() {
-  const {user} = useAuth();
-  // TEMP: simulate auth (replace later)
-  const isAuthenticated = false;
-
   return (
     <BrowserRouter>
       <Routes>
@@ -40,20 +35,27 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/workspace/:groupName" element={
-          <ProtectedRoute>
-            <GroupWorkflow />
-          </ProtectedRoute>
-        } />
 
-        {/* CiteWise flow — keyed per workspace so each group keeps its own session */}
-        <Route path="/citewise/:groupId" element={<CiteWiseApp />} />
-        {/* <Route path="/workspace/workflow" element={
-          <ProtectedRoute>
-            <GroupWorkflow />
-          </ProtectedRoute>
-        } /> */}
+        <Route
+          path="/workspace/:groupName"
+          element={
+            <ProtectedRoute>
+              <GroupWorkflow />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* CiteWise flow — protected so direct URL access redirects to login */}
+        <Route
+          path="/citewise/:groupId"
+          element={
+            <ProtectedRoute>
+              <CiteWiseApp />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
 }
+

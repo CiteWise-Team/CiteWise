@@ -4,8 +4,13 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import supabase from '../../common/config/supabaseClient.js';
+import requireAuth from '../../common/middlewares/auth.middleware.js';
 
 const router = express.Router();
+
+// All CATalyst import routes require a valid user session.
+router.use(requireAuth);
+
 
 // Helper: fetch Topic + GapResult rows from the CATalyst Supabase tables
 async function fetchCatalystData(workspaceId) {

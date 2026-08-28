@@ -3,10 +3,15 @@
 
 import express from 'express';
 import supabase from '../../common/config/supabaseClient.js';
+import requireAuth from '../../common/middlewares/auth.middleware.js';
 import { scoringPipeline } from './rrl.routes.js';
 import { extractCitationMetadata } from './helpers/citationMetadata.js';
 
 const router = express.Router();
+
+// All document routes require a valid user session.
+router.use(requireAuth);
+
 
 const WEIGHT_GAP    = 0.35;
 const WEIGHT_METHOD = 0.30;
