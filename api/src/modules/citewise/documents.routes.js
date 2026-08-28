@@ -65,6 +65,7 @@ router.get('/session/:sessionId', async (req, res) => {
         approved:             doc.approved,
         recommendationStatus: insight.recommendation_status,
         relevanceLevel:       insight.relevance_level,
+        metricWeights:        doc.metric_weights_json ? (typeof doc.metric_weights_json === 'string' ? JSON.parse(doc.metric_weights_json) : doc.metric_weights_json) : null,
       };
     }
     return {
@@ -77,6 +78,7 @@ router.get('/session/:sessionId', async (req, res) => {
       gapAlignmentScore: null, methodologyScore: null, theoreticalScore: null, citationScore: null,
       approved:     doc.approved,
       recommendationStatus: null, relevanceLevel: null,
+      metricWeights: doc.metric_weights_json ? (typeof doc.metric_weights_json === 'string' ? JSON.parse(doc.metric_weights_json) : doc.metric_weights_json) : null,
     };
   }));
 
@@ -96,12 +98,13 @@ router.get('/:id/insights', async (req, res) => {
   const insight = await loadInsight(docId);
   if (!insight) return res.status(404).end();
 
-  const { data: doc } = await supabase.from('uploaded_documents').select('file_name').eq('id', docId).maybeSingle();
+  const { data: doc } = await supabase.from('uploaded_documents').select('file_name, metric_weights_json').eq('id', docId).maybeSingle();
   const overallScore  = insight.overall_score ?? insight.average_overall_score;
 
   return res.json({
     documentId:          insight.document_id,
     filename:            doc?.file_name ?? null,
+    metricWeights:       doc?.metric_weights_json ? (typeof doc.metric_weights_json === 'string' ? JSON.parse(doc.metric_weights_json) : doc.metric_weights_json) : null,
     gapAlignmentScore:   insight.gap_alignment_score,
     methodologyScore:    insight.methodology_score,
     theoreticalScore:    insight.theoretical_score,
@@ -170,8 +173,20 @@ router.post('/assess-batch', async (req, res) => {
   // We no longer delete existing insights here. The scoringPipeline will check for them
   // and reuse their raw_ai_response_json if available to prevent redundant AI API calls.
 
-  // Run in parallel for faster processing
-  await Promise.all(documentIds.map(docId => scoringPipeline(docId, sessionId)));
+  // Run with bounded concurrency (e.g., max 15 at a time) to prevent overwhelming n8n
+  const CONCURRENCY_LIMIT = 15;
+  let index = 0;
+  const workers = Array.from({ length: Math.min(CONCURRENCY_LIMIT, documentIds.length) }, async () => {
+    while (index < documentIds.length) {
+      const docId = documentIds[index++];
+      try {
+        await scoringPipeline(docId, sessionId);
+      } catch (e) {
+        console.error(`[Batch Assess] Error processing doc ${docId}:`, e);
+      }
+    }
+  });
+  await Promise.all(workers);
 
   return res.json({ success: true, message: 'Batch assessment completed' });
 });

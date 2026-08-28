@@ -1,0 +1,566 @@
+{
+  "name": "topic - Cat",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Suggests Topic",
+        "height": 288,
+        "width": 752
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "f06be012-458d-437a-aa93-0997e20f2f8e",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        624,
+        48
+      ],
+      "id": "f643aa49-4135-464a-aef1-e4e446577dd0",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "83404315-871e-4029-b981-951e1f4ea9ed",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        16,
+        48
+      ],
+      "id": "8299e1b1-f15c-4adc-bb85-535f68502e85",
+      "name": "Webhook3",
+      "webhookId": "83404315-871e-4029-b981-951e1f4ea9ed"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nlet raw = $input.first().json.output;\n\n// Remove Markdown code fences (```json ... ```)\nraw = raw.replace(/```(?:json)?\\n?/, '').replace(/```$/, '').trim();\n\nlet cleaned = {};\ntry {\n  cleaned = JSON.parse(raw);\n} catch (err) {\n  // fallback if parsing still fails\n  cleaned = {};\n}\n\nreturn [\n  {\n    json: cleaned\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        48
+      ],
+      "id": "3885fa79-7bad-4e3c-90e0-76b80f29c5b0",
+      "name": "Code in JavaScript5"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { ...$input.all()[0].json, route: Math.floor(Math.random() * 6) } };"
+      },
+      "id": "code-648af29a-a04b-4791-9571-bc910a3d8ad3",
+      "name": "Randomizer Code - AI Agent2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "number",
+        "value1": "={{ $json.route }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value2": 0
+            },
+            {
+              "operation": "equal",
+              "value2": 1
+            },
+            {
+              "operation": "equal",
+              "value2": 2
+            },
+            {
+              "operation": "equal",
+              "value2": 3
+            },
+            {
+              "operation": "equal",
+              "value2": 4
+            },
+            {
+              "operation": "equal",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "switch-648af29a-a04b-4791-9571-bc910a3d8ad3",
+      "name": "Load Balancer Switch - AI Agent2",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -24,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook3').item.json.body }}",
+        "options": {
+          "systemMessage": "You are an expert research advisor with years of experience in formulating clear, relevant, and academically strong research topics.\n\nYour task is to analyze the problem statements provided and generate ONE concise, meaningful research topic that:\n\nAccurately reflects the core issues highlighted in the problem statements.\n\nIs academically relevant, clear, and precise.\n\nUses proper research language suitable for a thesis, dissertation, or scholarly paper.\n\nAvoids vague, overly broad, or generic phrasing.\n\nDoes not add extra information or context beyond what the problem statements provide.\n\n\n\nOutputs only the topic, without prefaces like “Suggested topic:” or extra commentary.\n\nTopic and Rationale should not contain any symbols that can disrupt the json structure like colona\n\nAND also provide a rationale with 1 paragraph with 4-5 sentences focusing and related on the topic about what is happening now? (current situation), what is not working?(problem/limitation), What is missing in current research or tools?(Gap), and Why the study is needed? (Justification)  why the topic is relevant\n\n\n\n\nPlease ONLY return valid JSON with these fields:\n{\n  \"topic\": \"...\",\n  \"rationale\": \"...\"\n}\nDo not include any extra text, quotes, or newlines outside of the JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        176,
+        -452
+      ],
+      "id": "648af29a-a04b-4791-9571-bc910a3d8ad3_copy0",
+      "name": "AI Agent2 (Key 1)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -324
+      ],
+      "id": "bb01765c-282c-4809-8903-d1fb6ed5ce85_copy0",
+      "name": "Google Gemini Chat Model3 (Key 1)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_0",
+          "name": "Gemini API Key 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook3').item.json.body }}",
+        "options": {
+          "systemMessage": "You are an expert research advisor with years of experience in formulating clear, relevant, and academically strong research topics.\n\nYour task is to analyze the problem statements provided and generate ONE concise, meaningful research topic that:\n\nAccurately reflects the core issues highlighted in the problem statements.\n\nIs academically relevant, clear, and precise.\n\nUses proper research language suitable for a thesis, dissertation, or scholarly paper.\n\nAvoids vague, overly broad, or generic phrasing.\n\nDoes not add extra information or context beyond what the problem statements provide.\n\n\n\nOutputs only the topic, without prefaces like “Suggested topic:” or extra commentary.\n\nTopic and Rationale should not contain any symbols that can disrupt the json structure like colona\n\nAND also provide a rationale with 1 paragraph with 4-5 sentences focusing and related on the topic about what is happening now? (current situation), what is not working?(problem/limitation), What is missing in current research or tools?(Gap), and Why the study is needed? (Justification)  why the topic is relevant\n\n\n\n\nPlease ONLY return valid JSON with these fields:\n{\n  \"topic\": \"...\",\n  \"rationale\": \"...\"\n}\nDo not include any extra text, quotes, or newlines outside of the JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        176,
+        -252
+      ],
+      "id": "648af29a-a04b-4791-9571-bc910a3d8ad3_copy1",
+      "name": "AI Agent2 (Key 2)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -124
+      ],
+      "id": "bb01765c-282c-4809-8903-d1fb6ed5ce85_copy1",
+      "name": "Google Gemini Chat Model3 (Key 2)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_1",
+          "name": "Gemini API Key 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook3').item.json.body }}",
+        "options": {
+          "systemMessage": "You are an expert research advisor with years of experience in formulating clear, relevant, and academically strong research topics.\n\nYour task is to analyze the problem statements provided and generate ONE concise, meaningful research topic that:\n\nAccurately reflects the core issues highlighted in the problem statements.\n\nIs academically relevant, clear, and precise.\n\nUses proper research language suitable for a thesis, dissertation, or scholarly paper.\n\nAvoids vague, overly broad, or generic phrasing.\n\nDoes not add extra information or context beyond what the problem statements provide.\n\n\n\nOutputs only the topic, without prefaces like “Suggested topic:” or extra commentary.\n\nTopic and Rationale should not contain any symbols that can disrupt the json structure like colona\n\nAND also provide a rationale with 1 paragraph with 4-5 sentences focusing and related on the topic about what is happening now? (current situation), what is not working?(problem/limitation), What is missing in current research or tools?(Gap), and Why the study is needed? (Justification)  why the topic is relevant\n\n\n\n\nPlease ONLY return valid JSON with these fields:\n{\n  \"topic\": \"...\",\n  \"rationale\": \"...\"\n}\nDo not include any extra text, quotes, or newlines outside of the JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        176,
+        -52
+      ],
+      "id": "648af29a-a04b-4791-9571-bc910a3d8ad3_copy2",
+      "name": "AI Agent2 (Key 3)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        176,
+        76
+      ],
+      "id": "bb01765c-282c-4809-8903-d1fb6ed5ce85_copy2",
+      "name": "Google Gemini Chat Model3 (Key 3)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_2",
+          "name": "Gemini API Key 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook3').item.json.body }}",
+        "options": {
+          "systemMessage": "You are an expert research advisor with years of experience in formulating clear, relevant, and academically strong research topics.\n\nYour task is to analyze the problem statements provided and generate ONE concise, meaningful research topic that:\n\nAccurately reflects the core issues highlighted in the problem statements.\n\nIs academically relevant, clear, and precise.\n\nUses proper research language suitable for a thesis, dissertation, or scholarly paper.\n\nAvoids vague, overly broad, or generic phrasing.\n\nDoes not add extra information or context beyond what the problem statements provide.\n\n\n\nOutputs only the topic, without prefaces like “Suggested topic:” or extra commentary.\n\nTopic and Rationale should not contain any symbols that can disrupt the json structure like colona\n\nAND also provide a rationale with 1 paragraph with 4-5 sentences focusing and related on the topic about what is happening now? (current situation), what is not working?(problem/limitation), What is missing in current research or tools?(Gap), and Why the study is needed? (Justification)  why the topic is relevant\n\n\n\n\nPlease ONLY return valid JSON with these fields:\n{\n  \"topic\": \"...\",\n  \"rationale\": \"...\"\n}\nDo not include any extra text, quotes, or newlines outside of the JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        176,
+        148
+      ],
+      "id": "648af29a-a04b-4791-9571-bc910a3d8ad3_copy3",
+      "name": "AI Agent2 (Key 4)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        176,
+        276
+      ],
+      "id": "bb01765c-282c-4809-8903-d1fb6ed5ce85_copy3",
+      "name": "Google Gemini Chat Model3 (Key 4)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_3",
+          "name": "Gemini API Key 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook3').item.json.body }}",
+        "options": {
+          "systemMessage": "You are an expert research advisor with years of experience in formulating clear, relevant, and academically strong research topics.\n\nYour task is to analyze the problem statements provided and generate ONE concise, meaningful research topic that:\n\nAccurately reflects the core issues highlighted in the problem statements.\n\nIs academically relevant, clear, and precise.\n\nUses proper research language suitable for a thesis, dissertation, or scholarly paper.\n\nAvoids vague, overly broad, or generic phrasing.\n\nDoes not add extra information or context beyond what the problem statements provide.\n\n\n\nOutputs only the topic, without prefaces like “Suggested topic:” or extra commentary.\n\nTopic and Rationale should not contain any symbols that can disrupt the json structure like colona\n\nAND also provide a rationale with 1 paragraph with 4-5 sentences focusing and related on the topic about what is happening now? (current situation), what is not working?(problem/limitation), What is missing in current research or tools?(Gap), and Why the study is needed? (Justification)  why the topic is relevant\n\n\n\n\nPlease ONLY return valid JSON with these fields:\n{\n  \"topic\": \"...\",\n  \"rationale\": \"...\"\n}\nDo not include any extra text, quotes, or newlines outside of the JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        176,
+        348
+      ],
+      "id": "648af29a-a04b-4791-9571-bc910a3d8ad3_copy4",
+      "name": "AI Agent2 (Key 5)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        176,
+        476
+      ],
+      "id": "bb01765c-282c-4809-8903-d1fb6ed5ce85_copy4",
+      "name": "Google Gemini Chat Model3 (Key 5)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_4",
+          "name": "Gemini API Key 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook3').item.json.body }}",
+        "options": {
+          "systemMessage": "You are an expert research advisor with years of experience in formulating clear, relevant, and academically strong research topics.\n\nYour task is to analyze the problem statements provided and generate ONE concise, meaningful research topic that:\n\nAccurately reflects the core issues highlighted in the problem statements.\n\nIs academically relevant, clear, and precise.\n\nUses proper research language suitable for a thesis, dissertation, or scholarly paper.\n\nAvoids vague, overly broad, or generic phrasing.\n\nDoes not add extra information or context beyond what the problem statements provide.\n\n\n\nOutputs only the topic, without prefaces like “Suggested topic:” or extra commentary.\n\nTopic and Rationale should not contain any symbols that can disrupt the json structure like colona\n\nAND also provide a rationale with 1 paragraph with 4-5 sentences focusing and related on the topic about what is happening now? (current situation), what is not working?(problem/limitation), What is missing in current research or tools?(Gap), and Why the study is needed? (Justification)  why the topic is relevant\n\n\n\n\nPlease ONLY return valid JSON with these fields:\n{\n  \"topic\": \"...\",\n  \"rationale\": \"...\"\n}\nDo not include any extra text, quotes, or newlines outside of the JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        176,
+        548
+      ],
+      "id": "648af29a-a04b-4791-9571-bc910a3d8ad3_copy5",
+      "name": "AI Agent2 (Key 6)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        176,
+        676
+      ],
+      "id": "bb01765c-282c-4809-8903-d1fb6ed5ce85_copy5",
+      "name": "Google Gemini Chat Model3 (Key 6)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_5",
+          "name": "Gemini API Key 6"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook3": {
+      "main": [
+        [
+          {
+            "node": "Randomizer Code - AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript5": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomizer Code - AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Load Balancer Switch - AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Balancer Switch - AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2 (Key 1)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent2 (Key 2)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent2 (Key 3)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent2 (Key 4)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent2 (Key 5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent2 (Key 6)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3 (Key 1)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2 (Key 1)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2 (Key 1)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3 (Key 2)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2 (Key 2)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2 (Key 2)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3 (Key 3)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2 (Key 3)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2 (Key 3)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3 (Key 4)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2 (Key 4)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2 (Key 4)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3 (Key 5)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2 (Key 5)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2 (Key 5)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3 (Key 6)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2 (Key 6)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2 (Key 6)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "44d9b3f7-43d4-4006-907e-c2704de05948",
+  "meta": {
+    "instanceId": "acf035bcb7de247c8b8da8f1d077f6ee14cf922183fccad9a53d6c5015114a5d"
+  },
+  "nodeGroups": [],
+  "id": "8XvynqdueKrzPAnM",
+  "tags": []
+}

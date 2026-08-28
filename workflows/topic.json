@@ -1,0 +1,702 @@
+{
+  "name": "Topic",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\n\nconst items = [];\n\nfor (const key in data) {\n  items.push({\n    json: {\n      section: key,\n      content: data[key]\n    }\n  });\n}\n\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        192
+      ],
+      "id": "78814be8-f275-45bd-b717-0faf4783647f",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        912,
+        96
+      ],
+      "id": "e032500e-5441-47c7-af6e-11412c99214d",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        560,
+        192
+      ],
+      "id": "23df71b1-d8b9-4dbe-8502-8d527fc88864",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "content": "## Summarizer\n\n",
+        "height": 464,
+        "width": 640,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        496,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "3989faba-099d-44f5-8124-77c4fe1efeb3",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Gathering Data\n",
+        "height": 464,
+        "width": 464
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "75e118d4-8ea4-49ee-aa4c-283af74867fb",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "a4a78b18-19b7-4ad2-9754-60b5dcfb71d0",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        32,
+        208
+      ],
+      "id": "a8dd5f4b-023a-423b-8cc4-232cf8125245",
+      "name": "Webhook1",
+      "webhookId": "a4a78b18-19b7-4ad2-9754-60b5dcfb71d0"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  return {\n    json: {\n      field: item.json.section,   // from before the loop\n      value: item.json.output     // from LLM\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        96
+      ],
+      "id": "50f7247b-2390-4fd7-890c-f4dffca27b64",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef131a11-986f-4ce6-be1a-4586db3de745",
+              "name": "introduction",
+              "value": "={{ $json.body.introduction }}",
+              "type": "string"
+            },
+            {
+              "id": "d45a2c44-609f-4a2c-988c-d1b9770ca7b9",
+              "name": "literature_review",
+              "value": "={{ $json.body.literature_review }}",
+              "type": "string"
+            },
+            {
+              "id": "289db3eb-414f-4b06-bce7-0555c99a0fd8",
+              "name": "methodology",
+              "value": "={{ $json.body.methodology }}",
+              "type": "string"
+            },
+            {
+              "id": "b395a123-fb1a-4847-8905-8bacf0b14de7",
+              "name": "discussion",
+              "value": "={{ $json.body.discussion }}",
+              "type": "string"
+            },
+            {
+              "id": "66f2263f-6a3f-4645-a043-fe274343276a",
+              "name": "results",
+              "value": "={{ $json.body.results }}",
+              "type": "string"
+            },
+            {
+              "id": "b3f1651b-02ce-478f-ae9c-c9ebecc2e4ae",
+              "name": "conclusion",
+              "value": "={{ $json.body.conclusion }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        192
+      ],
+      "id": "029ba4c1-0080-4c8e-892f-c8ad15f65903",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { ...$input.all()[0].json, route: Math.floor(Math.random() * 6) } };"
+      },
+      "id": "code-b68e0730-4f7b-48e8-a4e1-db48409c9ea2",
+      "name": "Randomizer Code - AI Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "number",
+        "value1": "={{ $json.route }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value2": 0
+            },
+            {
+              "operation": "equal",
+              "value2": 1
+            },
+            {
+              "operation": "equal",
+              "value2": 2
+            },
+            {
+              "operation": "equal",
+              "value2": 3
+            },
+            {
+              "operation": "equal",
+              "value2": 4
+            },
+            {
+              "operation": "equal",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "switch-b68e0730-4f7b-48e8-a4e1-db48409c9ea2",
+      "name": "Load Balancer Switch - AI Agent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        568,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.content }}",
+        "options": {
+          "systemMessage": "=You are an expert research analyst with multiple years of experience in analyzing and understanding the main point of research and thesis papers and produce a concise paragraph that have these specific goals:\n\n- You are given the {{ $json.section }} and I want you to understand the core idea and summarize conciselywhile retaining all key points and examples. \n- Combine ideas smartly by using conjunctions or relative clauses to link concepts without losing clarity\n- You should focus on the main text, do not add any of your opinion or your side of the story.\n- Write clearly and professionally in one coherent paragraph\n- Maximize the use of tokens as to not waste and reach the rate limit\n- Do not preface your answer with phrases like \"Here is the summary\" or similar.\n- If the message is only \"not found\" then just output \"not found\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        -244
+      ],
+      "id": "b68e0730-4f7b-48e8-a4e1-db48409c9ea2_copy0",
+      "name": "AI Agent (Key 1)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -164
+      ],
+      "id": "c6e45e92-e1a9-4785-bf7f-6a34b93706a4_copy0",
+      "name": "Google Gemini Chat Model5 (Key 1)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_0",
+          "name": "Gemini API Key 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.content }}",
+        "options": {
+          "systemMessage": "=You are an expert research analyst with multiple years of experience in analyzing and understanding the main point of research and thesis papers and produce a concise paragraph that have these specific goals:\n\n- You are given the {{ $json.section }} and I want you to understand the core idea and summarize conciselywhile retaining all key points and examples. \n- Combine ideas smartly by using conjunctions or relative clauses to link concepts without losing clarity\n- You should focus on the main text, do not add any of your opinion or your side of the story.\n- Write clearly and professionally in one coherent paragraph\n- Maximize the use of tokens as to not waste and reach the rate limit\n- Do not preface your answer with phrases like \"Here is the summary\" or similar.\n- If the message is only \"not found\" then just output \"not found\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        -44
+      ],
+      "id": "b68e0730-4f7b-48e8-a4e1-db48409c9ea2_copy1",
+      "name": "AI Agent (Key 2)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        36
+      ],
+      "id": "c6e45e92-e1a9-4785-bf7f-6a34b93706a4_copy1",
+      "name": "Google Gemini Chat Model5 (Key 2)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_1",
+          "name": "Gemini API Key 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.content }}",
+        "options": {
+          "systemMessage": "=You are an expert research analyst with multiple years of experience in analyzing and understanding the main point of research and thesis papers and produce a concise paragraph that have these specific goals:\n\n- You are given the {{ $json.section }} and I want you to understand the core idea and summarize conciselywhile retaining all key points and examples. \n- Combine ideas smartly by using conjunctions or relative clauses to link concepts without losing clarity\n- You should focus on the main text, do not add any of your opinion or your side of the story.\n- Write clearly and professionally in one coherent paragraph\n- Maximize the use of tokens as to not waste and reach the rate limit\n- Do not preface your answer with phrases like \"Here is the summary\" or similar.\n- If the message is only \"not found\" then just output \"not found\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        156
+      ],
+      "id": "b68e0730-4f7b-48e8-a4e1-db48409c9ea2_copy2",
+      "name": "AI Agent (Key 3)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        236
+      ],
+      "id": "c6e45e92-e1a9-4785-bf7f-6a34b93706a4_copy2",
+      "name": "Google Gemini Chat Model5 (Key 3)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_2",
+          "name": "Gemini API Key 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.content }}",
+        "options": {
+          "systemMessage": "=You are an expert research analyst with multiple years of experience in analyzing and understanding the main point of research and thesis papers and produce a concise paragraph that have these specific goals:\n\n- You are given the {{ $json.section }} and I want you to understand the core idea and summarize conciselywhile retaining all key points and examples. \n- Combine ideas smartly by using conjunctions or relative clauses to link concepts without losing clarity\n- You should focus on the main text, do not add any of your opinion or your side of the story.\n- Write clearly and professionally in one coherent paragraph\n- Maximize the use of tokens as to not waste and reach the rate limit\n- Do not preface your answer with phrases like \"Here is the summary\" or similar.\n- If the message is only \"not found\" then just output \"not found\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        356
+      ],
+      "id": "b68e0730-4f7b-48e8-a4e1-db48409c9ea2_copy3",
+      "name": "AI Agent (Key 4)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        436
+      ],
+      "id": "c6e45e92-e1a9-4785-bf7f-6a34b93706a4_copy3",
+      "name": "Google Gemini Chat Model5 (Key 4)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_3",
+          "name": "Gemini API Key 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.content }}",
+        "options": {
+          "systemMessage": "=You are an expert research analyst with multiple years of experience in analyzing and understanding the main point of research and thesis papers and produce a concise paragraph that have these specific goals:\n\n- You are given the {{ $json.section }} and I want you to understand the core idea and summarize conciselywhile retaining all key points and examples. \n- Combine ideas smartly by using conjunctions or relative clauses to link concepts without losing clarity\n- You should focus on the main text, do not add any of your opinion or your side of the story.\n- Write clearly and professionally in one coherent paragraph\n- Maximize the use of tokens as to not waste and reach the rate limit\n- Do not preface your answer with phrases like \"Here is the summary\" or similar.\n- If the message is only \"not found\" then just output \"not found\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        556
+      ],
+      "id": "b68e0730-4f7b-48e8-a4e1-db48409c9ea2_copy4",
+      "name": "AI Agent (Key 5)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        636
+      ],
+      "id": "c6e45e92-e1a9-4785-bf7f-6a34b93706a4_copy4",
+      "name": "Google Gemini Chat Model5 (Key 5)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_4",
+          "name": "Gemini API Key 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.content }}",
+        "options": {
+          "systemMessage": "=You are an expert research analyst with multiple years of experience in analyzing and understanding the main point of research and thesis papers and produce a concise paragraph that have these specific goals:\n\n- You are given the {{ $json.section }} and I want you to understand the core idea and summarize conciselywhile retaining all key points and examples. \n- Combine ideas smartly by using conjunctions or relative clauses to link concepts without losing clarity\n- You should focus on the main text, do not add any of your opinion or your side of the story.\n- Write clearly and professionally in one coherent paragraph\n- Maximize the use of tokens as to not waste and reach the rate limit\n- Do not preface your answer with phrases like \"Here is the summary\" or similar.\n- If the message is only \"not found\" then just output \"not found\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        756
+      ],
+      "id": "b68e0730-4f7b-48e8-a4e1-db48409c9ea2_copy5",
+      "name": "AI Agent (Key 6)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        836
+      ],
+      "id": "c6e45e92-e1a9-4785-bf7f-6a34b93706a4_copy5",
+      "name": "Google Gemini Chat Model5 (Key 6)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_5",
+          "name": "Gemini API Key 6"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Randomizer Code - AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomizer Code - AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Load Balancer Switch - AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Balancer Switch - AI Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (Key 1)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent (Key 2)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent (Key 3)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent (Key 4)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent (Key 5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent (Key 6)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5 (Key 1)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Key 1)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Key 1)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5 (Key 2)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Key 2)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Key 2)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5 (Key 3)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Key 3)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Key 3)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5 (Key 4)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Key 4)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Key 4)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5 (Key 5)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Key 5)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Key 5)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5 (Key 6)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Key 6)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Key 6)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4c58d4ac-ae58-478b-a08b-f86111cbbbe5",
+  "meta": {
+    "instanceId": "acf035bcb7de247c8b8da8f1d077f6ee14cf922183fccad9a53d6c5015114a5d"
+  },
+  "nodeGroups": [],
+  "id": "2NDk4m5eZoYoHK7v",
+  "tags": []
+}

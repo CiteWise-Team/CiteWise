@@ -24,6 +24,7 @@ const AIAssessmentPanel = ({
   onUploadClick,
   assessmentTimedOut = false,
   docStatus,
+  metricWeights,
 }) => {
   const useExternal = externalInsights !== undefined || externalLoading !== undefined;
 
@@ -505,6 +506,7 @@ const AIAssessmentPanel = ({
           mismatchFlags={mappedData.mismatchFlags}
           weaknessFlags={mappedData.weaknessFlags}
           validationFlags={mappedData.validationFlags}
+          metricWeights={metricWeights}
         />
         <RrlUsagePanel
           sessionId={sessionId}

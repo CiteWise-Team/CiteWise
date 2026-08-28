@@ -6,7 +6,7 @@ const WEIGHT_THEORY = 0.20;
 const WEIGHT_CITATION = 0.15;
 
 function normalizeScore(v) {
-  if (v > 0 && v <= 1.0) return v * 100;
+  if (v > 0 && v <= 1.5) return v * 100;
   return v;
 }
 
@@ -115,10 +115,27 @@ function unwrapPayload(root) {
 }
 
 export function computeOverallScore(gap, method, theory, citation, weights = null) {
-  const wGap = weights?.gap ?? WEIGHT_GAP;
-  const wMethod = weights?.methodology ?? WEIGHT_METHOD;
-  const wTheory = weights?.theory ?? WEIGHT_THEORY;
-  const wCitation = weights?.citation ?? WEIGHT_CITATION;
+  let wGap = weights?.gap ?? WEIGHT_GAP;
+  let wMethod = weights?.methodology ?? WEIGHT_METHOD;
+  let wTheory = weights?.theory ?? WEIGHT_THEORY;
+  let wCitation = weights?.citation ?? WEIGHT_CITATION;
+
+  if (weights) {
+    const sum = wGap + wMethod + wTheory + wCitation;
+    if (sum > 0) {
+      wGap /= sum;
+      wMethod /= sum;
+      wTheory /= sum;
+      wCitation /= sum;
+    } else {
+      // If sum is 0 (all disabled), fallback to default so we don't return 0 forever
+      wGap = WEIGHT_GAP;
+      wMethod = WEIGHT_METHOD;
+      wTheory = WEIGHT_THEORY;
+      wCitation = WEIGHT_CITATION;
+    }
+  }
+
   return (gap * wGap) + (method * wMethod) + (theory * wTheory) + (citation * wCitation);
 }
 
@@ -154,6 +171,7 @@ export function parseAIResponse(rawJson, documentId, customWeights = null) {
   const theoretical  = clamp(normalizeScore(readScore(root, 'theory','theoretical','theoreticalScore','theoretical_score','theoryScore')));
   const citation     = clamp(normalizeScore(readScore(root, 'citationQuality','citationScore','citation_quality','citation_score')));
 
+
   const excerpts = parseEvidenceExcerpts(root);
 
   const mismatchFlags  = parseStringArray(root, 'mismatchFlags','mismatch_flags');
@@ -165,10 +183,12 @@ export function parseAIResponse(rawJson, documentId, customWeights = null) {
   if (customWeights) {
     console.log(`[Scoring] Recalculating overall score for doc ${documentId} using custom weights:`, customWeights);
     overall = computeOverallScore(gapAlignment, methodology, theoretical, citation, customWeights);
+    overall = clamp(overall);
   } else if (overall !== null) {
     overall = clamp(normalizeScore(overall));
   } else {
     overall = computeOverallScore(gapAlignment, methodology, theoretical, citation, null);
+    overall = clamp(overall);
   }
 
   let confidence = readText(root, 'confidenceLevel','confidence_level','confidence') ?? 'Low';

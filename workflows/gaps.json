@@ -1,0 +1,624 @@
+{
+  "name": "gaps",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Extracts Gaps\n",
+        "height": 304,
+        "width": 608,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        384,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "db856f61-1562-4eb1-957c-45b65b4622d9",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "## Edits Field",
+        "height": 224,
+        "width": 368,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "2da39548-2a6a-4e28-a434-195ef5a3129e",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "caf57e2c-b146-4ca3-8514-c14b384798bc",
+              "name": "title",
+              "value": "={{ $json.body.title }}",
+              "type": "string"
+            },
+            {
+              "id": "54591761-48dd-4e06-932e-dca5eb1198ec",
+              "name": "summary",
+              "value": "={{ $json.body.summary }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        64
+      ],
+      "id": "d1d61b2a-ea77-45de-9ca2-72ac9f74300c",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        864,
+        64
+      ],
+      "id": "56c81a78-447a-47a9-b395-2c4ccb4c2d11",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the \"output\" field if it's a string\nconst output = typeof $input.first().json.output === 'string'\n  ? JSON.parse($input.first().json.output)\n  : $input.first().json.output;\n\nreturn [{\n  json: {\n    gaps: output.gaps,\n    keywords: output.keywords\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        64
+      ],
+      "id": "c63141e0-e5c2-4020-826c-6f9e1fa32259",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c88ffe20-1055-4ad7-abcc-1b966b5a757a",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        16,
+        64
+      ],
+      "id": "367e5229-1a7f-4c62-9ab2-a1a7a98b4a5f",
+      "name": "Webhook2",
+      "webhookId": "c88ffe20-1055-4ad7-abcc-1b966b5a757a"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { ...$input.all()[0].json, route: Math.floor(Math.random() * 6) } };"
+      },
+      "id": "code-b744eedf-b638-4dc1-9770-78b93ec72a13",
+      "name": "Randomizer Code - AI Agent1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "number",
+        "value1": "={{ $json.route }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value2": 0
+            },
+            {
+              "operation": "equal",
+              "value2": 1
+            },
+            {
+              "operation": "equal",
+              "value2": 2
+            },
+            {
+              "operation": "equal",
+              "value2": 3
+            },
+            {
+              "operation": "equal",
+              "value2": 4
+            },
+            {
+              "operation": "equal",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "switch-b744eedf-b638-4dc1-9770-78b93ec72a13",
+      "name": "Load Balancer Switch - AI Agent1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        216,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.summary }}",
+        "options": {
+          "systemMessage": "You are an expert in academic writing and research problem formulation.\nYou will be given extracted research gaps and issues from {{ $json.field }}.\nUsing only that information, generate up to three (3) clear, formal, and academically sound problem statements.\n\nThe gaps should prioritize what the research paper is lacking or what can be used for possible future works, if none are found then the problem it is trying to solve will do\n\nYou are also required to extract some relevant keywords at most 5 from the summary to be used for searching in future workflows.\n\nYour output must follow these rules:\n\nDerive each problem statement strictly from the extracted gaps/problems provided—no assumptions or new ideas.\n\nEach problem statement must be 1–2 sentences, direct, and logically framed.\n\nEach problem should focus on a single, specific issue or gap.\n\nAvoid vague language such as “etc.” or “and others.”\n\nDo not add background context, explanations, or introductions—just list the problem statements.\n\n\nFormat the output as follows and do not add any numbering system  or ```json```:\n\n{\n\"gaps\": \"[\"Problem 1....\" , \"Problem 1....\" , \"Problem 1....\" ]\",\n\"keywords\": \"Keyword1,Keyword2\"\n\n}\n\n\n\n\n\n(Only output the number of statements actually supported by the text.)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        416,
+        -436
+      ],
+      "id": "b744eedf-b638-4dc1-9770-78b93ec72a13_copy0",
+      "name": "AI Agent1 (Key 1)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        416,
+        -292
+      ],
+      "id": "c0619dbf-e9cb-4155-a4b8-48d466945c80_copy0",
+      "name": "Google Gemini Chat Model2 (Key 1)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_0",
+          "name": "Gemini API Key 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.summary }}",
+        "options": {
+          "systemMessage": "You are an expert in academic writing and research problem formulation.\nYou will be given extracted research gaps and issues from {{ $json.field }}.\nUsing only that information, generate up to three (3) clear, formal, and academically sound problem statements.\n\nThe gaps should prioritize what the research paper is lacking or what can be used for possible future works, if none are found then the problem it is trying to solve will do\n\nYou are also required to extract some relevant keywords at most 5 from the summary to be used for searching in future workflows.\n\nYour output must follow these rules:\n\nDerive each problem statement strictly from the extracted gaps/problems provided—no assumptions or new ideas.\n\nEach problem statement must be 1–2 sentences, direct, and logically framed.\n\nEach problem should focus on a single, specific issue or gap.\n\nAvoid vague language such as “etc.” or “and others.”\n\nDo not add background context, explanations, or introductions—just list the problem statements.\n\n\nFormat the output as follows and do not add any numbering system  or ```json```:\n\n{\n\"gaps\": \"[\"Problem 1....\" , \"Problem 1....\" , \"Problem 1....\" ]\",\n\"keywords\": \"Keyword1,Keyword2\"\n\n}\n\n\n\n\n\n(Only output the number of statements actually supported by the text.)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        416,
+        -236
+      ],
+      "id": "b744eedf-b638-4dc1-9770-78b93ec72a13_copy1",
+      "name": "AI Agent1 (Key 2)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        416,
+        -92
+      ],
+      "id": "c0619dbf-e9cb-4155-a4b8-48d466945c80_copy1",
+      "name": "Google Gemini Chat Model2 (Key 2)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_1",
+          "name": "Gemini API Key 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.summary }}",
+        "options": {
+          "systemMessage": "You are an expert in academic writing and research problem formulation.\nYou will be given extracted research gaps and issues from {{ $json.field }}.\nUsing only that information, generate up to three (3) clear, formal, and academically sound problem statements.\n\nThe gaps should prioritize what the research paper is lacking or what can be used for possible future works, if none are found then the problem it is trying to solve will do\n\nYou are also required to extract some relevant keywords at most 5 from the summary to be used for searching in future workflows.\n\nYour output must follow these rules:\n\nDerive each problem statement strictly from the extracted gaps/problems provided—no assumptions or new ideas.\n\nEach problem statement must be 1–2 sentences, direct, and logically framed.\n\nEach problem should focus on a single, specific issue or gap.\n\nAvoid vague language such as “etc.” or “and others.”\n\nDo not add background context, explanations, or introductions—just list the problem statements.\n\n\nFormat the output as follows and do not add any numbering system  or ```json```:\n\n{\n\"gaps\": \"[\"Problem 1....\" , \"Problem 1....\" , \"Problem 1....\" ]\",\n\"keywords\": \"Keyword1,Keyword2\"\n\n}\n\n\n\n\n\n(Only output the number of statements actually supported by the text.)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        416,
+        -36
+      ],
+      "id": "b744eedf-b638-4dc1-9770-78b93ec72a13_copy2",
+      "name": "AI Agent1 (Key 3)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        416,
+        108
+      ],
+      "id": "c0619dbf-e9cb-4155-a4b8-48d466945c80_copy2",
+      "name": "Google Gemini Chat Model2 (Key 3)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_2",
+          "name": "Gemini API Key 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.summary }}",
+        "options": {
+          "systemMessage": "You are an expert in academic writing and research problem formulation.\nYou will be given extracted research gaps and issues from {{ $json.field }}.\nUsing only that information, generate up to three (3) clear, formal, and academically sound problem statements.\n\nThe gaps should prioritize what the research paper is lacking or what can be used for possible future works, if none are found then the problem it is trying to solve will do\n\nYou are also required to extract some relevant keywords at most 5 from the summary to be used for searching in future workflows.\n\nYour output must follow these rules:\n\nDerive each problem statement strictly from the extracted gaps/problems provided—no assumptions or new ideas.\n\nEach problem statement must be 1–2 sentences, direct, and logically framed.\n\nEach problem should focus on a single, specific issue or gap.\n\nAvoid vague language such as “etc.” or “and others.”\n\nDo not add background context, explanations, or introductions—just list the problem statements.\n\n\nFormat the output as follows and do not add any numbering system  or ```json```:\n\n{\n\"gaps\": \"[\"Problem 1....\" , \"Problem 1....\" , \"Problem 1....\" ]\",\n\"keywords\": \"Keyword1,Keyword2\"\n\n}\n\n\n\n\n\n(Only output the number of statements actually supported by the text.)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        416,
+        164
+      ],
+      "id": "b744eedf-b638-4dc1-9770-78b93ec72a13_copy3",
+      "name": "AI Agent1 (Key 4)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        416,
+        308
+      ],
+      "id": "c0619dbf-e9cb-4155-a4b8-48d466945c80_copy3",
+      "name": "Google Gemini Chat Model2 (Key 4)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_3",
+          "name": "Gemini API Key 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.summary }}",
+        "options": {
+          "systemMessage": "You are an expert in academic writing and research problem formulation.\nYou will be given extracted research gaps and issues from {{ $json.field }}.\nUsing only that information, generate up to three (3) clear, formal, and academically sound problem statements.\n\nThe gaps should prioritize what the research paper is lacking or what can be used for possible future works, if none are found then the problem it is trying to solve will do\n\nYou are also required to extract some relevant keywords at most 5 from the summary to be used for searching in future workflows.\n\nYour output must follow these rules:\n\nDerive each problem statement strictly from the extracted gaps/problems provided—no assumptions or new ideas.\n\nEach problem statement must be 1–2 sentences, direct, and logically framed.\n\nEach problem should focus on a single, specific issue or gap.\n\nAvoid vague language such as “etc.” or “and others.”\n\nDo not add background context, explanations, or introductions—just list the problem statements.\n\n\nFormat the output as follows and do not add any numbering system  or ```json```:\n\n{\n\"gaps\": \"[\"Problem 1....\" , \"Problem 1....\" , \"Problem 1....\" ]\",\n\"keywords\": \"Keyword1,Keyword2\"\n\n}\n\n\n\n\n\n(Only output the number of statements actually supported by the text.)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        416,
+        364
+      ],
+      "id": "b744eedf-b638-4dc1-9770-78b93ec72a13_copy4",
+      "name": "AI Agent1 (Key 5)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        416,
+        508
+      ],
+      "id": "c0619dbf-e9cb-4155-a4b8-48d466945c80_copy4",
+      "name": "Google Gemini Chat Model2 (Key 5)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_4",
+          "name": "Gemini API Key 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.summary }}",
+        "options": {
+          "systemMessage": "You are an expert in academic writing and research problem formulation.\nYou will be given extracted research gaps and issues from {{ $json.field }}.\nUsing only that information, generate up to three (3) clear, formal, and academically sound problem statements.\n\nThe gaps should prioritize what the research paper is lacking or what can be used for possible future works, if none are found then the problem it is trying to solve will do\n\nYou are also required to extract some relevant keywords at most 5 from the summary to be used for searching in future workflows.\n\nYour output must follow these rules:\n\nDerive each problem statement strictly from the extracted gaps/problems provided—no assumptions or new ideas.\n\nEach problem statement must be 1–2 sentences, direct, and logically framed.\n\nEach problem should focus on a single, specific issue or gap.\n\nAvoid vague language such as “etc.” or “and others.”\n\nDo not add background context, explanations, or introductions—just list the problem statements.\n\n\nFormat the output as follows and do not add any numbering system  or ```json```:\n\n{\n\"gaps\": \"[\"Problem 1....\" , \"Problem 1....\" , \"Problem 1....\" ]\",\n\"keywords\": \"Keyword1,Keyword2\"\n\n}\n\n\n\n\n\n(Only output the number of statements actually supported by the text.)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        416,
+        564
+      ],
+      "id": "b744eedf-b638-4dc1-9770-78b93ec72a13_copy5",
+      "name": "AI Agent1 (Key 6)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        416,
+        708
+      ],
+      "id": "c0619dbf-e9cb-4155-a4b8-48d466945c80_copy5",
+      "name": "Google Gemini Chat Model2 (Key 6)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_5",
+          "name": "Gemini API Key 6"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Randomizer Code - AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomizer Code - AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Load Balancer Switch - AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Balancer Switch - AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1 (Key 1)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1 (Key 2)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1 (Key 3)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1 (Key 4)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1 (Key 5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1 (Key 6)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2 (Key 1)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1 (Key 1)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1 (Key 1)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2 (Key 2)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1 (Key 2)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1 (Key 2)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2 (Key 3)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1 (Key 3)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1 (Key 3)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2 (Key 4)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1 (Key 4)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1 (Key 4)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2 (Key 5)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1 (Key 5)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1 (Key 5)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2 (Key 6)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1 (Key 6)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1 (Key 6)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4a503b25-fb7d-4f49-9a58-5aee767b141c",
+  "meta": {
+    "instanceId": "acf035bcb7de247c8b8da8f1d077f6ee14cf922183fccad9a53d6c5015114a5d"
+  },
+  "nodeGroups": [],
+  "id": "QV0P8Ssu3gE0EOOU",
+  "tags": []
+}

@@ -110,6 +110,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         relevancyScore: overallFromInsight ?? item.relevancyScore ?? null,
         recommendationStatus: item.recommendationStatus ?? item.insight?.recommendationStatus ?? null,
         relevanceLevel: item.relevanceLevel ?? item.insight?.relevanceLevel ?? null,
+        metricWeights: item.metricWeights ?? item.insight?.metricWeights ?? null,
       };
     });
   };
@@ -800,6 +801,7 @@ const handleProceed = () => {
             onAssess={handleAssessDocument}
             onUploadClick={handleUploadNew}
             docStatus={activeDoc?.rawStatus}
+            metricWeights={activeDoc?.metricWeights}
           />
         )}
       </div>
