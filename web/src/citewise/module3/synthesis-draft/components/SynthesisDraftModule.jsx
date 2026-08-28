@@ -431,12 +431,18 @@
       localStorage.removeItem(DRAFT_STORAGE_KEY);
     };
 
-    const fastUpdateCitations = async () => {
+    const fastUpdateCitations = async (currentContent) => {
+      // Use the caller's live content if provided so the DB is never reverted
+      // to a stale copy that doesn't reflect the user's latest edits or accepted
+      // paraphrase (fixes state-desync issue).
+      const bodyPayload = { sessionId };
+      if (currentContent) bodyPayload.contentText = currentContent;
+
       try {
         const { res, data } = await apiFetch(`/api/v1/synthesis/update-citations`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId })
+          body: JSON.stringify(bodyPayload),
         });
         if (res.ok && data.success) {
           setGeneratedContent(data.contentText);
@@ -455,22 +461,40 @@
     };
 
     // Req 6: persist a manual edit to the draft and snapshot it as a version.
-    const handleSaveEdit = (editedContent, editedReferences) => {
+    // source = 'edited' | 'paraphrased' — passed through from GeneratedDraftDisplay.
+    const handleSaveEdit = async (editedContent, editedReferences, source = 'edited') => {
       setGeneratedContent(editedContent);
       const newRefs = editedReferences || references;
       if (editedReferences) {
         setReferences(editedReferences);
       }
-      
+
+      const referencesText = newRefs.join('\n\n');
       const draftToSave = { content: editedContent, references: newRefs, timestamp: new Date().toISOString() };
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
+
+      // Sync to the database so the DB is always in step with what the user sees.
+      try {
+        await apiFetch('/api/v1/synthesis/save-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, contentText: editedContent, referencesText, source }),
+        });
+      } catch (err) {
+        // Non-fatal — the draft is already persisted to localStorage.
+        console.warn('[handleSaveEdit] DB sync failed (non-fatal):', err.message);
+      }
+
       store.addDraftVersion(sessionId, {
         content: editedContent,
         references: newRefs,
-        label: `Edited v${store.getDraftVersions(sessionId).length + 1}`,
-        source: "edited",
+        label: source === 'paraphrased'
+          ? `Paraphrased v${store.getDraftVersions(sessionId).length + 1}`
+          : `Edited v${store.getDraftVersions(sessionId).length + 1}`,
+        source,
       });
     };
+
 
     // Req 7: restore a previous version into the editor.
     const handleRestoreVersion = (version) => {
@@ -595,7 +619,7 @@
               loading={loading} 
               onOverrideComplete={() => {
                 if (approvedDocuments.length > 0 && sessionId && generationStatus === "complete") {
-                  fastUpdateCitations();
+                  fastUpdateCitations(generatedContent || undefined);
                 }
               }}
             />

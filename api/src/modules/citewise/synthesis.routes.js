@@ -5,6 +5,7 @@ import express from 'express';
 import fetch   from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 import supabase from '../../common/config/supabaseClient.js';
+import requireAuth from '../../common/middlewares/auth.middleware.js';
 import {
   extractCitationMetadata,
   buildReferenceList,
@@ -12,6 +13,10 @@ import {
 } from './helpers/citationMetadata.js';
 
 const router = express.Router();
+
+// All synthesis routes require a valid user session.
+router.use(requireAuth);
+
 
 // Source tier logic (port of RAGSynthesisService.determineSourceTier)
 // Note: Since all documents in this pipeline have been explicitly approved by the user,
@@ -581,8 +586,11 @@ router.post('/titles', async (req, res) => {
 
 // POST /api/v1/synthesis/update-citations
 // Updates the current draft's citations locally without calling the LLM.
+// Optionally accepts `contentText` from the client body so that post-edit /
+// post-paraphrase text can be reconciled and persisted rather than reverting
+// to the stale database copy (fixes state-desync issue).
 router.post('/update-citations', async (req, res) => {
-  const { sessionId } = req.body;
+  const { sessionId, contentText: clientContentText } = req.body;
   if (!sessionId) return res.status(400).json({ success: false, message: 'sessionId is required' });
 
   const { data: draft } = await supabase.from('generated_draft').select('*').eq('session_id', sessionId).maybeSingle();
@@ -591,7 +599,7 @@ router.post('/update-citations', async (req, res) => {
   const { data: approvedDocs } = await supabase.from('uploaded_documents').select('*').eq('session_id', sessionId).eq('approved', true);
   if (!approvedDocs) return res.status(500).json({ success: false, message: 'Failed to load documents' });
 
-  const allCitationMetas = approvedDocs.map((doc) => 
+  const allCitationMetas = approvedDocs.map((doc) =>
     extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json)
   );
 
@@ -600,10 +608,12 @@ router.post('/update-citations', async (req, res) => {
     return fixed;
   };
 
-  const contentText = reconcile(draft.content_text || '');
-  const background = reconcile(draft.background_text || '');
-  const rationale = reconcile(draft.rationale_text || '');
-  const gap = reconcile(draft.gap_text || '');
+  // Prefer the client's current text (which may be paraphrased / manually edited)
+  // over the stale DB copy, so user edits are never silently overwritten.
+  const contentText  = reconcile(clientContentText  || draft.content_text   || '');
+  const background   = reconcile(draft.background_text  || '');
+  const rationale    = reconcile(draft.rationale_text   || '');
+  const gap          = reconcile(draft.gap_text         || '');
 
   const fullTextToCheck = contentText + ' ' + background + ' ' + rationale + ' ' + gap;
 
@@ -611,65 +621,136 @@ router.post('/update-citations', async (req, res) => {
     if (!meta?.citation) return false;
     const { inTextParenthetical, inTextAuthors, shortTitle, sourceFile } = meta.citation;
     if (inTextParenthetical && fullTextToCheck.includes(inTextParenthetical)) return true;
-    if (inTextAuthors && fullTextToCheck.includes(inTextAuthors)) return true;
-    if (shortTitle && fullTextToCheck.includes(shortTitle)) return true;
-    if (sourceFile && fullTextToCheck.includes(sourceFile)) return true;
+    if (inTextAuthors       && fullTextToCheck.includes(inTextAuthors))       return true;
+    if (shortTitle          && fullTextToCheck.includes(shortTitle))          return true;
+    if (sourceFile          && fullTextToCheck.includes(sourceFile))          return true;
     return false;
   });
 
-  const referencesText = citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas);
+  const referencesText = citedMetas.length > 0
+    ? buildReferenceList(citedMetas)
+    : buildReferenceList(allCitationMetas);
 
   await supabase.from('generated_draft').update({
-    content_text: contentText,
+    content_text:    contentText,
     background_text: background,
-    rationale_text: rationale,
-    gap_text: gap,
-    references_text: referencesText
+    rationale_text:  rationale,
+    gap_text:        gap,
+    references_text: referencesText,
   }).eq('id', draft.id);
 
   return res.json({ success: true, contentText, referencesText });
 });
 
+// POST /api/v1/synthesis/save-draft
+// Persists a manually edited or paraphrased draft back to the database so the
+// DB is always in sync with whatever the user has on screen.
+router.post('/save-draft', async (req, res) => {
+  const { sessionId, contentText, referencesText, source } = req.body;
+  if (!sessionId)   return res.status(400).json({ success: false, message: 'sessionId is required' });
+  if (!contentText) return res.status(400).json({ success: false, message: 'contentText is required' });
+
+  const { data: draft } = await supabase
+    .from('generated_draft').select('id').eq('session_id', sessionId).maybeSingle();
+
+  if (!draft) {
+    return res.status(404).json({
+      success: false,
+      message: 'No draft found for this session. Generate a draft first.',
+    });
+  }
+
+  const { error } = await supabase.from('generated_draft').update({
+    content_text:      contentText,
+    references_text:   referencesText ?? null,
+    // Track the edit source in the validation_status column for audit purposes.
+    validation_status: source ? `manual_${source}` : 'manual_edited',
+  }).eq('id', draft.id);
+
+  if (error) {
+    console.error('[save-draft] Supabase update failed:', error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+
+  return res.json({ success: true, draftId: draft.id });
+});
+
 // POST /api/v1/synthesis/paraphrase
 // Paraphrases text to remove AI slop using an n8n workflow load balancer.
+//
+// Citation-safety strategy: APA parenthetical citations are extracted from the
+// input text and replaced with stable numeric placeholders BEFORE the text is
+// sent to the LLM. After the LLM returns, placeholders are swapped back for the
+// original citation strings verbatim — the LLM can therefore never corrupt a
+// citation regardless of how aggressively it rewrites the surrounding prose.
 router.post('/paraphrase', async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ success: false, message: 'Text is required' });
 
+  // ── Step 1: extract APA citations and replace with opaque placeholders ───
+  // Matches: (Author, YYYY), (Author et al., YYYY), (Author & Author, YYYY),
+  // multi-source "(A, YYYY; B, YYYY)", and "n.d." variants.
+  const CITATION_RE = /\((?:[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?)(?:\s*;\s*[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?))*)\)/g;
+
+  const citations = [];   // ordered list of original citation strings
+  const protectedText = text.replace(CITATION_RE, (match) => {
+    const idx = citations.length;
+    citations.push(match);
+    return `«CIT${idx}»`;
+  });
+
+  // ── Step 2: call n8n paraphraser with the citation-safe text ────────────
   const baseUrl = (process.env.N8N_BASE_URL || '').replace(/\/$/, '');
   const webhookUrl = process.env.CITEWISE_N8N_PARAPHRASE_WEBHOOK_URL
     || (baseUrl ? `${baseUrl}/webhook/citewise-paraphraser-lb` : 'http://localhost:5678/webhook/citewise-paraphraser-lb');
 
+  let paraphrased;
   try {
     const n8nRes = await fetch(webhookUrl, {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json', Connection: 'close' },
-      body: JSON.stringify({ text }),
+      body:    JSON.stringify({ text: protectedText }),
       timeout: parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS) || 120000,
     });
     const raw = await n8nRes.text();
     if (!raw?.trim()) throw new Error('Paraphraser webhook returned empty response');
-    
+
     let root = JSON.parse(raw);
     if (Array.isArray(root) && root.length) root = root[0];
+
     for (const f of ['output', 'body', 'data', 'json', 'result', 'paraphrasedText']) {
-      if (root[f] && typeof root[f] === 'string') { 
-        return res.json({ success: true, text: root[f] });
-      }
+      if (root[f] && typeof root[f] === 'string') { paraphrased = root[f]; break; }
       if (root[f] && typeof root[f] === 'object' && typeof root[f].paraphrasedText === 'string') {
-        return res.json({ success: true, text: root[f].paraphrasedText });
+        paraphrased = root[f].paraphrasedText; break;
       }
     }
-
-    if (root.paraphrasedText) {
-      return res.json({ success: true, text: root.paraphrasedText });
+    if (!paraphrased && root.paraphrasedText) paraphrased = root.paraphrasedText;
+    if (!paraphrased) {
+      return res.status(502).json({ success: false, message: 'Could not extract paraphrased text from n8n response' });
     }
-
-    return res.status(502).json({ success: false, message: 'Could not extract paraphrased text from response' });
   } catch (err) {
     console.error('[paraphrase] n8n call failed:', err.message);
     return res.status(502).json({ success: false, message: `Paraphrase failed: ${err.message}` });
   }
+
+  // ── Step 3: reattach original citations verbatim ─────────────────────────
+  const PLACEHOLDER_RE = /«CIT(\d+)»/g;
+  const restored = paraphrased.replace(PLACEHOLDER_RE, (_, idx) => citations[Number(idx)] ?? '');
+
+  // Warn about any citations the LLM dropped entirely (no placeholder left).
+  const placeholdersInResult = new Set(
+    [...paraphrased.matchAll(PLACEHOLDER_RE)].map(m => Number(m[1]))
+  );
+  const dropped = citations
+    .map((c, i) => ({ c, i }))
+    .filter(({ i }) => !placeholdersInResult.has(i))
+    .map(({ c }) => c);
+
+  if (dropped.length) {
+    console.warn(`[paraphrase] LLM dropped ${dropped.length} citation(s):`, dropped.join(' '));
+  }
+
+  return res.json({ success: true, text: restored, droppedCitations: dropped });
 });
 
 export default router;

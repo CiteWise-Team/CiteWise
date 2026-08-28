@@ -89,7 +89,10 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
         body: JSON.stringify({ text: draft })
       });
       if (res.ok && data.success && data.text) {
-        setParaphrasedDraft(data.text.replace(/\*\*/g, ''));
+        // Fix 3: do NOT strip ** here — the diff useMemo strips them for
+        // display purposes. Stripping here would destroy intentional formatting
+        // (bold subheadings, emphasis) in the saved draft.
+        setParaphrasedDraft(data.text);
       } else {
         alert("Paraphrasing failed. Please check n8n workflow credentials.");
       }
@@ -101,11 +104,14 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
     }
   };
 
-  const acceptParaphrase = () => {
-    setDraft(paraphrasedDraft);
-    onSaveEdit?.(paraphrasedDraft, references);
+  const acceptParaphrase = async () => {
+    const accepted = paraphrasedDraft;
+    setDraft(accepted);
     setParaphrasedDraft(null);
+    // Fix 2: sync the paraphrased draft to the DB and to the parent store.
+    onSaveEdit?.(accepted, references, 'paraphrased');
   };
+
 
   const discardParaphrase = () => {
     setParaphrasedDraft(null);
