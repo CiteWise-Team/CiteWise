@@ -7,9 +7,8 @@ import supabase from "../../common/config/supabaseClient.js";
  * @param {Buffer|Stream} file - uploaded file
  * @param {string} filename - original file name
  */
-export async function   triggerExtractorWorkflow(file, filename) {
+export async function triggerExtractorWorkflow(file, filename) {
   const webhookUrl = process.env.N8N_EXTRACTOR_WEBHOOK;
-  // const webhookUrl = process.env.N8N_EXTRACTOR_TEST_WEBHOOK;
 
   try {
     const formData = new FormData();
@@ -18,15 +17,33 @@ export async function   triggerExtractorWorkflow(file, filename) {
     const res = await fetch(webhookUrl, {
       method: "POST",
       body: formData,
-      headers: formData.getHeaders(), // multipart/form-data headers
+      headers: formData.getHeaders(),
     });
 
+    // Read body as text first — n8n returns an empty body when the workflow
+    // errors mid-run (before the Respond to Webhook node fires), which causes
+    // res.json() to throw "Unexpected end of JSON input".
+    const text = await res.text();
+
     if (!res.ok) {
-      const text = await res.text();
       throw new Error(`n8n webhook failed: ${res.status} ${text}`);
     }
 
-    const data = await res.json(); 
+    if (!text || !text.trim()) {
+      throw new Error(
+        "n8n workflow did not return a response. " +
+        "The workflow may have errored before reaching the Respond node. " +
+        "Check the n8n execution log for details."
+      );
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`n8n returned invalid JSON: ${text.slice(0, 200)}`);
+    }
+
     return data;
   } catch (err) {
     console.error("Workflow repo error:", err);

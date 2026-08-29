@@ -49,8 +49,14 @@ export default function GroupCard({
     try {
       const { res, data: payload } = await apiFetch(`/api/catalyst/${encodeURIComponent(group_id)}/topics`);
 
+      if (res.status === 401) {
+        alert("Your session has expired. Please log in again.");
+        navigate("/login");
+        return;
+      }
+
       if (!res.ok || !payload?.success) {
-        alert(payload?.message || "Failed to load workspace data.");
+        alert(payload?.message || payload?.error || "Failed to load workspace data.");
         return;
       }
 
@@ -91,7 +97,12 @@ export default function GroupCard({
     });
 
     if (!res.ok || !payload?.success) {
-      alert(payload?.message || "Failed to import workspace into CiteWise.");
+      if (res.status === 401) {
+        alert("Your session has expired. Please log in again.");
+        navigate("/login");
+        return;
+      }
+      alert(payload?.message || payload?.error || "Failed to import workspace into CiteWise.");
       return;
     }
 

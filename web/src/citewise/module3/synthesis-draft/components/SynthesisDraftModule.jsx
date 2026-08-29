@@ -615,8 +615,18 @@
               onRestore={handleRestoreVersion}
             />
             <ApprovedSourceList 
+              sessionId={sessionId}
               documents={approvedDocuments} 
               loading={loading} 
+              onUpdateSources={(newDocs) => {
+                setApprovedDocuments(newDocs);
+                localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(newDocs));
+                const currentUsage = store.getRrlUsage(sessionId) || {};
+                store.setRrlUsage(sessionId, {
+                  ...currentUsage,
+                  selectedDocumentIds: newDocs.map(d => String(d.id))
+                });
+              }}
               onOverrideComplete={() => {
                 if (approvedDocuments.length > 0 && sessionId && generationStatus === "complete") {
                   fastUpdateCitations(generatedContent || undefined);

@@ -15,7 +15,10 @@ export function getApiUrl(endpoint) {
   return `${base}${path}`;
 }
 
-export async function apiFetch(endpoint, options = {}) {
+let isRefreshing = false;
+let refreshPromise = null;
+
+export async function apiFetch(endpoint, options = {}, isRetry = false) {
   const url = getApiUrl(endpoint);
   const token = localStorage.getItem("token");
 
@@ -28,10 +31,43 @@ export async function apiFetch(endpoint, options = {}) {
     headers["Content-Type"] = "application/json";
   }
 
-  const res = await fetch(url, {
+  let res = await fetch(url, {
     ...options,
     headers,
   });
+
+  // Handle auto-refresh if 401 Unauthorized
+  if (res.status === 401 && !isRetry) {
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (refreshToken) {
+      if (!isRefreshing) {
+        isRefreshing = true;
+        refreshPromise = fetch(getApiUrl("/api/auth/refresh"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: refreshToken })
+        }).then(r => r.json()).finally(() => {
+          isRefreshing = false;
+        });
+      }
+
+      const refreshData = await refreshPromise;
+      if (refreshData?.ok && refreshData.access_token) {
+        localStorage.setItem("token", refreshData.access_token);
+        if (refreshData.refresh_token) {
+          localStorage.setItem("refresh_token", refreshData.refresh_token);
+        }
+        // Retry original request
+        return apiFetch(endpoint, options, true);
+      } else {
+        // Refresh failed, force logout
+        localStorage.removeItem("token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
+    }
+  }
 
   const contentType = res.headers.get("content-type");
   let data;

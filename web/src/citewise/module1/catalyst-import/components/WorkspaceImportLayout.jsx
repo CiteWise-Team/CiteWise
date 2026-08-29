@@ -72,6 +72,22 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
         uploadedFileNamesRef.current = new Set(
           docs.map((d) => d.fileName?.toLowerCase()).filter(Boolean)
         );
+        
+        // Add existing files to the UI queue so the user sees what's already uploaded
+        setFileQueue((prev) => {
+          const existingIds = new Set(prev.map(p => p.docId));
+          const newServerDocs = docs.filter(d => !existingIds.has(d.id));
+          const appendQueue = newServerDocs.map(doc => ({
+            id: `server-${doc.id}`,
+            docId: doc.id,
+            key: `server-${doc.id}`,
+            name: doc.fileName || 'Unnamed PDF',
+            size: doc.sizeBytes || 0,
+            status: "uploaded",
+            message: "Previously uploaded",
+          }));
+          return [...appendQueue, ...prev];
+        });
       }
     } catch (err) {
       // ignore fetch errors
@@ -329,7 +345,9 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
         headers: { "X-Session-Id": sessionId.trim() },
         body: formData,
       });
-      if (!response.ok) throw new Error(payload?.message || "Upload failed.");
+      if (!response.ok) {
+        throw new Error(payload?.message || payload?.error || `Upload failed with status ${response.status}`);
+      }
       const results = payload?.data?.results || [];
       const accepted = payload?.data?.acceptedFiles || 0;
       const failed = payload?.data?.failedFiles || 0;
@@ -379,7 +397,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
       setStatusMessage(err.message);
       setFileQueue((prev) =>
         prev.map((item) =>
-          item.status === "uploading" ? { ...item, status: "failed", message: "Network error" } : item
+          item.status === "uploading" ? { ...item, status: "failed", message: err.message } : item
         )
       );
     }

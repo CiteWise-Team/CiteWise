@@ -244,7 +244,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
         headers: { "X-Session-Id": sessionId.trim() },
         body: formData,
       });
-      if (!response.ok) throw new Error(payload?.message || "Upload failed.");
+      if (!response.ok) throw new Error(payload?.message || payload?.error || `Upload failed with status ${response.status}`);
       const results = payload?.data?.results || [];
       const accepted = payload?.data?.acceptedFiles || 0;
       const failed = payload?.data?.failedFiles || 0;
@@ -295,7 +295,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
       setFileQueue((prev) =>
         prev.map((item) =>
           item.status === "uploading"
-            ? { ...item, status: "failed", message: "Network error" }
+            ? { ...item, status: "failed", message: err.message.slice(0, 40) }
             : item
         )
       );

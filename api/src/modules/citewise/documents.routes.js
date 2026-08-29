@@ -173,32 +173,27 @@ router.post('/assess-batch', async (req, res) => {
     return res.json({ success: true, message: 'Weights applied successfully' });
   }
 
-  // Delete existing insights so the workflow will actually re-run with the new weights
-  const { data: existing } = await supabase.from('document_insights').select('id').in('document_id', documentIds);
-  if (existing && existing.length > 0) {
-    await supabase.from('document_insights').delete().in('id', existing.map(e => e.id));
-  }
-
-  // Reset scoring status
+  // Reset scoring status so UI shows loading state, 
+  // but DO NOT delete existing insights here.
+  // We leave them intact so scoringPipeline can extract and reuse 
+  // the `raw_ai_response_json` to instantly apply new weights without re-triggering the slow n8n AI inference.
   await supabase.from('uploaded_documents')
     .update({ scoring_status: 'PENDING', scoring_error_message: null })
     .in('id', documentIds);
 
-  // Run with bounded concurrency (e.g., max 15 at a time) to prevent overwhelming n8n
-  const CONCURRENCY_LIMIT = 15;
-  let index = 0;
-  const workers = Array.from({ length: Math.min(CONCURRENCY_LIMIT, documentIds.length) }, async () => {
-    while (index < documentIds.length) {
-      const docId = documentIds[index++];
+  // Run sequentially in background to avoid any race conditions or silent event loop drops
+  console.log(`[Batch Assess] Starting background pipeline for ${documentIds.length} docs...`);
+  (async () => {
+    for (const docId of documentIds) {
       try {
+        console.log(`[Batch Assess] Launching scoringPipeline for doc ${docId}...`);
         await scoringPipeline(docId, sessionId);
       } catch (e) {
         console.error(`[Batch Assess] Error processing doc ${docId}:`, e);
       }
     }
-  });
-  // Fire and forget the workers so the API returns immediately
-  Promise.all(workers).catch(e => console.error("[Batch Assess] Unhandled worker error:", e));
+    console.log(`[Batch Assess] Finished background pipeline for all docs.`);
+  })().catch(e => console.error("[Batch Assess] Unhandled background error:", e));
 
   return res.json({ success: true, message: 'Batch assessment started' });
 });

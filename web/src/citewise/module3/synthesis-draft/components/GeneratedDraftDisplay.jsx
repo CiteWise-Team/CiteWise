@@ -15,8 +15,10 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
 
   const diffParts = useMemo(() => {
     if (!draft || !paraphrasedDraft) return [];
-    const cleanDraft = draft.replace(/\*\*/g, '');
-    const cleanParaphrased = paraphrasedDraft.replace(/\*\*/g, '');
+    // Strip markdown formatting symbols for the diff view ONLY so they don't visually clutter the comparison
+    const stripMarkdown = (text) => text.replace(/#+\s?/g, '').replace(/[*_~`]/g, '');
+    const cleanDraft = stripMarkdown(draft);
+    const cleanParaphrased = stripMarkdown(paraphrasedDraft);
     return diffWords(cleanDraft, cleanParaphrased);
   }, [draft, paraphrasedDraft]);
 

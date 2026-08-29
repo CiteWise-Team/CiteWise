@@ -25,8 +25,13 @@ export default function Register() {
     setIsLoading(true);
     try {
       const data = await registerAPI({ email, password });
-      login(data.user, data.token);
-      setTimeout(() => navigate("/groups"), 1000);
+      // Registration doesn't return a session — redirect to login
+      showFeedback({
+        type: "success",
+        title: "Account Created",
+        message: "Your account has been created. Please sign in.",
+      });
+      setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
       showFeedback({
         type: "error",

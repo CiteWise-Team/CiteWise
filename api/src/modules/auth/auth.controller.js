@@ -94,6 +94,47 @@ async function login(req, res) {
 }
 
 // --------------------------
+// Refresh Token
+// --------------------------
+async function refresh(req, res) {
+  try {
+    const { refresh_token } = req.body;
+    if (!refresh_token) return res.status(400).json({ error: 'Refresh token required' });
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+    
+    const response = await fetch(
+      `${supabaseUrl}/auth/v1/token?grant_type=refresh_token`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ refresh_token })
+      }
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: data.error_description || "Token refresh failed",
+      });
+    }
+    
+    res.json({
+      ok: true,
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      user: data.user
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// --------------------------
 // Logout
 // --------------------------
 async function logout(req, res) {
@@ -110,4 +151,4 @@ async function logout(req, res) {
   }
 }
 
-export { signup, login, logout };
+export { signup, login, refresh, logout };

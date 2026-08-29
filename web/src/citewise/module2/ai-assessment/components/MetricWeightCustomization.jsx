@@ -14,7 +14,7 @@ export default function MetricWeightCustomization({
   const [open, setOpen] = useState(isHero); // always open if in hero position
   const [selectedDocs, setSelectedDocs] = useState(new Set());
   const [showSelectModal, setShowSelectModal] = useState(false);
-  const [modalMode, setModalMode] = useState('assess'); // 'assess' or 'weights'
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasChanged, setHasChanged] = useState(false);
 
@@ -53,12 +53,6 @@ export default function MetricWeightCustomization({
     setShowSelectModal(false);
   };
 
-  const handleApplyWeightsOnly = async () => {
-    if (selectedDocs.size === 0) return;
-    const docIds = Array.from(selectedDocs);
-    await triggerBatchAssess(docIds, true, true);
-    setShowSelectModal(false);
-  };
 
   const handleAssessSelected = async () => {
     if (selectedDocs.size === 0) return;
@@ -208,18 +202,16 @@ export default function MetricWeightCustomization({
               style={{ ...ui.primaryBtn, fontSize: "0.85rem", padding: "10px", width: "100%", textAlign: "center" }}>
               {isHero ? "Apply Weights & Assess All" : (hasChanged ? "Reassess All With New Weights" : "Assess All")}
             </button>
-            <button 
-              onClick={() => { setModalMode('assess'); setSelectedDocs(new Set()); setShowSelectModal(true); }}
-              disabled={isProcessing || documents.length === 0}
-              style={{ ...ui.ghostBtn, border: `1px solid ${theme.border}`, fontSize: "0.85rem", padding: "10px", width: "100%", textAlign: "center" }}>
-              Assess Selected
-            </button>
             <div style={{ display: "flex", gap: "10px", width: "100%" }}>
               <button 
-                onClick={() => { setModalMode('weights'); setSelectedDocs(new Set()); setShowSelectModal(true); }}
+                onClick={() => { 
+                  console.log("Assess Selected clicked! Opening modal with docs:", documents);
+                  setSelectedDocs(new Set()); 
+                  setShowSelectModal(true); 
+                }}
                 disabled={isProcessing || documents.length === 0}
                 style={{ ...ui.ghostBtn, border: `1px solid ${theme.border}`, fontSize: "0.75rem", padding: "8px", flex: 1 }}>
-                Select Docs...
+                Assess Selected
               </button>
               <button onClick={reset} style={{ ...ui.ghostBtn, fontSize: "0.75rem", padding: "8px", flex: 1 }}>
                 Reset Default
@@ -240,12 +232,10 @@ export default function MetricWeightCustomization({
             padding: "24px", width: "90%", maxWidth: "500px", display: "flex", flexDirection: "column", gap: "16px"
           }}>
             <h3 style={{ margin: 0, color: theme.text, fontFamily: theme.font }}>
-              {modalMode === 'assess' ? 'Select Documents to Assess' : 'Select Documents'}
+              Select Documents to Assess
             </h3>
             <p style={{ margin: 0, color: theme.textMuted, fontSize: "0.85rem", fontFamily: theme.font }}>
-              {modalMode === 'assess' 
-                ? 'Select which documents to run through the AI assessment.' 
-                : 'Select which documents to apply the custom weights to.'}
+              Select which documents to run through the AI assessment.
             </p>
             <div style={{ maxHeight: "300px", overflowY: "auto", border: `1px solid ${theme.surfaceAlt}`, borderRadius: "8px", padding: "8px" }}>
               {documents.map(doc => (
@@ -257,7 +247,7 @@ export default function MetricWeightCustomization({
                     style={{ width: "16px", height: "16px" }}
                   />
                   <span style={{ color: theme.text, fontFamily: theme.font, fontSize: "0.85rem", wordWrap: "break-word" }}>
-                    {doc.name}
+                    {doc.name || doc.fileName || doc.title || doc.file_name}
                   </span>
                 </label>
               ))}
@@ -265,7 +255,6 @@ export default function MetricWeightCustomization({
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
               <button onClick={() => setShowSelectModal(false)} style={ui.ghostBtn}>Cancel</button>
               <div style={{ display: "flex", gap: "10px" }}>
-                {modalMode === 'assess' ? (
                   <button 
                     onClick={handleAssessSelected}
                     disabled={selectedDocs.size === 0 || isProcessing}
@@ -273,15 +262,6 @@ export default function MetricWeightCustomization({
                   >
                     Assess Selected
                   </button>
-                ) : (
-                  <button 
-                    onClick={handleApplyWeightsOnly}
-                    disabled={selectedDocs.size === 0 || isProcessing}
-                    style={ui.primaryBtn}
-                  >
-                    Apply Weights
-                  </button>
-                )}
               </div>
             </div>
           </div>

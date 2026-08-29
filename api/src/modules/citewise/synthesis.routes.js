@@ -148,6 +148,12 @@ router.post('/generate', async (req, res) => {
     }
   }
 
+  // Respect the explicit approvedDocumentIds selection from the frontend if provided
+  if (Array.isArray(approvedDocumentIds)) {
+    const allowed = new Set(approvedDocumentIds.map(String));
+    approvedDocs = (approvedDocs || []).filter(d => allowed.has(String(d.id)));
+  }
+
   const docsWithText = (approvedDocs ?? []).filter(d => d.parsed_text?.trim());
   if (!docsWithText.length) {
     return res.json({ success: false, message: 'Approve at least one document before generating an introduction.' });

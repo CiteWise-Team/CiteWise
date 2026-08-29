@@ -72,6 +72,7 @@ export function AuthProvider({ children }) {
     try {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
+      localStorage.removeItem("refresh_token");
       setUser(null);
     } catch (error) {
       console.error("Failed to remove user from localStorage:", error);
