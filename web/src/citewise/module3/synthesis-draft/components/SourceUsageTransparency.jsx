@@ -42,7 +42,7 @@ function computeTier(doc, usageChoice, prefs) {
   return { tier, reason: `Weighted relevance ${overall != null ? Math.round(overall) : "—"} (Auto Min: Supporting)`, overall };
 }
 
-export default function SourceUsageTransparency({ sessionId, documents, citationsUsed, citationIntegrity }) {
+export default function SourceUsageTransparency({ sessionId, documents }) {
   const [prefs, setPrefs] = useState(() => store.getScorePrefs(sessionId));
   const [usage, setUsage] = useState(() => store.getRrlUsage(sessionId));
 
@@ -55,13 +55,6 @@ export default function SourceUsageTransparency({ sessionId, documents, citation
   }, [sessionId]);
 
   const [isOpen, setIsOpen] = useState(false);
-
-  const cited = Array.isArray(citationsUsed) ? citationsUsed : [];
-  // Sources whose PDF carried no recoverable author/year. Citations stay strictly
-  // file-derived, so these fall back to APA "n.d." instead of a guessed author.
-  const lowConfidence = Array.isArray(citationIntegrity?.lowConfidenceSources)
-    ? citationIntegrity.lowConfidenceSources
-    : [];
 
   return (
     <div
@@ -99,37 +92,7 @@ export default function SourceUsageTransparency({ sessionId, documents, citation
       </div>
 
       {isOpen && (
-        <>
-          {lowConfidence.length > 0 && (
-            <div
-              style={{
-                margin: "0.75rem 1.25rem 0",
-                padding: "10px 12px",
-                background: "rgba(229, 84, 75, 0.08)",
-                border: "1px solid rgba(229, 84, 75, 0.45)",
-                borderRadius: "8px",
-              }}
-            >
-              <div style={{ fontFamily: theme.font, fontWeight: 700, fontSize: "0.78rem", color: "#e5544b" }}>
-                {lowConfidence.length} source{lowConfidence.length !== 1 ? "s" : ""} could not be cited properly
-              </div>
-              <p style={{ margin: "4px 0 6px", fontSize: "0.74rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
-                No author or publication year could be found inside these PDFs, so they are cited as
-                {" "}<em>n.d.</em>{" "}rather than with a guessed author. Uploading the full original paper
-                (title page included) fixes this.
-              </p>
-              {lowConfidence.map((s, i) => (
-                <div
-                  key={s.file ?? i}
-                  style={{ fontSize: "0.72rem", color: theme.text, fontFamily: theme.font, lineHeight: 1.6 }}
-                >
-                  • {s.file || "Unnamed source"} → <code>{s.citation}</code>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{ padding: "0.75rem 1.25rem 1rem", display: "flex", flexDirection: "column", gap: "8px" }}>
+        <>          <div style={{ padding: "0.75rem 1.25rem 1rem", display: "flex", flexDirection: "column", gap: "8px" }}>
             {documents.length === 0 ? (
               <p style={{ color: theme.textMuted, fontSize: "0.82rem", fontFamily: theme.font }}>No approved sources yet.</p>
             ) : (

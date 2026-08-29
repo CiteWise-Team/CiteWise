@@ -606,8 +606,6 @@
             <SourceUsageTransparency
               sessionId={sessionId}
               documents={approvedDocuments}
-              citationsUsed={citationsUsed}
-              citationIntegrity={citationIntegrity}
             />
             <DraftVersionHistory
               sessionId={sessionId}
@@ -653,6 +651,7 @@
                   content={generatedContent}
                   references={references}
                   onSaveEdit={handleSaveEdit}
+                  citationIntegrity={citationIntegrity}
                 />
               </div>
             </div>

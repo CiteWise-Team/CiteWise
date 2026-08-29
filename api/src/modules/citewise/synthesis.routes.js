@@ -222,7 +222,9 @@ router.post('/generate', async (req, res) => {
 
   const baseInstructions =
     'The CATalyst Title, Rationale, and Research Gap are the primary source of truth. '
-    + 'Approved documents are supplementary evidence. **CRITICAL REQUIREMENT**: You MUST cite EVERY SINGLE approved document provided in the `approvedDocuments` array at least once in your synthesized text (Background, Rationale, or Research Gap). DO NOT omit any approved document. User approval grants an explicit mandate for inclusion. '
+    + 'Approved documents are supplementary evidence. You should aim to cite the approved documents provided in the `approvedDocuments` array. '
+    + 'However, if an approved document contains absolutely no usable content related to the topic or chosen research gap, you have the freedom to omit it from the synthesis. '
+    + 'Do not force a citation if the document is completely irrelevant to the narrative. '
     + 'The primaryFocusGap is the user\'s selected gap and should be treated as the main structural narrative pivot. '
     + 'The remaining gaps provide supporting context. '
     + 'When a source provides emphasizedExcerpts or customHighlights, treat those passages as the user\'s highlighted, highest-priority evidence. '
@@ -315,7 +317,8 @@ router.post('/generate', async (req, res) => {
       timeout: parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS) || 120000,
     });
     const raw = await n8nRes.text();
-    if (!raw?.trim()) throw new Error('Synthesis webhook returned empty response');
+    console.log(`[synthesis] n8n responded with status: ${n8nRes.status}, text: ${raw.slice(0, 100)}...`);
+    if (!raw?.trim()) throw new Error(`Synthesis webhook returned empty response. HTTP ${n8nRes.status}`);
     let root = JSON.parse(raw);
     if (Array.isArray(root) && root.length) root = root[0];
     for (const f of ['output','body','data','json','result']) {
@@ -377,7 +380,7 @@ router.post('/generate', async (req, res) => {
     return false;
   });
 
-  const referencesText = (citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas)) || (n8nData.referencesText ?? '');
+  const referencesText = n8nData.referencesText ?? ((citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas)) || '');
 
   if (citationFixes.length) {
     console.warn(`[synthesis] corrected ${citationFixes.length} in-text citation(s):`,
@@ -388,6 +391,16 @@ router.post('/generate', async (req, res) => {
       [...new Set(unverifiedCitations)].join('; '));
   }
 
+  const omittedDocuments = usableDocs
+    .filter(d => {
+      const meta = citationByDocId.get(String(d.doc.id));
+      return meta && !citedMetas.includes(meta);
+    })
+    .map(d => ({
+      file: d.doc.file_name || d.doc.name || 'Unnamed source',
+      id: d.doc.id,
+    }));
+
   const citationIntegrity = {
     correctedCount:  citationFixes.length,
     corrections:     citationFixes,
@@ -397,6 +410,7 @@ router.post('/generate', async (req, res) => {
       citation: m.citation.inTextParenthetical,
       warnings: m.warnings,
     })),
+    omittedDocuments,
   };
 
   if (!success || (validationStatus && validationStatus.toUpperCase() !== 'PASSED')) {
@@ -633,9 +647,9 @@ router.post('/update-citations', async (req, res) => {
     return false;
   });
 
-  const referencesText = citedMetas.length > 0
+  const referencesText = draft.references_text || (citedMetas.length > 0
     ? buildReferenceList(citedMetas)
-    : buildReferenceList(allCitationMetas);
+    : buildReferenceList(allCitationMetas));
 
   await supabase.from('generated_draft').update({
     content_text:    contentText,

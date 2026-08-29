@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { diffWords } from 'diff';
 import { apiFetch } from "../../../../api/http";
-import { Sparkles } from "lucide-react";
+import { Sparkles, AlertTriangle } from "lucide-react";
 
-export default function GeneratedDraftDisplay({ generationStatus, content, references, onSaveEdit }) {
+export default function GeneratedDraftDisplay({ generationStatus, content, references, onSaveEdit, citationIntegrity }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(content || "");
   const [draftRefs, setDraftRefs] = useState((references || []).join("\n\n"));
@@ -120,8 +120,61 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
   };
 
   // Complete state - show (or edit) the generated content
+  const hasLowConfidence = generationStatus === 'complete' && citationIntegrity?.lowConfidenceSources?.length > 0;
+  const hasOmittedDocuments = generationStatus === 'complete' && citationIntegrity?.omittedDocuments?.length > 0;
+
   return (
     <div data-citewise-draft="true" style={{ lineHeight: "1.7", fontSize: "0.95rem", color: "#e4e4f0", maxWidth: "100%", margin: "0 auto", width: "100%", fontFamily: "'Poppins', sans-serif" }}>
+      {(hasLowConfidence || hasOmittedDocuments) && (
+        <div style={{ display: 'grid', gridTemplateColumns: (hasLowConfidence && hasOmittedDocuments) ? '1fr 1fr' : '1fr', gap: '16px', marginBottom: '24px' }}>
+          {hasLowConfidence && (
+            <div style={{ background: 'rgba(255,153,0,0.05)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: '10px', padding: '16px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+              <div style={{ marginTop: '2px', color: '#ffb74d' }}>
+                <AlertTriangle size={20} strokeWidth={2.5} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#ffcc80', marginBottom: '6px', letterSpacing: '0.02em' }}>
+                  Citation Verification Required
+                </div>
+                <p style={{ margin: '0 0 16px 0', fontSize: '0.85rem', lineHeight: '1.6', color: '#e4e4f0', opacity: 0.85 }}>
+                  The system could not extract reliable citation data from the following approved document(s). Placeholder citations have been used. Please verify and correct them using the <span style={{ fontWeight: 600, color: '#ffb74d' }}>Override Citation</span> panel in the left sidebar.
+                </p>
+                <ul style={{ margin: 0, padding: '0 0 0 20px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+                  {citationIntegrity.lowConfidenceSources.map((src, i) => (
+                    <li key={i} style={{ color: '#ffb74d', fontSize: '0.85rem' }}>
+                      <span style={{ fontWeight: 600, wordBreak: 'break-word' }}>{src.file}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {hasOmittedDocuments && (
+            <div style={{ background: 'rgba(229, 84, 75, 0.05)', border: '1px solid rgba(229, 84, 75, 0.25)', borderRadius: '10px', padding: '16px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+              <div style={{ marginTop: '2px', color: '#e5544b' }}>
+                <AlertTriangle size={20} strokeWidth={2.5} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#ef9a9a', marginBottom: '6px', letterSpacing: '0.02em' }}>
+                  Sources Omitted
+                </div>
+                <p style={{ margin: '0 0 16px 0', fontSize: '0.85rem', lineHeight: '1.6', color: '#e4e4f0', opacity: 0.85 }}>
+                  The AI excluded the following document(s) during draft generation because they contained no usable content relevant to the chosen topic or gap.
+                </p>
+                <ul style={{ margin: 0, padding: '0 0 0 20px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+                  {citationIntegrity.omittedDocuments.map((src, i) => (
+                    <li key={i} style={{ color: '#ef9a9a', fontSize: '0.85rem' }}>
+                      <span style={{ fontWeight: 600, wordBreak: 'break-word' }}>{src.file}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Edit controls */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "12px" }}>
         {editing ? (
