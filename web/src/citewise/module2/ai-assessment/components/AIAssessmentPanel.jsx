@@ -23,6 +23,8 @@ const AIAssessmentPanel = ({
   onPdfUploaded: externalPdfUploaded,
   onUploadClick,
   assessmentTimedOut = false,
+  docStatus,
+  metricWeights,
 }) => {
   const useExternal = externalInsights !== undefined || externalLoading !== undefined;
 
@@ -44,7 +46,7 @@ const AIAssessmentPanel = ({
 
   const resolvedInsights = useExternal ? externalInsights : insights;
   const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
-  const resolvedError = useExternal ? null : error;
+  const resolvedError = useExternal ? externalError : error;
   // Re-render the recomputed overall score when the user changes weight prefs.
   const [prefsVersion, setPrefsVersion] = useState(0);
 
@@ -220,8 +222,53 @@ const AIAssessmentPanel = ({
       >
         AI Assessment Panel
       </h2>
-      <div style={{ display: 'flex', gap: '12px' }}>
-
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        {documentId && (
+          <button
+            onClick={handleAssess}
+            disabled={isAssessing}
+            style={{
+              padding: '8px 16px',
+              background: 'transparent',
+              color: '#5b5bd6',
+              border: '1px solid #5b5bd6',
+              borderRadius: '8px',
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: isAssessing ? 'not-allowed' : 'pointer',
+              opacity: isAssessing ? 0.5 : 1,
+              transition: 'all 0.2s ease',
+            }}
+            onMouseOver={(e) => {
+              if (!isAssessing) {
+                e.currentTarget.style.background = 'rgba(91, 91, 214, 0.1)';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (!isAssessing) {
+                e.currentTarget.style.background = 'transparent';
+              }
+            }}
+          >
+            {isAssessing ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+                  <line x1="12" y1="2" x2="12" y2="6"></line>
+                  <line x1="12" y1="18" x2="12" y2="22"></line>
+                  <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                  <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                  <line x1="2" y1="12" x2="6" y2="12"></line>
+                  <line x1="18" y1="12" x2="22" y2="12"></line>
+                  <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                  <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                </svg>
+                Assessing...
+                <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+              </span>
+            ) : resolvedInsights ? 'Reassess' : 'Assess Selected'}
+          </button>
+        )}
         <UploadNewPDFButton onClick={onUploadClick || externalUploadPDF} />
       </div>
     </div>
@@ -302,12 +349,26 @@ const AIAssessmentPanel = ({
         <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
           <div
             style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
               fontFamily: "'Geist Mono', monospace",
               fontSize: '13px',
               color: '#a1a1b5',
               letterSpacing: '0.5px',
             }}
           >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', color: '#5b5bd6' }}>
+              <line x1="12" y1="2" x2="12" y2="6"></line>
+              <line x1="12" y1="18" x2="12" y2="22"></line>
+              <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+              <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+              <line x1="2" y1="12" x2="6" y2="12"></line>
+              <line x1="18" y1="12" x2="22" y2="12"></line>
+              <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+              <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+            </svg>
             {isAssessing ? 'Starting assessment...' : 'Analyzing document content...'}
           </div>
         </div>
@@ -374,9 +435,12 @@ const AIAssessmentPanel = ({
 
   // --- No insights available (e.g., still processing or assessment failed) ---
   if (!resolvedInsights || !mappedData) {
-    const waitingMessage = assessmentTimedOut
-      ? 'Assessment did not return results. Check backend logs and your n8n Code node (it may be returning empty {}). Click Assess PDF to try again.'
-      : 'No insights available yet. The document may still be processing.';
+    let waitingMessage = 'No insights available yet. Click "Assess Selected" to start the AI assessment.';
+    if (docStatus === 'pending') {
+      waitingMessage = 'Not yet assessed. Click "Assess Selected" to start the AI assessment.';
+    } else if (assessmentTimedOut) {
+      waitingMessage = 'Assessment did not return results. Check backend logs and your n8n Code node (it may be returning empty {}). Click Assess Selected to try again.';
+    }
     return (
       <div
         style={{
@@ -442,6 +506,7 @@ const AIAssessmentPanel = ({
           mismatchFlags={mappedData.mismatchFlags}
           weaknessFlags={mappedData.weaknessFlags}
           validationFlags={mappedData.validationFlags}
+          metricWeights={metricWeights}
         />
         <RrlUsagePanel
           sessionId={sessionId}

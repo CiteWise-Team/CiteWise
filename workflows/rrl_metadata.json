@@ -1,0 +1,593 @@
+{
+  "name": "rrl metadata",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst text = String(body.text ?? '').slice(0, 4000).trim();\nconst filename = String(body.filename ?? '');\nconst documentId = body.documentId ?? null;\n\nif (!text) throw new Error('No text provided');\n\nreturn [{ json: { text, filename, documentId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        -32
+      ],
+      "id": "d83861be-457f-4b9a-8be4-ff7cd6513222",
+      "name": "Parse Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst prev = $('Parse Input').first().json;\n\nlet raw = item.output ?? item.text ?? item.response ?? item.message?.content ?? item.content ?? '';\nraw = String(raw).replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/i, '').trim();\n\nconst firstBrace = raw.indexOf('{');\nconst lastBrace = raw.lastIndexOf('}');\nif (firstBrace === -1 || lastBrace === -1) throw new Error('No JSON object in AI response: ' + raw.slice(0, 200));\n\nconst parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));\n\nreturn [{\n  json: {\n    documentId: prev.documentId,\n    title:         parsed.title         || null,\n    authorDisplay: parsed.authorDisplay || null,\n    authors:       Array.isArray(parsed.authors) ? parsed.authors : (parsed.authorDisplay ? [parsed.authorDisplay] : []),\n    year:          parsed.year          || null,\n    journal:       parsed.journal       || null,\n    doi:           parsed.doi           || null,\n    metadataReliable: parsed.metadataReliable === true && !!(parsed.title && parsed.year && parsed.authorDisplay)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -32
+      ],
+      "id": "79b23545-9a02-4b9c-a76d-91eaa40b8509",
+      "name": "Parse AI Output"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        992,
+        -32
+      ],
+      "id": "ef249320-c656-459c-9c76-8a99a91ff79f",
+      "name": "Respond"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "citewise-metadata-extractor",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        112,
+        -32
+      ],
+      "id": "90059141-12af-4105-9f9a-c8fe95e4349a",
+      "name": "Webhook6",
+      "webhookId": "citewise-metadata-extractor"
+    },
+    {
+      "parameters": {
+        "content": "## RRL PDF METADATA EXTRACTOR \n\n- pulls the title/authors/year/journal/DOI from the uploaded pdf for better citation",
+        "height": 448,
+        "width": 1168
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        64,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "166baa0f-5f37-44b8-b80f-08a0d23bc8c4",
+      "name": "Sticky Note13"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { ...$input.all()[0].json, route: Math.floor(Math.random() * 6) } };"
+      },
+      "id": "code-7c8aad70-66af-49ce-9da4-9144ae34beb7",
+      "name": "Randomizer Code - AI Metadata Extractor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "number",
+        "value1": "={{ $json.route }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value2": 0
+            },
+            {
+              "operation": "equal",
+              "value2": 1
+            },
+            {
+              "operation": "equal",
+              "value2": 2
+            },
+            {
+              "operation": "equal",
+              "value2": 3
+            },
+            {
+              "operation": "equal",
+              "value2": 4
+            },
+            {
+              "operation": "equal",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "switch-7c8aad70-66af-49ce-9da4-9144ae34beb7",
+      "name": "Load Balancer Switch - AI Metadata Extractor",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        360,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract citation metadata from this academic paper text:\n\nFILENAME: {{ $json.filename }}\n\nTEXT (first 4000 chars):\n{{ $json.text }}\n\nReturn ONLY valid JSON with this exact schema, no markdown fences:\n{\n  \"title\": \"full paper title or null\",\n  \"authorDisplay\": \"Author One, Author Two or null\",\n  \"authors\": [\"Author One\", \"Author Two\"],\n  \"year\": \"4-digit year string or null\",\n  \"journal\": \"journal or conference name or null\",\n  \"doi\": \"DOI string or null\",\n  \"metadataReliable\": true\n}\n\nRules:\n- title: the paper's full title, NOT the filename\n- authorDisplay: comma-separated real human names only; null if not found\n- year: publication/submission year; for arXiv IDs like 2207.xxxxx the year is 2022\n- metadataReliable: true only if title AND year AND authorDisplay are all non-null\n- Never invent data; return null for any field you cannot find with confidence",
+        "options": {
+          "systemMessage": "You are a precise citation metadata extractor for academic PDFs. Extract only what is explicitly present in the text. Return null for any field you cannot confidently identify. Do not invent or guess author names or years."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        560,
+        -532
+      ],
+      "id": "7c8aad70-66af-49ce-9da4-9144ae34beb7_copy0",
+      "name": "AI Metadata Extractor (Key 1)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -340
+      ],
+      "id": "55b2f1ec-4288-4c4e-9163-0e2710f1f205_copy0",
+      "name": "Google Gemini Chat Model7 (Key 1)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_0",
+          "name": "Gemini API Key 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract citation metadata from this academic paper text:\n\nFILENAME: {{ $json.filename }}\n\nTEXT (first 4000 chars):\n{{ $json.text }}\n\nReturn ONLY valid JSON with this exact schema, no markdown fences:\n{\n  \"title\": \"full paper title or null\",\n  \"authorDisplay\": \"Author One, Author Two or null\",\n  \"authors\": [\"Author One\", \"Author Two\"],\n  \"year\": \"4-digit year string or null\",\n  \"journal\": \"journal or conference name or null\",\n  \"doi\": \"DOI string or null\",\n  \"metadataReliable\": true\n}\n\nRules:\n- title: the paper's full title, NOT the filename\n- authorDisplay: comma-separated real human names only; null if not found\n- year: publication/submission year; for arXiv IDs like 2207.xxxxx the year is 2022\n- metadataReliable: true only if title AND year AND authorDisplay are all non-null\n- Never invent data; return null for any field you cannot find with confidence",
+        "options": {
+          "systemMessage": "You are a precise citation metadata extractor for academic PDFs. Extract only what is explicitly present in the text. Return null for any field you cannot confidently identify. Do not invent or guess author names or years."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        560,
+        -332
+      ],
+      "id": "7c8aad70-66af-49ce-9da4-9144ae34beb7_copy1",
+      "name": "AI Metadata Extractor (Key 2)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -140
+      ],
+      "id": "55b2f1ec-4288-4c4e-9163-0e2710f1f205_copy1",
+      "name": "Google Gemini Chat Model7 (Key 2)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_1",
+          "name": "Gemini API Key 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract citation metadata from this academic paper text:\n\nFILENAME: {{ $json.filename }}\n\nTEXT (first 4000 chars):\n{{ $json.text }}\n\nReturn ONLY valid JSON with this exact schema, no markdown fences:\n{\n  \"title\": \"full paper title or null\",\n  \"authorDisplay\": \"Author One, Author Two or null\",\n  \"authors\": [\"Author One\", \"Author Two\"],\n  \"year\": \"4-digit year string or null\",\n  \"journal\": \"journal or conference name or null\",\n  \"doi\": \"DOI string or null\",\n  \"metadataReliable\": true\n}\n\nRules:\n- title: the paper's full title, NOT the filename\n- authorDisplay: comma-separated real human names only; null if not found\n- year: publication/submission year; for arXiv IDs like 2207.xxxxx the year is 2022\n- metadataReliable: true only if title AND year AND authorDisplay are all non-null\n- Never invent data; return null for any field you cannot find with confidence",
+        "options": {
+          "systemMessage": "You are a precise citation metadata extractor for academic PDFs. Extract only what is explicitly present in the text. Return null for any field you cannot confidently identify. Do not invent or guess author names or years."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        560,
+        -132
+      ],
+      "id": "7c8aad70-66af-49ce-9da4-9144ae34beb7_copy2",
+      "name": "AI Metadata Extractor (Key 3)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        560,
+        60
+      ],
+      "id": "55b2f1ec-4288-4c4e-9163-0e2710f1f205_copy2",
+      "name": "Google Gemini Chat Model7 (Key 3)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_2",
+          "name": "Gemini API Key 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract citation metadata from this academic paper text:\n\nFILENAME: {{ $json.filename }}\n\nTEXT (first 4000 chars):\n{{ $json.text }}\n\nReturn ONLY valid JSON with this exact schema, no markdown fences:\n{\n  \"title\": \"full paper title or null\",\n  \"authorDisplay\": \"Author One, Author Two or null\",\n  \"authors\": [\"Author One\", \"Author Two\"],\n  \"year\": \"4-digit year string or null\",\n  \"journal\": \"journal or conference name or null\",\n  \"doi\": \"DOI string or null\",\n  \"metadataReliable\": true\n}\n\nRules:\n- title: the paper's full title, NOT the filename\n- authorDisplay: comma-separated real human names only; null if not found\n- year: publication/submission year; for arXiv IDs like 2207.xxxxx the year is 2022\n- metadataReliable: true only if title AND year AND authorDisplay are all non-null\n- Never invent data; return null for any field you cannot find with confidence",
+        "options": {
+          "systemMessage": "You are a precise citation metadata extractor for academic PDFs. Extract only what is explicitly present in the text. Return null for any field you cannot confidently identify. Do not invent or guess author names or years."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        560,
+        68
+      ],
+      "id": "7c8aad70-66af-49ce-9da4-9144ae34beb7_copy3",
+      "name": "AI Metadata Extractor (Key 4)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        560,
+        260
+      ],
+      "id": "55b2f1ec-4288-4c4e-9163-0e2710f1f205_copy3",
+      "name": "Google Gemini Chat Model7 (Key 4)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_3",
+          "name": "Gemini API Key 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract citation metadata from this academic paper text:\n\nFILENAME: {{ $json.filename }}\n\nTEXT (first 4000 chars):\n{{ $json.text }}\n\nReturn ONLY valid JSON with this exact schema, no markdown fences:\n{\n  \"title\": \"full paper title or null\",\n  \"authorDisplay\": \"Author One, Author Two or null\",\n  \"authors\": [\"Author One\", \"Author Two\"],\n  \"year\": \"4-digit year string or null\",\n  \"journal\": \"journal or conference name or null\",\n  \"doi\": \"DOI string or null\",\n  \"metadataReliable\": true\n}\n\nRules:\n- title: the paper's full title, NOT the filename\n- authorDisplay: comma-separated real human names only; null if not found\n- year: publication/submission year; for arXiv IDs like 2207.xxxxx the year is 2022\n- metadataReliable: true only if title AND year AND authorDisplay are all non-null\n- Never invent data; return null for any field you cannot find with confidence",
+        "options": {
+          "systemMessage": "You are a precise citation metadata extractor for academic PDFs. Extract only what is explicitly present in the text. Return null for any field you cannot confidently identify. Do not invent or guess author names or years."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        560,
+        268
+      ],
+      "id": "7c8aad70-66af-49ce-9da4-9144ae34beb7_copy4",
+      "name": "AI Metadata Extractor (Key 5)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        560,
+        460
+      ],
+      "id": "55b2f1ec-4288-4c4e-9163-0e2710f1f205_copy4",
+      "name": "Google Gemini Chat Model7 (Key 5)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_4",
+          "name": "Gemini API Key 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract citation metadata from this academic paper text:\n\nFILENAME: {{ $json.filename }}\n\nTEXT (first 4000 chars):\n{{ $json.text }}\n\nReturn ONLY valid JSON with this exact schema, no markdown fences:\n{\n  \"title\": \"full paper title or null\",\n  \"authorDisplay\": \"Author One, Author Two or null\",\n  \"authors\": [\"Author One\", \"Author Two\"],\n  \"year\": \"4-digit year string or null\",\n  \"journal\": \"journal or conference name or null\",\n  \"doi\": \"DOI string or null\",\n  \"metadataReliable\": true\n}\n\nRules:\n- title: the paper's full title, NOT the filename\n- authorDisplay: comma-separated real human names only; null if not found\n- year: publication/submission year; for arXiv IDs like 2207.xxxxx the year is 2022\n- metadataReliable: true only if title AND year AND authorDisplay are all non-null\n- Never invent data; return null for any field you cannot find with confidence",
+        "options": {
+          "systemMessage": "You are a precise citation metadata extractor for academic PDFs. Extract only what is explicitly present in the text. Return null for any field you cannot confidently identify. Do not invent or guess author names or years."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        560,
+        468
+      ],
+      "id": "7c8aad70-66af-49ce-9da4-9144ae34beb7_copy5",
+      "name": "AI Metadata Extractor (Key 6)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        560,
+        660
+      ],
+      "id": "55b2f1ec-4288-4c4e-9163-0e2710f1f205_copy5",
+      "name": "Google Gemini Chat Model7 (Key 6)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_5",
+          "name": "Gemini API Key 6"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Randomizer Code - AI Metadata Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Output": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook6": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomizer Code - AI Metadata Extractor": {
+      "main": [
+        [
+          {
+            "node": "Load Balancer Switch - AI Metadata Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Balancer Switch - AI Metadata Extractor": {
+      "main": [
+        [
+          {
+            "node": "AI Metadata Extractor (Key 1)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Metadata Extractor (Key 2)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Metadata Extractor (Key 3)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Metadata Extractor (Key 4)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Metadata Extractor (Key 5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Metadata Extractor (Key 6)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model7 (Key 1)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Metadata Extractor (Key 1)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Metadata Extractor (Key 1)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model7 (Key 2)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Metadata Extractor (Key 2)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Metadata Extractor (Key 2)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model7 (Key 3)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Metadata Extractor (Key 3)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Metadata Extractor (Key 3)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model7 (Key 4)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Metadata Extractor (Key 4)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Metadata Extractor (Key 4)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model7 (Key 5)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Metadata Extractor (Key 5)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Metadata Extractor (Key 5)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model7 (Key 6)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Metadata Extractor (Key 6)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Metadata Extractor (Key 6)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d3b75a79-59a8-4cb6-b150-0680f860c99a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "acf035bcb7de247c8b8da8f1d077f6ee14cf922183fccad9a53d6c5015114a5d"
+  },
+  "nodeGroups": [],
+  "id": "00XPHVJOss8nGmmI",
+  "tags": []
+}

@@ -1,0 +1,671 @@
+{
+  "name": "semantic score",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const incoming = $input.first().json;\nconst body = incoming.body ?? incoming;\n\nfunction flatten(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value.trim();\n\n  if (Array.isArray(value)) {\n    return value\n      .map((entry, index) => {\n        if (typeof entry === 'string') return `${index + 1}. ${entry}`;\n        if (entry == null) return '';\n\n        const parts = [\n          entry.gap,\n          entry.research_gap,\n          entry.researchGap,\n          entry.description,\n          entry.statement,\n          entry.text,\n          entry.title\n        ].filter(Boolean);\n\n        return parts.length ? `${index + 1}. ${parts.join(' - ')}` : JSON.stringify(entry);\n      })\n      .filter(Boolean)\n      .join('\\n');\n  }\n\n  if (typeof value === 'object') {\n    const parts = [\n      value.title,\n      value.rationale,\n      value.gap,\n      value.gaps,\n      value.researchGap,\n      value.research_gap,\n      value.description,\n      value.statement,\n      value.text\n    ].filter(Boolean);\n\n    return parts.length ? parts.map(flatten).join('\\n') : JSON.stringify(value);\n  }\n\n  return String(value).trim();\n}\n\nconst baselineSource =\n  body.baseline ??\n  body.researchBaseline ??\n  body.semanticBaseline ??\n  body.catalystBaseline ??\n  body.catalyst_baseline ??\n  {};\n\nconst title = flatten(\n  baselineSource.title ??\n  baselineSource.researchTitle ??\n  baselineSource.research_title ??\n  body.title ??\n  body.researchTitle\n);\n\nconst rationale = flatten(\n  baselineSource.rationale ??\n  baselineSource.researchRationale ??\n  baselineSource.research_rationale ??\n  body.rationale\n);\n\nconst gaps = flatten(\n  baselineSource.gaps ??\n  baselineSource.gap ??\n  baselineSource.researchGaps ??\n  baselineSource.research_gaps ??\n  baselineSource.researchGap ??\n  baselineSource.research_gap ??\n  body.gaps ??\n  body.gap\n);\n\nconst rawText = String(\n  body.extracted_text ??\n  body.extractedText ??\n  body.text ??\n  body.documentText ??\n  body.document_text ??\n  body.body?.extracted_text ??\n  body.body?.text ??\n  ''\n).trim();\n\nif (!rawText) {\n  throw new Error('No extracted text found. Expected extracted_text, extractedText, text, documentText, or document_text.');\n}\n\nif (!title && !rationale && !gaps) {\n  throw new Error('No research baseline found. Expected body.baseline with title/rationale/gaps or equivalent fields.');\n}\n\nreturn [{\n  json: {\n    baseline: {\n      title,\n      rationale,\n      gaps\n    },\n    raw_extracted_text: rawText,\n    meta: {\n      documentId: body.documentId ?? body.document_id ?? body.id ?? null,\n      filename: body.filename ?? body.fileName ?? body.file_name ?? null,\n      source: 'citewise-n8n-semantic-evaluator-v2.5-fatal-topic-mismatch',\n      rawCharacters: rawText.length\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        480
+      ],
+      "id": "55b549e9-c503-4a44-8918-30f312fde1a0",
+      "name": "Build Clean Evaluation Packet1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nconst baseline = item.baseline ?? {};\nconst rawText = String(item.raw_extracted_text ?? '').trim();\n\nconst MAX_CHARS_TO_AI = 9000;\nconst MAX_SELECTED_CHUNKS = 6;\nconst CHUNK_SIZE = 1000;\nconst CHUNK_OVERLAP = 100;\n\nfunction normalize(s) {\n  return String(s ?? '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst stopwords = new Set([\n  'about', 'above', 'after', 'again', 'against', 'among', 'based', 'because',\n  'before', 'being', 'below', 'between', 'could', 'during', 'early', 'field',\n  'first', 'found', 'from', 'have', 'having', 'into', 'more', 'most', 'other',\n  'paper', 'research', 'result', 'results', 'should', 'study', 'studies',\n  'system', 'than', 'their', 'there', 'these', 'this', 'those', 'through',\n  'using', 'where', 'which', 'while', 'within', 'with', 'would'\n]);\n\nconst baselineText = [baseline.title, baseline.rationale, baseline.gaps]\n  .filter(Boolean)\n  .join(' ');\n\nconst keywords = [...new Set(\n  normalize(baselineText)\n    .split(/\\s+/)\n    .filter(w => w.length >= 5 && !stopwords.has(w))\n)].slice(0, 70);\n\nfunction splitToCandidateChunks(text) {\n  const clean = String(text ?? '').replace(/\\r/g, '').trim();\n  let paragraphs = clean\n    .split(/\\n\\s*\\n+/)\n    .map(p => p.replace(/\\s+/g, ' ').trim())\n    .filter(p => p.length >= 120);\n\n  const chunks = [];\n\n  if (paragraphs.length >= 8) {\n    for (let i = 0; i < paragraphs.length; i++) {\n      const p = paragraphs[i];\n      if (p.length <= CHUNK_SIZE * 1.4) {\n        chunks.push({ text: p, originalOrder: i + 1 });\n      } else {\n        for (let j = 0; j < p.length; j += (CHUNK_SIZE - CHUNK_OVERLAP)) {\n          const part = p.slice(j, j + CHUNK_SIZE).trim();\n          if (part.length >= 120) chunks.push({ text: part, originalOrder: i + 1 });\n        }\n      }\n    }\n    return chunks;\n  }\n\n  const flat = clean.replace(/\\s+/g, ' ').trim();\n  for (let i = 0; i < flat.length; i += (CHUNK_SIZE - CHUNK_OVERLAP)) {\n    const part = flat.slice(i, i + CHUNK_SIZE).trim();\n    if (part.length >= 120) chunks.push({ text: part, originalOrder: Math.floor(i / (CHUNK_SIZE - CHUNK_OVERLAP)) + 1 });\n  }\n  return chunks;\n}\n\nconst candidates = splitToCandidateChunks(rawText);\n\nfunction chunkScore(chunkObj, index) {\n  const chunk = chunkObj.text;\n  const lower = normalize(chunk);\n  const keywordHits = keywords.filter(k => lower.includes(k)).length;\n\n  const exactPhraseSignals = [\n    baseline.title,\n    ...(String(baseline.gaps ?? '').split(/[.;\\n•]+/).filter(Boolean))\n  ]\n    .map(normalize)\n    .filter(x => x.length >= 20)\n    .some(phrase => lower.includes(phrase.slice(0, Math.min(80, phrase.length)))) ? 8 : 0;\n\n  const gapSignal =\n    /\\b(gap|limitation|limited|lack|absence|challenge|problem|future work|future research|understudied|unexplored|need for|however|despite|although|unresolved|insufficient)\\b/i.test(chunk)\n      ? 5\n      : 0;\n\n  const methodSignal =\n    /\\b(method|methodology|framework|model|architecture|algorithm|dataset|evaluation|metric|experiment|prototype|implementation|testing|validation|benchmark|protocol)\\b/i.test(chunk)\n      ? 4\n      : 0;\n\n  const theorySignal =\n    /\\b(theory|theoretical|conceptual|framework|constructivism|connectivism|governance|ethic|ethical|bias|integrity)\\b/i.test(chunk)\n      ? 3\n      : 0;\n\n  const citationSignal =\n    /\\b(doi|references|bibliography|journal|conference|proceedings|et al\\.|volume|issue|publisher|issn|isbn)\\b/i.test(chunk)\n      ? 2\n      : 0;\n\n  const sectionSignal =\n    /\\b(abstract|introduction|background|related work|literature review|discussion|conclusion|recommendations)\\b/i.test(chunk)\n      ? 2\n      : 0;\n\n  const earlySignal = index < 10 ? 1 : 0;\n\n  return keywordHits * 6 + exactPhraseSignals + gapSignal + methodSignal + theorySignal + citationSignal + sectionSignal + earlySignal;\n}\n\nconst ranked = candidates\n  .map((chunkObj, index) => ({\n    chunk: chunkObj.text,\n    originalOrder: chunkObj.originalOrder,\n    index,\n    score: chunkScore(chunkObj, index)\n  }))\n  .sort((a, b) => b.score - a.score || a.index - b.index);\n\nlet selected = ranked\n  .slice(0, MAX_SELECTED_CHUNKS)\n  .sort((a, b) => a.index - b.index);\n\nif (!selected.length) {\n  selected = candidates.slice(0, Math.min(MAX_SELECTED_CHUNKS, candidates.length)).map((x, index) => ({    chunk: x.text,\n    originalOrder: x.originalOrder,\n    index,\n    score: 0\n  }));\n}\n\nlet finalText = selected\n  .map((x, i) => `[CHUNK ${i + 1} | original_order=${x.originalOrder} | relevance_hint=${x.score}]\\n${x.chunk}`)\n  .join('\\n\\n---CHUNK BREAK---\\n\\n');\n\nif (finalText.length > MAX_CHARS_TO_AI) {\n  finalText = finalText.slice(0, MAX_CHARS_TO_AI);\n}\n\nreturn [{\n  json: {\n    baseline,\n    extracted_text: finalText,\n    raw_extracted_text: rawText,\n    meta: item.meta ?? {},\n    chunkStats: {\n      rawCharacters: rawText.length,\n      candidateChunks: candidates.length,\n      selectedChunks: selected.length,\n      selectedCharacters: finalText.length,\n      keywordCount: keywords.length,\n      maxCharsToAi: MAX_CHARS_TO_AI,\n      workflowVersion: 'semantic-scoring-v2.5-fatal-topic-mismatch-override'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        480
+      ],
+      "id": "688095ad-c2ed-45ff-aed7-37bce59f24d4",
+      "name": "Select Relevant Text Chunks1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nlet raw =\n  item.output ??\n  item.text ??\n  item.response ??\n  item.message?.content ??\n  item.content;\n\nif (raw == null) {\n  throw new Error('No LLM text found. Keys on item: ' + Object.keys(item).join(', '));\n}\n\nraw = String(raw)\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nconst firstBrace = raw.indexOf('{');\nconst lastBrace = raw.lastIndexOf('}');\n\nif (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {\n  throw new Error('LLM did not return a JSON object. Raw output: ' + raw.slice(0, 500));\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));\n} catch (error) {\n  throw new Error('LLM returned invalid JSON. Parse error: ' + error.message + '. Raw output: ' + raw.slice(0, 500));\n}\n\nconst validationFlags = [];\n\nfunction clampScore(value, fieldName) {\n  const n = Number(value);\n  if (!Number.isFinite(n)) {\n    validationFlags.push(`${fieldName} missing or invalid; defaulted to 0`);\n    return 0;\n  }\n\n  const rounded = Math.round(n);\n  if (rounded < 0 || rounded > 100) {\n    validationFlags.push(`${fieldName} was outside 0-100 and was clamped`);\n  }\n\n  return Math.max(0, Math.min(100, rounded));\n}\n\nfunction cleanStringArray(value, fieldName, maxItems = 8) {\n  if (!Array.isArray(value)) {\n    validationFlags.push(`${fieldName} missing or invalid; defaulted to []`);\n    return [];\n  }\n\n  return value\n    .map(v => String(v ?? '').trim())\n    .filter(Boolean)\n    .slice(0, maxItems);\n}\n\nconst allowedConfidence = ['High', 'Medium', 'Low'];\nlet confidenceLevel = String(parsed.confidenceLevel ?? '').trim();\nif (!allowedConfidence.includes(confidenceLevel)) {\n  validationFlags.push('confidenceLevel missing or invalid; defaulted to Low');\n  confidenceLevel = 'Low';\n}\n\nconst allowedRelevance = ['High', 'Medium', 'Low'];\n\nfunction normalizeCriterion(value, fieldName, index) {\n  const rawCriterion = String(value ?? '').trim();\n  const key = rawCriterion.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\n\n  if (!key) {\n    validationFlags.push(`${fieldName}[${index}].criterion missing; defaulted to Gap Alignment`);\n    return 'Gap Alignment';\n  }\n\n  if (key.includes('gap')) return 'Gap Alignment';\n  if (key.includes('method') || key.includes('evaluation') || key.includes('benchmark') || key.includes('protocol')) return 'Methodology';\n  if (key.includes('theor') || key.includes('framework') || key.includes('architecture') || key.includes('governance') || key.includes('conceptual')) return 'Theory';\n  if (key.includes('citation') || key.includes('source') || key.includes('reference')) return 'Citation Quality';\n\n  validationFlags.push(`${fieldName}[${index}].criterion \"${rawCriterion}\" was normalized to Gap Alignment`);\n  return 'Gap Alignment';\n}\n\nfunction parseExcerptArray(value, fieldName, defaultEvidenceType, maxItems = 8) {\n  if (!Array.isArray(value)) return [];\n\n  return value\n    .map((e, index) => {\n      const criterion = normalizeCriterion(e.criterion, fieldName, index);\n\n      const relevanceLevel = allowedRelevance.includes(String(e.relevanceLevel))\n        ? String(e.relevanceLevel)\n        : 'Low';\n\n      if (!allowedRelevance.includes(String(e.relevanceLevel))) {\n        validationFlags.push(`${fieldName}[${index}].relevanceLevel invalid; defaulted to Low`);\n      }\n\n      let evidenceType = String(e.evidenceType ?? defaultEvidenceType ?? '').trim().toLowerCase();\n      if (!['supporting', 'weakness', 'mismatch'].includes(evidenceType)) {\n        evidenceType = defaultEvidenceType;\n        validationFlags.push(`${fieldName}[${index}].evidenceType invalid; defaulted to ${defaultEvidenceType}`);\n      }\n\n      return {\n        criterion,\n        quoteText: String(e.quoteText ?? '').replace(/\\s+/g, ' ').trim(),\n        pageNumber: Number.isFinite(Number(e.pageNumber)) ? Number(e.pageNumber) : 1,\n        relevanceLevel,\n        evidenceType\n      };\n    })\n    .filter(e => e.quoteText.length > 0)\n    .slice(0, maxItems);\n}\n\nlet evidence = parseExcerptArray(parsed.evidenceExcerpts, 'evidenceExcerpts', 'supporting', 6);\nlet diagnosticEvidence = parseExcerptArray(parsed.diagnosticEvidenceExcerpts, 'diagnosticEvidenceExcerpts', 'weakness', 6);\n\nif (!Array.isArray(parsed.evidenceExcerpts)) {\n  validationFlags.push('evidenceExcerpts missing or invalid; defaulted to []');\n}\n\n// Safety rule: evidenceExcerpts must be supporting evidence only.\nconst movedDiagnostics = evidence.filter(e => e.evidenceType !== 'supporting');\nif (movedDiagnostics.length > 0) {\n  validationFlags.push('Non-supporting excerpts were moved out of evidenceExcerpts into diagnosticEvidenceExcerpts');\n  diagnosticEvidence = [...diagnosticEvidence, ...movedDiagnostics].slice(0, 8);\n}\n\nevidence = evidence.filter(e => e.evidenceType === 'supporting');\n\n// If Gemini accidentally placed a supporting excerpt in diagnosticEvidenceExcerpts, rescue it.\nconst rescuedSupporting = diagnosticEvidence.filter(e => e.evidenceType === 'supporting');\nif (rescuedSupporting.length > 0) {\n  validationFlags.push('Supporting excerpts found in diagnosticEvidenceExcerpts were moved into evidenceExcerpts');\n  evidence = [...evidence, ...rescuedSupporting].slice(0, 8);\n  diagnosticEvidence = diagnosticEvidence.filter(e => e.evidenceType !== 'supporting');\n}\n\nreturn [{\n  json: {\n    gapAlignmentScore: clampScore(parsed.gapAlignmentScore, 'gapAlignmentScore'),\n    methodologyScore: clampScore(parsed.methodologyScore, 'methodologyScore'),\n    theoreticalScore: clampScore(parsed.theoreticalScore, 'theoreticalScore'),\n    citationScore: clampScore(parsed.citationScore, 'citationScore'),\n    confidenceLevel,\n    mismatchFlags: cleanStringArray(parsed.mismatchFlags, 'mismatchFlags'),\n    weaknessFlags: cleanStringArray(parsed.weaknessFlags, 'weaknessFlags'),\n    evidenceExcerpts: evidence,\n    diagnosticEvidenceExcerpts: diagnosticEvidence,\n    validationFlags,\n    rawAiResponse: raw.slice(firstBrace, lastBrace + 1)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        480
+      ],
+      "id": "15540ba0-4f80-4651-bd64-658679fdbcc3",
+      "name": "Parse and Validate AI JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ai = $input.first().json;\n\nconst source = $('Select Relevant Text Chunks1').first().json;\nconst rawText = String(source.raw_extracted_text ?? source.extracted_text ?? '');\nconst baseline = source.baseline ?? {};\nconst meta = source.meta ?? {};\n\nconst WEIGHTS = {\n  gap: 0.35,\n  methodology: 0.30,\n  theory: 0.20,\n  citation: 0.15\n};\n\nconst THRESHOLDS = {\n  recommendedOverall: 80,\n  recommendedGapMinimum: 75,\n  recommendedMethodologyMinimum: 70,\n  recommendedTheoryMinimum: 50,\n  recommendedCitationMinimum: 60,\n  needsReviewOverall: 50,\n  lowGapMinimum: 40,\n  lowCitationMinimum: 35\n};\n\nconst SEVERE_MISMATCH_FLAGS = new Set([\n  'TOPIC_MISMATCH',\n  'GAP_CONTRADICTION',\n  'POPULATION_CONTEXT_MISMATCH',\n  'PREDATORY_VENUE_FLAG',\n  'UNVERIFIABLE_SOURCE_FLAG'\n]);\n\nconst WEAKNESS_PENALTIES = {\n  NO_EXPLICIT_GAP_STATEMENT: 3,\n  WEAK_RATIONALE_LINK: 2,\n  SUMMARY_ONLY_NO_SYNTHESIS: 3,\n  NO_METHOD_JUSTIFICATION: 3,\n  NO_EVALUATION_METRICS: 4,\n  AD_HOC_TESTING_ONLY: 5,\n  NO_THEORY_OR_FRAMEWORK: 2,\n  FRAMEWORK_NAMED_NOT_USED: 2,\n  LOW_PEER_REVIEW_SHARE: 4,\n  OLD_SOURCE_HEAVY: 2,\n  MISSING_DOIS_OR_STABLE_IDS: 2,\n  APA_IEEE_ACM_STYLE_ERRORS: 1,\n  REFERENCES_MISSING_OR_UNCLEAR: 4\n};\n\nfunction clamp(value) {\n  const n = Number(value);\n  if (!Number.isFinite(n)) return 0;\n  return Math.max(0, Math.min(100, Math.round(n)));\n}\n\nfunction normalize(s) {\n  return String(s ?? '')\n    .toLowerCase()\n    .replace(/[\\u2018\\u2019]/g, \"'\")\n    .replace(/[\\u201c\\u201d]/g, '\"')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction normalizeForMatch(s) {\n  return normalize(s)\n    .replace(/\\.\\.\\./g, ' ')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction quoteMatches(text, quote) {\n  const q = normalizeForMatch(quote);\n  const t = normalizeForMatch(text);\n  if (q.length < 20) return false;\n  if (t.includes(q)) return true;\n\n  // Accept quotes with line-break or ellipsis differences if enough substantial fragments match.\n  const fragments = q\n    .split(/\\s*(?:\\.\\.\\.|;|:)\\s*/)\n    .map(x => x.trim())\n    .filter(x => x.length >= 28);\n\n  if (fragments.length > 0 && fragments.some(f => t.includes(f))) return true;\n\n  // Token fallback: conservative enough to rescue short paraphrase-free snippets with PDF extraction noise.\n  const stop = new Set(['the','and','for','that','with','from','this','these','those','into','onto','are','was','were','been','being','have','has','had','their','which','while','through','between','using','used','use','also','such','within','system','systems','paper','study','research']);\n  const tokens = [...new Set(q.split(/\\s+/).filter(w => w.length >= 5 && !stop.has(w)))];\n  if (tokens.length < 5) return false;\n  const hits = tokens.filter(tok => t.includes(tok)).length;\n  return hits >= Math.min(7, Math.ceil(tokens.length * 0.65));\n}\n\nfunction uniqStrings(values, maxItems = 30) {\n  return [...new Set(\n    (Array.isArray(values) ? values : [])\n      .map(v => String(v ?? '').trim())\n      .filter(Boolean)\n  )].slice(0, maxItems);\n}\n\nfunction pushUnique(array, value) {\n  if (value && !array.includes(value)) array.push(value);\n}\n\nfunction removeFlag(array, value) {\n  return array.filter(flag => flag !== value);\n}\n\nfunction normalizeCriterion(value) {\n  const rawCriterion = String(value ?? '').trim();\n  const key = rawCriterion.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\n  if (key.includes('gap')) return 'Gap Alignment';\n  if (key.includes('method') || key.includes('evaluation') || key.includes('benchmark') || key.includes('protocol')) return 'Methodology';\n  if (key.includes('theor') || key.includes('framework') || key.includes('architecture') || key.includes('governance') || key.includes('conceptual')) return 'Theory';\n  if (key.includes('citation') || key.includes('reference') || key.includes('source')) return 'Citation Quality';\n  return 'Gap Alignment';\n}\n\nconst stopwords = new Set([\n  'about', 'above', 'after', 'again', 'against', 'among', 'based', 'because',\n  'before', 'being', 'below', 'between', 'could', 'during', 'early', 'field',\n  'first', 'found', 'from', 'have', 'having', 'into', 'more', 'most', 'other',\n  'paper', 'research', 'result', 'results', 'should', 'study', 'studies',\n  'system', 'than', 'their', 'there', 'these', 'this', 'those', 'through',\n  'using', 'where', 'which', 'while', 'within', 'with', 'would'\n]);\n\nconst baselineText = [baseline.title, baseline.rationale, baseline.gaps].filter(Boolean).join(' ');\nconst baselineKeywords = [...new Set(\n  normalize(baselineText)\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .split(/\\s+/)\n    .filter(w => w.length >= 5 && !stopwords.has(w))\n)].slice(0, 100);\n\nfunction keywordHits(text) {\n  const lower = normalize(text);\n  return baselineKeywords.filter(k => lower.includes(k)).length;\n}\n\nconst validationFlags = uniqStrings(ai.validationFlags ?? [], 30);\nconst originalEvidence = Array.isArray(ai.evidenceExcerpts) ? ai.evidenceExcerpts : [];\nconst originalDiagnostic = Array.isArray(ai.diagnosticEvidenceExcerpts) ? ai.diagnosticEvidenceExcerpts : [];\n\n// Rescue any supporting excerpt accidentally returned under diagnosticEvidenceExcerpts.\nconst evidenceCandidates = [\n  ...originalEvidence,\n  ...originalDiagnostic.filter(e => String(e.evidenceType ?? '').toLowerCase() === 'supporting')\n];\n\nconst diagnosticCandidates = originalDiagnostic.filter(e => String(e.evidenceType ?? '').toLowerCase() !== 'supporting');\n\nconst verifiedEvidence = evidenceCandidates\n  .map(e => ({\n    criterion: normalizeCriterion(e.criterion),\n    quoteText: String(e.quoteText ?? '').replace(/\\s+/g, ' ').trim(),\n    pageNumber: Number.isFinite(Number(e.pageNumber)) ? Number(e.pageNumber) : 1,\n    relevanceLevel: ['High', 'Medium', 'Low'].includes(String(e.relevanceLevel)) ? String(e.relevanceLevel) : 'Low',\n    evidenceType: 'supporting'\n  }))\n  .filter(e => e.quoteText.length > 0)\n  .filter(e => quoteMatches(rawText, e.quoteText))\n  .slice(0, 8);\n\nconst verifiedDiagnosticEvidence = diagnosticCandidates\n  .map(e => ({\n    criterion: normalizeCriterion(e.criterion),\n    quoteText: String(e.quoteText ?? '').replace(/\\s+/g, ' ').trim(),\n    pageNumber: Number.isFinite(Number(e.pageNumber)) ? Number(e.pageNumber) : 1,\n    relevanceLevel: ['High', 'Medium', 'Low'].includes(String(e.relevanceLevel)) ? String(e.relevanceLevel) : 'Low',\n    evidenceType: ['weakness', 'mismatch'].includes(String(e.evidenceType).toLowerCase()) ? String(e.evidenceType).toLowerCase() : 'weakness'\n  }))\n  .filter(e => e.quoteText.length > 0)\n  .filter(e => quoteMatches(rawText, e.quoteText))\n  .slice(0, 8);\n\nif (verifiedEvidence.length < evidenceCandidates.length) {\n  pushUnique(validationFlags, 'Some AI supporting evidence excerpts were removed because they were not found in extracted text');\n}\n\nif (verifiedDiagnosticEvidence.length < diagnosticCandidates.length) {\n  pushUnique(validationFlags, 'Some diagnostic evidence excerpts were removed because they were not found in extracted text');\n}\n\nlet gap = clamp(ai.gapAlignmentScore);\nlet methodology = clamp(ai.methodologyScore);\nlet theoretical = clamp(ai.theoreticalScore);\nlet citation = clamp(ai.citationScore);\nlet mismatchFlags = uniqStrings(ai.mismatchFlags ?? [], 20);\nlet weaknessFlags = uniqStrings(ai.weaknessFlags ?? [], 30);\n\nconst supportingEvidence = verifiedEvidence.filter(e => e.evidenceType === 'supporting');\nconst diagnosticEvidence = verifiedDiagnosticEvidence.filter(e => e.evidenceType === 'weakness' || e.evidenceType === 'mismatch');\n\nconst gapEvidence = supportingEvidence.filter(e => e.criterion === 'Gap Alignment' && ['High', 'Medium'].includes(e.relevanceLevel));\nconst methodologyEvidence = supportingEvidence.filter(e => e.criterion === 'Methodology' && ['High', 'Medium'].includes(e.relevanceLevel));\nconst theoryEvidence = supportingEvidence.filter(e => e.criterion === 'Theory' && ['High', 'Medium'].includes(e.relevanceLevel));\nconst citationEvidence = supportingEvidence.filter(e => e.criterion === 'Citation Quality');\n\nconst highEvidenceCount = supportingEvidence.filter(e => e.relevanceLevel === 'High').length;\nconst evidenceKeywordHits = keywordHits(supportingEvidence.map(e => e.quoteText).join(' '));\nconst rawLower = normalize(rawText);\n\nconst methodSignalInText = /\\b(method|methodology|framework|benchmark|protocol|evaluation|metric|dataset|algorithm|architecture|experiment|implementation|workflow|task|testing|validation|retrieval|reranking|synthesis)\\b/i.test(rawText);\nconst theorySignalInText = /\\b(theory|theoretical|conceptual|framework|architecture|governance|ethical|ethics|citation-aware|source-tracking|source tracking|design framework|model|protocol|pipeline)\\b/i.test(rawText);\nconst relatedRagSignal = /\\b(agentic|rag|retrieval augmented generation|retrieval-augmented generation|citation-aware|scientific literature|academic synthesis|benchmark|hallucination|source attribution|source tracking|source-tracking)\\b/i.test(rawText);\n\n// Remove weakness flags contradicted by verified evidence.\nif (gapEvidence.length > 0) {\n  weaknessFlags = removeFlag(weaknessFlags, 'NO_EXPLICIT_GAP_STATEMENT');\n}\nif (methodologyEvidence.length > 0) {\n  weaknessFlags = removeFlag(weaknessFlags, 'NO_METHOD_JUSTIFICATION');\n}\nif (methodologyEvidence.length > 0 || /\\b(metric|benchmark|evaluation|experiment|accuracy|dataset|test|testing|validation)\\b/i.test(rawText)) {\n  weaknessFlags = removeFlag(weaknessFlags, 'NO_EVALUATION_METRICS');\n}\nif (theoryEvidence.length > 0 || theorySignalInText) {\n  weaknessFlags = removeFlag(weaknessFlags, 'NO_THEORY_OR_FRAMEWORK');\n}\n\nif (supportingEvidence.length === 0) {\n  gap = Math.min(gap, 39);\n  methodology = Math.min(methodology, 39);\n  theoretical = Math.min(theoretical, 39);\n  citation = Math.min(citation, 49);\n  pushUnique(weaknessFlags, 'NO_EXPLICIT_GAP_STATEMENT');\n  pushUnique(weaknessFlags, 'NO_METHOD_JUSTIFICATION');\n  pushUnique(weaknessFlags, 'NO_THEORY_OR_FRAMEWORK');\n  pushUnique(validationFlags, 'All scores capped because no verified supporting evidence excerpts were found');\n}\n\nif (gapEvidence.length === 0) {\n  gap = Math.min(gap, 39);\n  pushUnique(weaknessFlags, 'NO_EXPLICIT_GAP_STATEMENT');\n  pushUnique(validationFlags, 'Gap Alignment capped because no credible supporting gap evidence was verified');\n} else if (gapEvidence.length < 2) {\n  gap = Math.min(gap, 74);\n  pushUnique(validationFlags, 'Gap Alignment capped at 74 because one supporting gap evidence item was verified');\n}\n\nif (methodologyEvidence.length === 0) {\n  if (methodSignalInText && gapEvidence.length > 0 && relatedRagSignal) {\n    methodology = Math.min(methodology, 64);\n    pushUnique(validationFlags, 'Methodology capped at 64 because method signals were present but no exact methodology excerpt was verified');\n  } else {\n    methodology = Math.min(methodology, 39);\n    pushUnique(weaknessFlags, 'NO_METHOD_JUSTIFICATION');\n    pushUnique(validationFlags, 'Methodology capped because no credible supporting methodology evidence was verified');\n  }\n} else if (methodologyEvidence.length < 2) {\n  methodology = Math.min(methodology, 74);\n  pushUnique(validationFlags, 'Methodology capped at 74 because one supporting methodology evidence item was verified');\n}\n\nif (theoryEvidence.length === 0) {\n  if (theorySignalInText && relatedRagSignal) {\n    theoretical = Math.min(theoretical, 64);\n    pushUnique(validationFlags, 'Theory/Framework capped at 64 because framework/architecture signals were present but no exact theory excerpt was verified');\n  } else {\n    theoretical = Math.min(theoretical, 39);\n    pushUnique(weaknessFlags, 'NO_THEORY_OR_FRAMEWORK');\n    pushUnique(validationFlags, 'Theory/Framework capped at 39 because no explicit framework evidence was verified');\n  }\n} else if (theoryEvidence.length < 2) {\n  theoretical = Math.min(theoretical, 74);\n}\n\nif (weaknessFlags.includes('FRAMEWORK_NAMED_NOT_USED')) {\n  theoretical = Math.min(theoretical, 64);\n  pushUnique(validationFlags, 'Theory/Framework capped at 64 because the framework was named but not strongly used');\n}\n\nif (weaknessFlags.includes('NO_EVALUATION_METRICS') && methodologyEvidence.length === 0) {\n  methodology = Math.min(methodology, 64);\n  pushUnique(validationFlags, 'Methodology capped at 64 because evaluation was claimed but no metric/tool/test evidence was verified');\n}\n\nif (weaknessFlags.includes('AD_HOC_TESTING_ONLY')) {\n  methodology = Math.min(methodology, 59);\n  pushUnique(validationFlags, 'Methodology capped at 59 because testing appeared ad hoc only');\n}\n\nconst hasReferenceListSignal = /\\b(references|bibliography|works cited|literature cited)\\b/i.test(rawText);\nconst hasAcademicCitationSignals = /\\b(doi|journal|conference|proceedings|volume|issue|publisher|issn|isbn|et al\\.|abstract|keywords|arxiv)\\b/i.test(rawText);\n\nif (!hasReferenceListSignal && !hasAcademicCitationSignals) {\n  citation = Math.min(citation, 49);\n  pushUnique(weaknessFlags, 'REFERENCES_MISSING_OR_UNCLEAR');\n  pushUnique(validationFlags, 'Citation Quality capped at 49 because reference/citation signals were missing or unclear');\n}\n\nif (weaknessFlags.includes('LOW_PEER_REVIEW_SHARE')) {\n  citation = Math.min(citation, 64);\n  pushUnique(validationFlags, 'Citation Quality capped at 64 because peer-reviewed/source authority signals were weak');\n}\n\nif (weaknessFlags.includes('MISSING_DOIS_OR_STABLE_IDS')) {\n  citation = Math.min(citation, 89);\n}\n\nif (gapEvidence.length > 0 && evidenceKeywordHits === 0) {\n  gap = Math.min(gap, 59);\n  pushUnique(weaknessFlags, 'WEAK_RATIONALE_LINK');\n  pushUnique(validationFlags, 'Gap score capped because verified supporting evidence did not share meaningful baseline terms');\n} else if (gapEvidence.length > 0 && evidenceKeywordHits < 2) {\n  gap = Math.min(gap, 74);\n  pushUnique(validationFlags, 'Gap score capped because verified supporting evidence had limited baseline keyword overlap');\n}\n\nconst mismatchText = [\n  ...mismatchFlags,\n  ...diagnosticEvidence.filter(e => e.evidenceType === 'mismatch').map(e => e.quoteText)\n].join(' ');\n\n// GAP_TYPE_MISMATCH and METHOD_MISMATCH are not automatically fatal if verified supporting RAG/benchmark evidence exists.\nconst hasSevereEnumMismatch = mismatchFlags.some(flag => SEVERE_MISMATCH_FLAGS.has(flag));\nconst hasMethodMismatchFatal = mismatchFlags.includes('METHOD_MISMATCH') && methodologyEvidence.length === 0 && !methodSignalInText;\nconst hasGapTypeMismatchFatal = mismatchFlags.includes('GAP_TYPE_MISMATCH') && gapEvidence.length === 0;\nconst hasTextFatalMismatch = /\\b(critical|unrelated|not related|does not address|no connection|wrong population|different population|different domain|different field|different problem|outside scope|contradicts|already solved)\\b/i.test(mismatchText);\nconst hasFatalMismatch = hasSevereEnumMismatch || hasMethodMismatchFatal || hasGapTypeMismatchFatal || hasTextFatalMismatch;\n\n// Fatal Topic Mismatch Override:\n// A paper can have citation/reference quality, but if it is topically unrelated to\n// the CATalyst baseline and has no verified supporting evidence, it should not\n// receive semantic relevance credit.\nconst fatalTopicMismatchNoSupport =\n  mismatchFlags.includes('TOPIC_MISMATCH') &&\n  supportingEvidence.length === 0;\n\nif (fatalTopicMismatchNoSupport) {\n  gap = 0;\n  methodology = 0;\n  theoretical = 0;\n\n  // Keep Citation Quality as a diagnostic signal only; it must not affect overall relevance.\n  citation = Math.min(citation, 30);\n\n  pushUnique(validationFlags, 'Overall score set to 0 because TOPIC_MISMATCH was detected with no verified supporting evidence');\n  pushUnique(validationFlags, 'Citation Quality retained only as a diagnostic signal and excluded from overall relevance due to fatal topic mismatch');\n} else if (hasFatalMismatch) {\n  gap = Math.min(gap, 45);\n  pushUnique(validationFlags, 'Gap score capped because a fatal or critical mismatch was detected');\n}\n\nlet confidenceLevel = ['High', 'Medium', 'Low'].includes(String(ai.confidenceLevel))\n  ? String(ai.confidenceLevel)\n  : 'Low';\n\nfunction downgradeConfidence(current, target) {\n  const rank = { High: 3, Medium: 2, Low: 1 };\n  return rank[target] < rank[current] ? target : current;\n}\n\nif (fatalTopicMismatchNoSupport || hasFatalMismatch || gapEvidence.length === 0) {\n  confidenceLevel = downgradeConfidence(confidenceLevel, 'Low');\n} else if (validationFlags.length >= 5 || highEvidenceCount === 0 || evidenceKeywordHits < 2 || methodologyEvidence.length === 0) {\n  confidenceLevel = downgradeConfidence(confidenceLevel, 'Medium');\n}\n\nconst confidenceScore = confidenceLevel === 'High' ? 0.85 : confidenceLevel === 'Medium' ? 0.65 : 0.45;\n\nfunction calculateWeaknessPenalty(flags) {\n  const unique = uniqStrings(flags, 50);\n  const total = unique.reduce((sum, flag) => sum + (WEAKNESS_PENALTIES[flag] ?? 0), 0);\n  return Math.min(total, 12);\n}\n\nconst weaknessPenalty = calculateWeaknessPenalty(weaknessFlags);\n\nlet overallScore = Math.round(\n  gap * WEIGHTS.gap +\n  methodology * WEIGHTS.methodology +\n  theoretical * WEIGHTS.theory +\n  citation * WEIGHTS.citation\n) - weaknessPenalty;\n\nif (fatalTopicMismatchNoSupport) {\n  overallScore = 0;\n} else if (hasFatalMismatch) {\n  overallScore = Math.min(overallScore, 59);\n}\noverallScore = Math.max(0, Math.min(100, overallScore));\n\nconst moderateWeaknessCount = weaknessFlags.filter(flag => !SEVERE_MISMATCH_FLAGS.has(flag)).length;\n\nlet recommendationStatus;\nif (\n  fatalTopicMismatchNoSupport ||\n  hasFatalMismatch ||\n  supportingEvidence.length === 0 ||\n  gapEvidence.length === 0 ||\n  gap < THRESHOLDS.lowGapMinimum ||\n  citation < THRESHOLDS.lowCitationMinimum ||\n  overallScore < 40\n) {\n  recommendationStatus = 'Low Relevance';\n} else if (\n  overallScore >= THRESHOLDS.recommendedOverall &&\n  gap >= THRESHOLDS.recommendedGapMinimum &&\n  methodology >= THRESHOLDS.recommendedMethodologyMinimum &&\n  theoretical >= THRESHOLDS.recommendedTheoryMinimum &&\n  citation >= THRESHOLDS.recommendedCitationMinimum &&\n  confidenceScore >= 0.70 &&\n  gapEvidence.length >= 2 &&\n  methodologyEvidence.length >= 2 &&\n  moderateWeaknessCount <= 2\n) {\n  recommendationStatus = 'Recommended';\n} else {\n  recommendationStatus = 'Needs Review';\n}\n\nconst relevanceLevel = recommendationStatus === 'Recommended'\n  ? 'High'\n  : recommendationStatus === 'Needs Review'\n    ? 'Medium'\n    : 'Low';\n\nconst displayEvidence = supportingEvidence.filter(e =>\n  e.evidenceType === 'supporting' &&\n  ['High', 'Medium'].includes(e.relevanceLevel)\n);\n\nif (supportingEvidence.length > displayEvidence.length) {\n  pushUnique(validationFlags, 'Low-relevance supporting excerpts were hidden from evidenceExcerpts display output');\n}\n\nreturn [{\n  json: {\n    documentId: meta.documentId ?? null,\n    filename: meta.filename ?? null,\n    scores: {\n      gapAlignment: Math.round(gap),\n      methodology: Math.round(methodology),\n      theory: Math.round(theoretical),\n      citationQuality: Math.round(citation),\n      overall: overallScore\n    },\n    gapAlignmentScore: Math.round(gap),\n    methodologyScore: Math.round(methodology),\n    theoreticalScore: Math.round(theoretical),\n    citationScore: Math.round(citation),\n    overallScore,\n    weaknessPenalty,\n    recommendationStatus,\n    confidenceScore,\n    confidenceLevel,\n    relevanceLevel,\n    mismatchFlags: uniqStrings(mismatchFlags, 20),\n    weaknessFlags: uniqStrings(weaknessFlags, 30),\n    validationFlags: uniqStrings(validationFlags, 30),\n    evidenceCounts: {\n      verifiedSupportingEvidence: supportingEvidence.length,\n      verifiedDiagnosticEvidence: diagnosticEvidence.length,\n      displayedEvidence: displayEvidence.length,\n      gapEvidence: gapEvidence.length,\n      methodologyEvidence: methodologyEvidence.length,\n      theoryEvidence: theoryEvidence.length,\n      citationEvidence: citationEvidence.length\n    },\n    evidenceExcerpts: displayEvidence.map((e, index) => ({\n      criterion: e.criterion,\n      quoteText: e.quoteText,\n      pageNumber: e.pageNumber,\n      relevanceLevel: e.relevanceLevel,\n      evidenceType: 'supporting',\n      displayOrder: index + 1\n    })),\n    diagnosticEvidenceExcerpts: diagnosticEvidence.map((e, index) => ({\n      criterion: e.criterion,\n      quoteText: e.quoteText,\n      pageNumber: e.pageNumber,\n      relevanceLevel: e.relevanceLevel,\n      evidenceType: e.evidenceType,\n      displayOrder: index + 1\n    })),\n    rawAiResponse: ai.rawAiResponse ?? null,\n    chunkStats: source.chunkStats ?? {},\n    scoringModel: {\n      rubricVersion: 'internet-supported-rubric-v2.5-fatal-topic-mismatch-override',\n      weights: WEIGHTS,\n      thresholds: THRESHOLDS,\n      weaknessPenaltyCap: 12,\n      scoreBands: {\n        excellent: '90-100',\n        good: '75-89',\n        fair: '60-74',\n        poor: '40-59',\n        inadequate: '0-39'\n      },\n      note: 'v2.5 calibrated fast: evidenceExcerpts contains supporting evidence only; aliases and robust quote checks reduce over-capping; fatal TOPIC_MISMATCH with no verified supporting evidence forces overall semantic relevance to 0 while keeping citation quality diagnostic only.'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        480
+      ],
+      "id": "3bb2b3d6-e487-4bb3-b744-6c1ab74ef209",
+      "name": "Apply Deterministic Scoring Rules"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "semantic_scoring",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        80,
+        480
+      ],
+      "id": "d29fbb2a-65d3-46b3-b142-0204e670c25d",
+      "name": "Webhook4",
+      "webhookId": "6bfada0a-b08c-463f-9f6e-3f57f3e12d38"
+    },
+    {
+      "parameters": {
+        "content": "## CiteWise Semantic Scoring Pipeline v2.5 CALIBRATED FAST + FATAL TOPIC MISMATCH OVERRIDE\n\nKeeps:\n- Direct Gemini LLM Chain instead of AI Agent node\n- backend/n8n compact context around 6k-9k chars\n- evidenceExcerpts contains SUPPORTING evidence only\n- mismatch/weakness quotes separated into diagnosticEvidenceExcerpts\n\nNew in v2.4:\n- criterion aliases are normalized: Methodology Relevance -> Methodology, Theory/Framework -> Theory\n- quote verification is more tolerant of line breaks/ellipsis while still checking against extracted text\n- related RAG papers can reach Needs Review instead of being over-capped to Low Relevance\n- Recommended remains strict\n\nWeights: Gap 35%, Methodology 30%, Theory 20%, Citation 15%.\n\n\nNew in v2.5:\n- Fatal Topic Mismatch Override: if TOPIC_MISMATCH is detected and no verified supporting evidence exists, overall semantic relevance is forced to 0%.\n- Citation Quality remains available as a diagnostic criterion, but it cannot raise the overall score for a fatally unrelated document.\n",
+        "height": 928,
+        "width": 1900
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d9cb3c0d-8b65-4a64-85b7-fcefbbfb7e8f",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1632,
+        480
+      ],
+      "id": "5d54fa7c-b618-4f72-acf6-2437ece75d75",
+      "name": "Respond to Webhook4"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { ...$input.all()[0].json, route: Math.floor(Math.random() * 6) } };"
+      },
+      "id": "code-8cc90111-9b19-4091-949c-ac91ef3e6d03",
+      "name": "Randomizer Code - Direct Gemini LLM - Strict Semantic Scoring",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "number",
+        "value1": "={{ $json.route }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value2": 0
+            },
+            {
+              "operation": "equal",
+              "value2": 1
+            },
+            {
+              "operation": "equal",
+              "value2": 2
+            },
+            {
+              "operation": "equal",
+              "value2": 3
+            },
+            {
+              "operation": "equal",
+              "value2": 4
+            },
+            {
+              "operation": "equal",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "switch-8cc90111-9b19-4091-949c-ac91ef3e6d03",
+      "name": "Load Balancer Switch - Direct Gemini LLM - Strict Semantic Scoring",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        584,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta, chunkStats: $json.chunkStats }) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are CiteWise's strict academic semantic evaluator.\n\nYou receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nEvaluate whether the uploaded RRL document is relevant to the CATalyst Semantic Baseline. Be conservative, but do not over-penalize papers that directly discuss agentic RAG, RAG benchmarking, citation-aware synthesis, source verification, hallucination/citation errors, academic synthesis, or ethical/governance concerns.\n\nUse only extracted_text. Do not invent evidence.\n\nBackend boundary:\n- You generate component scores and evidence only.\n- Do not calculate the final overall score.\n- Do not assign the final recommendation status.\n- The deterministic rule node validates evidence, applies weights, and classifies the document.\n\nScore bands for each criterion:\n90-100 Excellent: direct, strong, well-evidenced support.\n75-89 Good: clearly useful with minor limitations.\n60-74 Fair: partially useful with reviewer judgment.\n40-59 Poor: broad/weak support only.\n0-39 Inadequate: irrelevant, unsupported, or not credible enough.\n\nCriteria:\n1. Gap Alignment: Does the document directly support the baseline title, rationale, and research gap? High scores require explicit gap/limitation/need/future-work/understudied evidence overlapping with the baseline.\n2. Methodology: Does it provide useful design, algorithm, framework, dataset, evaluation, benchmark, metric, implementation, protocol, or reproducibility evidence?\n3. Theory: Does it provide an explicit theory, conceptual framework, software framework, architecture, governance model, design framework, ethical framework, citation/source-tracking protocol, or design-science logic that is actually used?\n4. Citation Quality: Does it show credibility and traceability through references, DOI/stable IDs, venue/source names, publication details, and academic structure? Do not use citation quality to inflate semantic relevance.\n\nUse only these exact criterion names in evidenceExcerpts:\n- Gap Alignment\n- Methodology\n- Theory\n- Citation Quality\n\nEvidence rules:\n- Return only 2 to 3 strongest SUPPORTING evidence excerpts total.\n- For a related paper, prefer one Gap Alignment excerpt and one Methodology or Theory excerpt.\n- evidenceExcerpts must contain supporting evidence only.\n- Every evidenceExcerpts item must have evidenceType = \"supporting\".\n- A supporting excerpt must directly support a score, especially Gap Alignment or Methodology.\n- Do not place unrelated, weak, contradictory, or mismatch quotes inside evidenceExcerpts.\n- If the paper is unrelated, evidenceExcerpts must be [].\n- If a quote only proves that the paper is unrelated, put it in diagnosticEvidenceExcerpts, not evidenceExcerpts.\n- Every quote must be copied from extracted_text.\n- Keep quotes short and exact. Prefer one sentence or a short passage.\n- Do not use ellipses inside quoteText unless the ellipsis is literally present in extracted_text.\n\nDiagnostic evidence:\n- diagnosticEvidenceExcerpts is optional.\n- Use it only for exact quotes that demonstrate a weakness or mismatch.\n- Items must have evidenceType = \"weakness\" or \"mismatch\".\n- Important issues must also appear in mismatchFlags or weaknessFlags.\n\nMismatch flags, use only when applicable:\nTOPIC_MISMATCH, GAP_TYPE_MISMATCH, GAP_CONTRADICTION, METHOD_MISMATCH, POPULATION_CONTEXT_MISMATCH, PREDATORY_VENUE_FLAG, UNVERIFIABLE_SOURCE_FLAG\n\nImportant mismatch guidance:\n- Do not use TOPIC_MISMATCH for papers about agentic RAG, RAG benchmarking, citation-aware RAG, academic synthesis, hallucination/citation errors, source verification, or autonomous scientific literature synthesis.\n- Do not use GAP_TYPE_MISMATCH just because the paper focuses on benchmarks or QA tasks if it still addresses RAG evaluation gaps relevant to the baseline.\n\n\nFatal mismatch guidance:\n- If the document is clearly outside the baseline topic/domain and provides no supporting evidence for the CATalyst title, rationale, or gaps, use TOPIC_MISMATCH and set evidenceExcerpts to [].\n- Do not let Citation Quality inflate semantic relevance for unrelated documents; the deterministic rule node will force overall semantic relevance to 0 for TOPIC_MISMATCH with no verified supporting evidence.\n\nWeakness flags, use only when applicable:\nNO_EXPLICIT_GAP_STATEMENT, WEAK_RATIONALE_LINK, SUMMARY_ONLY_NO_SYNTHESIS, NO_METHOD_JUSTIFICATION, NO_EVALUATION_METRICS, AD_HOC_TESTING_ONLY, NO_THEORY_OR_FRAMEWORK, FRAMEWORK_NAMED_NOT_USED, LOW_PEER_REVIEW_SHARE, OLD_SOURCE_HEAVY, MISSING_DOIS_OR_STABLE_IDS, APA_IEEE_ACM_STYLE_ERRORS, REFERENCES_MISSING_OR_UNCLEAR\n\nCalibrated scoring guidance:\n- If no exact supporting evidence connects the document to baseline.gaps, Gap Alignment should be 39 or lower.\n- If one credible direct gap-alignment quote exists, Gap Alignment may be 60-74.\n- If the document is only broadly related to the field, Gap Alignment should not exceed 59.\n- If a paper directly proposes a benchmark, protocol, framework, method, or evaluation for RAG/academic synthesis, Methodology may be 70+ when supported by a quote.\n- If no usable method/design/evaluation exists, Methodology should be 39 or lower.\n- If methodology exists but no metric/tool/testing/evaluation appears, Methodology should not exceed 64.\n- If a paper provides a software architecture, framework, governance model, source-tracking method, citation-aware framework, or design protocol, Theory may be 60+ when supported by a quote.\n- If no theory/conceptual/software/design framework appears, Theory should be 39 or lower.\n- If references/citation signals are missing or unclear, Citation Quality should not exceed 49.\n- Scores above 85 require strong direct supporting evidence.\n\nSpeed rules:\n- Be concise.\n- Do not explain your reasoning.\n- Do not include markdown.\n- Return only valid JSON.\n- Prefer fewer, stronger excerpts over many excerpts.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact supporting quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ],\n  \"diagnosticEvidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact weakness or mismatch quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"Low\",\n      \"evidenceType\": \"mismatch\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        784,
+        -20
+      ],
+      "id": "8cc90111-9b19-4091-949c-ac91ef3e6d03_copy0",
+      "name": "Direct Gemini LLM - Strict Semantic Scoring (Key 1)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        784,
+        204
+      ],
+      "id": "f989ffd9-0976-4a65-8a13-b3e91418325f_copy0",
+      "name": "Google Gemini Chat Model4 (Key 1)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_0",
+          "name": "Gemini API Key 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta, chunkStats: $json.chunkStats }) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are CiteWise's strict academic semantic evaluator.\n\nYou receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nEvaluate whether the uploaded RRL document is relevant to the CATalyst Semantic Baseline. Be conservative, but do not over-penalize papers that directly discuss agentic RAG, RAG benchmarking, citation-aware synthesis, source verification, hallucination/citation errors, academic synthesis, or ethical/governance concerns.\n\nUse only extracted_text. Do not invent evidence.\n\nBackend boundary:\n- You generate component scores and evidence only.\n- Do not calculate the final overall score.\n- Do not assign the final recommendation status.\n- The deterministic rule node validates evidence, applies weights, and classifies the document.\n\nScore bands for each criterion:\n90-100 Excellent: direct, strong, well-evidenced support.\n75-89 Good: clearly useful with minor limitations.\n60-74 Fair: partially useful with reviewer judgment.\n40-59 Poor: broad/weak support only.\n0-39 Inadequate: irrelevant, unsupported, or not credible enough.\n\nCriteria:\n1. Gap Alignment: Does the document directly support the baseline title, rationale, and research gap? High scores require explicit gap/limitation/need/future-work/understudied evidence overlapping with the baseline.\n2. Methodology: Does it provide useful design, algorithm, framework, dataset, evaluation, benchmark, metric, implementation, protocol, or reproducibility evidence?\n3. Theory: Does it provide an explicit theory, conceptual framework, software framework, architecture, governance model, design framework, ethical framework, citation/source-tracking protocol, or design-science logic that is actually used?\n4. Citation Quality: Does it show credibility and traceability through references, DOI/stable IDs, venue/source names, publication details, and academic structure? Do not use citation quality to inflate semantic relevance.\n\nUse only these exact criterion names in evidenceExcerpts:\n- Gap Alignment\n- Methodology\n- Theory\n- Citation Quality\n\nEvidence rules:\n- Return only 2 to 3 strongest SUPPORTING evidence excerpts total.\n- For a related paper, prefer one Gap Alignment excerpt and one Methodology or Theory excerpt.\n- evidenceExcerpts must contain supporting evidence only.\n- Every evidenceExcerpts item must have evidenceType = \"supporting\".\n- A supporting excerpt must directly support a score, especially Gap Alignment or Methodology.\n- Do not place unrelated, weak, contradictory, or mismatch quotes inside evidenceExcerpts.\n- If the paper is unrelated, evidenceExcerpts must be [].\n- If a quote only proves that the paper is unrelated, put it in diagnosticEvidenceExcerpts, not evidenceExcerpts.\n- Every quote must be copied from extracted_text.\n- Keep quotes short and exact. Prefer one sentence or a short passage.\n- Do not use ellipses inside quoteText unless the ellipsis is literally present in extracted_text.\n\nDiagnostic evidence:\n- diagnosticEvidenceExcerpts is optional.\n- Use it only for exact quotes that demonstrate a weakness or mismatch.\n- Items must have evidenceType = \"weakness\" or \"mismatch\".\n- Important issues must also appear in mismatchFlags or weaknessFlags.\n\nMismatch flags, use only when applicable:\nTOPIC_MISMATCH, GAP_TYPE_MISMATCH, GAP_CONTRADICTION, METHOD_MISMATCH, POPULATION_CONTEXT_MISMATCH, PREDATORY_VENUE_FLAG, UNVERIFIABLE_SOURCE_FLAG\n\nImportant mismatch guidance:\n- Do not use TOPIC_MISMATCH for papers about agentic RAG, RAG benchmarking, citation-aware RAG, academic synthesis, hallucination/citation errors, source verification, or autonomous scientific literature synthesis.\n- Do not use GAP_TYPE_MISMATCH just because the paper focuses on benchmarks or QA tasks if it still addresses RAG evaluation gaps relevant to the baseline.\n\n\nFatal mismatch guidance:\n- If the document is clearly outside the baseline topic/domain and provides no supporting evidence for the CATalyst title, rationale, or gaps, use TOPIC_MISMATCH and set evidenceExcerpts to [].\n- Do not let Citation Quality inflate semantic relevance for unrelated documents; the deterministic rule node will force overall semantic relevance to 0 for TOPIC_MISMATCH with no verified supporting evidence.\n\nWeakness flags, use only when applicable:\nNO_EXPLICIT_GAP_STATEMENT, WEAK_RATIONALE_LINK, SUMMARY_ONLY_NO_SYNTHESIS, NO_METHOD_JUSTIFICATION, NO_EVALUATION_METRICS, AD_HOC_TESTING_ONLY, NO_THEORY_OR_FRAMEWORK, FRAMEWORK_NAMED_NOT_USED, LOW_PEER_REVIEW_SHARE, OLD_SOURCE_HEAVY, MISSING_DOIS_OR_STABLE_IDS, APA_IEEE_ACM_STYLE_ERRORS, REFERENCES_MISSING_OR_UNCLEAR\n\nCalibrated scoring guidance:\n- If no exact supporting evidence connects the document to baseline.gaps, Gap Alignment should be 39 or lower.\n- If one credible direct gap-alignment quote exists, Gap Alignment may be 60-74.\n- If the document is only broadly related to the field, Gap Alignment should not exceed 59.\n- If a paper directly proposes a benchmark, protocol, framework, method, or evaluation for RAG/academic synthesis, Methodology may be 70+ when supported by a quote.\n- If no usable method/design/evaluation exists, Methodology should be 39 or lower.\n- If methodology exists but no metric/tool/testing/evaluation appears, Methodology should not exceed 64.\n- If a paper provides a software architecture, framework, governance model, source-tracking method, citation-aware framework, or design protocol, Theory may be 60+ when supported by a quote.\n- If no theory/conceptual/software/design framework appears, Theory should be 39 or lower.\n- If references/citation signals are missing or unclear, Citation Quality should not exceed 49.\n- Scores above 85 require strong direct supporting evidence.\n\nSpeed rules:\n- Be concise.\n- Do not explain your reasoning.\n- Do not include markdown.\n- Return only valid JSON.\n- Prefer fewer, stronger excerpts over many excerpts.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact supporting quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ],\n  \"diagnosticEvidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact weakness or mismatch quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"Low\",\n      \"evidenceType\": \"mismatch\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        784,
+        180
+      ],
+      "id": "8cc90111-9b19-4091-949c-ac91ef3e6d03_copy1",
+      "name": "Direct Gemini LLM - Strict Semantic Scoring (Key 2)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        784,
+        404
+      ],
+      "id": "f989ffd9-0976-4a65-8a13-b3e91418325f_copy1",
+      "name": "Google Gemini Chat Model4 (Key 2)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_1",
+          "name": "Gemini API Key 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta, chunkStats: $json.chunkStats }) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are CiteWise's strict academic semantic evaluator.\n\nYou receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nEvaluate whether the uploaded RRL document is relevant to the CATalyst Semantic Baseline. Be conservative, but do not over-penalize papers that directly discuss agentic RAG, RAG benchmarking, citation-aware synthesis, source verification, hallucination/citation errors, academic synthesis, or ethical/governance concerns.\n\nUse only extracted_text. Do not invent evidence.\n\nBackend boundary:\n- You generate component scores and evidence only.\n- Do not calculate the final overall score.\n- Do not assign the final recommendation status.\n- The deterministic rule node validates evidence, applies weights, and classifies the document.\n\nScore bands for each criterion:\n90-100 Excellent: direct, strong, well-evidenced support.\n75-89 Good: clearly useful with minor limitations.\n60-74 Fair: partially useful with reviewer judgment.\n40-59 Poor: broad/weak support only.\n0-39 Inadequate: irrelevant, unsupported, or not credible enough.\n\nCriteria:\n1. Gap Alignment: Does the document directly support the baseline title, rationale, and research gap? High scores require explicit gap/limitation/need/future-work/understudied evidence overlapping with the baseline.\n2. Methodology: Does it provide useful design, algorithm, framework, dataset, evaluation, benchmark, metric, implementation, protocol, or reproducibility evidence?\n3. Theory: Does it provide an explicit theory, conceptual framework, software framework, architecture, governance model, design framework, ethical framework, citation/source-tracking protocol, or design-science logic that is actually used?\n4. Citation Quality: Does it show credibility and traceability through references, DOI/stable IDs, venue/source names, publication details, and academic structure? Do not use citation quality to inflate semantic relevance.\n\nUse only these exact criterion names in evidenceExcerpts:\n- Gap Alignment\n- Methodology\n- Theory\n- Citation Quality\n\nEvidence rules:\n- Return only 2 to 3 strongest SUPPORTING evidence excerpts total.\n- For a related paper, prefer one Gap Alignment excerpt and one Methodology or Theory excerpt.\n- evidenceExcerpts must contain supporting evidence only.\n- Every evidenceExcerpts item must have evidenceType = \"supporting\".\n- A supporting excerpt must directly support a score, especially Gap Alignment or Methodology.\n- Do not place unrelated, weak, contradictory, or mismatch quotes inside evidenceExcerpts.\n- If the paper is unrelated, evidenceExcerpts must be [].\n- If a quote only proves that the paper is unrelated, put it in diagnosticEvidenceExcerpts, not evidenceExcerpts.\n- Every quote must be copied from extracted_text.\n- Keep quotes short and exact. Prefer one sentence or a short passage.\n- Do not use ellipses inside quoteText unless the ellipsis is literally present in extracted_text.\n\nDiagnostic evidence:\n- diagnosticEvidenceExcerpts is optional.\n- Use it only for exact quotes that demonstrate a weakness or mismatch.\n- Items must have evidenceType = \"weakness\" or \"mismatch\".\n- Important issues must also appear in mismatchFlags or weaknessFlags.\n\nMismatch flags, use only when applicable:\nTOPIC_MISMATCH, GAP_TYPE_MISMATCH, GAP_CONTRADICTION, METHOD_MISMATCH, POPULATION_CONTEXT_MISMATCH, PREDATORY_VENUE_FLAG, UNVERIFIABLE_SOURCE_FLAG\n\nImportant mismatch guidance:\n- Do not use TOPIC_MISMATCH for papers about agentic RAG, RAG benchmarking, citation-aware RAG, academic synthesis, hallucination/citation errors, source verification, or autonomous scientific literature synthesis.\n- Do not use GAP_TYPE_MISMATCH just because the paper focuses on benchmarks or QA tasks if it still addresses RAG evaluation gaps relevant to the baseline.\n\n\nFatal mismatch guidance:\n- If the document is clearly outside the baseline topic/domain and provides no supporting evidence for the CATalyst title, rationale, or gaps, use TOPIC_MISMATCH and set evidenceExcerpts to [].\n- Do not let Citation Quality inflate semantic relevance for unrelated documents; the deterministic rule node will force overall semantic relevance to 0 for TOPIC_MISMATCH with no verified supporting evidence.\n\nWeakness flags, use only when applicable:\nNO_EXPLICIT_GAP_STATEMENT, WEAK_RATIONALE_LINK, SUMMARY_ONLY_NO_SYNTHESIS, NO_METHOD_JUSTIFICATION, NO_EVALUATION_METRICS, AD_HOC_TESTING_ONLY, NO_THEORY_OR_FRAMEWORK, FRAMEWORK_NAMED_NOT_USED, LOW_PEER_REVIEW_SHARE, OLD_SOURCE_HEAVY, MISSING_DOIS_OR_STABLE_IDS, APA_IEEE_ACM_STYLE_ERRORS, REFERENCES_MISSING_OR_UNCLEAR\n\nCalibrated scoring guidance:\n- If no exact supporting evidence connects the document to baseline.gaps, Gap Alignment should be 39 or lower.\n- If one credible direct gap-alignment quote exists, Gap Alignment may be 60-74.\n- If the document is only broadly related to the field, Gap Alignment should not exceed 59.\n- If a paper directly proposes a benchmark, protocol, framework, method, or evaluation for RAG/academic synthesis, Methodology may be 70+ when supported by a quote.\n- If no usable method/design/evaluation exists, Methodology should be 39 or lower.\n- If methodology exists but no metric/tool/testing/evaluation appears, Methodology should not exceed 64.\n- If a paper provides a software architecture, framework, governance model, source-tracking method, citation-aware framework, or design protocol, Theory may be 60+ when supported by a quote.\n- If no theory/conceptual/software/design framework appears, Theory should be 39 or lower.\n- If references/citation signals are missing or unclear, Citation Quality should not exceed 49.\n- Scores above 85 require strong direct supporting evidence.\n\nSpeed rules:\n- Be concise.\n- Do not explain your reasoning.\n- Do not include markdown.\n- Return only valid JSON.\n- Prefer fewer, stronger excerpts over many excerpts.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact supporting quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ],\n  \"diagnosticEvidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact weakness or mismatch quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"Low\",\n      \"evidenceType\": \"mismatch\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        784,
+        380
+      ],
+      "id": "8cc90111-9b19-4091-949c-ac91ef3e6d03_copy2",
+      "name": "Direct Gemini LLM - Strict Semantic Scoring (Key 3)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        784,
+        604
+      ],
+      "id": "f989ffd9-0976-4a65-8a13-b3e91418325f_copy2",
+      "name": "Google Gemini Chat Model4 (Key 3)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_2",
+          "name": "Gemini API Key 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta, chunkStats: $json.chunkStats }) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are CiteWise's strict academic semantic evaluator.\n\nYou receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nEvaluate whether the uploaded RRL document is relevant to the CATalyst Semantic Baseline. Be conservative, but do not over-penalize papers that directly discuss agentic RAG, RAG benchmarking, citation-aware synthesis, source verification, hallucination/citation errors, academic synthesis, or ethical/governance concerns.\n\nUse only extracted_text. Do not invent evidence.\n\nBackend boundary:\n- You generate component scores and evidence only.\n- Do not calculate the final overall score.\n- Do not assign the final recommendation status.\n- The deterministic rule node validates evidence, applies weights, and classifies the document.\n\nScore bands for each criterion:\n90-100 Excellent: direct, strong, well-evidenced support.\n75-89 Good: clearly useful with minor limitations.\n60-74 Fair: partially useful with reviewer judgment.\n40-59 Poor: broad/weak support only.\n0-39 Inadequate: irrelevant, unsupported, or not credible enough.\n\nCriteria:\n1. Gap Alignment: Does the document directly support the baseline title, rationale, and research gap? High scores require explicit gap/limitation/need/future-work/understudied evidence overlapping with the baseline.\n2. Methodology: Does it provide useful design, algorithm, framework, dataset, evaluation, benchmark, metric, implementation, protocol, or reproducibility evidence?\n3. Theory: Does it provide an explicit theory, conceptual framework, software framework, architecture, governance model, design framework, ethical framework, citation/source-tracking protocol, or design-science logic that is actually used?\n4. Citation Quality: Does it show credibility and traceability through references, DOI/stable IDs, venue/source names, publication details, and academic structure? Do not use citation quality to inflate semantic relevance.\n\nUse only these exact criterion names in evidenceExcerpts:\n- Gap Alignment\n- Methodology\n- Theory\n- Citation Quality\n\nEvidence rules:\n- Return only 2 to 3 strongest SUPPORTING evidence excerpts total.\n- For a related paper, prefer one Gap Alignment excerpt and one Methodology or Theory excerpt.\n- evidenceExcerpts must contain supporting evidence only.\n- Every evidenceExcerpts item must have evidenceType = \"supporting\".\n- A supporting excerpt must directly support a score, especially Gap Alignment or Methodology.\n- Do not place unrelated, weak, contradictory, or mismatch quotes inside evidenceExcerpts.\n- If the paper is unrelated, evidenceExcerpts must be [].\n- If a quote only proves that the paper is unrelated, put it in diagnosticEvidenceExcerpts, not evidenceExcerpts.\n- Every quote must be copied from extracted_text.\n- Keep quotes short and exact. Prefer one sentence or a short passage.\n- Do not use ellipses inside quoteText unless the ellipsis is literally present in extracted_text.\n\nDiagnostic evidence:\n- diagnosticEvidenceExcerpts is optional.\n- Use it only for exact quotes that demonstrate a weakness or mismatch.\n- Items must have evidenceType = \"weakness\" or \"mismatch\".\n- Important issues must also appear in mismatchFlags or weaknessFlags.\n\nMismatch flags, use only when applicable:\nTOPIC_MISMATCH, GAP_TYPE_MISMATCH, GAP_CONTRADICTION, METHOD_MISMATCH, POPULATION_CONTEXT_MISMATCH, PREDATORY_VENUE_FLAG, UNVERIFIABLE_SOURCE_FLAG\n\nImportant mismatch guidance:\n- Do not use TOPIC_MISMATCH for papers about agentic RAG, RAG benchmarking, citation-aware RAG, academic synthesis, hallucination/citation errors, source verification, or autonomous scientific literature synthesis.\n- Do not use GAP_TYPE_MISMATCH just because the paper focuses on benchmarks or QA tasks if it still addresses RAG evaluation gaps relevant to the baseline.\n\n\nFatal mismatch guidance:\n- If the document is clearly outside the baseline topic/domain and provides no supporting evidence for the CATalyst title, rationale, or gaps, use TOPIC_MISMATCH and set evidenceExcerpts to [].\n- Do not let Citation Quality inflate semantic relevance for unrelated documents; the deterministic rule node will force overall semantic relevance to 0 for TOPIC_MISMATCH with no verified supporting evidence.\n\nWeakness flags, use only when applicable:\nNO_EXPLICIT_GAP_STATEMENT, WEAK_RATIONALE_LINK, SUMMARY_ONLY_NO_SYNTHESIS, NO_METHOD_JUSTIFICATION, NO_EVALUATION_METRICS, AD_HOC_TESTING_ONLY, NO_THEORY_OR_FRAMEWORK, FRAMEWORK_NAMED_NOT_USED, LOW_PEER_REVIEW_SHARE, OLD_SOURCE_HEAVY, MISSING_DOIS_OR_STABLE_IDS, APA_IEEE_ACM_STYLE_ERRORS, REFERENCES_MISSING_OR_UNCLEAR\n\nCalibrated scoring guidance:\n- If no exact supporting evidence connects the document to baseline.gaps, Gap Alignment should be 39 or lower.\n- If one credible direct gap-alignment quote exists, Gap Alignment may be 60-74.\n- If the document is only broadly related to the field, Gap Alignment should not exceed 59.\n- If a paper directly proposes a benchmark, protocol, framework, method, or evaluation for RAG/academic synthesis, Methodology may be 70+ when supported by a quote.\n- If no usable method/design/evaluation exists, Methodology should be 39 or lower.\n- If methodology exists but no metric/tool/testing/evaluation appears, Methodology should not exceed 64.\n- If a paper provides a software architecture, framework, governance model, source-tracking method, citation-aware framework, or design protocol, Theory may be 60+ when supported by a quote.\n- If no theory/conceptual/software/design framework appears, Theory should be 39 or lower.\n- If references/citation signals are missing or unclear, Citation Quality should not exceed 49.\n- Scores above 85 require strong direct supporting evidence.\n\nSpeed rules:\n- Be concise.\n- Do not explain your reasoning.\n- Do not include markdown.\n- Return only valid JSON.\n- Prefer fewer, stronger excerpts over many excerpts.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact supporting quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ],\n  \"diagnosticEvidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact weakness or mismatch quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"Low\",\n      \"evidenceType\": \"mismatch\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        784,
+        580
+      ],
+      "id": "8cc90111-9b19-4091-949c-ac91ef3e6d03_copy3",
+      "name": "Direct Gemini LLM - Strict Semantic Scoring (Key 4)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        784,
+        804
+      ],
+      "id": "f989ffd9-0976-4a65-8a13-b3e91418325f_copy3",
+      "name": "Google Gemini Chat Model4 (Key 4)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_3",
+          "name": "Gemini API Key 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta, chunkStats: $json.chunkStats }) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are CiteWise's strict academic semantic evaluator.\n\nYou receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nEvaluate whether the uploaded RRL document is relevant to the CATalyst Semantic Baseline. Be conservative, but do not over-penalize papers that directly discuss agentic RAG, RAG benchmarking, citation-aware synthesis, source verification, hallucination/citation errors, academic synthesis, or ethical/governance concerns.\n\nUse only extracted_text. Do not invent evidence.\n\nBackend boundary:\n- You generate component scores and evidence only.\n- Do not calculate the final overall score.\n- Do not assign the final recommendation status.\n- The deterministic rule node validates evidence, applies weights, and classifies the document.\n\nScore bands for each criterion:\n90-100 Excellent: direct, strong, well-evidenced support.\n75-89 Good: clearly useful with minor limitations.\n60-74 Fair: partially useful with reviewer judgment.\n40-59 Poor: broad/weak support only.\n0-39 Inadequate: irrelevant, unsupported, or not credible enough.\n\nCriteria:\n1. Gap Alignment: Does the document directly support the baseline title, rationale, and research gap? High scores require explicit gap/limitation/need/future-work/understudied evidence overlapping with the baseline.\n2. Methodology: Does it provide useful design, algorithm, framework, dataset, evaluation, benchmark, metric, implementation, protocol, or reproducibility evidence?\n3. Theory: Does it provide an explicit theory, conceptual framework, software framework, architecture, governance model, design framework, ethical framework, citation/source-tracking protocol, or design-science logic that is actually used?\n4. Citation Quality: Does it show credibility and traceability through references, DOI/stable IDs, venue/source names, publication details, and academic structure? Do not use citation quality to inflate semantic relevance.\n\nUse only these exact criterion names in evidenceExcerpts:\n- Gap Alignment\n- Methodology\n- Theory\n- Citation Quality\n\nEvidence rules:\n- Return only 2 to 3 strongest SUPPORTING evidence excerpts total.\n- For a related paper, prefer one Gap Alignment excerpt and one Methodology or Theory excerpt.\n- evidenceExcerpts must contain supporting evidence only.\n- Every evidenceExcerpts item must have evidenceType = \"supporting\".\n- A supporting excerpt must directly support a score, especially Gap Alignment or Methodology.\n- Do not place unrelated, weak, contradictory, or mismatch quotes inside evidenceExcerpts.\n- If the paper is unrelated, evidenceExcerpts must be [].\n- If a quote only proves that the paper is unrelated, put it in diagnosticEvidenceExcerpts, not evidenceExcerpts.\n- Every quote must be copied from extracted_text.\n- Keep quotes short and exact. Prefer one sentence or a short passage.\n- Do not use ellipses inside quoteText unless the ellipsis is literally present in extracted_text.\n\nDiagnostic evidence:\n- diagnosticEvidenceExcerpts is optional.\n- Use it only for exact quotes that demonstrate a weakness or mismatch.\n- Items must have evidenceType = \"weakness\" or \"mismatch\".\n- Important issues must also appear in mismatchFlags or weaknessFlags.\n\nMismatch flags, use only when applicable:\nTOPIC_MISMATCH, GAP_TYPE_MISMATCH, GAP_CONTRADICTION, METHOD_MISMATCH, POPULATION_CONTEXT_MISMATCH, PREDATORY_VENUE_FLAG, UNVERIFIABLE_SOURCE_FLAG\n\nImportant mismatch guidance:\n- Do not use TOPIC_MISMATCH for papers about agentic RAG, RAG benchmarking, citation-aware RAG, academic synthesis, hallucination/citation errors, source verification, or autonomous scientific literature synthesis.\n- Do not use GAP_TYPE_MISMATCH just because the paper focuses on benchmarks or QA tasks if it still addresses RAG evaluation gaps relevant to the baseline.\n\n\nFatal mismatch guidance:\n- If the document is clearly outside the baseline topic/domain and provides no supporting evidence for the CATalyst title, rationale, or gaps, use TOPIC_MISMATCH and set evidenceExcerpts to [].\n- Do not let Citation Quality inflate semantic relevance for unrelated documents; the deterministic rule node will force overall semantic relevance to 0 for TOPIC_MISMATCH with no verified supporting evidence.\n\nWeakness flags, use only when applicable:\nNO_EXPLICIT_GAP_STATEMENT, WEAK_RATIONALE_LINK, SUMMARY_ONLY_NO_SYNTHESIS, NO_METHOD_JUSTIFICATION, NO_EVALUATION_METRICS, AD_HOC_TESTING_ONLY, NO_THEORY_OR_FRAMEWORK, FRAMEWORK_NAMED_NOT_USED, LOW_PEER_REVIEW_SHARE, OLD_SOURCE_HEAVY, MISSING_DOIS_OR_STABLE_IDS, APA_IEEE_ACM_STYLE_ERRORS, REFERENCES_MISSING_OR_UNCLEAR\n\nCalibrated scoring guidance:\n- If no exact supporting evidence connects the document to baseline.gaps, Gap Alignment should be 39 or lower.\n- If one credible direct gap-alignment quote exists, Gap Alignment may be 60-74.\n- If the document is only broadly related to the field, Gap Alignment should not exceed 59.\n- If a paper directly proposes a benchmark, protocol, framework, method, or evaluation for RAG/academic synthesis, Methodology may be 70+ when supported by a quote.\n- If no usable method/design/evaluation exists, Methodology should be 39 or lower.\n- If methodology exists but no metric/tool/testing/evaluation appears, Methodology should not exceed 64.\n- If a paper provides a software architecture, framework, governance model, source-tracking method, citation-aware framework, or design protocol, Theory may be 60+ when supported by a quote.\n- If no theory/conceptual/software/design framework appears, Theory should be 39 or lower.\n- If references/citation signals are missing or unclear, Citation Quality should not exceed 49.\n- Scores above 85 require strong direct supporting evidence.\n\nSpeed rules:\n- Be concise.\n- Do not explain your reasoning.\n- Do not include markdown.\n- Return only valid JSON.\n- Prefer fewer, stronger excerpts over many excerpts.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact supporting quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ],\n  \"diagnosticEvidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact weakness or mismatch quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"Low\",\n      \"evidenceType\": \"mismatch\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        784,
+        780
+      ],
+      "id": "8cc90111-9b19-4091-949c-ac91ef3e6d03_copy4",
+      "name": "Direct Gemini LLM - Strict Semantic Scoring (Key 5)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        784,
+        1004
+      ],
+      "id": "f989ffd9-0976-4a65-8a13-b3e91418325f_copy4",
+      "name": "Google Gemini Chat Model4 (Key 5)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_4",
+          "name": "Gemini API Key 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta, chunkStats: $json.chunkStats }) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are CiteWise's strict academic semantic evaluator.\n\nYou receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nEvaluate whether the uploaded RRL document is relevant to the CATalyst Semantic Baseline. Be conservative, but do not over-penalize papers that directly discuss agentic RAG, RAG benchmarking, citation-aware synthesis, source verification, hallucination/citation errors, academic synthesis, or ethical/governance concerns.\n\nUse only extracted_text. Do not invent evidence.\n\nBackend boundary:\n- You generate component scores and evidence only.\n- Do not calculate the final overall score.\n- Do not assign the final recommendation status.\n- The deterministic rule node validates evidence, applies weights, and classifies the document.\n\nScore bands for each criterion:\n90-100 Excellent: direct, strong, well-evidenced support.\n75-89 Good: clearly useful with minor limitations.\n60-74 Fair: partially useful with reviewer judgment.\n40-59 Poor: broad/weak support only.\n0-39 Inadequate: irrelevant, unsupported, or not credible enough.\n\nCriteria:\n1. Gap Alignment: Does the document directly support the baseline title, rationale, and research gap? High scores require explicit gap/limitation/need/future-work/understudied evidence overlapping with the baseline.\n2. Methodology: Does it provide useful design, algorithm, framework, dataset, evaluation, benchmark, metric, implementation, protocol, or reproducibility evidence?\n3. Theory: Does it provide an explicit theory, conceptual framework, software framework, architecture, governance model, design framework, ethical framework, citation/source-tracking protocol, or design-science logic that is actually used?\n4. Citation Quality: Does it show credibility and traceability through references, DOI/stable IDs, venue/source names, publication details, and academic structure? Do not use citation quality to inflate semantic relevance.\n\nUse only these exact criterion names in evidenceExcerpts:\n- Gap Alignment\n- Methodology\n- Theory\n- Citation Quality\n\nEvidence rules:\n- Return only 2 to 3 strongest SUPPORTING evidence excerpts total.\n- For a related paper, prefer one Gap Alignment excerpt and one Methodology or Theory excerpt.\n- evidenceExcerpts must contain supporting evidence only.\n- Every evidenceExcerpts item must have evidenceType = \"supporting\".\n- A supporting excerpt must directly support a score, especially Gap Alignment or Methodology.\n- Do not place unrelated, weak, contradictory, or mismatch quotes inside evidenceExcerpts.\n- If the paper is unrelated, evidenceExcerpts must be [].\n- If a quote only proves that the paper is unrelated, put it in diagnosticEvidenceExcerpts, not evidenceExcerpts.\n- Every quote must be copied from extracted_text.\n- Keep quotes short and exact. Prefer one sentence or a short passage.\n- Do not use ellipses inside quoteText unless the ellipsis is literally present in extracted_text.\n\nDiagnostic evidence:\n- diagnosticEvidenceExcerpts is optional.\n- Use it only for exact quotes that demonstrate a weakness or mismatch.\n- Items must have evidenceType = \"weakness\" or \"mismatch\".\n- Important issues must also appear in mismatchFlags or weaknessFlags.\n\nMismatch flags, use only when applicable:\nTOPIC_MISMATCH, GAP_TYPE_MISMATCH, GAP_CONTRADICTION, METHOD_MISMATCH, POPULATION_CONTEXT_MISMATCH, PREDATORY_VENUE_FLAG, UNVERIFIABLE_SOURCE_FLAG\n\nImportant mismatch guidance:\n- Do not use TOPIC_MISMATCH for papers about agentic RAG, RAG benchmarking, citation-aware RAG, academic synthesis, hallucination/citation errors, source verification, or autonomous scientific literature synthesis.\n- Do not use GAP_TYPE_MISMATCH just because the paper focuses on benchmarks or QA tasks if it still addresses RAG evaluation gaps relevant to the baseline.\n\n\nFatal mismatch guidance:\n- If the document is clearly outside the baseline topic/domain and provides no supporting evidence for the CATalyst title, rationale, or gaps, use TOPIC_MISMATCH and set evidenceExcerpts to [].\n- Do not let Citation Quality inflate semantic relevance for unrelated documents; the deterministic rule node will force overall semantic relevance to 0 for TOPIC_MISMATCH with no verified supporting evidence.\n\nWeakness flags, use only when applicable:\nNO_EXPLICIT_GAP_STATEMENT, WEAK_RATIONALE_LINK, SUMMARY_ONLY_NO_SYNTHESIS, NO_METHOD_JUSTIFICATION, NO_EVALUATION_METRICS, AD_HOC_TESTING_ONLY, NO_THEORY_OR_FRAMEWORK, FRAMEWORK_NAMED_NOT_USED, LOW_PEER_REVIEW_SHARE, OLD_SOURCE_HEAVY, MISSING_DOIS_OR_STABLE_IDS, APA_IEEE_ACM_STYLE_ERRORS, REFERENCES_MISSING_OR_UNCLEAR\n\nCalibrated scoring guidance:\n- If no exact supporting evidence connects the document to baseline.gaps, Gap Alignment should be 39 or lower.\n- If one credible direct gap-alignment quote exists, Gap Alignment may be 60-74.\n- If the document is only broadly related to the field, Gap Alignment should not exceed 59.\n- If a paper directly proposes a benchmark, protocol, framework, method, or evaluation for RAG/academic synthesis, Methodology may be 70+ when supported by a quote.\n- If no usable method/design/evaluation exists, Methodology should be 39 or lower.\n- If methodology exists but no metric/tool/testing/evaluation appears, Methodology should not exceed 64.\n- If a paper provides a software architecture, framework, governance model, source-tracking method, citation-aware framework, or design protocol, Theory may be 60+ when supported by a quote.\n- If no theory/conceptual/software/design framework appears, Theory should be 39 or lower.\n- If references/citation signals are missing or unclear, Citation Quality should not exceed 49.\n- Scores above 85 require strong direct supporting evidence.\n\nSpeed rules:\n- Be concise.\n- Do not explain your reasoning.\n- Do not include markdown.\n- Return only valid JSON.\n- Prefer fewer, stronger excerpts over many excerpts.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact supporting quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ],\n  \"diagnosticEvidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact weakness or mismatch quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"Low\",\n      \"evidenceType\": \"mismatch\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        784,
+        980
+      ],
+      "id": "8cc90111-9b19-4091-949c-ac91ef3e6d03_copy5",
+      "name": "Direct Gemini LLM - Strict Semantic Scoring (Key 6)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        784,
+        1204
+      ],
+      "id": "f989ffd9-0976-4a65-8a13-b3e91418325f_copy5",
+      "name": "Google Gemini Chat Model4 (Key 6)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_5",
+          "name": "Gemini API Key 6"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Build Clean Evaluation Packet1": {
+      "main": [
+        [
+          {
+            "node": "Select Relevant Text Chunks1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Relevant Text Chunks1": {
+      "main": [
+        [
+          {
+            "node": "Randomizer Code - Direct Gemini LLM - Strict Semantic Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and Validate AI JSON": {
+      "main": [
+        [
+          {
+            "node": "Apply Deterministic Scoring Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Deterministic Scoring Rules": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook4": {
+      "main": [
+        [
+          {
+            "node": "Build Clean Evaluation Packet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomizer Code - Direct Gemini LLM - Strict Semantic Scoring": {
+      "main": [
+        [
+          {
+            "node": "Load Balancer Switch - Direct Gemini LLM - Strict Semantic Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Balancer Switch - Direct Gemini LLM - Strict Semantic Scoring": {
+      "main": [
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 1)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 2)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 3)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 4)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 6)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4 (Key 1)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 1)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direct Gemini LLM - Strict Semantic Scoring (Key 1)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4 (Key 2)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 2)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direct Gemini LLM - Strict Semantic Scoring (Key 2)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4 (Key 3)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 3)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direct Gemini LLM - Strict Semantic Scoring (Key 3)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4 (Key 4)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 4)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direct Gemini LLM - Strict Semantic Scoring (Key 4)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4 (Key 5)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 5)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direct Gemini LLM - Strict Semantic Scoring (Key 5)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4 (Key 6)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Direct Gemini LLM - Strict Semantic Scoring (Key 6)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direct Gemini LLM - Strict Semantic Scoring (Key 6)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1e6b8475-68ea-47fa-9fce-c097ace71607",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "acf035bcb7de247c8b8da8f1d077f6ee14cf922183fccad9a53d6c5015114a5d"
+  },
+  "nodeGroups": [],
+  "id": "zUvip26EaCALxG2Z",
+  "tags": []
+}

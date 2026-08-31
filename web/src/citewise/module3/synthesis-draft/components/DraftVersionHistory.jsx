@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 function fmt(ts) {
   try {
@@ -22,6 +23,7 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
   const [versions, setVersions] = useState(() => store.getDraftVersions(sessionId));
   const [compare, setCompare] = useState(null); // { a, b }
   const [pickA, setPickA] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const unsub = store.subscribe(({ name }) => {
@@ -47,78 +49,88 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
 
   return (
     <div style={ui.card}>
-      <div style={ui.cardHeader}>
-        <span style={ui.cardTitle}>Version History</span>
-        <span style={{ fontSize: "0.72rem", color: theme.textMuted, fontFamily: theme.font }}>{versions.length} saved</span>
+      <div 
+        style={{ ...ui.cardHeader, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", userSelect: "none" }}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div>
+          <span style={ui.cardTitle}>Version History</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ fontSize: "0.72rem", color: theme.textMuted, fontFamily: theme.font }}>{versions.length} saved</span>
+          {isOpen ? <ChevronDown size={18} color={theme.accent} /> : <ChevronRight size={18} color={theme.textMuted} />}
+        </div>
       </div>
 
-      <div style={{ padding: "0.75rem 1rem", display: "flex", flexDirection: "column", gap: "8px", maxHeight: 260, overflowY: "auto" }}>
-        {versions.length === 0 ? (
-          <p style={{ color: theme.textMuted, fontSize: "0.8rem", fontFamily: theme.font, margin: 0 }}>
-            No versions yet. Generate or edit the draft to create one.
-          </p>
-        ) : (
-          <>
-            {pickA && (
-              <div style={{ fontSize: "0.72rem", color: theme.accent, fontFamily: theme.font }}>
-                Comparing from “{pickA.label}” — pick a second version…
-              </div>
-            )}
-            {versions.map((v) => {
-              const isCurrent = v.content === currentContent;
-              return (
-                <div
-                  key={v.id}
-                  style={{
-                    background: isCurrent ? theme.accentSoft : theme.surfaceAlt,
-                    border: `1px solid ${isCurrent ? theme.accent : theme.border}`,
-                    borderRadius: "8px",
-                    padding: "8px 10px",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: "0.8rem", color: theme.text, fontFamily: theme.font, fontWeight: 600 }}>
-                        {v.label} {isCurrent && <span style={{ color: theme.accent, fontSize: "0.66rem" }}>(current)</span>}
-                      </div>
-                      <div style={{ fontSize: "0.68rem", color: theme.textMuted, fontFamily: theme.font }}>
-                        {v.source === "edited" ? "Manual edit" : "Generated"} · {fmt(v.timestamp)}
+      {isOpen && (
+        <div style={{ padding: "0.75rem 1rem", display: "flex", flexDirection: "column", gap: "8px", maxHeight: 260, overflowY: "auto" }}>
+          {versions.length === 0 ? (
+            <p style={{ color: theme.textMuted, fontSize: "0.8rem", fontFamily: theme.font, margin: 0 }}>
+              No versions yet. Generate or edit the draft to create one.
+            </p>
+          ) : (
+            <>
+              {pickA && (
+                <div style={{ fontSize: "0.72rem", color: theme.accent, fontFamily: theme.font }}>
+                  Comparing from “{pickA.label}” — pick a second version…
+                </div>
+              )}
+              {versions.map((v) => {
+                const isCurrent = v.content === currentContent;
+                return (
+                  <div
+                    key={v.id}
+                    style={{
+                      background: isCurrent ? theme.accentSoft : theme.surfaceAlt,
+                      border: `1px solid ${isCurrent ? theme.accent : theme.border}`,
+                      borderRadius: "8px",
+                      padding: "8px 10px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "0.8rem", color: theme.text, fontFamily: theme.font, fontWeight: 600 }}>
+                          {v.label} {isCurrent && <span style={{ color: theme.accent, fontSize: "0.66rem" }}>(current)</span>}
+                        </div>
+                        <div style={{ fontSize: "0.68rem", color: theme.textMuted, fontFamily: theme.font }}>
+                          {v.source === "edited" ? "Manual edit" : "Generated"} · {fmt(v.timestamp)}
+                        </div>
                       </div>
                     </div>
+                    <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                      <button
+                        onClick={() => onRestore?.(v)}
+                        disabled={isCurrent}
+                        style={{ ...ui.ghostBtn, padding: "3px 10px", fontSize: "0.7rem", opacity: isCurrent ? 0.5 : 1 }}
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => handleCompareClick(v)}
+                        style={{
+                          ...ui.ghostBtn,
+                          padding: "3px 10px",
+                          fontSize: "0.7rem",
+                          borderColor: pickA?.id === v.id ? theme.accent : theme.border,
+                          color: pickA?.id === v.id ? theme.accent : theme.text,
+                        }}
+                      >
+                        {pickA?.id === v.id ? "Selected" : "Compare"}
+                      </button>
+                      <button
+                        onClick={() => store.removeDraftVersion(sessionId, v.id)}
+                        style={{ ...ui.ghostBtn, padding: "3px 10px", fontSize: "0.7rem", color: theme.danger, borderColor: theme.danger }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                    <button
-                      onClick={() => onRestore?.(v)}
-                      disabled={isCurrent}
-                      style={{ ...ui.ghostBtn, padding: "3px 10px", fontSize: "0.7rem", opacity: isCurrent ? 0.5 : 1 }}
-                    >
-                      Restore
-                    </button>
-                    <button
-                      onClick={() => handleCompareClick(v)}
-                      style={{
-                        ...ui.ghostBtn,
-                        padding: "3px 10px",
-                        fontSize: "0.7rem",
-                        borderColor: pickA?.id === v.id ? theme.accent : theme.border,
-                        color: pickA?.id === v.id ? theme.accent : theme.text,
-                      }}
-                    >
-                      {pickA?.id === v.id ? "Selected" : "Compare"}
-                    </button>
-                    <button
-                      onClick={() => store.removeDraftVersion(sessionId, v.id)}
-                      style={{ ...ui.ghostBtn, padding: "3px 10px", fontSize: "0.7rem", color: theme.danger, borderColor: theme.danger }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </>
-        )}
-      </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
 
       {compare && (
         <div

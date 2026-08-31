@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY 
-);
+import supabase from '../config/supabaseClient.js';
 
 async function requireAuth(req, res, next) {
   try {
@@ -29,4 +24,4 @@ async function requireAuth(req, res, next) {
   }
 }
 
-export default requireAuth;
+export default requireAuth;

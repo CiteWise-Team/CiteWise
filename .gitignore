@@ -8,7 +8,7 @@ antigravity/
 antigravity
 .antigravity
 
-# graphify knowledge graph output — local-only, not shared via git
+# graphify knowledge graph output  local-only, not shared via git
 graphify-out/
 
 # -------------------------------------------------------------------------
@@ -65,7 +65,79 @@ lerna-debug.log*
 ehthumbs.db
 Thumbs.db
 
-# Local dev overrides — do not commit
+# Local dev overrides  do not commit
+DevRestClientConfig.java
+application-dev.properties
+
+# Agent-related exclusions
+# -------------------------------------------------------------------------
+# Custom Project Exclusions
+# -------------------------------------------------------------------------
+kiro/
+kiro
+.kiro
+antigravity/
+antigravity
+.antigravity
+
+# graphify knowledge graph output  local-only, not shared via git
+graphify-out/
+
+# -------------------------------------------------------------------------
+# Dependencies & Build Outputs
+# -------------------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+build/
+*.local
+
+# -------------------------------------------------------------------------
+# Logs & Caches
+# -------------------------------------------------------------------------
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.eslintcache
+.vite/
+
+# -------------------------------------------------------------------------
+# Environment Variables (NEVER commit these!)
+# -------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# -------------------------------------------------------------------------
+# Editor / VS Code
+# -------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.code-workspace
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# -------------------------------------------------------------------------
+# OS Generated Files
+# -------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Local dev overrides  do not commit
 DevRestClientConfig.java
 application-dev.properties
 
@@ -81,6 +153,10 @@ walkthrough.md
 best_practices_audit.md
 task.md
 qa_walkthrough.md
+security_audit.md
+
 
 # PDFs and document inputs
-*.pdf
+*.pdfs c r a t c h _ s c r i p t s /  
+ 
+scratch_scripts/

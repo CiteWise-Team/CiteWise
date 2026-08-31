@@ -58,7 +58,12 @@ export default function TopicSuggesterOutput({ result }) {
       });
 
       if (!res.ok || !payload?.success) {
-        alert(payload?.message || "Failed to import workspace into CiteWise.");
+        if (res.status === 401) {
+          alert("Your session has expired. Please log in again.");
+          navigate("/login");
+          return;
+        }
+        alert(payload?.message || payload?.error || "Failed to import workspace into CiteWise.");
         return;
       }
 

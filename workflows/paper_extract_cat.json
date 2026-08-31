@@ -1,0 +1,1577 @@
+{
+  "name": "paper extract - CAT",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fc7ac6b7-4546-4656-8657-54ec312e5077",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        112
+      ],
+      "id": "0ee7e168-5619-4726-898e-bc2eee933fb4",
+      "name": "Webhook7",
+      "webhookId": "fc7ac6b7-4546-4656-8657-54ec312e5077"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1776,
+        80
+      ],
+      "id": "3ee2d1ff-092b-44e8-a15e-a4c11e28a220",
+      "name": "Respond to Webhook5"
+    },
+    {
+      "parameters": {
+        "content": "## Prompt Definer",
+        "height": 336,
+        "width": 656,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        16,
+        304
+      ],
+      "typeVersion": 1,
+      "id": "71000998-69ff-4ec5-9b1d-5f93af319b79",
+      "name": "Sticky Note19"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        112
+      ],
+      "id": "d8203809-976b-4e54-bd53-f52462a125da",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "content": "## Result\n",
+        "height": 224,
+        "width": 496
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1296,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "1d55b3c7-1bc6-4927-be3e-46261c6d95c8",
+      "name": "Sticky Note18"
+    },
+    {
+      "parameters": {
+        "content": "## Output Verifier\n",
+        "height": 304,
+        "width": 560,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1312,
+        512
+      ],
+      "typeVersion": 1,
+      "id": "b21a252e-5cc7-432b-9494-519c0e3b4b4e",
+      "name": "Sticky Note17"
+    },
+    {
+      "parameters": {
+        "content": "## Section Extraction\n\n",
+        "height": 272,
+        "width": 592,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        720,
+        352
+      ],
+      "typeVersion": 1,
+      "id": "ac249da1-73aa-42b7-a67f-35d15686b4cf",
+      "name": "Sticky Note16"
+    },
+    {
+      "parameters": {
+        "content": "## Processing",
+        "height": 912,
+        "width": 1920,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "8d3ea749-f185-472e-ba92-369fc6044745",
+      "name": "Sticky Note15"
+    },
+    {
+      "parameters": {
+        "content": "## Paper Extraction",
+        "height": 304,
+        "width": 608
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -640,
+        16
+      ],
+      "typeVersion": 1,
+      "id": "972c7f33-98a0-4582-8357-003600bc2576",
+      "name": "Sticky Note14"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the first input item\nconst item = $input.first().json;\n\n// If there is an 'output' field, use it; otherwise use the item itself\nconst result = item.output && typeof item.output === 'object' ? item.output : item;\n\n// If you want ONLY 'content', replace 'result' with { content: result.content }\n// For now we return the full object\nreturn [ { json: result } ];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        384
+      ],
+      "id": "f89fd216-0b26-4e3b-9e7a-b4037485426d",
+      "name": "Output Cleaner1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.data || $json.text || \"\";\nif (!raw || typeof raw !== \"string\") {\n  return [{ json: { error: \"No text extracted from PDF.\" } }];\n}\n\nreturn [{ json: { text: raw.replace(/\\r/g, \"\\n\").replace(/[ \\t]+/g, \" \").trim() } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        112
+      ],
+      "id": "3078f2e7-c81c-450f-b665-1a26d0f74343",
+      "name": "Section Separator1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        560,
+        416
+      ],
+      "id": "2ca51774-4022-457b-a137-53437b5c21c1",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e19b9a1a-9c37-4feb-a128-6b6c01b3b1e9",
+              "name": "=final_user_msg",
+              "value": "=={{ $json.mis_user_msg ?? $json.main_user_msg }}\n",
+              "type": "string"
+            },
+            {
+              "id": "5055d89d-a710-49f3-91c4-a85e268d95f3",
+              "name": "final_sys_msg",
+              "value": "=={{ $json.mis_sys_msg ?? $json.main_system_msg }}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        752,
+        416
+      ],
+      "id": "ade34dfe-db12-483b-9a0c-7e8e8e6d2c16",
+      "name": "final prompt1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5cf9655f-d1c7-4678-83a3-1904f408208c",
+              "name": "mis_user_msg",
+              "value": "={{ $('Section Separator1').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "26db151a-1bf7-4e71-a9d0-767395a01607",
+              "name": "mis_sys_msg",
+              "value": "={{ $json.output }}.\n\nPlease redo your analysis as a professional archivist who is focused, tireless and highly detail oriented entity with a sole purpose to preserve and transcribe the written word from any given source into a clean and digital format, regardless of the complexity of the original layout. You operate with silent precision, viewing every character as a vital piece of information that must be captured without error or omission.\n\nHere are your goals:\n- achieve near perfect 99%+ accuracy in identifying which arre the correct section content.\n- maintain the original structural integrity of the content.\n- you do not summarize, infer or explain the content, instead you should just extract the sections\n- accurately extract the sections of the thesis paper namely Abstract, Keywords, Introduction, Review of Related Literature, Methodology, Results, Discussion, Conclusion.\n- If the section is not part of the original text then mention \"not found\" at the specific section\n- Required to output this sample response format \n{\n  \"title\": \"PAROQUANT: PAIRWISE ROTATION QUANTIZATION\nFOR EATING LLM INFERENCE\",\n  \"abstract\": \"Weight-only post-training quantization (PTQ) compresses the weights of Large\nLanguage Models (LLMs) into low-precision representations to reduce memory\nfootprint and accelerate inference....This paves the way for more\nefficient and accurate deployment of reasoning LLMs.\",\n  \"keywords\": \"Large Language Model, Retrieval Access Generation\",\n  \"introduction\": \"Large Language Models (LLMs) have demonstrated remarkable capabilities across a wide range of\ntasks. However, their...and inference speed, as effective outlier elimination often comes at the cost of significant\noverhead.\",\n  \"literature review\": \"not found\",\n  \"methodology\": \"In this section, we introduce ParoQuant, a weight-only quantization method that applies optimized\nparameter...\",\n  \"discussion\": \"not found\",\n  \"results\": \"not found\",\n  \"conclusion\": \"theart\nquantization accuracy with minimal overhead. Based on the insight that a sparsely parameterized\nrotation can effectively..\"\n}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        384,
+        336
+      ],
+      "id": "a6b3df43-eb34-4442-8d6c-423a0e7c8d20",
+      "name": "mistake prompt1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "501d06c6-7d28-4866-8ccf-9700cb501817",
+              "name": "main_user_msg",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "84fb7c95-d7cb-4fa8-acd4-35a5a449ba11",
+              "name": "main_system_msg",
+              "value": "You are a professional archivist who is focused, tireless and highly detail oriented entity with a sole purpose to preserve and transcribe the written word from any given source into a clean and digital format, regardless of the complexity of the original layout. You operate with silent precision, viewing every character as a vital piece of information that must be captured without error or omission.  Here are your goals: - achieve near perfect 99%+ accuracy in identifying which arre the correct section content. - maintain the original structural integrity of the content. - you do not summarize, infer or explain the content, instead you should just extract the sections - accurately extract the sections of the thesis paper namely Abstract, Keywords, Introduction, Review of Related Literature, Methodology, Results, Discussion, Conclusion. - If the section is not part of the original text then mention \"not found\" at the specific section \n- Required to output this sample response format\nOutput ONLY in JSON in this format:\n\n{\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"results\": \"...\",\n  \"discussion\": \"...\",\n  \"conclusion\": \"...\"\n}\n - You should directly respond the json, you do not need to say \"based on your guidelines\" or \"this is what i extracted\". You should only output the json with no other text before or after it\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        368,
+        512
+      ],
+      "id": "a9ad5d9e-30a4-492b-b8b4-a5a27b3a26f4",
+      "name": "normal prompt1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ae50a584-c621-4dbd-a315-bde08befd4a5",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        176,
+        432
+      ],
+      "id": "1149edfa-9e6a-4809-a25b-cf552fdf35f8",
+      "name": "If made a mistake1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a6ebfe29-b2ad-4f92-a288-c5780baccb80",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "=CORRECT",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": false
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1648,
+        576
+      ],
+      "id": "8243956f-db8b-4af7-8704-68c209ca83fb",
+      "name": "Violation Verifier Condition1"
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = $('Extractor1').first().json.output;\n\n// Clean common LLM wrapping patterns\nraw = raw.trim()\n  .replace(/^json\\s*/i, '')  // remove leading 'json'\n  .replace(/(\\r\\n|\\n)/g, '') // remove newlines\n  .replace(/,(\\s*[}\\]])/g, '$1')\n  .replace(/^```json\\s*|```$/gi, ''); // remove trailing commas\nconsole.log(\"this is \"+raw)\nlet parsed = {};\ntry {\n  parsed = JSON.parse(raw);\n} catch (error) {\n  parsed = { error: \"Failed to parse JSON\", raw };\n}\n\nreturn [parsed];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        80
+      ],
+      "id": "96ec8eac-09d3-4e57-afce-1d2d4d305318",
+      "name": "Code in JavaScript6"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1yu94azfGgSt1aSm60aN6Gqu2UjcG0WgoJqaarHJl0Dw",
+          "mode": "list",
+          "cachedResultName": "Catalyst",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yu94azfGgSt1aSm60aN6Gqu2UjcG0WgoJqaarHJl0Dw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yu94azfGgSt1aSm60aN6Gqu2UjcG0WgoJqaarHJl0Dw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "={{ $('Extract from File1').item.json.info.Title }}",
+            "abstract": "={{ $json.abstract }}",
+            "introduction": "={{ $json.introduction }}",
+            "literature review": "={{ $json['literature review'] }}",
+            "methodology": "={{ $json.methodology }}",
+            "discussion": "={{ $json.discussion }}",
+            "results": "={{ $json.results }}",
+            "conclusion": "={{ $json.conclusion }}",
+            "keywords": "={{ $json.keywords }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "abstract",
+              "displayName": "abstract",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "keywords",
+              "displayName": "keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "introduction",
+              "displayName": "introduction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "literature review",
+              "displayName": "literature review",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "methodology",
+              "displayName": "methodology",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "discussion",
+              "displayName": "discussion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "results",
+              "displayName": "results",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "conclusion",
+              "displayName": "conclusion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1536,
+        80
+      ],
+      "id": "c7f68287-0cbf-4ed4-9e23-295fafcf0d24",
+      "name": "Append row in sheet1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { ...$input.all()[0].json, route: Math.floor(Math.random() * 6) } };"
+      },
+      "id": "code-8374fe94-8533-409b-87cb-9999b7e17e25",
+      "name": "Randomizer Code - Extractor1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "number",
+        "value1": "={{ $json.route }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value2": 0
+            },
+            {
+              "operation": "equal",
+              "value2": 1
+            },
+            {
+              "operation": "equal",
+              "value2": 2
+            },
+            {
+              "operation": "equal",
+              "value2": 3
+            },
+            {
+              "operation": "equal",
+              "value2": 4
+            },
+            {
+              "operation": "equal",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "switch-8374fe94-8533-409b-87cb-9999b7e17e25",
+      "name": "Load Balancer Switch - Extractor1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        696,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.final_user_msg }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.final_sys_msg }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        896,
+        -116
+      ],
+      "id": "8374fe94-8533-409b-87cb-9999b7e17e25_copy0",
+      "name": "Extractor1 (Key 1)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        848,
+        28
+      ],
+      "id": "9044d2ec-7a29-4cbd-b5da-40f6a2ce8752_copy0",
+      "name": "Google Gemini Chat Model8 (Key 1)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_0",
+          "name": "Gemini API Key 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.final_user_msg }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.final_sys_msg }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        896,
+        84
+      ],
+      "id": "8374fe94-8533-409b-87cb-9999b7e17e25_copy1",
+      "name": "Extractor1 (Key 2)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        848,
+        228
+      ],
+      "id": "9044d2ec-7a29-4cbd-b5da-40f6a2ce8752_copy1",
+      "name": "Google Gemini Chat Model8 (Key 2)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_1",
+          "name": "Gemini API Key 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.final_user_msg }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.final_sys_msg }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        896,
+        284
+      ],
+      "id": "8374fe94-8533-409b-87cb-9999b7e17e25_copy2",
+      "name": "Extractor1 (Key 3)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        848,
+        428
+      ],
+      "id": "9044d2ec-7a29-4cbd-b5da-40f6a2ce8752_copy2",
+      "name": "Google Gemini Chat Model8 (Key 3)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_2",
+          "name": "Gemini API Key 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.final_user_msg }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.final_sys_msg }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        896,
+        484
+      ],
+      "id": "8374fe94-8533-409b-87cb-9999b7e17e25_copy3",
+      "name": "Extractor1 (Key 4)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        848,
+        628
+      ],
+      "id": "9044d2ec-7a29-4cbd-b5da-40f6a2ce8752_copy3",
+      "name": "Google Gemini Chat Model8 (Key 4)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_3",
+          "name": "Gemini API Key 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.final_user_msg }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.final_sys_msg }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        896,
+        684
+      ],
+      "id": "8374fe94-8533-409b-87cb-9999b7e17e25_copy4",
+      "name": "Extractor1 (Key 5)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        848,
+        828
+      ],
+      "id": "9044d2ec-7a29-4cbd-b5da-40f6a2ce8752_copy4",
+      "name": "Google Gemini Chat Model8 (Key 5)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_4",
+          "name": "Gemini API Key 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.final_user_msg }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.final_sys_msg }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        896,
+        884
+      ],
+      "id": "8374fe94-8533-409b-87cb-9999b7e17e25_copy5",
+      "name": "Extractor1 (Key 6)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        848,
+        1028
+      ],
+      "id": "9044d2ec-7a29-4cbd-b5da-40f6a2ce8752_copy5",
+      "name": "Google Gemini Chat Model8 (Key 6)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_5",
+          "name": "Gemini API Key 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { ...$input.all()[0].json, route: Math.floor(Math.random() * 6) } };"
+      },
+      "id": "code-4dc145bd-3836-4905-b320-aefd9cf2abf6",
+      "name": "Randomizer Code - Output verifier1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "number",
+        "value1": "={{ $json.route }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value2": 0
+            },
+            {
+              "operation": "equal",
+              "value2": 1
+            },
+            {
+              "operation": "equal",
+              "value2": 2
+            },
+            {
+              "operation": "equal",
+              "value2": 3
+            },
+            {
+              "operation": "equal",
+              "value2": 4
+            },
+            {
+              "operation": "equal",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "switch-4dc145bd-3836-4905-b320-aefd9cf2abf6",
+      "name": "Load Balancer Switch - Output verifier1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1144,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an experienced meticulous Quality Assurance analyst, who is highly detail oriented, objective and focuses on accuracy, consistency and adherence to specific guidelines specializing in AI and machine learning outputs. Whose primary role is to rigorously test and validate an LLM response given this predefined rules. Your response should consist of sentences I will be telling you after the explaination of the rules separated with a comma\n- The output should follow this JSON format. In the case if\n{\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\nIn the case of a mistake you should include the comma separated response this sentence \"You have violated a rule and did not follow the proper formatting of {\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\"\n\nRule 2:\nYou should check the json element \"keywords\" and check whether its value is a comma separated string example \"Large Language Model, RAG\" in the case of a mistake for example it uses an array [\"Large Language Model\", \"RAG\"] or any other format, then you should give the warning sentence \"You have violated a rule and did not separate the keywords in a comma separated format\"\n\nRule 3: \nA value in the JSON should not contain any empty string for example \"title\" : \"\". in the case of this mistake then you should warn by saying this sentence \"You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\". \"\n\nIf only one is violated just output the violation.\n\nIn the case of multiple violations you should output a comma separated violations like \"You have violated a rule and did not separate the keywords in a comma separated format, You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\".\"\n\nIf there is no violation then you should only output \"CORRECT\" and no other extra text.\n\nThis is the text \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        76
+      ],
+      "id": "4dc145bd-3836-4905-b320-aefd9cf2abf6_copy0",
+      "name": "Output verifier1 (Key 1)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        156
+      ],
+      "id": "aa85be37-b329-4fcb-9fca-666983e1d1e7_copy0",
+      "name": "Google Gemini Chat Model9 (Key 1)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_0",
+          "name": "Gemini API Key 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an experienced meticulous Quality Assurance analyst, who is highly detail oriented, objective and focuses on accuracy, consistency and adherence to specific guidelines specializing in AI and machine learning outputs. Whose primary role is to rigorously test and validate an LLM response given this predefined rules. Your response should consist of sentences I will be telling you after the explaination of the rules separated with a comma\n- The output should follow this JSON format. In the case if\n{\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\nIn the case of a mistake you should include the comma separated response this sentence \"You have violated a rule and did not follow the proper formatting of {\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\"\n\nRule 2:\nYou should check the json element \"keywords\" and check whether its value is a comma separated string example \"Large Language Model, RAG\" in the case of a mistake for example it uses an array [\"Large Language Model\", \"RAG\"] or any other format, then you should give the warning sentence \"You have violated a rule and did not separate the keywords in a comma separated format\"\n\nRule 3: \nA value in the JSON should not contain any empty string for example \"title\" : \"\". in the case of this mistake then you should warn by saying this sentence \"You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\". \"\n\nIf only one is violated just output the violation.\n\nIn the case of multiple violations you should output a comma separated violations like \"You have violated a rule and did not separate the keywords in a comma separated format, You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\".\"\n\nIf there is no violation then you should only output \"CORRECT\" and no other extra text.\n\nThis is the text \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        276
+      ],
+      "id": "4dc145bd-3836-4905-b320-aefd9cf2abf6_copy1",
+      "name": "Output verifier1 (Key 2)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        356
+      ],
+      "id": "aa85be37-b329-4fcb-9fca-666983e1d1e7_copy1",
+      "name": "Google Gemini Chat Model9 (Key 2)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_1",
+          "name": "Gemini API Key 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an experienced meticulous Quality Assurance analyst, who is highly detail oriented, objective and focuses on accuracy, consistency and adherence to specific guidelines specializing in AI and machine learning outputs. Whose primary role is to rigorously test and validate an LLM response given this predefined rules. Your response should consist of sentences I will be telling you after the explaination of the rules separated with a comma\n- The output should follow this JSON format. In the case if\n{\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\nIn the case of a mistake you should include the comma separated response this sentence \"You have violated a rule and did not follow the proper formatting of {\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\"\n\nRule 2:\nYou should check the json element \"keywords\" and check whether its value is a comma separated string example \"Large Language Model, RAG\" in the case of a mistake for example it uses an array [\"Large Language Model\", \"RAG\"] or any other format, then you should give the warning sentence \"You have violated a rule and did not separate the keywords in a comma separated format\"\n\nRule 3: \nA value in the JSON should not contain any empty string for example \"title\" : \"\". in the case of this mistake then you should warn by saying this sentence \"You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\". \"\n\nIf only one is violated just output the violation.\n\nIn the case of multiple violations you should output a comma separated violations like \"You have violated a rule and did not separate the keywords in a comma separated format, You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\".\"\n\nIf there is no violation then you should only output \"CORRECT\" and no other extra text.\n\nThis is the text \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        476
+      ],
+      "id": "4dc145bd-3836-4905-b320-aefd9cf2abf6_copy2",
+      "name": "Output verifier1 (Key 3)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        556
+      ],
+      "id": "aa85be37-b329-4fcb-9fca-666983e1d1e7_copy2",
+      "name": "Google Gemini Chat Model9 (Key 3)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_2",
+          "name": "Gemini API Key 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an experienced meticulous Quality Assurance analyst, who is highly detail oriented, objective and focuses on accuracy, consistency and adherence to specific guidelines specializing in AI and machine learning outputs. Whose primary role is to rigorously test and validate an LLM response given this predefined rules. Your response should consist of sentences I will be telling you after the explaination of the rules separated with a comma\n- The output should follow this JSON format. In the case if\n{\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\nIn the case of a mistake you should include the comma separated response this sentence \"You have violated a rule and did not follow the proper formatting of {\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\"\n\nRule 2:\nYou should check the json element \"keywords\" and check whether its value is a comma separated string example \"Large Language Model, RAG\" in the case of a mistake for example it uses an array [\"Large Language Model\", \"RAG\"] or any other format, then you should give the warning sentence \"You have violated a rule and did not separate the keywords in a comma separated format\"\n\nRule 3: \nA value in the JSON should not contain any empty string for example \"title\" : \"\". in the case of this mistake then you should warn by saying this sentence \"You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\". \"\n\nIf only one is violated just output the violation.\n\nIn the case of multiple violations you should output a comma separated violations like \"You have violated a rule and did not separate the keywords in a comma separated format, You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\".\"\n\nIf there is no violation then you should only output \"CORRECT\" and no other extra text.\n\nThis is the text \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        676
+      ],
+      "id": "4dc145bd-3836-4905-b320-aefd9cf2abf6_copy3",
+      "name": "Output verifier1 (Key 4)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        756
+      ],
+      "id": "aa85be37-b329-4fcb-9fca-666983e1d1e7_copy3",
+      "name": "Google Gemini Chat Model9 (Key 4)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_3",
+          "name": "Gemini API Key 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an experienced meticulous Quality Assurance analyst, who is highly detail oriented, objective and focuses on accuracy, consistency and adherence to specific guidelines specializing in AI and machine learning outputs. Whose primary role is to rigorously test and validate an LLM response given this predefined rules. Your response should consist of sentences I will be telling you after the explaination of the rules separated with a comma\n- The output should follow this JSON format. In the case if\n{\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\nIn the case of a mistake you should include the comma separated response this sentence \"You have violated a rule and did not follow the proper formatting of {\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\"\n\nRule 2:\nYou should check the json element \"keywords\" and check whether its value is a comma separated string example \"Large Language Model, RAG\" in the case of a mistake for example it uses an array [\"Large Language Model\", \"RAG\"] or any other format, then you should give the warning sentence \"You have violated a rule and did not separate the keywords in a comma separated format\"\n\nRule 3: \nA value in the JSON should not contain any empty string for example \"title\" : \"\". in the case of this mistake then you should warn by saying this sentence \"You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\". \"\n\nIf only one is violated just output the violation.\n\nIn the case of multiple violations you should output a comma separated violations like \"You have violated a rule and did not separate the keywords in a comma separated format, You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\".\"\n\nIf there is no violation then you should only output \"CORRECT\" and no other extra text.\n\nThis is the text \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        876
+      ],
+      "id": "4dc145bd-3836-4905-b320-aefd9cf2abf6_copy4",
+      "name": "Output verifier1 (Key 5)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        956
+      ],
+      "id": "aa85be37-b329-4fcb-9fca-666983e1d1e7_copy4",
+      "name": "Google Gemini Chat Model9 (Key 5)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_4",
+          "name": "Gemini API Key 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an experienced meticulous Quality Assurance analyst, who is highly detail oriented, objective and focuses on accuracy, consistency and adherence to specific guidelines specializing in AI and machine learning outputs. Whose primary role is to rigorously test and validate an LLM response given this predefined rules. Your response should consist of sentences I will be telling you after the explaination of the rules separated with a comma\n- The output should follow this JSON format. In the case if\n{\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\nIn the case of a mistake you should include the comma separated response this sentence \"You have violated a rule and did not follow the proper formatting of {\n  \"title\": \"...\",\n  \"abstract\": \"...\",\n  \"keywords\": \"...\",\n  \"introduction\": \"...\",\n  \"literature review\": \"...\",\n  \"methodology\": \"...\",\n  \"discussion\": \"...\",\n  \"results\": \"...\",\n  \"conclusion\": \"...\"\n}\"\n\nRule 2:\nYou should check the json element \"keywords\" and check whether its value is a comma separated string example \"Large Language Model, RAG\" in the case of a mistake for example it uses an array [\"Large Language Model\", \"RAG\"] or any other format, then you should give the warning sentence \"You have violated a rule and did not separate the keywords in a comma separated format\"\n\nRule 3: \nA value in the JSON should not contain any empty string for example \"title\" : \"\". in the case of this mistake then you should warn by saying this sentence \"You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\". \"\n\nIf only one is violated just output the violation.\n\nIn the case of multiple violations you should output a comma separated violations like \"You have violated a rule and did not separate the keywords in a comma separated format, You have a violated a rule where the response should not have an empty string, if no section is found it should be \"not found\".\"\n\nIf there is no violation then you should only output \"CORRECT\" and no other extra text.\n\nThis is the text \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        1076
+      ],
+      "id": "4dc145bd-3836-4905-b320-aefd9cf2abf6_copy5",
+      "name": "Output verifier1 (Key 6)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        1156
+      ],
+      "id": "aa85be37-b329-4fcb-9fca-666983e1d1e7_copy5",
+      "name": "Google Gemini Chat Model9 (Key 6)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_5",
+          "name": "Gemini API Key 6"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook7": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Section Separator1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output Cleaner1": {
+      "main": [
+        [
+          {
+            "node": "Randomizer Code - Output verifier1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Section Separator1": {
+      "main": [
+        [
+          {
+            "node": "If made a mistake1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "final prompt1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "final prompt1": {
+      "main": [
+        [
+          {
+            "node": "Randomizer Code - Extractor1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mistake prompt1": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normal prompt1": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "If made a mistake1": {
+      "main": [
+        [
+          {
+            "node": "mistake prompt1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "normal prompt1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Violation Verifier Condition1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If made a mistake1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript6": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomizer Code - Extractor1": {
+      "main": [
+        [
+          {
+            "node": "Load Balancer Switch - Extractor1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Balancer Switch - Extractor1": {
+      "main": [
+        [
+          {
+            "node": "Extractor1 (Key 1)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extractor1 (Key 2)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extractor1 (Key 3)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extractor1 (Key 4)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extractor1 (Key 5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extractor1 (Key 6)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model8 (Key 1)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extractor1 (Key 1)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor1 (Key 1)": {
+      "main": [
+        [
+          {
+            "node": "Output Cleaner1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model8 (Key 2)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extractor1 (Key 2)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor1 (Key 2)": {
+      "main": [
+        [
+          {
+            "node": "Output Cleaner1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model8 (Key 3)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extractor1 (Key 3)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor1 (Key 3)": {
+      "main": [
+        [
+          {
+            "node": "Output Cleaner1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model8 (Key 4)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extractor1 (Key 4)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor1 (Key 4)": {
+      "main": [
+        [
+          {
+            "node": "Output Cleaner1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model8 (Key 5)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extractor1 (Key 5)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor1 (Key 5)": {
+      "main": [
+        [
+          {
+            "node": "Output Cleaner1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model8 (Key 6)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extractor1 (Key 6)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extractor1 (Key 6)": {
+      "main": [
+        [
+          {
+            "node": "Output Cleaner1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomizer Code - Output verifier1": {
+      "main": [
+        [
+          {
+            "node": "Load Balancer Switch - Output verifier1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Balancer Switch - Output verifier1": {
+      "main": [
+        [
+          {
+            "node": "Output verifier1 (Key 1)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Output verifier1 (Key 2)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Output verifier1 (Key 3)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Output verifier1 (Key 4)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Output verifier1 (Key 5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Output verifier1 (Key 6)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model9 (Key 1)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Output verifier1 (Key 1)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output verifier1 (Key 1)": {
+      "main": [
+        [
+          {
+            "node": "Violation Verifier Condition1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model9 (Key 2)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Output verifier1 (Key 2)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output verifier1 (Key 2)": {
+      "main": [
+        [
+          {
+            "node": "Violation Verifier Condition1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model9 (Key 3)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Output verifier1 (Key 3)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output verifier1 (Key 3)": {
+      "main": [
+        [
+          {
+            "node": "Violation Verifier Condition1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model9 (Key 4)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Output verifier1 (Key 4)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output verifier1 (Key 4)": {
+      "main": [
+        [
+          {
+            "node": "Violation Verifier Condition1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model9 (Key 5)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Output verifier1 (Key 5)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output verifier1 (Key 5)": {
+      "main": [
+        [
+          {
+            "node": "Violation Verifier Condition1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model9 (Key 6)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Output verifier1 (Key 6)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output verifier1 (Key 6)": {
+      "main": [
+        [
+          {
+            "node": "Violation Verifier Condition1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2bd84a1f-43e3-4b30-a711-cd596c5c09a9",
+  "meta": {
+    "instanceId": "acf035bcb7de247c8b8da8f1d077f6ee14cf922183fccad9a53d6c5015114a5d"
+  },
+  "nodeGroups": [],
+  "id": "nMnWvXYUa5nyY36P",
+  "tags": []
+}

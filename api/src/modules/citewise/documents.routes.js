@@ -3,10 +3,15 @@
 
 import express from 'express';
 import supabase from '../../common/config/supabaseClient.js';
+import requireAuth from '../../common/middlewares/auth.middleware.js';
 import { scoringPipeline } from './rrl.routes.js';
 import { extractCitationMetadata } from './helpers/citationMetadata.js';
 
 const router = express.Router();
+
+// All document routes require a valid user session.
+router.use(requireAuth);
+
 
 const WEIGHT_GAP    = 0.35;
 const WEIGHT_METHOD = 0.30;
@@ -36,7 +41,7 @@ async function loadInsight(docId) {
 router.get('/session/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   const headerSession = req.headers['x-session-id'];
-  if (headerSession && headerSession !== sessionId) return res.status(404).end();
+  if (headerSession && headerSession !== sessionId) return res.status(404).json({ success: false, message: 'Not found' });
 
   const { data: docs, error } = await supabase
     .from('uploaded_documents').select('*').eq('session_id', sessionId);
@@ -65,6 +70,7 @@ router.get('/session/:sessionId', async (req, res) => {
         approved:             doc.approved,
         recommendationStatus: insight.recommendation_status,
         relevanceLevel:       insight.relevance_level,
+        metricWeights:        doc.metric_weights_json ? (typeof doc.metric_weights_json === 'string' ? JSON.parse(doc.metric_weights_json) : doc.metric_weights_json) : null,
       };
     }
     return {
@@ -77,6 +83,7 @@ router.get('/session/:sessionId', async (req, res) => {
       gapAlignmentScore: null, methodologyScore: null, theoreticalScore: null, citationScore: null,
       approved:     doc.approved,
       recommendationStatus: null, relevanceLevel: null,
+      metricWeights: doc.metric_weights_json ? (typeof doc.metric_weights_json === 'string' ? JSON.parse(doc.metric_weights_json) : doc.metric_weights_json) : null,
     };
   }));
 
@@ -88,20 +95,24 @@ router.get('/:id/insights', async (req, res) => {
   const docId     = Number(req.params.id);
   const sessionId = req.headers['x-session-id'];
 
-  if (sessionId) {
-    const { data: doc } = await supabase.from('uploaded_documents').select('session_id').eq('id', docId).maybeSingle();
-    if (!doc || (sessionId && doc.session_id !== sessionId)) return res.status(404).end();
+  const { data: docInfo } = await supabase.from('uploaded_documents').select('session_id, scoring_status, scoring_error_message, file_name, metric_weights_json').eq('id', docId).maybeSingle();
+  
+  if (!docInfo || (sessionId && docInfo.session_id !== sessionId)) return res.status(404).json({ success: false, message: 'Not found' });
+  if (docInfo.scoring_status === 'PENDING' || docInfo.scoring_status === 'PROCESSING') return res.status(202).json({ success: true, message: 'Processing' });
+  
+  if (docInfo.scoring_status === 'FAILED') {
+    return res.status(400).json({ success: false, message: docInfo.scoring_error_message || 'Assessment failed' });
   }
 
   const insight = await loadInsight(docId);
-  if (!insight) return res.status(404).end();
+  if (!insight) return res.status(404).json({ success: false, message: 'Not found' });
 
-  const { data: doc } = await supabase.from('uploaded_documents').select('file_name').eq('id', docId).maybeSingle();
   const overallScore  = insight.overall_score ?? insight.average_overall_score;
 
-  return res.json({
-    documentId:          insight.document_id,
-    filename:            doc?.file_name ?? null,
+    return res.json({
+      documentId:          insight.document_id,
+      filename:            docInfo?.file_name ?? null,
+      metricWeights:       docInfo?.metric_weights_json ? (typeof docInfo.metric_weights_json === 'string' ? JSON.parse(docInfo.metric_weights_json) : docInfo.metric_weights_json) : null,
     gapAlignmentScore:   insight.gap_alignment_score,
     methodologyScore:    insight.methodology_score,
     theoreticalScore:    insight.theoretical_score,
@@ -129,6 +140,66 @@ router.get('/:id/insights', async (req, res) => {
       displayOrder:  e.display_order,
     })),
   });
+});
+
+  // POST /api/v1/documents/assess-batch
+router.post('/assess-batch', async (req, res) => {
+  const { documentIds, weights, onlyApplyWeights, overwriteWeights } = req.body;
+  const sessionId = req.headers['x-session-id'];
+
+  if (!Array.isArray(documentIds) || documentIds.length === 0) {
+    return res.status(400).json({ success: false, message: 'Invalid documentIds array' });
+  }
+
+  // Update weights for the selected documents
+  if (weights) {
+    console.log(`[Batch Assess] Received custom weights for ${documentIds.length} docs (overwrite: ${overwriteWeights}):`, weights);
+    
+    let query = supabase.from('uploaded_documents')
+      .update({ metric_weights_json: JSON.stringify(weights) })
+      .in('id', documentIds)
+      .eq('session_id', sessionId);
+      
+    if (!overwriteWeights) {
+      query = query.is('metric_weights_json', null);
+    }
+    
+    await query;
+  } else {
+    console.log(`[Batch Assess] No custom weights provided for ${documentIds.length} docs. They will use the default base weights.`);
+  }
+
+  if (onlyApplyWeights) {
+    return res.json({ success: true, message: 'Weights applied successfully' });
+  }
+
+  // Reset scoring status so UI shows loading state, 
+  // but DO NOT delete existing insights here.
+  // We leave them intact so scoringPipeline can extract and reuse 
+  // the `raw_ai_response_json` to instantly apply new weights without re-triggering the slow n8n AI inference.
+  // Scoped to the caller's session, like the weights update above. Without the
+  // session filter this endpoint could reset scoring for documents belonging to
+  // another session just by guessing their ids.
+  await supabase.from('uploaded_documents')
+    .update({ scoring_status: 'PENDING', scoring_error_message: null })
+    .in('id', documentIds)
+    .eq('session_id', sessionId);
+
+  // Run sequentially in background to avoid any race conditions or silent event loop drops
+  console.log(`[Batch Assess] Starting background pipeline for ${documentIds.length} docs...`);
+  (async () => {
+    for (const docId of documentIds) {
+      try {
+        console.log(`[Batch Assess] Launching scoringPipeline for doc ${docId}...`);
+        await scoringPipeline(docId, sessionId);
+      } catch (e) {
+        console.error(`[Batch Assess] Error processing doc ${docId}:`, e);
+      }
+    }
+    console.log(`[Batch Assess] Finished background pipeline for all docs.`);
+  })().catch(e => console.error("[Batch Assess] Unhandled background error:", e));
+
+  return res.json({ success: true, message: 'Batch assessment started' });
 });
 
 // POST /api/v1/documents/:id/assess  – re-trigger n8n scoring
@@ -288,7 +359,7 @@ router.delete('/:id', async (req, res) => {
   const sessionId = req.headers['x-session-id'];
 
   const { data: doc } = await supabase.from('uploaded_documents').select('*').eq('id', docId).maybeSingle();
-  if (!doc || (sessionId && doc.session_id !== sessionId)) return res.status(404).end();
+  if (!doc || (sessionId && doc.session_id !== sessionId)) return res.status(404).json({ success: false, message: 'Not found' });
 
   const { data: insight } = await supabase.from('document_insights').select('id').eq('document_id', docId).maybeSingle();
   if (insight) await supabase.from('document_insights').delete().eq('id', insight.id);

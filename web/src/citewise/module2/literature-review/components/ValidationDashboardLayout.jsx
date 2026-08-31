@@ -4,8 +4,9 @@ import QuickNavigationList from "./QuickNavigationList";
 import AIAssessmentPanel from "../../ai-assessment/components/AIAssessmentPanel";
 import ValidationSummaryFooter from "./ValidationSummaryFooter";
 import RrlUploadLayout from "../../../module1/rrl-upload/components/RrlUploadLayout";
-import RelevanceWeightsPanel from "../../ai-assessment/components/RelevanceWeightsPanel";
+import MetricWeightCustomization from "../../ai-assessment/components/MetricWeightCustomization";
 import { apiFetch } from "../../../../api/http";
+import * as store from "../../../lib/citewiseStore";
 
 export default function ValidationDashboardLayout({ groupId, sessionId: propSessionId, onStepChange }) {
   const STORAGE_SESSION_KEY = groupId ? `citewise.${groupId}.sessionId` : "citewise.session_id";
@@ -28,8 +29,10 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   const [activeInsights, setActiveInsights] = useState(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
   const [insightsPollExhausted, setInsightsPollExhausted] = useState(false);
+  const [insightsErrorMsg, setInsightsErrorMsg] = useState(null);
   const [assessVersion, setAssessVersion] = useState(0);
   const pollAttemptsRef = useRef(0);
+  const insightsCacheRef = useRef(new Map());
   const [showLowRelevanceWarningModal, setShowLowRelevanceWarningModal] = useState(false);
   const [pendingApprovalIndex, setPendingApprovalIndex] = useState(null);
   const [batchStats, setBatchStats] = useState({
@@ -46,6 +49,17 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
   // State for modular Upload modal
   const [showUploadModal, setShowUploadModal] = useState(false);
+
+  // Only a *completed* assessment retires the weight-customization hero panel.
+  // Flipping on "processing" meant that assessing one document swapped the panel
+  // out on the very next poll, so a user assessing files one at a time with
+  // different weights lost the controls before they could set up the second file.
+  const [hasEverAssessed, setHasEverAssessed] = useState(false);
+  useEffect(() => {
+    if (documents.some((doc) => doc.rawStatus === "complete")) {
+      setHasEverAssessed(true);
+    }
+  }, [documents]);
 
   const activeDoc = documents[currentIndex];
 
@@ -90,16 +104,19 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       // Prefer a backend-provided overallScore if present (ensures weighted score used),
       // otherwise fall back to legacy relevancyScore field.
       const overallFromInsight = item.overallScore ?? (item.insight && item.insight.overallScore) ?? null;
+      const rawStatus = (item.scoringStatus || item.status || "pending").toLowerCase();
       return {
         id: item.id,
         name: item.fileName || "Untitled.pdf",
         size: formatBytes(item.sizeBytes),
         pages: prev?.pages ?? "-",
-        status: mapStatus(item.status),
+        rawStatus,
+        status: rawStatus === "complete" ? "Ready" : (rawStatus === "processing" ? "Assessing" : (rawStatus === "pending" ? "Pending Assessment" : "Processing")),
         approved: item.approved === true || item.approved === 1 || item.approved === "true" || prev?.approved === true,
         relevancyScore: overallFromInsight ?? item.relevancyScore ?? null,
         recommendationStatus: item.recommendationStatus ?? item.insight?.recommendationStatus ?? null,
         relevanceLevel: item.relevanceLevel ?? item.insight?.relevanceLevel ?? null,
+        metricWeights: item.metricWeights ?? item.insight?.metricWeights ?? null,
       };
     });
   };
@@ -130,11 +147,34 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     }
   }, [resolvedSessionId]);
 
+  // Adaptive polling. A flat 5s interval costs ~120 requests / 10 min per open
+  // tab even when nothing is happening, which on its own exhausted the API rate
+  // limit and surfaced as an opaque "Failed to fetch". Poll quickly only while a
+  // document is actually pending or being assessed, then back off.
+  const documentsActiveRef = useRef(false);
+  useEffect(() => {
+    documentsActiveRef.current = documents.some(
+      (doc) => doc.rawStatus === "pending" || doc.rawStatus === "processing"
+    );
+  }, [documents]);
+
   useEffect(() => {
     if (!resolvedSessionId) return;
-    fetchDocuments();
-    const pollId = setInterval(fetchDocuments, 5000);
-    return () => clearInterval(pollId);
+    let cancelled = false;
+    let timer = null;
+
+    const tick = async () => {
+      if (cancelled) return;
+      await fetchDocuments();
+      if (cancelled) return;
+      timer = setTimeout(tick, documentsActiveRef.current ? 5000 : 30000);
+    };
+
+    tick();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [resolvedSessionId, fetchDocuments]);
 
   useEffect(() => {
@@ -158,7 +198,16 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
     const fetchInsightsData = async () => {
       if (cancelled) return;
-      setIsInsightsLoading(true);
+      
+      // If we already have this in cache, show it instantly
+      if (insightsCacheRef.current.has(activeDoc.id)) {
+        setActiveInsights(insightsCacheRef.current.get(activeDoc.id));
+        setIsInsightsLoading(false);
+        setInsightsErrorMsg(null);
+      } else {
+        setIsInsightsLoading(true);
+      }
+      
       try {
         const { res: response, data } = await apiFetch(`/api/v1/documents/${activeDoc.id}/insights`, {
           cache: "no-store",
@@ -168,14 +217,37 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         });
         if (cancelled) return;
 
+        if (response.status === 202) {
+          // Document is processing, continue polling
+          pollAttemptsRef.current += 1;
+          if (pollAttemptsRef.current >= 50) {
+            setIsInsightsLoading(false);
+            setInsightsPollExhausted(true);
+            setInsightsErrorMsg("Assessment took too long.");
+            return;
+          }
+          pollTimeout = setTimeout(fetchInsightsData, 5000);
+          return;
+        }
+
         if (response.ok) {
+          insightsCacheRef.current.set(activeDoc.id, data);
           setActiveInsights(data);
           setIsInsightsLoading(false);
           setInsightsPollExhausted(false);
+          setInsightsErrorMsg(null);
           return;
         }
 
         if (response.status === 404) {
+          // If the document is explicitly pending, it might be about to start (race condition).
+          // Give it a few seconds (e.g., 3 polls) to transition to processing before giving up.
+          if (activeDoc.rawStatus === 'pending' && pollAttemptsRef.current > 3) {
+            setIsInsightsLoading(false);
+            setInsightsPollExhausted(true); // Treated as not assessed
+            return;
+          }
+
           pollAttemptsRef.current += 1;
           if (pollAttemptsRef.current >= 50) {
             setIsInsightsLoading(false);
@@ -188,11 +260,13 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
         setIsInsightsLoading(false);
         setInsightsPollExhausted(true);
+        setInsightsErrorMsg(data?.message || "Assessment failed.");
       } catch (err) {
         if (cancelled) return;
         console.warn("Failed to load insights:", err);
         setIsInsightsLoading(false);
         setInsightsPollExhausted(true);
+        setInsightsErrorMsg(err.message || "Failed to load insights.");
       }
     };
 
@@ -206,21 +280,33 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
   const handleAssessDocument = useCallback(async () => {
     if (!activeDoc?.id) return;
+    insightsCacheRef.current.delete(activeDoc.id);
     setActiveInsights(null);
     setIsInsightsLoading(true);
     setInsightsPollExhausted(false);
+    setInsightsErrorMsg(null);
     pollAttemptsRef.current = 0;
     try {
-      const { res: response } = await apiFetch(`/api/v1/documents/${activeDoc.id}/assess`, {
+      const prefs = store.getScorePrefs(resolvedSessionId);
+      const weights = {
+        gap: prefs.enabled.gapAlignment ? prefs.weights.gapAlignment : 0,
+        methodology: prefs.enabled.methodology ? prefs.weights.methodology : 0,
+        theory: prefs.enabled.theoretical ? prefs.weights.theoretical : 0,
+        citation: prefs.enabled.citation ? prefs.weights.citation : 0,
+      };
+
+      const { res: response, data } = await apiFetch(`/api/v1/documents/assess-batch`, {
         method: "POST",
         headers: {
           'X-Session-Id': resolvedSessionId,
-        }
+        },
+        body: JSON.stringify({ documentIds: [activeDoc.id], weights, overwriteWeights: true })
       });
       if (!response.ok) {
         console.warn("Failed to start assessment");
         setIsInsightsLoading(false);
         setInsightsPollExhausted(true);
+        setInsightsErrorMsg(data?.message || `Failed to start assessment: ${response.status}`);
       } else {
         setAssessVersion((v) => v + 1);
       }
@@ -228,6 +314,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       console.warn("Failed to start assessment:", err);
       setIsInsightsLoading(false);
       setInsightsPollExhausted(true);
+      setInsightsErrorMsg(err.message || "Failed to start assessment");
     }
   }, [activeDoc?.id, resolvedSessionId]);
 
@@ -405,7 +492,7 @@ const handleProceed = () => {
       }
     `}</style>
   );
-
+  const hasAssessedDocs = hasEverAssessed && documents.length > 0;
   return (
     <div
       style={{
@@ -417,6 +504,7 @@ const handleProceed = () => {
     >
       {styleInject}
 
+      {/* (Approval Modal and Upload Modal remain the same) */}
       {approvalWarningModal.show && (
         <div style={{
           position: "fixed",
@@ -429,6 +517,7 @@ const handleProceed = () => {
           zIndex: 10000,
           animation: "fadeInToast 0.3s ease-out forwards",
         }}>
+          {/* ... modal content ... */}
           <div style={{
             background: "#1e1e2f",
             border: "1px solid rgba(91, 91, 214, 0.25)",
@@ -515,12 +604,6 @@ const handleProceed = () => {
                   e.currentTarget.style.background = "#5b5bd6";
                   e.currentTarget.style.boxShadow = "0 0 0 rgba(91, 91, 214, 0)";
                 }}
-                onMouseDown={(e) => {
-                  e.currentTarget.style.transform = "scale(0.97)";
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = "scale(1.04)";
-                }}
               >
                 Yes
               </button>
@@ -549,12 +632,6 @@ const handleProceed = () => {
                   e.currentTarget.style.transform = "scale(1)";
                   e.currentTarget.style.borderColor = "#3a3a55";
                   e.currentTarget.style.background = "transparent";
-                }}
-                onMouseDown={(e) => {
-                  e.currentTarget.style.transform = "scale(0.97)";
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = "scale(1.04)";
                 }}
               >
                 NO
@@ -591,7 +668,6 @@ const handleProceed = () => {
             gap: "1.5rem",
             fontFamily: "'Poppins', sans-serif",
           }}>
-            {/* Modal Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: "1.25rem", fontWeight: 700, color: "#6f6fe0", margin: 0 }}>
@@ -611,14 +687,11 @@ const handleProceed = () => {
                   cursor: "pointer",
                   transition: "color 0.2s ease",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.color = "#e4e4f0"}
-                onMouseLeave={(e) => e.currentTarget.style.color = "#a1a1b5"}
               >
                 ✕
               </button>
             </div>
 
-            {/* Modal Body: Reuse RrlUploadLayout to handle files queue, duplicate warnings, and server submission */}
             <div style={{ overflow: "hidden" }}>
               <RrlUploadLayout 
                 sessionId={resolvedSessionId} 
@@ -744,18 +817,58 @@ const handleProceed = () => {
             onApprovalToggle={handleApprovalToggle}
             onDelete={handleDeleteDocument}
           />
-          <RelevanceWeightsPanel sessionId={resolvedSessionId} />
+          {hasAssessedDocs && (
+            <MetricWeightCustomization 
+              sessionId={resolvedSessionId} 
+              documents={documents}
+              onAssessmentTriggered={(assessedDocIds) => {
+                insightsCacheRef.current.clear();
+                setAssessVersion(v => v + 1);
+                fetchDocuments();
+                if (assessedDocIds && assessedDocIds.length > 0) {
+                  const targetId = assessedDocIds[0];
+                  const idx = documents.findIndex(d => d.id === targetId);
+                  if (idx !== -1) {
+                    setCurrentIndex(idx);
+                  }
+                }
+              }}
+            />
+          )}
         </div>
 
-        <AIAssessmentPanel
-          documentId={activeDoc?.id}
-          sessionId={resolvedSessionId}
-          insights={activeInsights}
-          isLoading={isInsightsLoading}
-          assessmentTimedOut={insightsPollExhausted}
-          onAssess={handleAssessDocument}
-          onUploadClick={handleUploadNew}
-        />
+        {!hasAssessedDocs ? (
+          <MetricWeightCustomization 
+            sessionId={resolvedSessionId} 
+            documents={documents}
+            onAssessmentTriggered={(assessedDocIds) => {
+              insightsCacheRef.current.clear();
+              setAssessVersion(v => v + 1);
+              fetchDocuments();
+              if (assessedDocIds && assessedDocIds.length > 0) {
+                const targetId = assessedDocIds[0];
+                const idx = documents.findIndex(d => d.id === targetId);
+                if (idx !== -1) {
+                  setCurrentIndex(idx);
+                }
+              }
+            }}
+            isHero={true}
+          />
+        ) : (
+          <AIAssessmentPanel
+            documentId={activeDoc?.id}
+            sessionId={resolvedSessionId}
+            insights={activeInsights}
+            isLoading={isInsightsLoading}
+            error={insightsErrorMsg || (insightsPollExhausted ? "poll exhausted" : null)}
+            assessmentTimedOut={insightsPollExhausted}
+            onAssess={handleAssessDocument}
+            onUploadClick={handleUploadNew}
+            docStatus={activeDoc?.rawStatus}
+            metricWeights={activeDoc?.metricWeights}
+          />
+        )}
       </div>
 
       <ValidationSummaryFooter

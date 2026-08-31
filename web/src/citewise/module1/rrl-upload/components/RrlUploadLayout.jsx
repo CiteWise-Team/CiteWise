@@ -198,7 +198,20 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
     });
   };
 
-  const removeFileItem = (id) => {
+  const removeFileItem = async (id) => {
+    const itemToRemove = fileQueue.find((item) => item.id === id);
+    if (itemToRemove?.docId) {
+      try {
+        await apiFetch(`/api/v1/documents/${itemToRemove.docId}`, {
+          method: "DELETE",
+          headers: { "X-Session-Id": sessionId.trim() },
+        });
+        // Decrease the uploaded count so the UI reflects the deletion instantly
+        if (onUploadComplete) onUploadComplete();
+      } catch (e) {
+        console.warn("Failed to delete from DB:", e);
+      }
+    }
     setFileQueue((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -231,7 +244,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
         headers: { "X-Session-Id": sessionId.trim() },
         body: formData,
       });
-      if (!response.ok) throw new Error(payload?.message || "Upload failed.");
+      if (!response.ok) throw new Error(payload?.message || payload?.error || `Upload failed with status ${response.status}`);
       const results = payload?.data?.results || [];
       const accepted = payload?.data?.acceptedFiles || 0;
       const failed = payload?.data?.failedFiles || 0;
@@ -259,6 +272,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
             ...item,
             status: isDupe ? "duplicate" : match.success ? "uploaded" : "failed",
             message: isDupe ? "Duplicate — removing from queue" : match.message,
+            docId: match.success ? match.docId : undefined,
           };
         })
       );
@@ -281,7 +295,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
       setFileQueue((prev) =>
         prev.map((item) =>
           item.status === "uploading"
-            ? { ...item, status: "failed", message: "Network error" }
+            ? { ...item, status: "failed", message: err.message.slice(0, 40) }
             : item
         )
       );

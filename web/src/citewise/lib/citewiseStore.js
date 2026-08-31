@@ -241,6 +241,10 @@ export function getRrlUsage(sessionId) {
   return read(sessionId, "rrlUsage", {});
 }
 
+export function setRrlUsage(sessionId, usage) {
+  write(sessionId, "rrlUsage", usage);
+}
+
 export function getRrlUsageFor(sessionId, docId) {
   const all = getRrlUsage(sessionId);
   return all[docId] || { usage: "auto", emphasizedExcerpts: [] };

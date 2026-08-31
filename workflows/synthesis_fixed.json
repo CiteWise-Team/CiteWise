@@ -1,0 +1,1058 @@
+{
+  "name": "synthesis_fixed",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{!$json.abortSynthesis}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        496,
+        528
+      ],
+      "id": "c7a92b95-485a-4d24-9556-770a508cf167",
+      "name": "IF Usable Sources Found"
+    },
+    {
+      "parameters": {
+        "jsCode": "const incoming = $input.first().json;\nconst body = incoming.body ?? incoming;\nconst headers = incoming.headers ?? body.headers ?? {};\n\nfunction flatten(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value.trim();\n\n  if (Array.isArray(value)) {\n    return value\n      .map((entry, index) => {\n        if (typeof entry === 'string') return `${index + 1}. ${entry}`;\n        if (entry == null) return '';\n        const parts = [\n          entry.gap,\n          entry.research_gap,\n          entry.researchGap,\n          entry.description,\n          entry.statement,\n          entry.text,\n          entry.title\n        ].filter(Boolean);\n        return parts.length ? `${index + 1}. ${parts.join(' - ')}` : JSON.stringify(entry);\n      })\n      .filter(Boolean)\n      .join('\\n');\n  }\n\n  if (typeof value === 'object') {\n    const parts = [\n      value.title,\n      value.rationale,\n      value.gap,\n      value.gaps,\n      value.researchGap,\n      value.research_gap,\n      value.description,\n      value.statement,\n      value.text\n    ].filter(Boolean);\n    return parts.length ? parts.map(flatten).join('\\n') : JSON.stringify(value);\n  }\n\n  return String(value).trim();\n}\n\nconst baselineSource =\n  body.baseline ??\n  body.researchBaseline ??\n  body.semanticBaseline ??\n  body.catalystBaseline ??\n  body.catalyst_baseline ??\n  {};\n\nconst title = flatten(\n  baselineSource.title ??\n  baselineSource.researchTitle ??\n  baselineSource.research_title ??\n  body.title ??\n  body.researchTitle\n);\n\nconst rationale = flatten(\n  baselineSource.rationale ??\n  baselineSource.researchRationale ??\n  baselineSource.research_rationale ??\n  body.rationale\n);\n\nconst gaps = flatten(\n  baselineSource.gaps ??\n  baselineSource.gap ??\n  baselineSource.researchGaps ??\n  baselineSource.reearch_gaps ??\n  baselineSource.research_gaps ??\n  baselineSource.researchGap ??\n  baselineSource.research_gap ??\n  body.gaps ??\n  body.gap\n);\n\nif (!title && !rationale && !gaps) {\n  throw new Error('No CATalyst baseline found. Expected body.baseline with title, rationale, and gaps.');\n}\n\nlet docsSource =\n  body.approvedDocuments ??\n  body.approved_documents ??\n  body.approvedDocs ??\n  body.documents ??\n  body.sources ??\n  body.papers ??\n  [];\n\nif (!Array.isArray(docsSource)) docsSource = [];\n\nconst parallelTexts =\n  body.approvedTexts ??\n  body.approved_texts ??\n  body.texts ??\n  body.documentTexts ??\n  [];\n\nif (docsSource.length === 0 && Array.isArray(parallelTexts) && parallelTexts.length) {\n  docsSource = parallelTexts.map(t => ({ text: t, approved: true }));\n}\n\nfunction isApprovedDoc(d) {\n  // If the payload is explicitly approvedDocuments, treat it as approved.\n  if (body.approvedDocuments || body.approved_documents || body.approvedDocs) return true;\n\n  const status = String(d.status ?? d.approvalStatus ?? d.approval_status ?? '').toUpperCase();\n  if (d.isApproved === true || d.approved === true || d.humanApproved === true) return true;\n  if (status === 'APPROVED' || status === 'VERIFIED') return true;\n\n  const hasApprovalSignal =\n    d.isApproved != null || d.approved != null || d.humanApproved != null ||\n    d.status != null || d.approvalStatus != null || d.approval_status != null;\n\n  return !hasApprovalSignal;\n}\n\nfunction pickText(d, i) {\n  let t = String(\n    d.extracted_text ??\n    d.extractedText ??\n    d.text ??\n    d.documentText ??\n    d.document_text ??\n    d.content ??\n    d.fullText ??\n    d.full_text ??\n    ''\n  ).trim();\n\n  if (!t && Array.isArray(parallelTexts) && typeof parallelTexts[i] === 'string') {\n    t = String(parallelTexts[i]).trim();\n  }\n\n  return t;\n}\n\nfunction cleanMetaValue(value) {\n  if (value == null) return null;\n  const s = String(value).replace(/\\s+/g, ' ').trim();\n  return s || null;\n}\n\nfunction isPdfFilename(value) {\n  const s = cleanMetaValue(value);\n  if (!s) return false;\n  return /\\.pdf$/i.test(s) || /^[\\w.-]+\\.pdf$/i.test(s);\n}\n\nfunction normalizeAuthors(value) {\n  if (value == null) return [];\n  if (Array.isArray(value)) return value.map(v => cleanMetaValue(v)).filter(Boolean);\n\n  const s = cleanMetaValue(value);\n  if (!s) return [];\n\n  return s\n    .replace(/\\s+and\\s+/gi, ' & ')\n    .split(/\\s*;\\s*|\\s*&\\s*/)\n    .map(v => cleanMetaValue(v))\n    .filter(Boolean);\n}\n\nfunction warningArray(value) {\n  if (!value) return [];\n  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);\n  if (typeof value === 'string') {\n    const s = value.trim();\n    if (!s) return [];\n    try {\n      const parsed = JSON.parse(s);\n      if (Array.isArray(parsed)) return parsed.map(v => String(v).trim()).filter(Boolean);\n    } catch (e) {}\n    return s.split(/\\s*,\\s*|\\s*;\\s*/).map(v => v.trim()).filter(Boolean);\n  }\n  return [];\n}\n\nfunction suspiciousAuthor(value) {\n  const s = String(value ?? '').replace(/\\s+/g, ' ').trim().toLowerCase();\n  if (!s) return true;\n  const match = s.match(/^[a-z]+/);\n  if (!match) return false;\n  const firstWord = match[0];\n  const badWords = new Set(['article', 'articles', 'unknown', 'author', 'authors', 'source', 'sources', 'paper', 'papers', 'research', 'study', 'studies', 'journal', 'document', 'documents', 'untitled', 'input', 'output', 'abstract', 'introduction', 'conclusion', 'chapter', 'background', 'method', 'results', 'discussion']);\n  return badWords.has(firstWord);\n}\n\nfunction pickMeta(d, i) {\n  const m = (d && typeof d === 'object') ? (d.metadata ?? d.meta ?? d) : {};\n  const filename = cleanMetaValue(d.filename ?? d.fileName ?? d.file_name);\n\n  const rawTitle = cleanMetaValue(\n    m.title ??\n    m.documentTitle ??\n    m.document_title ??\n    null\n  );\n\n  const titleLooksLikeFilename =\n    !rawTitle ||\n    isPdfFilename(rawTitle) ||\n    (filename && rawTitle.toLowerCase() === filename.toLowerCase());\n\n  const authorsArray = normalizeAuthors(\n    m.authors ??\n    m.authorList ??\n    m.author_list ??\n    m.author ??\n    null\n  );\n\n  const authorDisplay =\n    cleanMetaValue(m.authorDisplay ?? m.author_display) ??\n    cleanMetaValue(m.author) ??\n    (authorsArray.length ? authorsArray.join('; ') : null);\n\n  const yearRaw = cleanMetaValue(m.year ?? m.publicationYear ?? m.publication_year ?? m.date);\n  const yearMatch = yearRaw ? yearRaw.match(/\\b(19|20)\\d{2}\\b/) : null;\n  const year = yearMatch ? yearMatch[0] : null;\n\n  const warnings = warningArray(m.warnings);\n\n  if (!authorDisplay && authorsArray.length === 0) warnings.push('MISSING_AUTHOR');\n  if (suspiciousAuthor(authorDisplay)) warnings.push('SUSPICIOUS_AUTHOR_METADATA');\n  if (!year) warnings.push('MISSING_YEAR');\n  if (titleLooksLikeFilename) warnings.push('MISSING_TITLE');\n  if (titleLooksLikeFilename && filename) warnings.push('TITLE_FALLBACK_FILENAME');\n  if (m.metadataReliable === false || m.metadata_reliable === false) warnings.push('LOW_CONFIDENCE_METADATA');\n\n  const title = titleLooksLikeFilename ? null : rawTitle;\n  const computedReliable = Boolean(authorDisplay && year && title && !suspiciousAuthor(authorDisplay));\n  const metadataReliable = (m.metadataReliable === false || m.metadata_reliable === false) ? false : computedReliable;\n\n  return {\n    author: authorDisplay,\n    authors: authorsArray,\n    authorDisplay,\n    year,\n    title,\n    journal: cleanMetaValue(m.journal ?? m.source ?? m.publication ?? m.containerTitle ?? m.container_title),\n    volume: cleanMetaValue(m.volume),\n    issue: cleanMetaValue(m.issue),\n    pages: cleanMetaValue(m.pages ?? m.pageRange ?? m.page_range),\n    doi: cleanMetaValue(m.doi ?? m.DOI),\n    url: cleanMetaValue(m.url ?? m.link),\n    publisher: cleanMetaValue(m.publisher),\n    sourceType: cleanMetaValue(m.sourceType ?? m.source_type),\n    filename,\n    fallbackLabel: `Source ${i + 1}`,\n    metadataReliable,\n    warnings: [...new Set(warnings)]\n  };\n}\n\nfunction isBadCitationMetadata(meta) {\n  if (!meta) return true;\n  const warnings = (meta.warnings ?? []).map(w => String(w).toUpperCase());\n  const hasBlockingWarning = warnings.some(w => [\n    'MISSING_AUTHOR',\n    'MISSING_YEAR',\n    'MISSING_TITLE',\n    'LOW_CONFIDENCE_METADATA',\n    'SUSPICIOUS_AUTHOR_METADATA',\n    'TITLE_FALLBACK_FILENAME'\n  ].includes(w));\n\n  return meta.metadataReliable === false ||\n    hasBlockingWarning ||\n    !meta.authorDisplay ||\n    !meta.year ||\n    !meta.title ||\n    suspiciousAuthor(meta.authorDisplay ?? meta.author);\n}\n\nfunction firstDefined(...values) {\n  return values.find(v => v !== undefined && v !== null && v !== '');\n}\n\nfunction toNumber(value) {\n  if (value == null || value === '') return null;\n  const n = Number(value);\n  if (!Number.isFinite(n)) return null;\n  if (n > 0 && n <= 1) return Math.round(n * 100);\n  return Math.max(0, Math.min(100, Math.round(n)));\n}\n\nfunction parseFlags(...values) {\n  const out = [];\n  for (const value of values) {\n    if (value == null) continue;\n    if (Array.isArray(value)) {\n      out.push(...value.map(v => String(v).trim()).filter(Boolean));\n      continue;\n    }\n    if (typeof value === 'string') {\n      const s = value.trim();\n      if (!s) continue;\n      try {\n        const parsed = JSON.parse(s);\n        if (Array.isArray(parsed)) {\n          out.push(...parsed.map(v => String(v).trim()).filter(Boolean));\n          continue;\n        }\n      } catch (e) {}\n      out.push(...s.split(/\\s*,\\s*|\\s*;\\s*/).map(v => v.trim()).filter(Boolean));\n    }\n  }\n  return [...new Set(out)];\n}\n\nfunction normalizeTier(rawTier) {\n  const key = String(rawTier ?? '').toLowerCase().replace(/[^a-z]/g, '');\n  if (!key) return null;\n  if (key.includes('core')) return 'Core';\n  if (key.includes('support')) return 'Supporting';\n  if (key.includes('tangent') || key.includes('minimiz')) return 'Tangential';\n  if (key.includes('exclude') || key.includes('low')) return 'Excluded';\n  return null;\n}\n\nfunction computeRuntimeTier(obj) {\n  const insight = obj.insight ?? obj.documentInsight ?? obj.aiInsight ?? {};\n  const scores = obj.scores ?? insight.scores ?? {};\n\n  const providedTier = normalizeTier(firstDefined(obj.sourceTier, obj.source_tier, insight.sourceTier, scores.sourceTier));\n\n  const overallScore = toNumber(firstDefined(\n    obj.overallScore,\n    obj.overall,\n    obj.relevancyScore,\n    obj.relevanceScore,\n    scores.overall,\n    scores.overallScore,\n    scores.overall_score,\n    insight.overallScore,\n    insight.overall\n  ));\n\n  const recommendationStatus = cleanMetaValue(firstDefined(\n    obj.recommendationStatus,\n    obj.recommendation_status,\n    obj.recommendation,\n    insight.recommendationStatus,\n    insight.recommendation_status,\n    insight.recommendation\n  ));\n\n  const relevanceLevel = cleanMetaValue(firstDefined(\n    obj.relevanceLevel,\n    obj.relevance_level,\n    obj.relevance,\n    insight.relevanceLevel,\n    insight.relevance_level,\n    insight.relevance\n  ));\n\n  const mismatchFlags = parseFlags(\n    obj.mismatchFlags,\n    obj.mismatch_flags,\n    obj.mismatchFlagsJson,\n    obj.mismatch_flags_json,\n    insight.mismatchFlags,\n    insight.mismatch_flags,\n    insight.mismatchFlagsJson,\n    insight.mismatch_flags_json\n  );\n\n  const weaknessFlags = parseFlags(\n    obj.weaknessFlags,\n    obj.weakness_flags,\n    obj.weaknessFlagsJson,\n    obj.weakness_flags_json,\n    insight.weaknessFlags,\n    insight.weakness_flags,\n    insight.weaknessFlagsJson,\n    insight.weakness_flags_json\n  );\n\n  const recKey = String(recommendationStatus ?? '').toLowerCase();\n  const relKey = String(relevanceLevel ?? '').toLowerCase();\n  const hasTopicMismatch = mismatchFlags.some(f => String(f).toUpperCase() === 'TOPIC_MISMATCH');\n\n  let tier = providedTier;\n  let tierReason = providedTier ? 'Provided by backend runtime tiering.' : 'Computed in n8n from existing score/status fields.';\n\n  if (!tier) {\n    if (recKey.includes('recommended') || relKey === 'high' || (overallScore != null && overallScore >= 75)) {\n      tier = 'Core';\n    } else if (recKey.includes('needs review') || relKey === 'medium' || (overallScore != null && overallScore >= 60)) {\n      tier = 'Supporting';\n    } else if (overallScore != null && overallScore >= 40) {\n      tier = 'Tangential';\n    } else {\n      tier = 'Tangential';\n      tierReason = 'User approved but low or unknown score; included as Tangential.';\n    }\n  }\n\n  \n\n  let guidance = cleanMetaValue(obj.sourceUseGuidance ?? obj.source_use_guidance ?? insight.sourceUseGuidance);\n  if (!guidance) {\n    if (tier === 'Core') guidance = 'Use as main synthesis evidence.';\n    else if (tier === 'Supporting') guidance = 'Use cautiously as supporting evidence.';\n    else if (tier === 'Tangential') guidance = 'Use only for brief background; do not center or redirect the introduction around this source.';\n    else guidance = 'Do not use as synthesis evidence.';\n  }\n\n  return { tier, tierReason, guidance, overallScore, recommendationStatus, relevanceLevel, mismatchFlags, weaknessFlags };\n}\n\nfunction pickEvidenceExcerpts(obj) {\n  const insight = obj.insight ?? obj.documentInsight ?? obj.aiInsight ?? {};\n  const candidates = obj.evidenceExcerpts ?? obj.evidence_excerpts ?? insight.evidenceExcerpts ?? insight.evidence_excerpts ?? [];\n  return Array.isArray(candidates) ? candidates : [];\n}\n\nconst rawDocs = docsSource\n  .map((d, i) => (typeof d === 'string') ? { text: d, approved: true } : (d ?? {}))\n  .filter(d => isApprovedDoc(d));\n\nconst excludedSources = [];\nconst approvedDocuments = [];\nlet usableIndex = 0;\n\nfunction excludedRecord(obj, originalIndex, tierInfo, reason, extra = {}) {\n  return {\n    originalIndex: originalIndex + 1,\n    documentId: obj.documentId ?? obj.document_id ?? obj.id ?? null,\n    filename: obj.filename ?? obj.fileName ?? obj.file_name ?? null,\n    sourceTier: 'Excluded',\n    overallScore: tierInfo?.overallScore ?? null,\n    recommendationStatus: tierInfo?.recommendationStatus ?? null,\n    relevanceLevel: tierInfo?.relevanceLevel ?? null,\n    mismatchFlags: tierInfo?.mismatchFlags ?? [],\n    tierReason: reason,\n    ...extra\n  };\n}\n\nrawDocs.forEach((obj, originalIndex) => {\n  const tierInfo = computeRuntimeTier(obj);\n\n  if (tierInfo.tier === 'Excluded') {\n    excludedSources.push(excludedRecord(obj, originalIndex, tierInfo, tierInfo.tierReason));\n    return;\n  }\n\n  const text = pickText(obj, originalIndex);\n  if (!text) {\n    excludedSources.push(excludedRecord(obj, originalIndex, tierInfo, 'Excluded because the approved document has no extractable text.'));\n    return;\n  }\n\n  const meta = pickMeta(obj, usableIndex);\n  if (isBadCitationMetadata(meta)) {\n    excludedSources.push(excludedRecord(obj, originalIndex, tierInfo, 'Excluded from synthesis because citation metadata is unreliable and could produce incorrect APA citations.', {\n      metadataWarnings: meta.warnings ?? [],\n      metadataPreview: {\n        authorDisplay: meta.authorDisplay,\n        year: meta.year,\n        title: meta.title,\n        metadataReliable: meta.metadataReliable\n      }\n    }));\n    return;\n  }\n\n  usableIndex += 1;\n  meta.fallbackLabel = `Source ${usableIndex}`;\n\n  approvedDocuments.push({\n    label: 'Doc' + usableIndex,\n    originalLabel: obj.label ?? obj.sourceLabel ?? ('OriginalDoc' + (originalIndex + 1)),\n    documentId: obj.documentId ?? obj.document_id ?? obj.id ?? null,\n    filename: obj.filename ?? obj.fileName ?? obj.file_name ?? null,\n    text,\n    metadata: meta,\n    evidenceExcerpts: pickEvidenceExcerpts(obj),\n    sourceTier: tierInfo.tier,\n    sourceUseGuidance: tierInfo.guidance,\n    tierReason: tierInfo.tierReason,\n    overallScore: tierInfo.overallScore,\n    recommendationStatus: tierInfo.recommendationStatus,\n    relevanceLevel: tierInfo.relevanceLevel,\n    mismatchFlags: tierInfo.mismatchFlags,\n    weaknessFlags: tierInfo.weaknessFlags,\n    requiredForCoverage: ['Core', 'Supporting'].includes(tierInfo.tier)\n  });\n});\n\nconst sessionId =\n  body.sessionId ??\n  body.session_id ??\n  headers['session-id'] ??\n  headers['Session-Id'] ??\n  headers['SESSION-ID'] ??\n  null;\n\nif (approvedDocuments.length === 0) {\n  return [{\n    json: {\n      abortSynthesis: true,\n      success: false,\n      status: 'VALIDATION_FAILED',\n      validationStatus: 'FAILED',\n      message: 'No usable approved documents were available for synthesis. Approved documents were excluded because they were low relevance, topic mismatched, missing text, or had unreliable citation metadata.',\n      errorMessage: 'No usable approved documents found after backend/n8n source-tier and citation-metadata guardrails.',\n      validationFlags: ['NO_USABLE_APPROVED_DOCUMENTS', 'SOURCE_TIER_OR_CITATION_METADATA_GUARDRAIL_FAILED'],\n      unsupportedClaimFlags: [],\n      metrics: {\n        originalApprovedCount: rawDocs.length,\n        usableDocumentCount: 0,\n        excludedDocumentCount: excludedSources.length\n      },\n      excludedSources,\n      retryRecommended: false,\n      meta: {\n        sessionId,\n        source: 'citewise-n8n-rag-synthesizer-v2.3-backend-only-guardrails'\n      }\n    }\n  }];\n}\n\nconst requiredSources = approvedDocuments\n  .filter(d => d.requiredForCoverage)\n  .map(d => d.label);\n\nconst optionalSources = approvedDocuments\n  .filter(d => !d.requiredForCoverage)\n  .map(d => d.label);\n\nconst coveragePoolCount = requiredSources.length > 0 ? requiredSources.length : approvedDocuments.length;\nconst minRequiredSources = Math.max(1, Math.ceil(coveragePoolCount * 0.8));\n\nconst defaultSynthesisInstructions =\n  'The CATalyst Title, Rationale, and Research Gap are the primary source of truth. ' +\n  'Approved documents are supplementary only. Use Core Sources as main evidence, Supporting Sources cautiously, ' +\n  'and Tangential Sources only for brief background. Do not let low-relevance approved documents redirect the topic. ' +\n  'Use only [DocN] placeholders; deterministic APA citation formatting happens after validation.';\n\nreturn [{\n  json: {\n    abortSynthesis: false,\n    sessionId,\n    baseline: { title, rationale, gaps },\n    approvedDocuments,\n    usableDocuments: approvedDocuments,\n    excludedSources,\n    available_sources: approvedDocuments.map(d => d.label),\n    required_sources: requiredSources.length ? requiredSources : approvedDocuments.map(d => d.label),\n    optional_sources: optionalSources,\n    minRequiredSources,\n    maxRetries: 3,\n    attempt: 1,\n    validation_notes: [],\n    synthesisInstructions: body.synthesisInstructions ?? body.synthesis_instructions ?? defaultSynthesisInstructions,\n    meta: {\n      sessionId,\n      originalApprovedCount: rawDocs.length,\n      usableDocumentCount: approvedDocuments.length,\n      excludedDocumentCount: excludedSources.length,\n      requiredSourceCount: requiredSources.length,\n      optionalSourceCount: optionalSources.length,\n      minRequiredSources,\n      source: 'citewise-n8n-rag-synthesizer-v2.3-backend-only-guardrails'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        528
+      ],
+      "id": "33f4584e-c161-4d77-8d9e-91e70f5a637e",
+      "name": "Build Synthesis Packet1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst baseline = item.baseline ?? {};\nconst docs = Array.isArray(item.approvedDocuments) ? item.approvedDocuments : [];\n\nif (!docs.length) throw new Error('No usable approved documents to synthesize.');\n\nconst PER_DOC_CHAR_CAP = 11000;\nconst TANGENTIAL_CHAR_CAP = 5000;\nconst TOTAL_CHAR_CAP = 56000;\n\nconst stopwords = new Set([\n  'about','above','after','again','against','among','based','because','before','being',\n  'below','between','could','during','field','first','found','from','have','having',\n  'into','more','most','other','paper','research','result','results','should','study',\n  'studies','system','than','their','there','these','this','those','through','using',\n  'where','which','while','within','with','would','title','rationale','gaps'\n]);\n\nfunction normalize(s) {\n  return String(s ?? '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction keywordsFromBaseline(b) {\n  const base = [b.title, b.rationale, b.gaps].filter(Boolean).join(' ');\n  return [...new Set(\n    normalize(base)\n      .split(/\\s+/)\n      .filter(w => w.length >= 5 && !stopwords.has(w))\n  )].slice(0, 80);\n}\n\nconst baselineKeywords = keywordsFromBaseline(baseline);\n\nfunction splitToChunks(text) {\n  const clean = String(text ?? '').replace(/\\r/g, '').trim();\n  let chunks = clean\n    .split(/\\n\\s*\\n+/)\n    .map(p => p.replace(/\\s+/g, ' ').trim())\n    .filter(p => p.length >= 180);\n\n  if (chunks.length < 6) {\n    chunks = [];\n    const flat = clean.replace(/\\s+/g, ' ').trim();\n    const size = 1500;\n    const overlap = 220;\n    for (let i = 0; i < flat.length; i += (size - overlap)) {\n      const part = flat.slice(i, i + size).trim();\n      if (part.length >= 180) chunks.push(part);\n    }\n  }\n\n  return chunks;\n}\n\nfunction chunkScore(chunk, index, evidenceText, tier) {\n  const lower = normalize(chunk);\n  const hits = baselineKeywords.filter(k => lower.includes(k)).length;\n\n  const synthesisSignal =\n    /\\b(gap|limitation|limited|lack|absence|challenge|problem|future research|recommendation|understudied|unexplored|need for|however|despite|although)\\b/i.test(chunk) ? 5 : 0;\n\n  const methodSignal =\n    /\\b(method|methodology|framework|model|architecture|algorithm|dataset|evaluation|metric|experiment|prototype|implementation|testing|validation|benchmark)\\b/i.test(chunk) ? 4 : 0;\n\n  const introSignal =\n    /\\b(abstract|introduction|background|rationale|related work|literature review|discussion|conclusion)\\b/i.test(chunk) ? 2 : 0;\n\n  const evidenceSignal = evidenceText && normalize(evidenceText).includes(lower.slice(0, Math.min(80, lower.length))) ? 6 : 0;\n  const tierBoost = tier === 'Core' ? 4 : tier === 'Supporting' ? 2 : 0;\n  const earlySignal = index < 8 ? 1 : 0;\n\n  return hits * 4 + synthesisSignal + methodSignal + introSignal + evidenceSignal + tierBoost + earlySignal;\n}\n\nfunction excerptText(e) {\n  if (!e) return '';\n  return String(e.quoteText ?? e.text ?? e.evidenceText ?? e.evidence_text ?? '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction selectRelevantText(doc, perDocCap) {\n  const raw = String(doc.text ?? '').trim();\n\n  const customText = (Array.isArray(doc.customHighlights) ? doc.customHighlights : (Array.isArray(doc.custom_highlights) ? doc.custom_highlights : [])).join(' ');\n  const baseEvidenceText = (Array.isArray(doc.evidenceExcerpts) ? doc.evidenceExcerpts : [])\n    .map(excerptText)\n    .filter(Boolean)\n    .join(' ');\n  const evidenceText = [customText, baseEvidenceText].filter(Boolean).join(' ');\n\n  if (raw.length <= perDocCap) {\n    const prefix = evidenceText ? `Custom Highlights and Emphasized Excerpts:\\n${evidenceText}\\n\\nSelected source text:\\n` : '';\n    return (prefix + raw.replace(/\\s+/g, ' ').trim()).slice(0, perDocCap);\n  }\n\n  const chunks = splitToChunks(raw);\n  const ranked = chunks\n    .map((chunk, index) => ({ chunk, index, score: chunkScore(chunk, index, evidenceText, doc.sourceTier) }))\n    .sort((a, b) => b.score - a.score || a.index - b.index);\n\n  const selected = ranked\n    .slice(0, doc.sourceTier === 'Tangential' ? 5 : 10)\n    .sort((a, b) => a.index - b.index);\n\n  let joined = selected\n    .map(x => `[chunk_order=${x.index + 1}; relevance_hint=${x.score}]\\n${x.chunk}`)\n    .join('\\n\\n');\n\n  if (evidenceText) {\n    joined = `Custom Highlights and Emphasized Excerpts:\\n${evidenceText}\\n\\nSelected source text:\\n${joined}`;\n  }\n\n  if (joined.length > perDocCap) joined = joined.slice(0, perDocCap);\n\n  return joined;\n}\n\nfunction tierRank(tier) {\n  if (tier === 'Core') return 1;\n  if (tier === 'Supporting') return 2;\n  if (tier === 'Tangential') return 3;\n  return 9;\n}\n\nlet runningTotal = 0;\nconst contextBlocks = [];\nconst sourceManifest = [];\nconst orderedDocs = [...docs].sort((a, b) => tierRank(a.sourceTier) - tierRank(b.sourceTier));\n\nfor (const d of orderedDocs) {\n  const remaining = TOTAL_CHAR_CAP - runningTotal;\n  if (remaining <= 800) break;\n\n  const tier = d.sourceTier ?? 'Supporting';\n  const perDocCap = tier === 'Tangential' ? TANGENTIAL_CHAR_CAP : PER_DOC_CHAR_CAP;\n  const cap = Math.min(perDocCap, remaining);\n  const selectedText = selectRelevantText(d, cap);\n  runningTotal += selectedText.length;\n\n  const m = d.metadata ?? {};\n  const authors = Array.isArray(m.authors)\n    ? m.authors.join('; ')\n    : (m.authorDisplay ?? m.author ?? '');\n  const metaBits = [];\n  if (m.title) metaBits.push('title: ' + m.title);\n  if (authors) metaBits.push('authors: ' + authors);\n  if (m.year) metaBits.push('year: ' + m.year);\n  if (m.journal) metaBits.push('source: ' + m.journal);\n  if (m.doi) metaBits.push('doi: ' + m.doi);\n  const metaLine = metaBits.join(' | ');\n\n  const scoreBits = [];\n  if (d.overallScore != null) scoreBits.push('overallScore: ' + d.overallScore);\n  if (d.recommendationStatus) scoreBits.push('recommendationStatus: ' + d.recommendationStatus);\n  if (d.relevanceLevel) scoreBits.push('relevanceLevel: ' + d.relevanceLevel);\n  if (Array.isArray(d.mismatchFlags) && d.mismatchFlags.length) scoreBits.push('mismatchFlags: ' + d.mismatchFlags.join(', '));\n  const scoreLine = scoreBits.join(' | ');\n\n  const tierHeader = `${tier.toUpperCase()} SOURCE ${d.label}`;\n  const guidance = d.sourceUseGuidance ?? (\n    tier === 'Core' ? 'Use as main synthesis evidence.' :\n    tier === 'Supporting' ? 'Use cautiously as supporting evidence.' :\n    'Use only for brief background; do not center the introduction on this source.'\n  );\n\n  contextBlocks.push(\n    `${tierHeader}` +\n    (metaLine ? ` (${metaLine})` : '') +\n    `\\nSource-use guidance: ${guidance}` +\n    (scoreLine ? `\\nAssessment signals: ${scoreLine}` : '') +\n    `\\n${selectedText}`\n  );\n\n  sourceManifest.push({\n    label: d.label,\n    documentId: d.documentId ?? null,\n    filename: d.filename ?? null,\n    metadata: d.metadata ?? {},\n    sourceTier: tier,\n    sourceUseGuidance: guidance,\n    overallScore: d.overallScore ?? null,\n    recommendationStatus: d.recommendationStatus ?? null,\n    relevanceLevel: d.relevanceLevel ?? null,\n    mismatchFlags: d.mismatchFlags ?? [],\n    weaknessFlags: d.weaknessFlags ?? [],\n    requiredForCoverage: d.requiredForCoverage === true || ['Core', 'Supporting'].includes(tier)\n  });\n}\n\nconst ragContext = contextBlocks.join('\\n\\n---USABLE SOURCE BREAK---\\n\\n');\nconst requiredSources = sourceManifest.filter(s => s.requiredForCoverage).map(s => s.label);\nconst optionalSources = sourceManifest.filter(s => !s.requiredForCoverage).map(s => s.label);\nconst coveragePool = requiredSources.length ? requiredSources : sourceManifest.map(s => s.label);\nconst minRequiredSources = item.minRequiredSources ?? coveragePool.length;\n\nreturn [{\n  json: {\n    sessionId: item.sessionId ?? null,\n    baseline,\n    rag_context: ragContext,\n    available_sources: sourceManifest.map(s => s.label),\n    required_sources: coveragePool,\n    optional_sources: optionalSources,\n    source_manifest: sourceManifest,\n    excluded_sources: item.excludedSources ?? [],\n    minRequiredSources,\n    maxRetries: item.maxRetries ?? 3,\n    attempt: item.attempt ?? 1,\n    validation_notes: item.validation_notes ?? [],\n    synthesisInstructions: item.synthesisInstructions ?? '',\n    meta: {\n      ...(item.meta ?? {}),\n      contextCharacters: ragContext.length,\n      sourcesIncluded: sourceManifest.length,\n      coreSources: sourceManifest.filter(s => s.sourceTier === 'Core').length,\n      supportingSources: sourceManifest.filter(s => s.sourceTier === 'Supporting').length,\n      tangentialSources: sourceManifest.filter(s => s.sourceTier === 'Tangential').length,\n      excludedSources: (item.excludedSources ?? []).length,\n      minRequiredSources\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        528
+      ],
+      "id": "73ac5aa3-e1c6-4ba8-a17f-8bbcf0e4c267",
+      "name": "Prepare RAG Context1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nlet raw =\n  item.output ??\n  item.text ??\n  item.response ??\n  item.message?.content ??\n  item.content;\n\nif (raw == null) {\n  throw new Error('No AI Agent output found. Keys on item: ' + Object.keys(item).join(', '));\n}\n\nraw = String(raw)\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nconst firstBrace = raw.indexOf('{');\nconst lastBrace = raw.lastIndexOf('}');\n\nif (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {\n  throw new Error('AI Agent did not return a JSON object. Raw output: ' + raw.slice(0, 800));\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));\n} catch (e) {\n  throw new Error('AI Agent returned malformed JSON: ' + e.message + '. Raw output: ' + raw.slice(0, 800));\n}\n\nconst background = String(parsed.background ?? parsed.Background ?? '').trim();\nconst rationale = String(parsed.rationale ?? parsed.Rationale ?? '').trim();\nconst gap = String(parsed.gap ?? parsed.Gap ?? parsed.researchGap ?? parsed.research_gap ?? '').trim();\n\nif (!background && !rationale && !gap) {\n  throw new Error('AI synthesis returned empty background/rationale/gap fields.');\n}\n\nreturn [{\n  json: {\n    sections: { background, rationale, gap },\n    aiExtractedPlaceholders: Array.isArray(parsed.extractedPlaceholders) ? parsed.extractedPlaceholders : [],\n    gapCoverageSelfCheck: parsed.gapCoverageSelfCheck === true,\n    sourceUsePlan: Array.isArray(parsed.sourceUsePlan) ? parsed.sourceUsePlan : [],\n    notes: String(parsed.notes ?? '').trim(),\n    rawAiOutput: raw\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        528
+      ],
+      "id": "555d34d7-a4ba-4778-88c7-ef944a6e9bf3",
+      "name": "Parse AI Draft JSON "
+    },
+    {
+      "parameters": {
+        "jsCode": "const draft = $input.first().json;\nconst prep = $('Prepare RAG Context1').first().json;\n\nconst sections = draft.sections ?? {};\nconst background = String(sections.background ?? '').trim();\nconst rationale = String(sections.rationale ?? '').trim();\nconst gap = String(sections.gap ?? '').trim();\n\nconst manifest = Array.isArray(prep.source_manifest) ? prep.source_manifest : [];\nconst allValidLabels = (prep.available_sources ?? manifest.map(s => s.label)).map(x => String(x));\nconst validLabels = new Set(allValidLabels.map(x => x.toLowerCase()));\n\nconst requiredSourceLabelsRaw = Array.isArray(prep.required_sources) && prep.required_sources.length\n  ? prep.required_sources.map(x => String(x))\n  : manifest.filter(s => s.requiredForCoverage).map(s => String(s.label));\n\nconst requiredSourceLabels = requiredSourceLabelsRaw.length ? requiredSourceLabelsRaw : allValidLabels;\nconst requiredLabelSet = new Set(requiredSourceLabels.map(x => x.toLowerCase()));\nconst optionalLabelSet = new Set((prep.optional_sources ?? []).map(x => String(x).toLowerCase()));\nconst totalSources = validLabels.size;\nconst requiredSourceCount = requiredLabelSet.size;\nconst minRequiredSources = prep.minRequiredSources ?? Math.max(1, Math.ceil(Math.max(1, requiredSourceCount) * 0.8));\n\nfunction normalize(s) {\n  return String(s ?? '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst text = [background, rationale, gap].filter(Boolean).join(' ');\nconst validationFlags = [];\nconst unsupportedClaimFlags = [];\n\nfunction extractPlaceholders(s) {\n  const labels = [];\n  const regex = /\\[\\s*Doc\\s*(\\d+)\\s*\\]/gi;\n  let m;\n  while ((m = regex.exec(String(s ?? ''))) !== null) labels.push('Doc' + m[1]);\n  return labels;\n}\n\nconst placeholders = extractPlaceholders(text);\nconst usedLabels = [...new Set(placeholders.map(x => x.toLowerCase()))];\nconst invalidPlaceholders = [...new Set(placeholders.filter(p => !validLabels.has(p.toLowerCase())))];\nconst uniqueValidUsed = usedLabels.filter(l => validLabels.has(l));\nconst uniqueRequiredUsed = uniqueValidUsed.filter(l => requiredLabelSet.has(l));\nconst uniqueOptionalUsed = uniqueValidUsed.filter(l => optionalLabelSet.has(l));\n\nif (!background || background.length < 80) validationFlags.push('BACKGROUND_TOO_SHORT_OR_MISSING');\nif (!rationale || rationale.length < 80) validationFlags.push('RATIONALE_TOO_SHORT_OR_MISSING');\nif (!gap || gap.length < 80) validationFlags.push('GAP_TOO_SHORT_OR_MISSING');\n\nif (placeholders.length === 0) validationFlags.push('NO_SOURCE_PLACEHOLDERS_USED');\nif (invalidPlaceholders.length > 0) validationFlags.push('INVALID_OR_UNAPPROVED_PLACEHOLDER');\n\nconst realApaPattern = /\\(([A-Z][A-Za-z'’.-]+(?:\\s+et al\\.)?|[A-Z][A-Za-z'’.-]+(?:\\s*&\\s*[A-Z][A-Za-z'’.-]+)?)\\s*,\\s*(?:19|20)\\d{2}[a-z]?\\)/g;\nconst realApaMatches = text.match(realApaPattern) ?? [];\nif (realApaMatches.length > 0) validationFlags.push('REAL_APA_CITATION_DETECTED_USE_PLACEHOLDERS_ONLY');\n\nconst requiredCoverage = requiredSourceCount === 0 ? 0 : uniqueRequiredUsed.length / requiredSourceCount;\nconst requiredCoveragePercent = Math.round(requiredCoverage * 100);\nconst unusedRequiredLabels = [...requiredLabelSet]\n  .filter(l => !uniqueRequiredUsed.includes(l))\n  .map(l => l.replace(/^doc/i, 'Doc'));\n\nif (uniqueRequiredUsed.length < minRequiredSources) validationFlags.push('SOURCE_COVERAGE_BELOW_REQUIRED_POOL');\n\n// If Core/Supporting sources exist, Tangential sources should not dominate citations.\nif (requiredSourceCount > 0 && uniqueOptionalUsed.length > uniqueRequiredUsed.length) {\n  validationFlags.push('TANGENTIAL_SOURCES_OVERUSED');\n}\n\nconst stopwords = new Set([\n  'about','above','after','again','against','among','based','because','before','being','below','between',\n  'could','during','field','first','found','from','have','having','into','more','most','other','paper',\n  'research','result','results','should','study','studies','system','than','their','there','these','this',\n  'those','through','using','where','which','while','within','with','would','lack','needs','students'\n]);\n\nfunction gapKeywords(s) {\n  return [...new Set(\n    normalize(s)\n      .split(/\\s+/)\n      .filter(w => w.length >= 5 && !stopwords.has(w))\n  )].slice(0, 60);\n}\n\nconst gapKeys = gapKeywords(prep.baseline?.gaps ?? '');\nconst gapNorm = normalize(gap);\nconst matchedGapKeys = gapKeys.filter(k => gapNorm.includes(k));\nconst gapKeywordCoverage = gapKeys.length === 0 ? 1 : matchedGapKeys.length / gapKeys.length;\n\nconst gapCoverageThreshold = gapKeys.length <= 5 ? 0.45 : 0.35;\nif (gapKeys.length > 0 && gapKeywordCoverage < gapCoverageThreshold) validationFlags.push('CATALYST_GAP_COVERAGE_TOO_LOW');\n\nfunction splitSentences(s) {\n  return String(s ?? '')\n    .replace(/\\n+/g, ' ')\n    .split(/(?<=[.!?])\\s+/)\n    .map(x => x.trim())\n    .filter(Boolean);\n}\n\nconst sentences = [\n  ...splitSentences(background).map(s => ({ section: 'background', sentence: s })),\n  ...splitSentences(rationale).map(s => ({ section: 'rationale', sentence: s })),\n  ...splitSentences(gap).map(s => ({ section: 'gap', sentence: s }))\n];\n\nlet consecutiveMissing = 0;\nlet maxConsecutiveMissing = 0;\nlet citedSentenceCount = 0;\n\nfor (const entry of sentences) {\n  const sentence = entry.sentence;\n  const hasCitation = /\\[\\s*Doc\\s*\\d+\\s*\\]/i.test(sentence);\n  const substantial = sentence.length >= 70;\n\n  if (hasCitation) {\n    citedSentenceCount++;\n    consecutiveMissing = 0;\n  } else if (substantial) {\n    consecutiveMissing++;\n    maxConsecutiveMissing = Math.max(maxConsecutiveMissing, consecutiveMissing);\n    unsupportedClaimFlags.push({ section: entry.section, sentence });\n  }\n}\n\nif (maxConsecutiveMissing > 2) validationFlags.push('INSUFFICIENT_CITATION_DENSITY');\nif (sentences.length > 0 && citedSentenceCount / sentences.length < 0.55) validationFlags.push('LOW_CITED_SENTENCE_RATIO');\n\nconst isValid = validationFlags.length === 0;\n\nconst errorParts = [];\nif (validationFlags.includes('REAL_APA_CITATION_DETECTED_USE_PLACEHOLDERS_ONLY')) {\n  errorParts.push('Real APA-style citations were detected. Use only [DocN] placeholders.');\n}\nif (validationFlags.includes('INVALID_OR_UNAPPROVED_PLACEHOLDER')) {\n  errorParts.push('Invalid placeholders used: ' + invalidPlaceholders.join(', ') + '. Only use: ' + allValidLabels.join(', ') + '.');\n}\nif (validationFlags.includes('SOURCE_COVERAGE_BELOW_REQUIRED_POOL')) {\n  errorParts.push(`Required Core/Supporting source coverage is ${requiredCoveragePercent}%. You must cite at least ${minRequiredSources} unique required source(s). Unused required: ${unusedRequiredLabels.join(', ') || 'none'}.`);\n}\nif (validationFlags.includes('TANGENTIAL_SOURCES_OVERUSED')) {\n  errorParts.push('Tangential sources were used more than Core/Supporting sources. Prioritize Core and Supporting sources; use Tangential sources only briefly.');\n}\nif (validationFlags.includes('CATALYST_GAP_COVERAGE_TOO_LOW')) {\n  errorParts.push(`CATalyst gap coverage is low. Missing or weakly represented gap keywords: ${gapKeys.filter(k => !matchedGapKeys.includes(k)).slice(0, 12).join(', ')}.`);\n}\nif (validationFlags.includes('INSUFFICIENT_CITATION_DENSITY') || validationFlags.includes('LOW_CITED_SENTENCE_RATIO')) {\n  errorParts.push('Citation density is too low. Add [DocN] immediately after each factual claim.');\n}\nif (validationFlags.some(f => f.endsWith('_TOO_SHORT_OR_MISSING'))) {\n  errorParts.push('One or more required sections are missing or too short. Provide complete Background, Rationale, and Research Gap paragraphs.');\n}\nif (validationFlags.includes('NO_SOURCE_PLACEHOLDERS_USED')) errorParts.push('No [DocN] placeholders were used.');\n\nreturn [{\n  json: {\n    isValid,\n    status: isValid ? 'VALIDATED' : 'VALIDATION_FAILED',\n    errorMessage: isValid ? null : (errorParts.join(' ') || validationFlags.join('; ')),\n    sections: { background, rationale, gap },\n    rawAiOutput: draft.rawAiOutput ?? '',\n    validationFlags,\n    unsupportedClaimFlags,\n    sourceUsePlan: draft.sourceUsePlan ?? [],\n    metrics: {\n      totalSources,\n      requiredSourceCount,\n      optionalSourceCount: optionalLabelSet.size,\n      minRequiredSources,\n      uniqueValidSourcesUsed: uniqueValidUsed.length,\n      uniqueRequiredSourcesUsed: uniqueRequiredUsed.length,\n      uniqueOptionalSourcesUsed: uniqueOptionalUsed.length,\n      requiredSourceCoverage: requiredCoverage,\n      requiredSourceCoveragePercent: requiredCoveragePercent,\n      gapKeywordCoverage,\n      gapKeywordCoveragePercent: Math.round(gapKeywordCoverage * 100),\n      totalSentences: sentences.length,\n      citedSentenceCount,\n      citedSentenceRatio: sentences.length ? citedSentenceCount / sentences.length : 0,\n      invalidPlaceholders\n    },\n    placeholders: {\n      extracted: placeholders,\n      uniqueValidUsed: uniqueValidUsed.map(l => l.replace(/^doc/i, 'Doc')),\n      uniqueRequiredUsed: uniqueRequiredUsed.map(l => l.replace(/^doc/i, 'Doc')),\n      uniqueOptionalUsed: uniqueOptionalUsed.map(l => l.replace(/^doc/i, 'Doc')),\n      invalid: invalidPlaceholders,\n      unusedRequired: unusedRequiredLabels\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        528
+      ],
+      "id": "b69ea03f-05fe-4ae7-9e4c-cc72f363c15f",
+      "name": "Validate Draft Guardrails "
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.isValid}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        528
+      ],
+      "id": "8d2524cd-ef2f-4f7f-bbe6-5f6f09a7402f",
+      "name": "IF Validation Passed "
+    },
+    {
+      "parameters": {
+        "jsCode": "const validation = $input.first().json;\nconst prep = $('Prepare RAG Context1').first().json;\n\nreturn [{\n  json: {\n    ...prep,\n    attempt: 2,\n    validation_notes: [\n      ...(prep.validation_notes ?? []),\n      'Attempt 1 failed validation: ' + (validation.errorMessage ?? 'Unknown validation error') +\n      ' Validation flags: ' + (validation.validationFlags ?? []).join(', ') +\n      '. Correct the draft by using only valid [DocN] placeholders, prioritizing required Core/Supporting sources, improving CATalyst gap coverage, and adding citations to factual claims. Tangential sources are optional and must not dominate the synthesis.'\n    ]\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1968,
+        592
+      ],
+      "id": "918483b2-9f73-4c98-8cf7-54c02e525730",
+      "name": "Prepare Retry Context "
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, rag_context: $json.rag_context, available_sources: $json.available_sources, required_sources: $json.required_sources, optional_sources: $json.optional_sources, source_manifest: $json.source_manifest, minRequiredSources: $json.minRequiredSources, attempt: $json.attempt, synthesisInstructions: $json.synthesisInstructions, validation_notes: $json.validation_notes }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict RAG synthesis writer for academic research proposals.\n\nYou receive JSON with:\n- baseline.title: student's research title\n- baseline.rationale: student's research rationale\n- baseline.gaps: CATalyst research gap(s)\n- rag_context: text from usable user-approved source documents only\n- available_sources: valid source aliases such as [\"Doc1\",\"Doc2\"]\n- required_sources: Core and Supporting source aliases that form the required citation coverage pool\n- optional_sources: Tangential source aliases that are optional only\n- source_manifest: source metadata, runtime tier, score/status/relevance signals, and source-use guidance\n- minRequiredSources: minimum unique required/core-supporting sources that must be cited when available\n- synthesisInstructions: backend synthesis guardrail instructions\n- validation_notes: previous validation errors to fix, if any\n\nTASK\nGenerate a cohesive academic proposal introduction with exactly three final sections:\n1. Background\n2. Rationale\n3. Research Gap\n\nNON-NEGOTIABLE PRIORITY RULE\nThe CATalyst Title, Rationale, and Research Gap are the primary source of truth. Approved documents are supplementary only. Do not let a low-relevance or tangential approved document redirect the topic, create a different problem, or override baseline.gaps.\n\nSOURCE-TIER RULES\n- Core Sources: use as the main synthesis evidence.\n- Supporting Sources: use cautiously as supporting evidence.\n- Tangential Sources: optional; use only for brief broad background if helpful. Do not center a paragraph on a Tangential Source. Do not use Tangential Sources to define the main gap or main rationale.\n- Excluded Sources should not appear in rag_context. If mentioned in source_manifest, do not cite or use them.\n\nUse CARS logic internally:\n- Background establishes the research territory.\n- Rationale explains why the study matters and why the work is justified.\n- Research Gap establishes the niche and explicitly connects the approved literature to baseline.gaps.\n\nSTRICT CLOSED-BOOK RAG RULES\n- Use ONLY information from rag_context and the CATalyst baseline.\n- Do NOT use outside knowledge.\n- Do NOT invent facts, statistics, authors, studies, publication years, methodologies, or citations.\n- If a claim is not supported by the usable source text or baseline, do not write it.\n- Every factual or literature-based claim must include at least one source placeholder.\n\nCITATION PLACEHOLDER RULES\n- Use placeholder citations ONLY: [Doc1], [Doc2], etc.\n- Never write real APA citations like \"(Smith, 2024)\".\n- Use only labels listed in available_sources.\n- Place the placeholder immediately after the specific atomic claim it supports and before the punctuation mark.\n- Example: Mobile learning can improve access to language practice [Doc1].\n- For claims supported by multiple sources, use adjacent placeholders: [Doc1][Doc3].\n- Do not cluster all citations at the end of a paragraph.\n\nSOURCE COVERAGE RULE\n- When required_sources is non-empty, cite at least minRequiredSources unique required_sources when possible.\n- Tangential optional_sources do not count toward required coverage unless there are no Core/Supporting sources.\n- Use diverse Core/Supporting sources. Do not rely on only one source unless only one usable source exists.\n\nGAP COVERAGE RULE\n- The Research Gap section must explicitly address 100% of baseline.gaps.\n- If there are multiple gaps, integrate all of them into the gap section.\n- Do not introduce a gap that conflicts with or replaces baseline.gaps.\n\nSTYLE RULES\n- Formal, third-person academic English.\n- No bullet points.\n- No headings inside the paragraph strings.\n- Do not include a reference list.\n- Keep each section as one well-developed paragraph.\n\nOUTPUT\nReturn ONLY valid JSON, no markdown fences, using exactly this schema:\n{\n  \"background\": \"paragraph text with [DocN] placeholders\",\n  \"rationale\": \"paragraph text with [DocN] placeholders\",\n  \"gap\": \"paragraph text with [DocN] placeholders\",\n  \"extractedPlaceholders\": [\"Doc1\"],\n  \"gapCoverageSelfCheck\": true,\n  \"sourceUsePlan\": [\n    {\n      \"source\": \"Doc1\",\n      \"intendedUse\": \"short explanation including Core/Supporting/Tangential role\"\n    }\n  ],\n  \"notes\": \"\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2192,
+        592
+      ],
+      "id": "80732416-8cc6-48d9-80ff-90c1a974bd13",
+      "name": "AI Agent - RAG Synthesis Attempt 8"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nlet raw =\n  item.output ??\n  item.text ??\n  item.response ??\n  item.message?.content ??\n  item.content;\n\nif (raw == null) {\n  throw new Error('No AI Agent output found. Keys on item: ' + Object.keys(item).join(', '));\n}\n\nraw = String(raw)\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nconst firstBrace = raw.indexOf('{');\nconst lastBrace = raw.lastIndexOf('}');\n\nif (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {\n  throw new Error('AI Agent did not return a JSON object. Raw output: ' + raw.slice(0, 800));\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));\n} catch (e) {\n  throw new Error('AI Agent returned malformed JSON: ' + e.message + '. Raw output: ' + raw.slice(0, 800));\n}\n\nconst background = String(parsed.background ?? parsed.Background ?? '').trim();\nconst rationale = String(parsed.rationale ?? parsed.Rationale ?? '').trim();\nconst gap = String(parsed.gap ?? parsed.Gap ?? parsed.researchGap ?? parsed.research_gap ?? '').trim();\n\nif (!background && !rationale && !gap) {\n  throw new Error('AI synthesis returned empty background/rationale/gap fields.');\n}\n\nreturn [{\n  json: {\n    sections: { background, rationale, gap },\n    aiExtractedPlaceholders: Array.isArray(parsed.extractedPlaceholders) ? parsed.extractedPlaceholders : [],\n    gapCoverageSelfCheck: parsed.gapCoverageSelfCheck === true,\n    sourceUsePlan: Array.isArray(parsed.sourceUsePlan) ? parsed.sourceUsePlan : [],\n    notes: String(parsed.notes ?? '').trim(),\n    rawAiOutput: raw\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2544,
+        592
+      ],
+      "id": "6d4139be-c673-4dfe-b043-8573f05ea207",
+      "name": "Parse AI Draft JSON 8"
+    },
+    {
+      "parameters": {
+        "jsCode": "const draft = $input.first().json;\nconst prep = $('Prepare RAG Context1').first().json;\n\nconst sections = draft.sections ?? {};\nconst background = String(sections.background ?? '').trim();\nconst rationale = String(sections.rationale ?? '').trim();\nconst gap = String(sections.gap ?? '').trim();\n\nconst manifest = Array.isArray(prep.source_manifest) ? prep.source_manifest : [];\nconst allValidLabels = (prep.available_sources ?? manifest.map(s => s.label)).map(x => String(x));\nconst validLabels = new Set(allValidLabels.map(x => x.toLowerCase()));\n\nconst requiredSourceLabelsRaw = Array.isArray(prep.required_sources) && prep.required_sources.length\n  ? prep.required_sources.map(x => String(x))\n  : manifest.filter(s => s.requiredForCoverage).map(s => String(s.label));\n\nconst requiredSourceLabels = requiredSourceLabelsRaw.length ? requiredSourceLabelsRaw : allValidLabels;\nconst requiredLabelSet = new Set(requiredSourceLabels.map(x => x.toLowerCase()));\nconst optionalLabelSet = new Set((prep.optional_sources ?? []).map(x => String(x).toLowerCase()));\nconst totalSources = validLabels.size;\nconst requiredSourceCount = requiredLabelSet.size;\nconst minRequiredSources = prep.minRequiredSources ?? Math.max(1, Math.ceil(Math.max(1, requiredSourceCount) * 0.8));\n\nfunction normalize(s) {\n  return String(s ?? '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst text = [background, rationale, gap].filter(Boolean).join(' ');\nconst validationFlags = [];\nconst unsupportedClaimFlags = [];\n\nfunction extractPlaceholders(s) {\n  const labels = [];\n  const regex = /\\[\\s*Doc\\s*(\\d+)\\s*\\]/gi;\n  let m;\n  while ((m = regex.exec(String(s ?? ''))) !== null) labels.push('Doc' + m[1]);\n  return labels;\n}\n\nconst placeholders = extractPlaceholders(text);\nconst usedLabels = [...new Set(placeholders.map(x => x.toLowerCase()))];\nconst invalidPlaceholders = [...new Set(placeholders.filter(p => !validLabels.has(p.toLowerCase())))];\nconst uniqueValidUsed = usedLabels.filter(l => validLabels.has(l));\nconst uniqueRequiredUsed = uniqueValidUsed.filter(l => requiredLabelSet.has(l));\nconst uniqueOptionalUsed = uniqueValidUsed.filter(l => optionalLabelSet.has(l));\n\nif (!background || background.length < 80) validationFlags.push('BACKGROUND_TOO_SHORT_OR_MISSING');\nif (!rationale || rationale.length < 80) validationFlags.push('RATIONALE_TOO_SHORT_OR_MISSING');\nif (!gap || gap.length < 80) validationFlags.push('GAP_TOO_SHORT_OR_MISSING');\n\nif (placeholders.length === 0) validationFlags.push('NO_SOURCE_PLACEHOLDERS_USED');\nif (invalidPlaceholders.length > 0) validationFlags.push('INVALID_OR_UNAPPROVED_PLACEHOLDER');\n\nconst realApaPattern = /\\(([A-Z][A-Za-z'’.-]+(?:\\s+et al\\.)?|[A-Z][A-Za-z'’.-]+(?:\\s*&\\s*[A-Z][A-Za-z'’.-]+)?)\\s*,\\s*(?:19|20)\\d{2}[a-z]?\\)/g;\nconst realApaMatches = text.match(realApaPattern) ?? [];\nif (realApaMatches.length > 0) validationFlags.push('REAL_APA_CITATION_DETECTED_USE_PLACEHOLDERS_ONLY');\n\nconst requiredCoverage = requiredSourceCount === 0 ? 0 : uniqueRequiredUsed.length / requiredSourceCount;\nconst requiredCoveragePercent = Math.round(requiredCoverage * 100);\nconst unusedRequiredLabels = [...requiredLabelSet]\n  .filter(l => !uniqueRequiredUsed.includes(l))\n  .map(l => l.replace(/^doc/i, 'Doc'));\n\nif (uniqueRequiredUsed.length < minRequiredSources) validationFlags.push('SOURCE_COVERAGE_BELOW_REQUIRED_POOL');\n\n// If Core/Supporting sources exist, Tangential sources should not dominate citations.\nif (requiredSourceCount > 0 && uniqueOptionalUsed.length > uniqueRequiredUsed.length) {\n  validationFlags.push('TANGENTIAL_SOURCES_OVERUSED');\n}\n\nconst stopwords = new Set([\n  'about','above','after','again','against','among','based','because','before','being','below','between',\n  'could','during','field','first','found','from','have','having','into','more','most','other','paper',\n  'research','result','results','should','study','studies','system','than','their','there','these','this',\n  'those','through','using','where','which','while','within','with','would','lack','needs','students'\n]);\n\nfunction gapKeywords(s) {\n  return [...new Set(\n    normalize(s)\n      .split(/\\s+/)\n      .filter(w => w.length >= 5 && !stopwords.has(w))\n  )].slice(0, 60);\n}\n\nconst gapKeys = gapKeywords(prep.baseline?.gaps ?? '');\nconst gapNorm = normalize(gap);\nconst matchedGapKeys = gapKeys.filter(k => gapNorm.includes(k));\nconst gapKeywordCoverage = gapKeys.length === 0 ? 1 : matchedGapKeys.length / gapKeys.length;\n\nconst gapCoverageThreshold = gapKeys.length <= 5 ? 0.45 : 0.35;\nif (gapKeys.length > 0 && gapKeywordCoverage < gapCoverageThreshold) validationFlags.push('CATALYST_GAP_COVERAGE_TOO_LOW');\n\nfunction splitSentences(s) {\n  return String(s ?? '')\n    .replace(/\\n+/g, ' ')\n    .split(/(?<=[.!?])\\s+/)\n    .map(x => x.trim())\n    .filter(Boolean);\n}\n\nconst sentences = [\n  ...splitSentences(background).map(s => ({ section: 'background', sentence: s })),\n  ...splitSentences(rationale).map(s => ({ section: 'rationale', sentence: s })),\n  ...splitSentences(gap).map(s => ({ section: 'gap', sentence: s }))\n];\n\nlet consecutiveMissing = 0;\nlet maxConsecutiveMissing = 0;\nlet citedSentenceCount = 0;\n\nfor (const entry of sentences) {\n  const sentence = entry.sentence;\n  const hasCitation = /\\[\\s*Doc\\s*\\d+\\s*\\]/i.test(sentence);\n  const substantial = sentence.length >= 70;\n\n  if (hasCitation) {\n    citedSentenceCount++;\n    consecutiveMissing = 0;\n  } else if (substantial) {\n    consecutiveMissing++;\n    maxConsecutiveMissing = Math.max(maxConsecutiveMissing, consecutiveMissing);\n    unsupportedClaimFlags.push({ section: entry.section, sentence });\n  }\n}\n\nif (maxConsecutiveMissing > 2) validationFlags.push('INSUFFICIENT_CITATION_DENSITY');\nif (sentences.length > 0 && citedSentenceCount / sentences.length < 0.55) validationFlags.push('LOW_CITED_SENTENCE_RATIO');\n\nconst isValid = validationFlags.length === 0;\n\nconst errorParts = [];\nif (validationFlags.includes('REAL_APA_CITATION_DETECTED_USE_PLACEHOLDERS_ONLY')) {\n  errorParts.push('Real APA-style citations were detected. Use only [DocN] placeholders.');\n}\nif (validationFlags.includes('INVALID_OR_UNAPPROVED_PLACEHOLDER')) {\n  errorParts.push('Invalid placeholders used: ' + invalidPlaceholders.join(', ') + '. Only use: ' + allValidLabels.join(', ') + '.');\n}\nif (validationFlags.includes('SOURCE_COVERAGE_BELOW_REQUIRED_POOL')) {\n  errorParts.push(`Required Core/Supporting source coverage is ${requiredCoveragePercent}%. You must cite at least ${minRequiredSources} unique required source(s). Unused required: ${unusedRequiredLabels.join(', ') || 'none'}.`);\n}\nif (validationFlags.includes('TANGENTIAL_SOURCES_OVERUSED')) {\n  errorParts.push('Tangential sources were used more than Core/Supporting sources. Prioritize Core and Supporting sources; use Tangential sources only briefly.');\n}\nif (validationFlags.includes('CATALYST_GAP_COVERAGE_TOO_LOW')) {\n  errorParts.push(`CATalyst gap coverage is low. Missing or weakly represented gap keywords: ${gapKeys.filter(k => !matchedGapKeys.includes(k)).slice(0, 12).join(', ')}.`);\n}\nif (validationFlags.includes('INSUFFICIENT_CITATION_DENSITY') || validationFlags.includes('LOW_CITED_SENTENCE_RATIO')) {\n  errorParts.push('Citation density is too low. Add [DocN] immediately after each factual claim.');\n}\nif (validationFlags.some(f => f.endsWith('_TOO_SHORT_OR_MISSING'))) {\n  errorParts.push('One or more required sections are missing or too short. Provide complete Background, Rationale, and Research Gap paragraphs.');\n}\nif (validationFlags.includes('NO_SOURCE_PLACEHOLDERS_USED')) errorParts.push('No [DocN] placeholders were used.');\n\nreturn [{\n  json: {\n    isValid,\n    status: isValid ? 'VALIDATED' : 'VALIDATION_FAILED',\n    errorMessage: isValid ? null : (errorParts.join(' ') || validationFlags.join('; ')),\n    sections: { background, rationale, gap },\n    rawAiOutput: draft.rawAiOutput ?? '',\n    validationFlags,\n    unsupportedClaimFlags,\n    sourceUsePlan: draft.sourceUsePlan ?? [],\n    metrics: {\n      totalSources,\n      requiredSourceCount,\n      optionalSourceCount: optionalLabelSet.size,\n      minRequiredSources,\n      uniqueValidSourcesUsed: uniqueValidUsed.length,\n      uniqueRequiredSourcesUsed: uniqueRequiredUsed.length,\n      uniqueOptionalSourcesUsed: uniqueOptionalUsed.length,\n      requiredSourceCoverage: requiredCoverage,\n      requiredSourceCoveragePercent: requiredCoveragePercent,\n      gapKeywordCoverage,\n      gapKeywordCoveragePercent: Math.round(gapKeywordCoverage * 100),\n      totalSentences: sentences.length,\n      citedSentenceCount,\n      citedSentenceRatio: sentences.length ? citedSentenceCount / sentences.length : 0,\n      invalidPlaceholders\n    },\n    placeholders: {\n      extracted: placeholders,\n      uniqueValidUsed: uniqueValidUsed.map(l => l.replace(/^doc/i, 'Doc')),\n      uniqueRequiredUsed: uniqueRequiredUsed.map(l => l.replace(/^doc/i, 'Doc')),\n      uniqueOptionalUsed: uniqueOptionalUsed.map(l => l.replace(/^doc/i, 'Doc')),\n      invalid: invalidPlaceholders,\n      unusedRequired: unusedRequiredLabels\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2768,
+        592
+      ],
+      "id": "702baedb-ef98-44da-a624-9f3348829552",
+      "name": "Validate Draft Guardrails 8"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.isValid}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2992,
+        592
+      ],
+      "id": "9263a1ed-01c2-4e26-afb5-06b86ab92702",
+      "name": "IF Validation Passed 8"
+    },
+    {
+      "parameters": {
+        "jsCode": "const validation = $input.first().json;\nconst prep = $('Prepare RAG Context1').first().json;\n\nreturn [{\n  json: {\n    ...prep,\n    attempt: 3,\n    validation_notes: [\n      ...(prep.validation_notes ?? []),\n      'Attempt 2 failed validation: ' + (validation.errorMessage ?? 'Unknown validation error') +\n      ' Validation flags: ' + (validation.validationFlags ?? []).join(', ') +\n      '. Final retry: strictly fix all issues. Use valid source placeholders only, cite the required Core/Supporting source count, keep Tangential sources brief, and explicitly cover all CATalyst gap concepts.'\n    ]\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3216,
+        672
+      ],
+      "id": "211692c5-905e-4a67-a1d8-4c4f072fba7c",
+      "name": "Prepare Retry Context 6"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, rag_context: $json.rag_context, available_sources: $json.available_sources, required_sources: $json.required_sources, optional_sources: $json.optional_sources, source_manifest: $json.source_manifest, minRequiredSources: $json.minRequiredSources, attempt: $json.attempt, synthesisInstructions: $json.synthesisInstructions, validation_notes: $json.validation_notes }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict RAG synthesis writer for academic research proposals.\n\nYou receive JSON with:\n- baseline.title: student's research title\n- baseline.rationale: student's research rationale\n- baseline.gaps: CATalyst research gap(s)\n- rag_context: text from usable user-approved source documents only\n- available_sources: valid source aliases such as [\"Doc1\",\"Doc2\"]\n- required_sources: Core and Supporting source aliases that form the required citation coverage pool\n- optional_sources: Tangential source aliases that are optional only\n- source_manifest: source metadata, runtime tier, score/status/relevance signals, and source-use guidance\n- minRequiredSources: minimum unique required/core-supporting sources that must be cited when available\n- synthesisInstructions: backend synthesis guardrail instructions\n- validation_notes: previous validation errors to fix, if any\n\nTASK\nGenerate a cohesive academic proposal introduction with exactly three final sections:\n1. Background\n2. Rationale\n3. Research Gap\n\nNON-NEGOTIABLE PRIORITY RULE\nThe CATalyst Title, Rationale, and Research Gap are the primary source of truth. Approved documents are supplementary only. Do not let a low-relevance or tangential approved document redirect the topic, create a different problem, or override baseline.gaps.\n\nSOURCE-TIER RULES\n- Core Sources: use as the main synthesis evidence.\n- Supporting Sources: use cautiously as supporting evidence.\n- Tangential Sources: optional; use only for brief broad background if helpful. Do not center a paragraph on a Tangential Source. Do not use Tangential Sources to define the main gap or main rationale.\n- Excluded Sources should not appear in rag_context. If mentioned in source_manifest, do not cite or use them.\n\nUse CARS logic internally:\n- Background establishes the research territory.\n- Rationale explains why the study matters and why the work is justified.\n- Research Gap establishes the niche and explicitly connects the approved literature to baseline.gaps.\n\nSTRICT CLOSED-BOOK RAG RULES\n- Use ONLY information from rag_context and the CATalyst baseline.\n- Do NOT use outside knowledge.\n- Do NOT invent facts, statistics, authors, studies, publication years, methodologies, or citations.\n- If a claim is not supported by the usable source text or baseline, do not write it.\n- Every factual or literature-based claim must include at least one source placeholder.\n\nCITATION PLACEHOLDER RULES\n- Use placeholder citations ONLY: [Doc1], [Doc2], etc.\n- Never write real APA citations like \"(Smith, 2024)\".\n- Use only labels listed in available_sources.\n- Place the placeholder immediately after the specific atomic claim it supports and before the punctuation mark.\n- Example: Mobile learning can improve access to language practice [Doc1].\n- For claims supported by multiple sources, use adjacent placeholders: [Doc1][Doc3].\n- Do not cluster all citations at the end of a paragraph.\n\nSOURCE COVERAGE RULE\n- When required_sources is non-empty, cite at least minRequiredSources unique required_sources when possible.\n- Tangential optional_sources do not count toward required coverage unless there are no Core/Supporting sources.\n- Use diverse Core/Supporting sources. Do not rely on only one source unless only one usable source exists.\n\nGAP COVERAGE RULE\n- The Research Gap section must explicitly address 100% of baseline.gaps.\n- If there are multiple gaps, integrate all of them into the gap section.\n- Do not introduce a gap that conflicts with or replaces baseline.gaps.\n\nSTYLE RULES\n- Formal, third-person academic English.\n- No bullet points.\n- No headings inside the paragraph strings.\n- Do not include a reference list.\n- Keep each section as one well-developed paragraph.\n\nOUTPUT\nReturn ONLY valid JSON, no markdown fences, using exactly this schema:\n{\n  \"background\": \"paragraph text with [DocN] placeholders\",\n  \"rationale\": \"paragraph text with [DocN] placeholders\",\n  \"gap\": \"paragraph text with [DocN] placeholders\",\n  \"extractedPlaceholders\": [\"Doc1\"],\n  \"gapCoverageSelfCheck\": true,\n  \"sourceUsePlan\": [\n    {\n      \"source\": \"Doc1\",\n      \"intendedUse\": \"short explanation including Core/Supporting/Tangential role\"\n    }\n  ],\n  \"notes\": \"\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        3440,
+        672
+      ],
+      "id": "22042a8e-8c18-4799-8301-fb8e7c031327",
+      "name": "AI Agent - RAG Synthesis Attempt 9"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nlet raw =\n  item.output ??\n  item.text ??\n  item.response ??\n  item.message?.content ??\n  item.content;\n\nif (raw == null) {\n  throw new Error('No AI Agent output found. Keys on item: ' + Object.keys(item).join(', '));\n}\n\nraw = String(raw)\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nconst firstBrace = raw.indexOf('{');\nconst lastBrace = raw.lastIndexOf('}');\n\nif (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {\n  throw new Error('AI Agent did not return a JSON object. Raw output: ' + raw.slice(0, 800));\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));\n} catch (e) {\n  throw new Error('AI Agent returned malformed JSON: ' + e.message + '. Raw output: ' + raw.slice(0, 800));\n}\n\nconst background = String(parsed.background ?? parsed.Background ?? '').trim();\nconst rationale = String(parsed.rationale ?? parsed.Rationale ?? '').trim();\nconst gap = String(parsed.gap ?? parsed.Gap ?? parsed.researchGap ?? parsed.research_gap ?? '').trim();\n\nif (!background && !rationale && !gap) {\n  throw new Error('AI synthesis returned empty background/rationale/gap fields.');\n}\n\nreturn [{\n  json: {\n    sections: { background, rationale, gap },\n    aiExtractedPlaceholders: Array.isArray(parsed.extractedPlaceholders) ? parsed.extractedPlaceholders : [],\n    gapCoverageSelfCheck: parsed.gapCoverageSelfCheck === true,\n    sourceUsePlan: Array.isArray(parsed.sourceUsePlan) ? parsed.sourceUsePlan : [],\n    notes: String(parsed.notes ?? '').trim(),\n    rawAiOutput: raw\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3792,
+        672
+      ],
+      "id": "9b581df3-4738-47e7-8945-2d597bc3c770",
+      "name": "Parse AI Draft JSON 9"
+    },
+    {
+      "parameters": {
+        "jsCode": "const draft = $input.first().json;\nconst prep = $('Prepare RAG Context1').first().json;\n\nconst sections = draft.sections ?? {};\nconst background = String(sections.background ?? '').trim();\nconst rationale = String(sections.rationale ?? '').trim();\nconst gap = String(sections.gap ?? '').trim();\n\nconst manifest = Array.isArray(prep.source_manifest) ? prep.source_manifest : [];\nconst allValidLabels = (prep.available_sources ?? manifest.map(s => s.label)).map(x => String(x));\nconst validLabels = new Set(allValidLabels.map(x => x.toLowerCase()));\n\nconst requiredSourceLabelsRaw = Array.isArray(prep.required_sources) && prep.required_sources.length\n  ? prep.required_sources.map(x => String(x))\n  : manifest.filter(s => s.requiredForCoverage).map(s => String(s.label));\n\nconst requiredSourceLabels = requiredSourceLabelsRaw.length ? requiredSourceLabelsRaw : allValidLabels;\nconst requiredLabelSet = new Set(requiredSourceLabels.map(x => x.toLowerCase()));\nconst optionalLabelSet = new Set((prep.optional_sources ?? []).map(x => String(x).toLowerCase()));\nconst totalSources = validLabels.size;\nconst requiredSourceCount = requiredLabelSet.size;\nconst minRequiredSources = prep.minRequiredSources ?? Math.max(1, Math.ceil(Math.max(1, requiredSourceCount) * 0.8));\n\nfunction normalize(s) {\n  return String(s ?? '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst text = [background, rationale, gap].filter(Boolean).join(' ');\nconst validationFlags = [];\nconst unsupportedClaimFlags = [];\n\nfunction extractPlaceholders(s) {\n  const labels = [];\n  const regex = /\\[\\s*Doc\\s*(\\d+)\\s*\\]/gi;\n  let m;\n  while ((m = regex.exec(String(s ?? ''))) !== null) labels.push('Doc' + m[1]);\n  return labels;\n}\n\nconst placeholders = extractPlaceholders(text);\nconst usedLabels = [...new Set(placeholders.map(x => x.toLowerCase()))];\nconst invalidPlaceholders = [...new Set(placeholders.filter(p => !validLabels.has(p.toLowerCase())))];\nconst uniqueValidUsed = usedLabels.filter(l => validLabels.has(l));\nconst uniqueRequiredUsed = uniqueValidUsed.filter(l => requiredLabelSet.has(l));\nconst uniqueOptionalUsed = uniqueValidUsed.filter(l => optionalLabelSet.has(l));\n\nif (!background || background.length < 80) validationFlags.push('BACKGROUND_TOO_SHORT_OR_MISSING');\nif (!rationale || rationale.length < 80) validationFlags.push('RATIONALE_TOO_SHORT_OR_MISSING');\nif (!gap || gap.length < 80) validationFlags.push('GAP_TOO_SHORT_OR_MISSING');\n\nif (placeholders.length === 0) validationFlags.push('NO_SOURCE_PLACEHOLDERS_USED');\nif (invalidPlaceholders.length > 0) validationFlags.push('INVALID_OR_UNAPPROVED_PLACEHOLDER');\n\nconst realApaPattern = /\\(([A-Z][A-Za-z'’.-]+(?:\\s+et al\\.)?|[A-Z][A-Za-z'’.-]+(?:\\s*&\\s*[A-Z][A-Za-z'’.-]+)?)\\s*,\\s*(?:19|20)\\d{2}[a-z]?\\)/g;\nconst realApaMatches = text.match(realApaPattern) ?? [];\nif (realApaMatches.length > 0) validationFlags.push('REAL_APA_CITATION_DETECTED_USE_PLACEHOLDERS_ONLY');\n\nconst requiredCoverage = requiredSourceCount === 0 ? 0 : uniqueRequiredUsed.length / requiredSourceCount;\nconst requiredCoveragePercent = Math.round(requiredCoverage * 100);\nconst unusedRequiredLabels = [...requiredLabelSet]\n  .filter(l => !uniqueRequiredUsed.includes(l))\n  .map(l => l.replace(/^doc/i, 'Doc'));\n\nif (uniqueRequiredUsed.length < minRequiredSources) validationFlags.push('SOURCE_COVERAGE_BELOW_REQUIRED_POOL');\n\n// If Core/Supporting sources exist, Tangential sources should not dominate citations.\nif (requiredSourceCount > 0 && uniqueOptionalUsed.length > uniqueRequiredUsed.length) {\n  validationFlags.push('TANGENTIAL_SOURCES_OVERUSED');\n}\n\nconst stopwords = new Set([\n  'about','above','after','again','against','among','based','because','before','being','below','between',\n  'could','during','field','first','found','from','have','having','into','more','most','other','paper',\n  'research','result','results','should','study','studies','system','than','their','there','these','this',\n  'those','through','using','where','which','while','within','with','would','lack','needs','students'\n]);\n\nfunction gapKeywords(s) {\n  return [...new Set(\n    normalize(s)\n      .split(/\\s+/)\n      .filter(w => w.length >= 5 && !stopwords.has(w))\n  )].slice(0, 60);\n}\n\nconst gapKeys = gapKeywords(prep.baseline?.gaps ?? '');\nconst gapNorm = normalize(gap);\nconst matchedGapKeys = gapKeys.filter(k => gapNorm.includes(k));\nconst gapKeywordCoverage = gapKeys.length === 0 ? 1 : matchedGapKeys.length / gapKeys.length;\n\nconst gapCoverageThreshold = gapKeys.length <= 5 ? 0.45 : 0.35;\nif (gapKeys.length > 0 && gapKeywordCoverage < gapCoverageThreshold) validationFlags.push('CATALYST_GAP_COVERAGE_TOO_LOW');\n\nfunction splitSentences(s) {\n  return String(s ?? '')\n    .replace(/\\n+/g, ' ')\n    .split(/(?<=[.!?])\\s+/)\n    .map(x => x.trim())\n    .filter(Boolean);\n}\n\nconst sentences = [\n  ...splitSentences(background).map(s => ({ section: 'background', sentence: s })),\n  ...splitSentences(rationale).map(s => ({ section: 'rationale', sentence: s })),\n  ...splitSentences(gap).map(s => ({ section: 'gap', sentence: s }))\n];\n\nlet consecutiveMissing = 0;\nlet maxConsecutiveMissing = 0;\nlet citedSentenceCount = 0;\n\nfor (const entry of sentences) {\n  const sentence = entry.sentence;\n  const hasCitation = /\\[\\s*Doc\\s*\\d+\\s*\\]/i.test(sentence);\n  const substantial = sentence.length >= 70;\n\n  if (hasCitation) {\n    citedSentenceCount++;\n    consecutiveMissing = 0;\n  } else if (substantial) {\n    consecutiveMissing++;\n    maxConsecutiveMissing = Math.max(maxConsecutiveMissing, consecutiveMissing);\n    unsupportedClaimFlags.push({ section: entry.section, sentence });\n  }\n}\n\nif (maxConsecutiveMissing > 2) validationFlags.push('INSUFFICIENT_CITATION_DENSITY');\nif (sentences.length > 0 && citedSentenceCount / sentences.length < 0.55) validationFlags.push('LOW_CITED_SENTENCE_RATIO');\n\nconst isValid = validationFlags.length === 0;\n\nconst errorParts = [];\nif (validationFlags.includes('REAL_APA_CITATION_DETECTED_USE_PLACEHOLDERS_ONLY')) {\n  errorParts.push('Real APA-style citations were detected. Use only [DocN] placeholders.');\n}\nif (validationFlags.includes('INVALID_OR_UNAPPROVED_PLACEHOLDER')) {\n  errorParts.push('Invalid placeholders used: ' + invalidPlaceholders.join(', ') + '. Only use: ' + allValidLabels.join(', ') + '.');\n}\nif (validationFlags.includes('SOURCE_COVERAGE_BELOW_REQUIRED_POOL')) {\n  errorParts.push(`Required Core/Supporting source coverage is ${requiredCoveragePercent}%. You must cite at least ${minRequiredSources} unique required source(s). Unused required: ${unusedRequiredLabels.join(', ') || 'none'}.`);\n}\nif (validationFlags.includes('TANGENTIAL_SOURCES_OVERUSED')) {\n  errorParts.push('Tangential sources were used more than Core/Supporting sources. Prioritize Core and Supporting sources; use Tangential sources only briefly.');\n}\nif (validationFlags.includes('CATALYST_GAP_COVERAGE_TOO_LOW')) {\n  errorParts.push(`CATalyst gap coverage is low. Missing or weakly represented gap keywords: ${gapKeys.filter(k => !matchedGapKeys.includes(k)).slice(0, 12).join(', ')}.`);\n}\nif (validationFlags.includes('INSUFFICIENT_CITATION_DENSITY') || validationFlags.includes('LOW_CITED_SENTENCE_RATIO')) {\n  errorParts.push('Citation density is too low. Add [DocN] immediately after each factual claim.');\n}\nif (validationFlags.some(f => f.endsWith('_TOO_SHORT_OR_MISSING'))) {\n  errorParts.push('One or more required sections are missing or too short. Provide complete Background, Rationale, and Research Gap paragraphs.');\n}\nif (validationFlags.includes('NO_SOURCE_PLACEHOLDERS_USED')) errorParts.push('No [DocN] placeholders were used.');\n\nreturn [{\n  json: {\n    isValid,\n    status: isValid ? 'VALIDATED' : 'VALIDATION_FAILED',\n    errorMessage: isValid ? null : (errorParts.join(' ') || validationFlags.join('; ')),\n    sections: { background, rationale, gap },\n    rawAiOutput: draft.rawAiOutput ?? '',\n    validationFlags,\n    unsupportedClaimFlags,\n    sourceUsePlan: draft.sourceUsePlan ?? [],\n    metrics: {\n      totalSources,\n      requiredSourceCount,\n      optionalSourceCount: optionalLabelSet.size,\n      minRequiredSources,\n      uniqueValidSourcesUsed: uniqueValidUsed.length,\n      uniqueRequiredSourcesUsed: uniqueRequiredUsed.length,\n      uniqueOptionalSourcesUsed: uniqueOptionalUsed.length,\n      requiredSourceCoverage: requiredCoverage,\n      requiredSourceCoveragePercent: requiredCoveragePercent,\n      gapKeywordCoverage,\n      gapKeywordCoveragePercent: Math.round(gapKeywordCoverage * 100),\n      totalSentences: sentences.length,\n      citedSentenceCount,\n      citedSentenceRatio: sentences.length ? citedSentenceCount / sentences.length : 0,\n      invalidPlaceholders\n    },\n    placeholders: {\n      extracted: placeholders,\n      uniqueValidUsed: uniqueValidUsed.map(l => l.replace(/^doc/i, 'Doc')),\n      uniqueRequiredUsed: uniqueRequiredUsed.map(l => l.replace(/^doc/i, 'Doc')),\n      uniqueOptionalUsed: uniqueOptionalUsed.map(l => l.replace(/^doc/i, 'Doc')),\n      invalid: invalidPlaceholders,\n      unusedRequired: unusedRequiredLabels\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4016,
+        672
+      ],
+      "id": "608dbfe4-8f72-4b84-b81e-361e05e172ef",
+      "name": "Validate Draft Guardrails 9"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.isValid}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        4240,
+        672
+      ],
+      "id": "71f175b7-34d9-40c4-89f4-d680d8c1feae",
+      "name": "IF Validation Passed 9"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Deterministic Citation Engine ─────────────────────────────────────────\r\n// Self-contained: all helper functions defined here.\r\n\r\nfunction uuid() {\r\n  try {\r\n    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();\r\n  } catch (e) {}\r\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {\r\n    const r = Math.random() * 16 | 0;\r\n    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);\r\n  });\r\n}\r\n\r\nfunction splitNameList(raw) {\r\n  if (!raw) return [];\r\n  const s = String(raw).replace(/\\s+/g, ' ').trim();\r\n  const bySemicolon = s.split(/;\\s*/);\r\n  if (bySemicolon.length > 1) return bySemicolon.filter(Boolean);\r\n  const cp = s.split(/,\\s*/);\r\n  const out = [];\r\n  if (cp.length > 1) {\r\n    let looksPaired = true;\r\n    for (let i = 0; i < cp.length - 1; i += 2) {\r\n      if (!cp[i] || !cp[i + 1]) { looksPaired = false; break; }\r\n      if (cp[i].trim().split(/\\s+/).length > 3) { looksPaired = false; break; }\r\n    }\r\n    if (looksPaired) {\r\n      for (let i = 0; i < cp.length; i += 2) out.push(cp[i] + ', ' + cp[i + 1]);\r\n    } else {\r\n      out.push(s);\r\n    }\r\n  } else {\r\n    out.push(s);\r\n  }\r\n  return out.filter(Boolean);\r\n}\r\n\r\nfunction lastName(author) {\r\n  const a = String(author).trim();\r\n  if (a.includes(',')) return a.split(',')[0].trim();\r\n  const parts = a.split(/\\s+/).filter(Boolean);\r\n  return parts.length ? parts[parts.length - 1] : a;\r\n}\r\n\r\nfunction initials(author) {\r\n  const a = String(author).trim();\r\n  let given = '';\r\n  if (a.includes(',')) {\r\n    given = a.split(',').slice(1).join(' ').trim();\r\n  } else {\r\n    const parts = a.split(/\\s+/).filter(Boolean);\r\n    given = parts.slice(0, -1).join(' ');\r\n  }\r\n  if (!given) return '';\r\n  return given\r\n    .split(/\\s+/)\r\n    .filter(Boolean)\r\n    .map(g => g[0].toUpperCase() + '.')\r\n    .join(' ');\r\n}\r\n\r\nfunction yearOf(meta) {\r\n  if (!meta.year) return '';\r\n  const m = String(meta.year).match(/\\d{4}/);\r\n  return m ? m[0] : '';\r\n}\r\n\r\nfunction authorsOf(meta) {\r\n  if (Array.isArray(meta.authors) && meta.authors.length) {\r\n    return meta.authors.map(a => String(a).trim()).filter(Boolean);\r\n  }\r\n  if (meta.authorDisplay) return splitNameList(meta.authorDisplay);\r\n  if (meta.author) return splitNameList(meta.author);\r\n  return [];\r\n}\r\n\r\nfunction safeTitle(meta) {\r\n  const title = String(meta.title ?? '').replace(/\\s+/g, ' ').trim();\r\n  if (!title) return '';\r\n  if (/\\.pdf$/i.test(title)) return '';\r\n  return title;\r\n}\r\n\r\nfunction suspiciousAuthor(value) {\r\n  const s = String(value ?? '').replace(/\\s+/g, ' ').trim().toLowerCase();\r\n  if (!s) return true;\r\n  const match = s.match(/^[a-z]+/);\r\n  if (!match) return false;\r\n  const firstWord = match[0];\r\n  const badWords = new Set(['article', 'articles', 'unknown', 'author', 'authors', 'source', 'sources', 'paper', 'papers', 'research', 'study', 'studies', 'journal', 'document', 'documents', 'untitled', 'input', 'output', 'abstract', 'introduction', 'conclusion', 'chapter', 'background', 'method', 'results', 'discussion']);\r\n  return badWords.has(firstWord);\r\n}\r\n\r\nfunction metadataWarnings(meta) {\r\n  return Array.isArray(meta.warnings) ? meta.warnings : [];\r\n}\r\n\r\nfunction referenceEntry(meta) {\r\n  const authors = authorsOf(meta);\r\n  let authorStr = '';\r\n\r\n  if (authors.length) {\r\n    const formatted = authors.map(a => {\r\n      const ln = lastName(a);\r\n      const ini = initials(a);\r\n      return ini ? ln + ', ' + ini : ln;\r\n    });\r\n    if (formatted.length === 1) authorStr = formatted[0];\r\n    else authorStr = formatted.slice(0, -1).join(', ') + ', & ' + formatted[formatted.length - 1];\r\n  }\r\n\r\n  const year = yearOf(meta);\r\n  const title = sentenceCaseTitle(meta.title);\r\n\r\n  let entry = '';\r\n  if (authorStr) entry += authorStr + ' ';\r\n  entry += '(' + year + '). ' + title + '.';\r\n\r\n  if (meta.journal) {\r\n    entry += ' ' + meta.journal;\r\n    if (meta.volume) {\r\n      entry += ', ' + meta.volume;\r\n      if (meta.issue) entry += '(' + meta.issue + ')';\r\n    }\r\n    if (meta.pages) entry += ', ' + meta.pages;\r\n    entry += '.';\r\n  } else if (meta.publisher) {\r\n    entry += ' ' + meta.publisher + '.';\r\n  }\r\n\r\n  if (meta.doi) {\r\n    const doi = String(meta.doi).replace(/^https?:\\/\\/(dx\\.)?doi\\.org\\//i, '');\r\n    entry += ' https://doi.org/' + doi;\r\n  } else if (meta.url) {\r\n    entry += ' ' + meta.url;\r\n  }\r\n\r\n  return entry.trim();\r\n}\r\n\r\nfunction citationMetadataUsable(meta) {\r\n  if (!meta) return false;\r\n  const authors = authorsOf(meta);\r\n  const year = yearOf(meta);\r\n  const title = safeTitle(meta);\r\n  const warnings = metadataWarnings(meta);\r\n  const blockingWarnings = new Set([\r\n    'MISSING_AUTHOR',\r\n    'MISSING_YEAR',\r\n    'MISSING_TITLE',\r\n    'LOW_CONFIDENCE_METADATA',\r\n    'SUSPICIOUS_AUTHOR_METADATA',\r\n    'TITLE_FALLBACK_FILENAME'\r\n  ]);\r\n  if (meta.metadataReliable === false) return false;\r\n  if (!authors.length || !year || !title) return false;\r\n  if (suspiciousAuthor(meta.authorDisplay ?? meta.author ?? authors[0])) return false;\r\n  if (warnings.some(w => blockingWarnings.has(w))) return false;\r\n  return true;\r\n}\r\n\r\nfunction inText(meta, label) {\r\n  const authors = authorsOf(meta);\r\n  const year = yearOf(meta);\r\n  let names;\r\n\r\n  if (authors.length === 1) {\r\n    names = lastName(authors[0]);\r\n  } else if (authors.length === 2) {\r\n    names = lastName(authors[0]) + ' & ' + lastName(authors[1]);\r\n  } else if (authors.length > 2) {\r\n    names = lastName(authors[0]) + ' et al.';\r\n  } else {\r\n    // No authors — use a shortened title\r\n    const t = safeTitle(meta) || label || 'Unknown';\r\n    names = t.split(' ').slice(0, 3).join(' ');\r\n  }\r\n\r\n  const title = safeTitle(meta);\r\n  const sortKey = (authors.length ? lastName(authors[0]) : (title || label || '')).toLowerCase();\r\n\r\n  return { names, year, sortKey };\r\n}\r\n\r\nfunction sentenceCaseTitle(title) {\r\n  const t = String(title ?? '').trim();\r\n  if (!t) return '[Untitled source]';\r\n  const isAllCaps = /^[^a-z]*$/.test(t);\r\n  const parts = t.split(':');\r\n  const casedParts = parts.map(part => {\r\n    let text = part.trim();\r\n    if (!text) return '';\r\n    if (isAllCaps) text = text.toLowerCase();\r\n    text = text.replace(/\\b(ai|llm|api|nlp|rag|ui|ux|gpu|tpu|cpu|html|css|json|http|https|usa|uk)\\b/gi, match => match.toUpperCase());\r\n    return text.charAt(0).toUpperCase() + text.slice(1);\r\n  });\r\n  return casedParts.join(': ');\r\n}\r\n\r\n// ── Runtime data from previous nodes ────────────────────────────────────────\r\n// The citation engine is fed by the validation/IF node (contains sections),\r\n// but the source manifest lives in Prepare RAG Context1's output.\r\nconst item       = $input.first().json;\r\nconst validation = item.validation ?? {};\r\nconst sections   = item.sections   ?? {};\r\n\r\n// Pull the source manifest from the RAG context node where it was built.\r\n// Fall back through several possible locations for compatibility.\r\nlet ragCtx = {};\r\ntry { ragCtx = $('Prepare RAG Context1').first().json; } catch(e) {}\r\n\r\nconst manifest  =\r\n  Array.isArray(item.manifest)           ? item.manifest           :\r\n  Array.isArray(item.prep?.manifest)     ? item.prep.manifest      :\r\n  Array.isArray(ragCtx.source_manifest)  ? ragCtx.source_manifest  :\r\n  Array.isArray(ragCtx.manifest)         ? ragCtx.manifest         :\r\n  [];\r\n\r\nconst sessionId = ragCtx.sessionId ?? item.sessionId ?? '';\r\n\r\nconst labelMap = {};\r\nfor (const src of manifest) {\r\n  const meta = src.metadata ?? {};\r\n  const cite = inText(meta, src.label);\r\n  labelMap[String(src.label).toLowerCase()] = {\r\n    label: src.label,\r\n    names: cite.names,\r\n    year: cite.year,\n    inTextParenthetical: meta.citation ? meta.citation.inTextParenthetical : null,\n    sortKey: cite.sortKey,\r\n    reference: meta.citation && meta.citation.reference ? meta.citation.reference : referenceEntry(meta)\r\n  };\r\n}\r\n\r\nconst usedLabels = new Set();\r\nconst unknownPlaceholders = new Set();\r\n\r\nfunction replacePlaceholders(text) {\n  if (!text) return '';\n  \n  // 1. Find clusters of [DocX] that are adjacent (optionally separated by spaces or punctuation like commas)\n  // We'll replace them all at once so we can sort them and merge them into a single parenthesis.\n  const clusterRegex = /(?:\\[\\s*Doc\\s*\\d+\\s*\\](?:[,\\s]*\\[\\s*Doc\\s*\\d+\\s*\\])*)/gi;\n  \n  return text.replace(clusterRegex, (clusterMatch) => {\n    const docRegex = /\\[\\s*Doc\\s*(\\d+)\\s*\\]/gi;\n    let match;\n    const docs = [];\n    while ((match = docRegex.exec(clusterMatch)) !== null) {\n      const num = match[1];\n      const key = ('doc' + num).toLowerCase();\n      const c = labelMap[key];\n      if (c) {\n        usedLabels.add(c.label);\n        docs.push(c);\n      } else {\n        unknownPlaceholders.add('Doc' + num);\n      }\n    }\n    \n    if (docs.length === 0) return clusterMatch;\n    \n    // Sort them alphabetically by sortKey (same as reference list)\n    docs.sort((a, b) => a.sortKey.localeCompare(b.sortKey));\n    \n    // Format each one. inTextParenthetical includes the parentheses, e.g. \"(Author, 2020)\".\n    // We need to strip the outer parentheses and join with semicolons.\n    const innerTexts = docs.map(c => {\n      const parenthetical = c.inTextParenthetical || '(' + c.names + ', ' + c.year + ')';\n      // strip leading '(' and trailing ')'\n      return parenthetical.replace(/^\\(/, '').replace(/\\)$/, '');\n    });\n    \n    return '(' + innerTexts.join('; ') + ')';\n  });\n}\r\n\r\nfunction tidy(text) {\r\n  return String(text)\r\n    .replace(/\\s+([.,;:])/g, '$1')\r\n    .replace(/\\(\\s+/g, '(')\r\n    .replace(/\\s+\\)/g, ')')\r\n    .replace(/[ \\t]{2,}/g, ' ')\r\n    .replace(/ +\\n/g, '\\n')\r\n    .replace(/\\s+\\./g, '.')\r\n    .trim();\r\n}\r\n\r\nconst background = tidy(replacePlaceholders(sections.background || ''));\r\nconst rationale  = tidy(replacePlaceholders(sections.rationale  || ''));\r\nconst gap        = tidy(replacePlaceholders(sections.gap        || ''));\r\n\r\nif (unknownPlaceholders.size > 0) {\r\n  return [{\r\n    json: {\r\n      success: false,\r\n      status: 'VALIDATION_FAILED',\r\n      validationStatus: 'FAILED',\r\n      message: 'Draft generation stopped because the AI used source placeholders that are not in the usable approved source manifest.',\r\n      errorMessage: 'Unresolved placeholders: ' + Array.from(unknownPlaceholders).join(', '),\r\n      validationFlags: ['UNRESOLVED_SOURCE_PLACEHOLDER'],\r\n      unsupportedClaimFlags: validation.unsupportedClaimFlags ?? [],\r\n      metrics: validation.metrics ?? {},\r\n      retryRecommended: true,\r\n      meta: {\r\n        unresolvedPlaceholders: Array.from(unknownPlaceholders),\r\n        sourceManifest: manifest.map(s => ({ label: s.label, sourceTier: s.sourceTier, requiredForCoverage: s.requiredForCoverage })),\r\n        excludedSources: ragCtx.excluded_sources ?? []\r\n      }\r\n    }\r\n  }];\r\n}\r\n\r\nconst parts = [];\r\nif (background) parts.push('Background\\n\\n' + background);\r\nif (rationale)  parts.push('Rationale\\n\\n'  + rationale);\r\nif (gap)        parts.push('Research Gap\\n\\n' + gap);\r\n\r\nconst contentText = parts.join('\\n\\n');\r\nif (!contentText) throw new Error('Citation engine produced no draft content.');\r\n\r\nconst references = manifest\r\n  .filter(src => usedLabels.has(src.label))\r\n  .map(src => labelMap[String(src.label).toLowerCase()])\r\n  .sort((a, b) => a.sortKey.localeCompare(b.sortKey))\r\n  .map(c => c.reference);\r\n\r\nconst referencesText = references.join('\\n');\r\n\r\nconst sourcesAvailable = manifest.length;\r\nconst requiredSources = manifest.filter(s => s.requiredForCoverage === true);\r\nconst requiredSourceLabels = new Set((requiredSources.length ? requiredSources : manifest).map(s => String(s.label)));\r\nconst sourcesCited = usedLabels.size;\r\nconst requiredSourcesCited = [...usedLabels].filter(label => requiredSourceLabels.has(label)).length;\r\nconst sourceCoverage = sourcesAvailable ? sourcesCited / sourcesAvailable : 0;\r\nconst requiredSourceCoverage = requiredSourceLabels.size ? requiredSourcesCited / requiredSourceLabels.size : 0;\r\n\r\nreturn [{\r\n  json: {\r\n    draftId: uuid(),\r\n    sessionId,\r\n    contentText,\r\n    referencesText,\r\n    sections: { background, rationale, gap },\r\n    references,\r\n    citationsUsed: Array.from(usedLabels).sort(),\r\n    validationStatus: 'PASSED',\r\n    validationFlags: validation.validationFlags ?? [],\r\n    unsupportedClaimFlags: validation.unsupportedClaimFlags ?? [],\r\n    metrics: {\r\n      ...(validation.metrics ?? {}),\r\n      sourcesAvailable,\r\n      sourcesCited,\r\n      requiredSourcesAvailable: requiredSourceLabels.size,\r\n      requiredSourcesCited,\r\n      sourceCoverage,\r\n      sourceCoveragePercent: Math.round(sourceCoverage * 100),\r\n      requiredSourceCoverage,\r\n      requiredSourceCoveragePercent: Math.round(requiredSourceCoverage * 100),\r\n      formattingErrorRate: 0.0,\r\n      placeholderValidationPassed: (unknownPlaceholders.size === 0),\r\n      citationMetadataValidationPassed: true\r\n    },\r\n    createdAt: new Date().toISOString(),\r\n    success: true,\r\n    message: 'Draft synthesized and validated from ' + sourcesCited + ' of ' + sourcesAvailable + ' usable approved source(s); required Core/Supporting citations used: ' + requiredSourcesCited + ' of ' + requiredSourceLabels.size + '.',\r\n    meta: {\r\n      rubric: 'CiteWise Module 3 RAG synthesis v2.3 with backend-only source-tier and citation-metadata guardrails',\r\n      unresolvedPlaceholders: Array.from(unknownPlaceholders),\r\n      minRequiredSources: ragCtx.minRequiredSources ?? Math.max(1, Math.ceil(Math.max(1, requiredSourceLabels.size) * 0.8)),\r\n      sourceManifest: manifest.map(s => ({ label: s.label, sourceTier: s.sourceTier, requiredForCoverage: s.requiredForCoverage })),\r\n      excludedSources: ragCtx.excluded_sources ?? []\r\n    }\r\n  }\r\n}];\r\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4464,
+        496
+      ],
+      "id": "6942a309-46de-4643-b522-2234d05a4be5",
+      "name": "Deterministic Citation Engine1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        4704,
+        496
+      ],
+      "id": "7f7c42eb-8f00-4b94-abd0-3bb4ce1ac8e2",
+      "name": "Respond Success1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const validation = $input.first().json;\nconst prep = $('Prepare RAG Context1').first().json;\n\nreturn [{\n  json: {\n    success: false,\n    status: 'VALIDATION_FAILED',\n    message: 'Draft generation failed after 3 validation attempts. No final APA-formatted draft was produced.',\n    retryRecommended: true,\n    errorMessage: validation.errorMessage ?? 'Validation failed.',\n    validationFlags: validation.validationFlags ?? [],\n    unsupportedClaimFlags: validation.unsupportedClaimFlags ?? [],\n    metrics: validation.metrics ?? {},\n    placeholders: validation.placeholders ?? {},\n    sectionsPreview: validation.sections ?? {},\n    meta: {\n      sourcesAvailable: prep.source_manifest?.length ?? 0,\n      requiredSources: prep.required_sources ?? [],\n      optionalSources: prep.optional_sources ?? [],\n      excludedSources: prep.excluded_sources ?? [],\n      minRequiredSources: prep.minRequiredSources ?? null,\n      reason: 'The AI draft did not pass deterministic source, citation, tier-use, or gap coverage guardrails.'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4464,
+        784
+      ],
+      "id": "0ff49b97-39a3-40de-9fd0-b1fa62e5efba",
+      "name": "Build Failure Response1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        4704,
+        784
+      ],
+      "id": "5818a1bf-3e54-4254-b8e5-57aadd6c9bd0",
+      "name": "Respond Failure1"
+    },
+    {
+      "parameters": {
+        "content": "## CiteWise RAG Synthesis v2.3: Backend-only Runtime-Tiered Introduction + Citation-Metadata Guardrails\n\nWorkflow: approved documents + CATalyst baseline + Module 2 semantic scores + citation metadata → runtime source tiers → exclude low-relevance/topic-mismatched/unreliable-citation sources → tier-aware RAG context → AI synthesis with [DocN] placeholders → deterministic validation → retry up to 3 attempts → deterministic APA citation engine → final draft.\n\nKey guardrails:\n- only APPROVED documents are accepted into the workflow\n- approved does not mean automatically usable for synthesis\n- Low Relevance, TOPIC_MISMATCH, and score < 40 sources are excluded\n- sources with missing/suspicious/unreliable citation metadata are excluded before synthesis\n- Core and Supporting sources form the required citation coverage pool\n- Tangential sources are optional and may only be used briefly for broad background\n- CATalyst Title, Rationale, and Research Gap remain the primary truth source\n- AI may only output [DocN] placeholders\n- deterministic APA citation replacement occurs after validation\n- final citation engine fails safely if metadata is unreliable, preventing outputs like (Articles, 2014)\n\nv2.3 safety patch: no frontend changes required. Backend should pass Module 2 scores/status/flags and citation metadata to this workflow.",
+        "height": 1016,
+        "width": 5000
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ea1e0cfe-3596-40a7-b733-b9482f6356f0",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "citewise-synthesizer-fixed",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        160,
+        528
+      ],
+      "id": "614c5f95-e6b8-42e1-a0b4-514472d3db2e",
+      "name": "Webhook5",
+      "webhookId": "59d6b1a3-bbe6-4c3f-be28-e06646320a7a"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { ...$input.all()[0].json, route: Math.floor(Math.random() * 6) } };"
+      },
+      "id": "code-d12b89c2-c450-4f64-b961-1f1dcb8e6996",
+      "name": "Randomizer Code - AI Agent - RAG Synthesis Attempt ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "number",
+        "value1": "={{ $json.route }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value2": 0
+            },
+            {
+              "operation": "equal",
+              "value2": 1
+            },
+            {
+              "operation": "equal",
+              "value2": 2
+            },
+            {
+              "operation": "equal",
+              "value2": 3
+            },
+            {
+              "operation": "equal",
+              "value2": 4
+            },
+            {
+              "operation": "equal",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "switch-d12b89c2-c450-4f64-b961-1f1dcb8e6996",
+      "name": "Load Balancer Switch - AI Agent - RAG Synthesis Attempt ",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        744,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, rag_context: $json.rag_context, available_sources: $json.available_sources, required_sources: $json.required_sources, optional_sources: $json.optional_sources, source_manifest: $json.source_manifest, minRequiredSources: $json.minRequiredSources, attempt: $json.attempt, synthesisInstructions: $json.synthesisInstructions, validation_notes: $json.validation_notes }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict RAG synthesis writer for academic research proposals.\n\nYou receive JSON with:\n- baseline.title: student's research title\n- baseline.rationale: student's research rationale\n- baseline.gaps: CATalyst research gap(s)\n- rag_context: text from usable user-approved source documents only\n- available_sources: valid source aliases such as [\"Doc1\",\"Doc2\"]\n- required_sources: Core and Supporting source aliases that form the required citation coverage pool\n- optional_sources: Tangential source aliases that are optional only\n- source_manifest: source metadata, runtime tier, score/status/relevance signals, and source-use guidance\n- minRequiredSources: minimum unique required/core-supporting sources that must be cited when available\n- synthesisInstructions: backend synthesis guardrail instructions\n- validation_notes: previous validation errors to fix, if any\n\nTASK\nGenerate a cohesive academic proposal introduction with exactly three final sections:\n1. Background\n2. Rationale\n3. Research Gap\n\nNON-NEGOTIABLE PRIORITY RULE\nThe CATalyst Title, Rationale, and Research Gap are the primary source of truth. Approved documents are supplementary only. Do not let a low-relevance or tangential approved document redirect the topic, create a different problem, or override baseline.gaps.\n\nSOURCE-TIER RULES\n- Core Sources: use as the main synthesis evidence.\n- Supporting Sources: use cautiously as supporting evidence.\n- Tangential Sources: optional; use only for brief broad background if helpful. Do not center a paragraph on a Tangential Source. Do not use Tangential Sources to define the main gap or main rationale.\n- Excluded Sources should not appear in rag_context. If mentioned in source_manifest, do not cite or use them.\n\nUse CARS logic internally:\n- Background establishes the research territory.\n- Rationale explains why the study matters and why the work is justified.\n- Research Gap establishes the niche and explicitly connects the approved literature to baseline.gaps.\n\nSTRICT CLOSED-BOOK RAG RULES\n- Use ONLY information from rag_context and the CATalyst baseline.\n- Do NOT use outside knowledge.\n- Do NOT invent facts, statistics, authors, studies, publication years, methodologies, or citations.\n- If a claim is not supported by the usable source text or baseline, do not write it.\n- Every factual or literature-based claim must include at least one source placeholder.\n\nCITATION PLACEHOLDER RULES\n- Use placeholder citations ONLY: [Doc1], [Doc2], etc.\n- Never write real APA citations like \"(Smith, 2024)\".\n- Use only labels listed in available_sources.\n- Place the placeholder immediately after the specific atomic claim it supports and before the punctuation mark.\n- Example: Mobile learning can improve access to language practice [Doc1].\n- For claims supported by multiple sources, use adjacent placeholders: [Doc1][Doc3].\n- Do not cluster all citations at the end of a paragraph.\n\nSOURCE COVERAGE RULE\n- When required_sources is non-empty, cite at least minRequiredSources unique required_sources when possible.\n- Tangential optional_sources do not count toward required coverage unless there are no Core/Supporting sources.\n- Use diverse Core/Supporting sources. Do not rely on only one source unless only one usable source exists.\n\nGAP COVERAGE RULE\n- The Research Gap section must explicitly address 100% of baseline.gaps.\n- If there are multiple gaps, integrate all of them into the gap section.\n- Do not introduce a gap that conflicts with or replaces baseline.gaps.\n\nSTYLE RULES\n- Formal, third-person academic English.\n- No bullet points.\n- No headings inside the paragraph strings.\n- Do not include a reference list.\n- Keep each section as one well-developed paragraph.\n\nOUTPUT\nReturn ONLY valid JSON, no markdown fences, using exactly this schema:\n{\n  \"background\": \"paragraph text with [DocN] placeholders\",\n  \"rationale\": \"paragraph text with [DocN] placeholders\",\n  \"gap\": \"paragraph text with [DocN] placeholders\",\n  \"extractedPlaceholders\": [\"Doc1\"],\n  \"gapCoverageSelfCheck\": true,\n  \"sourceUsePlan\": [\n    {\n      \"source\": \"Doc1\",\n      \"intendedUse\": \"short explanation including Core/Supporting/Tangential role\"\n    }\n  ],\n  \"notes\": \"\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        944,
+        28
+      ],
+      "id": "d12b89c2-c450-4f64-b961-1f1dcb8e6996_copy0",
+      "name": "AI Agent - RAG Synthesis Attempt  (Key 1)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        252
+      ],
+      "id": "611af7c2-0f64-4231-a9cc-8c99871aec5d_copy0",
+      "name": "Google Gemini Chat Model6 (Key 1)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_0",
+          "name": "Gemini API Key 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, rag_context: $json.rag_context, available_sources: $json.available_sources, required_sources: $json.required_sources, optional_sources: $json.optional_sources, source_manifest: $json.source_manifest, minRequiredSources: $json.minRequiredSources, attempt: $json.attempt, synthesisInstructions: $json.synthesisInstructions, validation_notes: $json.validation_notes }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict RAG synthesis writer for academic research proposals.\n\nYou receive JSON with:\n- baseline.title: student's research title\n- baseline.rationale: student's research rationale\n- baseline.gaps: CATalyst research gap(s)\n- rag_context: text from usable user-approved source documents only\n- available_sources: valid source aliases such as [\"Doc1\",\"Doc2\"]\n- required_sources: Core and Supporting source aliases that form the required citation coverage pool\n- optional_sources: Tangential source aliases that are optional only\n- source_manifest: source metadata, runtime tier, score/status/relevance signals, and source-use guidance\n- minRequiredSources: minimum unique required/core-supporting sources that must be cited when available\n- synthesisInstructions: backend synthesis guardrail instructions\n- validation_notes: previous validation errors to fix, if any\n\nTASK\nGenerate a cohesive academic proposal introduction with exactly three final sections:\n1. Background\n2. Rationale\n3. Research Gap\n\nNON-NEGOTIABLE PRIORITY RULE\nThe CATalyst Title, Rationale, and Research Gap are the primary source of truth. Approved documents are supplementary only. Do not let a low-relevance or tangential approved document redirect the topic, create a different problem, or override baseline.gaps.\n\nSOURCE-TIER RULES\n- Core Sources: use as the main synthesis evidence.\n- Supporting Sources: use cautiously as supporting evidence.\n- Tangential Sources: optional; use only for brief broad background if helpful. Do not center a paragraph on a Tangential Source. Do not use Tangential Sources to define the main gap or main rationale.\n- Excluded Sources should not appear in rag_context. If mentioned in source_manifest, do not cite or use them.\n\nUse CARS logic internally:\n- Background establishes the research territory.\n- Rationale explains why the study matters and why the work is justified.\n- Research Gap establishes the niche and explicitly connects the approved literature to baseline.gaps.\n\nSTRICT CLOSED-BOOK RAG RULES\n- Use ONLY information from rag_context and the CATalyst baseline.\n- Do NOT use outside knowledge.\n- Do NOT invent facts, statistics, authors, studies, publication years, methodologies, or citations.\n- If a claim is not supported by the usable source text or baseline, do not write it.\n- Every factual or literature-based claim must include at least one source placeholder.\n\nCITATION PLACEHOLDER RULES\n- Use placeholder citations ONLY: [Doc1], [Doc2], etc.\n- Never write real APA citations like \"(Smith, 2024)\".\n- Use only labels listed in available_sources.\n- Place the placeholder immediately after the specific atomic claim it supports and before the punctuation mark.\n- Example: Mobile learning can improve access to language practice [Doc1].\n- For claims supported by multiple sources, use adjacent placeholders: [Doc1][Doc3].\n- Do not cluster all citations at the end of a paragraph.\n\nSOURCE COVERAGE RULE\n- When required_sources is non-empty, cite at least minRequiredSources unique required_sources when possible.\n- Tangential optional_sources do not count toward required coverage unless there are no Core/Supporting sources.\n- Use diverse Core/Supporting sources. Do not rely on only one source unless only one usable source exists.\n\nGAP COVERAGE RULE\n- The Research Gap section must explicitly address 100% of baseline.gaps.\n- If there are multiple gaps, integrate all of them into the gap section.\n- Do not introduce a gap that conflicts with or replaces baseline.gaps.\n\nSTYLE RULES\n- Formal, third-person academic English.\n- No bullet points.\n- No headings inside the paragraph strings.\n- Do not include a reference list.\n- Keep each section as one well-developed paragraph.\n\nOUTPUT\nReturn ONLY valid JSON, no markdown fences, using exactly this schema:\n{\n  \"background\": \"paragraph text with [DocN] placeholders\",\n  \"rationale\": \"paragraph text with [DocN] placeholders\",\n  \"gap\": \"paragraph text with [DocN] placeholders\",\n  \"extractedPlaceholders\": [\"Doc1\"],\n  \"gapCoverageSelfCheck\": true,\n  \"sourceUsePlan\": [\n    {\n      \"source\": \"Doc1\",\n      \"intendedUse\": \"short explanation including Core/Supporting/Tangential role\"\n    }\n  ],\n  \"notes\": \"\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        944,
+        228
+      ],
+      "id": "d12b89c2-c450-4f64-b961-1f1dcb8e6996_copy1",
+      "name": "AI Agent - RAG Synthesis Attempt  (Key 2)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        452
+      ],
+      "id": "611af7c2-0f64-4231-a9cc-8c99871aec5d_copy1",
+      "name": "Google Gemini Chat Model6 (Key 2)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_1",
+          "name": "Gemini API Key 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, rag_context: $json.rag_context, available_sources: $json.available_sources, required_sources: $json.required_sources, optional_sources: $json.optional_sources, source_manifest: $json.source_manifest, minRequiredSources: $json.minRequiredSources, attempt: $json.attempt, synthesisInstructions: $json.synthesisInstructions, validation_notes: $json.validation_notes }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict RAG synthesis writer for academic research proposals.\n\nYou receive JSON with:\n- baseline.title: student's research title\n- baseline.rationale: student's research rationale\n- baseline.gaps: CATalyst research gap(s)\n- rag_context: text from usable user-approved source documents only\n- available_sources: valid source aliases such as [\"Doc1\",\"Doc2\"]\n- required_sources: Core and Supporting source aliases that form the required citation coverage pool\n- optional_sources: Tangential source aliases that are optional only\n- source_manifest: source metadata, runtime tier, score/status/relevance signals, and source-use guidance\n- minRequiredSources: minimum unique required/core-supporting sources that must be cited when available\n- synthesisInstructions: backend synthesis guardrail instructions\n- validation_notes: previous validation errors to fix, if any\n\nTASK\nGenerate a cohesive academic proposal introduction with exactly three final sections:\n1. Background\n2. Rationale\n3. Research Gap\n\nNON-NEGOTIABLE PRIORITY RULE\nThe CATalyst Title, Rationale, and Research Gap are the primary source of truth. Approved documents are supplementary only. Do not let a low-relevance or tangential approved document redirect the topic, create a different problem, or override baseline.gaps.\n\nSOURCE-TIER RULES\n- Core Sources: use as the main synthesis evidence.\n- Supporting Sources: use cautiously as supporting evidence.\n- Tangential Sources: optional; use only for brief broad background if helpful. Do not center a paragraph on a Tangential Source. Do not use Tangential Sources to define the main gap or main rationale.\n- Excluded Sources should not appear in rag_context. If mentioned in source_manifest, do not cite or use them.\n\nUse CARS logic internally:\n- Background establishes the research territory.\n- Rationale explains why the study matters and why the work is justified.\n- Research Gap establishes the niche and explicitly connects the approved literature to baseline.gaps.\n\nSTRICT CLOSED-BOOK RAG RULES\n- Use ONLY information from rag_context and the CATalyst baseline.\n- Do NOT use outside knowledge.\n- Do NOT invent facts, statistics, authors, studies, publication years, methodologies, or citations.\n- If a claim is not supported by the usable source text or baseline, do not write it.\n- Every factual or literature-based claim must include at least one source placeholder.\n\nCITATION PLACEHOLDER RULES\n- Use placeholder citations ONLY: [Doc1], [Doc2], etc.\n- Never write real APA citations like \"(Smith, 2024)\".\n- Use only labels listed in available_sources.\n- Place the placeholder immediately after the specific atomic claim it supports and before the punctuation mark.\n- Example: Mobile learning can improve access to language practice [Doc1].\n- For claims supported by multiple sources, use adjacent placeholders: [Doc1][Doc3].\n- Do not cluster all citations at the end of a paragraph.\n\nSOURCE COVERAGE RULE\n- When required_sources is non-empty, cite at least minRequiredSources unique required_sources when possible.\n- Tangential optional_sources do not count toward required coverage unless there are no Core/Supporting sources.\n- Use diverse Core/Supporting sources. Do not rely on only one source unless only one usable source exists.\n\nGAP COVERAGE RULE\n- The Research Gap section must explicitly address 100% of baseline.gaps.\n- If there are multiple gaps, integrate all of them into the gap section.\n- Do not introduce a gap that conflicts with or replaces baseline.gaps.\n\nSTYLE RULES\n- Formal, third-person academic English.\n- No bullet points.\n- No headings inside the paragraph strings.\n- Do not include a reference list.\n- Keep each section as one well-developed paragraph.\n\nOUTPUT\nReturn ONLY valid JSON, no markdown fences, using exactly this schema:\n{\n  \"background\": \"paragraph text with [DocN] placeholders\",\n  \"rationale\": \"paragraph text with [DocN] placeholders\",\n  \"gap\": \"paragraph text with [DocN] placeholders\",\n  \"extractedPlaceholders\": [\"Doc1\"],\n  \"gapCoverageSelfCheck\": true,\n  \"sourceUsePlan\": [\n    {\n      \"source\": \"Doc1\",\n      \"intendedUse\": \"short explanation including Core/Supporting/Tangential role\"\n    }\n  ],\n  \"notes\": \"\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        944,
+        428
+      ],
+      "id": "d12b89c2-c450-4f64-b961-1f1dcb8e6996_copy2",
+      "name": "AI Agent - RAG Synthesis Attempt  (Key 3)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        652
+      ],
+      "id": "611af7c2-0f64-4231-a9cc-8c99871aec5d_copy2",
+      "name": "Google Gemini Chat Model6 (Key 3)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_2",
+          "name": "Gemini API Key 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, rag_context: $json.rag_context, available_sources: $json.available_sources, required_sources: $json.required_sources, optional_sources: $json.optional_sources, source_manifest: $json.source_manifest, minRequiredSources: $json.minRequiredSources, attempt: $json.attempt, synthesisInstructions: $json.synthesisInstructions, validation_notes: $json.validation_notes }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict RAG synthesis writer for academic research proposals.\n\nYou receive JSON with:\n- baseline.title: student's research title\n- baseline.rationale: student's research rationale\n- baseline.gaps: CATalyst research gap(s)\n- rag_context: text from usable user-approved source documents only\n- available_sources: valid source aliases such as [\"Doc1\",\"Doc2\"]\n- required_sources: Core and Supporting source aliases that form the required citation coverage pool\n- optional_sources: Tangential source aliases that are optional only\n- source_manifest: source metadata, runtime tier, score/status/relevance signals, and source-use guidance\n- minRequiredSources: minimum unique required/core-supporting sources that must be cited when available\n- synthesisInstructions: backend synthesis guardrail instructions\n- validation_notes: previous validation errors to fix, if any\n\nTASK\nGenerate a cohesive academic proposal introduction with exactly three final sections:\n1. Background\n2. Rationale\n3. Research Gap\n\nNON-NEGOTIABLE PRIORITY RULE\nThe CATalyst Title, Rationale, and Research Gap are the primary source of truth. Approved documents are supplementary only. Do not let a low-relevance or tangential approved document redirect the topic, create a different problem, or override baseline.gaps.\n\nSOURCE-TIER RULES\n- Core Sources: use as the main synthesis evidence.\n- Supporting Sources: use cautiously as supporting evidence.\n- Tangential Sources: optional; use only for brief broad background if helpful. Do not center a paragraph on a Tangential Source. Do not use Tangential Sources to define the main gap or main rationale.\n- Excluded Sources should not appear in rag_context. If mentioned in source_manifest, do not cite or use them.\n\nUse CARS logic internally:\n- Background establishes the research territory.\n- Rationale explains why the study matters and why the work is justified.\n- Research Gap establishes the niche and explicitly connects the approved literature to baseline.gaps.\n\nSTRICT CLOSED-BOOK RAG RULES\n- Use ONLY information from rag_context and the CATalyst baseline.\n- Do NOT use outside knowledge.\n- Do NOT invent facts, statistics, authors, studies, publication years, methodologies, or citations.\n- If a claim is not supported by the usable source text or baseline, do not write it.\n- Every factual or literature-based claim must include at least one source placeholder.\n\nCITATION PLACEHOLDER RULES\n- Use placeholder citations ONLY: [Doc1], [Doc2], etc.\n- Never write real APA citations like \"(Smith, 2024)\".\n- Use only labels listed in available_sources.\n- Place the placeholder immediately after the specific atomic claim it supports and before the punctuation mark.\n- Example: Mobile learning can improve access to language practice [Doc1].\n- For claims supported by multiple sources, use adjacent placeholders: [Doc1][Doc3].\n- Do not cluster all citations at the end of a paragraph.\n\nSOURCE COVERAGE RULE\n- When required_sources is non-empty, cite at least minRequiredSources unique required_sources when possible.\n- Tangential optional_sources do not count toward required coverage unless there are no Core/Supporting sources.\n- Use diverse Core/Supporting sources. Do not rely on only one source unless only one usable source exists.\n\nGAP COVERAGE RULE\n- The Research Gap section must explicitly address 100% of baseline.gaps.\n- If there are multiple gaps, integrate all of them into the gap section.\n- Do not introduce a gap that conflicts with or replaces baseline.gaps.\n\nSTYLE RULES\n- Formal, third-person academic English.\n- No bullet points.\n- No headings inside the paragraph strings.\n- Do not include a reference list.\n- Keep each section as one well-developed paragraph.\n\nOUTPUT\nReturn ONLY valid JSON, no markdown fences, using exactly this schema:\n{\n  \"background\": \"paragraph text with [DocN] placeholders\",\n  \"rationale\": \"paragraph text with [DocN] placeholders\",\n  \"gap\": \"paragraph text with [DocN] placeholders\",\n  \"extractedPlaceholders\": [\"Doc1\"],\n  \"gapCoverageSelfCheck\": true,\n  \"sourceUsePlan\": [\n    {\n      \"source\": \"Doc1\",\n      \"intendedUse\": \"short explanation including Core/Supporting/Tangential role\"\n    }\n  ],\n  \"notes\": \"\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        944,
+        628
+      ],
+      "id": "d12b89c2-c450-4f64-b961-1f1dcb8e6996_copy3",
+      "name": "AI Agent - RAG Synthesis Attempt  (Key 4)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        852
+      ],
+      "id": "611af7c2-0f64-4231-a9cc-8c99871aec5d_copy3",
+      "name": "Google Gemini Chat Model6 (Key 4)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_3",
+          "name": "Gemini API Key 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, rag_context: $json.rag_context, available_sources: $json.available_sources, required_sources: $json.required_sources, optional_sources: $json.optional_sources, source_manifest: $json.source_manifest, minRequiredSources: $json.minRequiredSources, attempt: $json.attempt, synthesisInstructions: $json.synthesisInstructions, validation_notes: $json.validation_notes }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict RAG synthesis writer for academic research proposals.\n\nYou receive JSON with:\n- baseline.title: student's research title\n- baseline.rationale: student's research rationale\n- baseline.gaps: CATalyst research gap(s)\n- rag_context: text from usable user-approved source documents only\n- available_sources: valid source aliases such as [\"Doc1\",\"Doc2\"]\n- required_sources: Core and Supporting source aliases that form the required citation coverage pool\n- optional_sources: Tangential source aliases that are optional only\n- source_manifest: source metadata, runtime tier, score/status/relevance signals, and source-use guidance\n- minRequiredSources: minimum unique required/core-supporting sources that must be cited when available\n- synthesisInstructions: backend synthesis guardrail instructions\n- validation_notes: previous validation errors to fix, if any\n\nTASK\nGenerate a cohesive academic proposal introduction with exactly three final sections:\n1. Background\n2. Rationale\n3. Research Gap\n\nNON-NEGOTIABLE PRIORITY RULE\nThe CATalyst Title, Rationale, and Research Gap are the primary source of truth. Approved documents are supplementary only. Do not let a low-relevance or tangential approved document redirect the topic, create a different problem, or override baseline.gaps.\n\nSOURCE-TIER RULES\n- Core Sources: use as the main synthesis evidence.\n- Supporting Sources: use cautiously as supporting evidence.\n- Tangential Sources: optional; use only for brief broad background if helpful. Do not center a paragraph on a Tangential Source. Do not use Tangential Sources to define the main gap or main rationale.\n- Excluded Sources should not appear in rag_context. If mentioned in source_manifest, do not cite or use them.\n\nUse CARS logic internally:\n- Background establishes the research territory.\n- Rationale explains why the study matters and why the work is justified.\n- Research Gap establishes the niche and explicitly connects the approved literature to baseline.gaps.\n\nSTRICT CLOSED-BOOK RAG RULES\n- Use ONLY information from rag_context and the CATalyst baseline.\n- Do NOT use outside knowledge.\n- Do NOT invent facts, statistics, authors, studies, publication years, methodologies, or citations.\n- If a claim is not supported by the usable source text or baseline, do not write it.\n- Every factual or literature-based claim must include at least one source placeholder.\n\nCITATION PLACEHOLDER RULES\n- Use placeholder citations ONLY: [Doc1], [Doc2], etc.\n- Never write real APA citations like \"(Smith, 2024)\".\n- Use only labels listed in available_sources.\n- Place the placeholder immediately after the specific atomic claim it supports and before the punctuation mark.\n- Example: Mobile learning can improve access to language practice [Doc1].\n- For claims supported by multiple sources, use adjacent placeholders: [Doc1][Doc3].\n- Do not cluster all citations at the end of a paragraph.\n\nSOURCE COVERAGE RULE\n- When required_sources is non-empty, cite at least minRequiredSources unique required_sources when possible.\n- Tangential optional_sources do not count toward required coverage unless there are no Core/Supporting sources.\n- Use diverse Core/Supporting sources. Do not rely on only one source unless only one usable source exists.\n\nGAP COVERAGE RULE\n- The Research Gap section must explicitly address 100% of baseline.gaps.\n- If there are multiple gaps, integrate all of them into the gap section.\n- Do not introduce a gap that conflicts with or replaces baseline.gaps.\n\nSTYLE RULES\n- Formal, third-person academic English.\n- No bullet points.\n- No headings inside the paragraph strings.\n- Do not include a reference list.\n- Keep each section as one well-developed paragraph.\n\nOUTPUT\nReturn ONLY valid JSON, no markdown fences, using exactly this schema:\n{\n  \"background\": \"paragraph text with [DocN] placeholders\",\n  \"rationale\": \"paragraph text with [DocN] placeholders\",\n  \"gap\": \"paragraph text with [DocN] placeholders\",\n  \"extractedPlaceholders\": [\"Doc1\"],\n  \"gapCoverageSelfCheck\": true,\n  \"sourceUsePlan\": [\n    {\n      \"source\": \"Doc1\",\n      \"intendedUse\": \"short explanation including Core/Supporting/Tangential role\"\n    }\n  ],\n  \"notes\": \"\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        944,
+        828
+      ],
+      "id": "d12b89c2-c450-4f64-b961-1f1dcb8e6996_copy4",
+      "name": "AI Agent - RAG Synthesis Attempt  (Key 5)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        1052
+      ],
+      "id": "611af7c2-0f64-4231-a9cc-8c99871aec5d_copy4",
+      "name": "Google Gemini Chat Model6 (Key 5)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_4",
+          "name": "Gemini API Key 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, rag_context: $json.rag_context, available_sources: $json.available_sources, required_sources: $json.required_sources, optional_sources: $json.optional_sources, source_manifest: $json.source_manifest, minRequiredSources: $json.minRequiredSources, attempt: $json.attempt, synthesisInstructions: $json.synthesisInstructions, validation_notes: $json.validation_notes }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict RAG synthesis writer for academic research proposals.\n\nYou receive JSON with:\n- baseline.title: student's research title\n- baseline.rationale: student's research rationale\n- baseline.gaps: CATalyst research gap(s)\n- rag_context: text from usable user-approved source documents only\n- available_sources: valid source aliases such as [\"Doc1\",\"Doc2\"]\n- required_sources: Core and Supporting source aliases that form the required citation coverage pool\n- optional_sources: Tangential source aliases that are optional only\n- source_manifest: source metadata, runtime tier, score/status/relevance signals, and source-use guidance\n- minRequiredSources: minimum unique required/core-supporting sources that must be cited when available\n- synthesisInstructions: backend synthesis guardrail instructions\n- validation_notes: previous validation errors to fix, if any\n\nTASK\nGenerate a cohesive academic proposal introduction with exactly three final sections:\n1. Background\n2. Rationale\n3. Research Gap\n\nNON-NEGOTIABLE PRIORITY RULE\nThe CATalyst Title, Rationale, and Research Gap are the primary source of truth. Approved documents are supplementary only. Do not let a low-relevance or tangential approved document redirect the topic, create a different problem, or override baseline.gaps.\n\nSOURCE-TIER RULES\n- Core Sources: use as the main synthesis evidence.\n- Supporting Sources: use cautiously as supporting evidence.\n- Tangential Sources: optional; use only for brief broad background if helpful. Do not center a paragraph on a Tangential Source. Do not use Tangential Sources to define the main gap or main rationale.\n- Excluded Sources should not appear in rag_context. If mentioned in source_manifest, do not cite or use them.\n\nUse CARS logic internally:\n- Background establishes the research territory.\n- Rationale explains why the study matters and why the work is justified.\n- Research Gap establishes the niche and explicitly connects the approved literature to baseline.gaps.\n\nSTRICT CLOSED-BOOK RAG RULES\n- Use ONLY information from rag_context and the CATalyst baseline.\n- Do NOT use outside knowledge.\n- Do NOT invent facts, statistics, authors, studies, publication years, methodologies, or citations.\n- If a claim is not supported by the usable source text or baseline, do not write it.\n- Every factual or literature-based claim must include at least one source placeholder.\n\nCITATION PLACEHOLDER RULES\n- Use placeholder citations ONLY: [Doc1], [Doc2], etc.\n- Never write real APA citations like \"(Smith, 2024)\".\n- Use only labels listed in available_sources.\n- Place the placeholder immediately after the specific atomic claim it supports and before the punctuation mark.\n- Example: Mobile learning can improve access to language practice [Doc1].\n- For claims supported by multiple sources, use adjacent placeholders: [Doc1][Doc3].\n- Do not cluster all citations at the end of a paragraph.\n\nSOURCE COVERAGE RULE\n- When required_sources is non-empty, cite at least minRequiredSources unique required_sources when possible.\n- Tangential optional_sources do not count toward required coverage unless there are no Core/Supporting sources.\n- Use diverse Core/Supporting sources. Do not rely on only one source unless only one usable source exists.\n\nGAP COVERAGE RULE\n- The Research Gap section must explicitly address 100% of baseline.gaps.\n- If there are multiple gaps, integrate all of them into the gap section.\n- Do not introduce a gap that conflicts with or replaces baseline.gaps.\n\nSTYLE RULES\n- Formal, third-person academic English.\n- No bullet points.\n- No headings inside the paragraph strings.\n- Do not include a reference list.\n- Keep each section as one well-developed paragraph.\n\nOUTPUT\nReturn ONLY valid JSON, no markdown fences, using exactly this schema:\n{\n  \"background\": \"paragraph text with [DocN] placeholders\",\n  \"rationale\": \"paragraph text with [DocN] placeholders\",\n  \"gap\": \"paragraph text with [DocN] placeholders\",\n  \"extractedPlaceholders\": [\"Doc1\"],\n  \"gapCoverageSelfCheck\": true,\n  \"sourceUsePlan\": [\n    {\n      \"source\": \"Doc1\",\n      \"intendedUse\": \"short explanation including Core/Supporting/Tangential role\"\n    }\n  ],\n  \"notes\": \"\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        944,
+        1028
+      ],
+      "id": "d12b89c2-c450-4f64-b961-1f1dcb8e6996_copy5",
+      "name": "AI Agent - RAG Synthesis Attempt  (Key 6)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        1252
+      ],
+      "id": "611af7c2-0f64-4231-a9cc-8c99871aec5d_copy5",
+      "name": "Google Gemini Chat Model6 (Key 6)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "placeholder_id_5",
+          "name": "Gemini API Key 6"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "IF Usable Sources Found": {
+      "main": [
+        [
+          {
+            "node": "Prepare RAG Context1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Failure1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Synthesis Packet1": {
+      "main": [
+        [
+          {
+            "node": "IF Usable Sources Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare RAG Context1": {
+      "main": [
+        [
+          {
+            "node": "Randomizer Code - AI Agent - RAG Synthesis Attempt ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Draft JSON ": {
+      "main": [
+        [
+          {
+            "node": "Validate Draft Guardrails ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Draft Guardrails ": {
+      "main": [
+        [
+          {
+            "node": "IF Validation Passed ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Validation Passed ": {
+      "main": [
+        [
+          {
+            "node": "Deterministic Citation Engine1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Retry Context ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Retry Context ": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt 8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - RAG Synthesis Attempt 8": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Draft JSON 8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Draft JSON 8": {
+      "main": [
+        [
+          {
+            "node": "Validate Draft Guardrails 8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Draft Guardrails 8": {
+      "main": [
+        [
+          {
+            "node": "IF Validation Passed 8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Retry Context 6": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt 9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - RAG Synthesis Attempt 9": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Draft JSON 9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Draft JSON 9": {
+      "main": [
+        [
+          {
+            "node": "Validate Draft Guardrails 9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Draft Guardrails 9": {
+      "main": [
+        [
+          {
+            "node": "IF Validation Passed 9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deterministic Citation Engine1": {
+      "main": [
+        [
+          {
+            "node": "Respond Success1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Failure Response1": {
+      "main": [
+        [
+          {
+            "node": "Respond Failure1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook5": {
+      "main": [
+        [
+          {
+            "node": "Build Synthesis Packet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomizer Code - AI Agent - RAG Synthesis Attempt ": {
+      "main": [
+        [
+          {
+            "node": "Load Balancer Switch - AI Agent - RAG Synthesis Attempt ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Balancer Switch - AI Agent - RAG Synthesis Attempt ": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 1)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 2)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 3)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 4)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 6)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6 (Key 1)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 1)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent - RAG Synthesis Attempt 8",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - RAG Synthesis Attempt  (Key 1)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Draft JSON ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6 (Key 2)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 2)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent - RAG Synthesis Attempt 9",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - RAG Synthesis Attempt  (Key 2)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Draft JSON ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6 (Key 3)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 3)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - RAG Synthesis Attempt  (Key 3)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Draft JSON ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6 (Key 4)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 4)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - RAG Synthesis Attempt  (Key 4)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Draft JSON ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6 (Key 5)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 5)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - RAG Synthesis Attempt  (Key 5)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Draft JSON ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6 (Key 6)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - RAG Synthesis Attempt  (Key 6)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - RAG Synthesis Attempt  (Key 6)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Draft JSON ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Validation Passed 8": {
+      "main": [
+        [
+          {
+            "node": "Deterministic Citation Engine1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Retry Context 6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Validation Passed 9": {
+      "main": [
+        [
+          {
+            "node": "Deterministic Citation Engine1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Failure Response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

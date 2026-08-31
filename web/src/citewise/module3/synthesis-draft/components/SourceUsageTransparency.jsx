@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import theme from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 const TIER_META = {
   CORE: { label: "Core evidence", color: theme.success, note: "Used as main synthesis evidence." },
@@ -41,7 +42,7 @@ function computeTier(doc, usageChoice, prefs) {
   return { tier, reason: `Weighted relevance ${overall != null ? Math.round(overall) : "—"} (Auto Min: Supporting)`, overall };
 }
 
-export default function SourceUsageTransparency({ sessionId, documents, citationsUsed, citationIntegrity }) {
+export default function SourceUsageTransparency({ sessionId, documents }) {
   const [prefs, setPrefs] = useState(() => store.getScorePrefs(sessionId));
   const [usage, setUsage] = useState(() => store.getRrlUsage(sessionId));
 
@@ -53,12 +54,7 @@ export default function SourceUsageTransparency({ sessionId, documents, citation
     return unsub;
   }, [sessionId]);
 
-  const cited = Array.isArray(citationsUsed) ? citationsUsed : [];
-  // Sources whose PDF carried no recoverable author/year. Citations stay strictly
-  // file-derived, so these fall back to APA "n.d." instead of a guessed author.
-  const lowConfidence = Array.isArray(citationIntegrity?.lowConfidenceSources)
-    ? citationIntegrity.lowConfidenceSources
-    : [];
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div
@@ -72,109 +68,92 @@ export default function SourceUsageTransparency({ sessionId, documents, citation
       <div
         style={{
           padding: "1rem 1.25rem",
-          borderBottom: `1px solid ${theme.border}`,
+          borderBottom: isOpen ? `1px solid ${theme.border}` : "none",
           background: theme.surfaceAlt,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          cursor: "pointer",
+          userSelect: "none"
         }}
+        onClick={() => setIsOpen(!isOpen)}
       >
-        <span style={{ fontFamily: theme.font, fontWeight: 700, fontSize: "1.02rem", color: theme.accent }}>
-          How your sources are used
-        </span>
-        <p style={{ margin: "4px 0 0", fontSize: "0.76rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
-          Each approved RRL is ranked by your relevance weights. Tiers decide how strongly the AI leans on each source.
-        </p>
-      </div>
-
-      {lowConfidence.length > 0 && (
-        <div
-          style={{
-            margin: "0.75rem 1.25rem 0",
-            padding: "10px 12px",
-            background: "rgba(229, 84, 75, 0.08)",
-            border: "1px solid rgba(229, 84, 75, 0.45)",
-            borderRadius: "8px",
-          }}
-        >
-          <div style={{ fontFamily: theme.font, fontWeight: 700, fontSize: "0.78rem", color: "#e5544b" }}>
-            {lowConfidence.length} source{lowConfidence.length !== 1 ? "s" : ""} could not be cited properly
-          </div>
-          <p style={{ margin: "4px 0 6px", fontSize: "0.74rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
-            No author or publication year could be found inside these PDFs, so they are cited as
-            {" "}<em>n.d.</em>{" "}rather than with a guessed author. Uploading the full original paper
-            (title page included) fixes this.
+        <div>
+          <span style={{ fontFamily: theme.font, fontWeight: 700, fontSize: "1.02rem", color: theme.accent }}>
+            How your sources are used
+          </span>
+          <p style={{ margin: "4px 0 0", fontSize: "0.76rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
+            Each approved RRL is ranked by your relevance weights. Tiers decide how strongly the AI leans on each source.
           </p>
-          {lowConfidence.map((s, i) => (
-            <div
-              key={s.file ?? i}
-              style={{ fontSize: "0.72rem", color: theme.text, fontFamily: theme.font, lineHeight: 1.6 }}
-            >
-              • {s.file || "Unnamed source"} → <code>{s.citation}</code>
-            </div>
-          ))}
         </div>
-      )}
-
-      <div style={{ padding: "0.75rem 1.25rem 1rem", display: "flex", flexDirection: "column", gap: "8px" }}>
-        {documents.length === 0 ? (
-          <p style={{ color: theme.textMuted, fontSize: "0.82rem", fontFamily: theme.font }}>No approved sources yet.</p>
-        ) : (
-          documents.map((doc, idx) => {
-            const docId = doc.id ?? doc.documentId;
-            const choice = (usage[docId] || usage[String(docId)] || {}).usage || "auto";
-            const { tier, reason } = computeTier(doc, choice === "auto" ? null : choice, prefs);
-            const meta = TIER_META[tier];
-            return (
-              <div
-                key={docId ?? idx}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "10px",
-                  background: theme.surfaceAlt,
-                  border: `1px solid ${theme.border}`,
-                  borderRadius: "8px",
-                  padding: "8px 12px",
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: "0.82rem",
-                      color: theme.text,
-                      fontFamily: theme.font,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      maxWidth: 200,
-                    }}
-                    title={doc.fileName || doc.name}
-                  >
-                    {doc.fileName || doc.name}
-                  </div>
-                  <div style={{ fontSize: "0.7rem", color: theme.textMuted, fontFamily: theme.font }}>{reason}</div>
-                </div>
-                <span
-                  style={{
-                    flexShrink: 0,
-                    fontSize: "0.68rem",
-                    fontWeight: 700,
-                    color: meta.color,
-                    border: `1px solid ${meta.color}`,
-                    borderRadius: "6px",
-                    padding: "2px 8px",
-                    fontFamily: theme.font,
-                  }}
-                  title={meta.note}
-                >
-                  {meta.label}
-                </span>
-              </div>
-            );
-          })
-        )}
-
-        
+        <div style={{ paddingLeft: "10px" }}>
+          {isOpen ? <ChevronDown size={18} color={theme.accent} /> : <ChevronRight size={18} color={theme.textMuted} />}
+        </div>
       </div>
+
+      {isOpen && (
+        <>          <div style={{ padding: "0.75rem 1.25rem 1rem", display: "flex", flexDirection: "column", gap: "8px" }}>
+            {documents.length === 0 ? (
+              <p style={{ color: theme.textMuted, fontSize: "0.82rem", fontFamily: theme.font }}>No approved sources yet.</p>
+            ) : (
+              documents.map((doc, idx) => {
+                const docId = doc.id ?? doc.documentId;
+                const choice = (usage[docId] || usage[String(docId)] || {}).usage || "auto";
+                const { tier, reason } = computeTier(doc, choice === "auto" ? null : choice, prefs);
+                const meta = TIER_META[tier];
+                return (
+                  <div
+                    key={docId ?? idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      background: theme.surfaceAlt,
+                      border: `1px solid ${theme.border}`,
+                      borderRadius: "8px",
+                      padding: "8px 12px",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: "0.82rem",
+                          color: theme.text,
+                          fontFamily: theme.font,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: 200,
+                        }}
+                        title={doc.fileName || doc.name}
+                      >
+                        {doc.fileName || doc.name}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: theme.textMuted, fontFamily: theme.font }}>{reason}</div>
+                    </div>
+                    <span
+                      style={{
+                        flexShrink: 0,
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                        color: meta.color,
+                        border: `1px solid ${meta.color}`,
+                        borderRadius: "6px",
+                        padding: "2px 8px",
+                        fontFamily: theme.font,
+                      }}
+                      title={meta.note}
+                    >
+                      {meta.label}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

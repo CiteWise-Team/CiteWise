@@ -5,6 +5,7 @@ import express from 'express';
 import fetch   from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 import supabase from '../../common/config/supabaseClient.js';
+import requireAuth from '../../common/middlewares/auth.middleware.js';
 import {
   extractCitationMetadata,
   buildReferenceList,
@@ -12,6 +13,10 @@ import {
 } from './helpers/citationMetadata.js';
 
 const router = express.Router();
+
+// All synthesis routes require a valid user session.
+router.use(requireAuth);
+
 
 // Source tier logic (port of RAGSynthesisService.determineSourceTier)
 // Note: Since all documents in this pipeline have been explicitly approved by the user,
@@ -143,6 +148,12 @@ router.post('/generate', async (req, res) => {
     }
   }
 
+  // Respect the explicit approvedDocumentIds selection from the frontend if provided
+  if (Array.isArray(approvedDocumentIds)) {
+    const allowed = new Set(approvedDocumentIds.map(String));
+    approvedDocs = (approvedDocs || []).filter(d => allowed.has(String(d.id)));
+  }
+
   const docsWithText = (approvedDocs ?? []).filter(d => d.parsed_text?.trim());
   if (!docsWithText.length) {
     return res.json({ success: false, message: 'Approve at least one document before generating an introduction.' });
@@ -211,7 +222,9 @@ router.post('/generate', async (req, res) => {
 
   const baseInstructions =
     'The CATalyst Title, Rationale, and Research Gap are the primary source of truth. '
-    + 'Approved documents are supplementary evidence. **CRITICAL REQUIREMENT**: You MUST cite EVERY SINGLE approved document provided in the `approvedDocuments` array at least once in your synthesized text (Background, Rationale, or Research Gap). DO NOT omit any approved document. User approval grants an explicit mandate for inclusion. '
+    + 'Approved documents are supplementary evidence. You should aim to cite the approved documents provided in the `approvedDocuments` array. '
+    + 'However, if an approved document contains absolutely no usable content related to the topic or chosen research gap, you have the freedom to omit it from the synthesis. '
+    + 'Do not force a citation if the document is completely irrelevant to the narrative. '
     + 'The primaryFocusGap is the user\'s selected gap and should be treated as the main structural narrative pivot. '
     + 'The remaining gaps provide supporting context. '
     + 'When a source provides emphasizedExcerpts or customHighlights, treat those passages as the user\'s highlighted, highest-priority evidence. '
@@ -304,8 +317,31 @@ router.post('/generate', async (req, res) => {
       timeout: parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS) || 120000,
     });
     const raw = await n8nRes.text();
-    if (!raw?.trim()) throw new Error('Synthesis webhook returned empty response');
-    let root = JSON.parse(raw);
+    console.log(`[synthesis] n8n responded with status: ${n8nRes.status}, text: ${raw.slice(0, 100)}...`);
+
+    // An empty body on HTTP 200 means the n8n execution finished without ever
+    // reaching a "Respond to Webhook" node (the webhook uses responseMode:
+    // responseNode). That is either a broken branch in the workflow or an
+    // execution that died mid-run — e.g. the Gemini node hitting its quota.
+    // Say so, instead of reporting a bare "empty response".
+    if (!raw?.trim()) {
+      throw new Error(
+        n8nRes.status === 200
+          ? 'The synthesis workflow finished without returning a draft. Check the latest execution in n8n — it ended before reaching a "Respond to Webhook" node (commonly an AI node failing or hitting its quota).'
+          : `Synthesis webhook returned an empty response. HTTP ${n8nRes.status}`
+      );
+    }
+
+    if (!n8nRes.ok) {
+      throw new Error(`Synthesis workflow returned HTTP ${n8nRes.status}: ${raw.slice(0, 300)}`);
+    }
+
+    let root;
+    try {
+      root = JSON.parse(raw);
+    } catch {
+      throw new Error(`Synthesis workflow returned a non-JSON response: ${raw.slice(0, 300)}`);
+    }
     if (Array.isArray(root) && root.length) root = root[0];
     for (const f of ['output','body','data','json','result']) {
       if (root[f] && typeof root[f] === 'object') { root = root[f]; break; }
@@ -366,7 +402,7 @@ router.post('/generate', async (req, res) => {
     return false;
   });
 
-  const referencesText = (citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas)) || (n8nData.referencesText ?? '');
+  const referencesText = n8nData.referencesText ?? ((citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas)) || '');
 
   if (citationFixes.length) {
     console.warn(`[synthesis] corrected ${citationFixes.length} in-text citation(s):`,
@@ -377,6 +413,16 @@ router.post('/generate', async (req, res) => {
       [...new Set(unverifiedCitations)].join('; '));
   }
 
+  const omittedDocuments = usableDocs
+    .filter(d => {
+      const meta = citationByDocId.get(String(d.doc.id));
+      return meta && !citedMetas.includes(meta);
+    })
+    .map(d => ({
+      file: d.doc.file_name || d.doc.name || 'Unnamed source',
+      id: d.doc.id,
+    }));
+
   const citationIntegrity = {
     correctedCount:  citationFixes.length,
     corrections:     citationFixes,
@@ -386,6 +432,7 @@ router.post('/generate', async (req, res) => {
       citation: m.citation.inTextParenthetical,
       warnings: m.warnings,
     })),
+    omittedDocuments,
   };
 
   if (!success || (validationStatus && validationStatus.toUpperCase() !== 'PASSED')) {
@@ -581,8 +628,11 @@ router.post('/titles', async (req, res) => {
 
 // POST /api/v1/synthesis/update-citations
 // Updates the current draft's citations locally without calling the LLM.
+// Optionally accepts `contentText` from the client body so that post-edit /
+// post-paraphrase text can be reconciled and persisted rather than reverting
+// to the stale database copy (fixes state-desync issue).
 router.post('/update-citations', async (req, res) => {
-  const { sessionId } = req.body;
+  const { sessionId, contentText: clientContentText } = req.body;
   if (!sessionId) return res.status(400).json({ success: false, message: 'sessionId is required' });
 
   const { data: draft } = await supabase.from('generated_draft').select('*').eq('session_id', sessionId).maybeSingle();
@@ -591,7 +641,7 @@ router.post('/update-citations', async (req, res) => {
   const { data: approvedDocs } = await supabase.from('uploaded_documents').select('*').eq('session_id', sessionId).eq('approved', true);
   if (!approvedDocs) return res.status(500).json({ success: false, message: 'Failed to load documents' });
 
-  const allCitationMetas = approvedDocs.map((doc) => 
+  const allCitationMetas = approvedDocs.map((doc) =>
     extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json)
   );
 
@@ -600,10 +650,12 @@ router.post('/update-citations', async (req, res) => {
     return fixed;
   };
 
-  const contentText = reconcile(draft.content_text || '');
-  const background = reconcile(draft.background_text || '');
-  const rationale = reconcile(draft.rationale_text || '');
-  const gap = reconcile(draft.gap_text || '');
+  // Prefer the client's current text (which may be paraphrased / manually edited)
+  // over the stale DB copy, so user edits are never silently overwritten.
+  const contentText  = reconcile(clientContentText  || draft.content_text   || '');
+  const background   = reconcile(draft.background_text  || '');
+  const rationale    = reconcile(draft.rationale_text   || '');
+  const gap          = reconcile(draft.gap_text         || '');
 
   const fullTextToCheck = contentText + ' ' + background + ' ' + rationale + ' ' + gap;
 
@@ -611,23 +663,136 @@ router.post('/update-citations', async (req, res) => {
     if (!meta?.citation) return false;
     const { inTextParenthetical, inTextAuthors, shortTitle, sourceFile } = meta.citation;
     if (inTextParenthetical && fullTextToCheck.includes(inTextParenthetical)) return true;
-    if (inTextAuthors && fullTextToCheck.includes(inTextAuthors)) return true;
-    if (shortTitle && fullTextToCheck.includes(shortTitle)) return true;
-    if (sourceFile && fullTextToCheck.includes(sourceFile)) return true;
+    if (inTextAuthors       && fullTextToCheck.includes(inTextAuthors))       return true;
+    if (shortTitle          && fullTextToCheck.includes(shortTitle))          return true;
+    if (sourceFile          && fullTextToCheck.includes(sourceFile))          return true;
     return false;
   });
 
-  const referencesText = citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas);
+  const referencesText = draft.references_text || (citedMetas.length > 0
+    ? buildReferenceList(citedMetas)
+    : buildReferenceList(allCitationMetas));
 
   await supabase.from('generated_draft').update({
-    content_text: contentText,
+    content_text:    contentText,
     background_text: background,
-    rationale_text: rationale,
-    gap_text: gap,
-    references_text: referencesText
+    rationale_text:  rationale,
+    gap_text:        gap,
+    references_text: referencesText,
   }).eq('id', draft.id);
 
   return res.json({ success: true, contentText, referencesText });
+});
+
+// POST /api/v1/synthesis/save-draft
+// Persists a manually edited or paraphrased draft back to the database so the
+// DB is always in sync with whatever the user has on screen.
+router.post('/save-draft', async (req, res) => {
+  const { sessionId, contentText, referencesText, source } = req.body;
+  if (!sessionId)   return res.status(400).json({ success: false, message: 'sessionId is required' });
+  if (!contentText) return res.status(400).json({ success: false, message: 'contentText is required' });
+
+  const { data: draft } = await supabase
+    .from('generated_draft').select('id').eq('session_id', sessionId).maybeSingle();
+
+  if (!draft) {
+    return res.status(404).json({
+      success: false,
+      message: 'No draft found for this session. Generate a draft first.',
+    });
+  }
+
+  const { error } = await supabase.from('generated_draft').update({
+    content_text:      contentText,
+    references_text:   referencesText ?? null,
+    // Track the edit source in the validation_status column for audit purposes.
+    validation_status: source ? `manual_${source}` : 'manual_edited',
+  }).eq('id', draft.id);
+
+  if (error) {
+    console.error('[save-draft] Supabase update failed:', error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+
+  return res.json({ success: true, draftId: draft.id });
+});
+
+// POST /api/v1/synthesis/paraphrase
+// Paraphrases text to remove AI slop using an n8n workflow load balancer.
+//
+// Citation-safety strategy: APA parenthetical citations are extracted from the
+// input text and replaced with stable numeric placeholders BEFORE the text is
+// sent to the LLM. After the LLM returns, placeholders are swapped back for the
+// original citation strings verbatim — the LLM can therefore never corrupt a
+// citation regardless of how aggressively it rewrites the surrounding prose.
+router.post('/paraphrase', async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ success: false, message: 'Text is required' });
+
+  // ── Step 1: extract APA citations and replace with opaque placeholders ───
+  // Matches: (Author, YYYY), (Author et al., YYYY), (Author & Author, YYYY),
+  // multi-source "(A, YYYY; B, YYYY)", and "n.d." variants.
+  const CITATION_RE = /\((?:[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?)(?:\s*;\s*[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?))*)\)/g;
+
+  const citations = [];   // ordered list of original citation strings
+  const protectedText = text.replace(CITATION_RE, (match) => {
+    const idx = citations.length;
+    citations.push(match);
+    return `«CIT${idx}»`;
+  });
+
+  // ── Step 2: call n8n paraphraser with the citation-safe text ────────────
+  const baseUrl = (process.env.N8N_BASE_URL || '').replace(/\/$/, '');
+  const webhookUrl = process.env.CITEWISE_N8N_PARAPHRASE_WEBHOOK_URL
+    || (baseUrl ? `${baseUrl}/webhook/citewise-paraphraser-lb` : 'http://localhost:5678/webhook/citewise-paraphraser-lb');
+
+  let paraphrased;
+  try {
+    const n8nRes = await fetch(webhookUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Connection: 'close' },
+      body:    JSON.stringify({ text: protectedText }),
+      timeout: parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS) || 120000,
+    });
+    const raw = await n8nRes.text();
+    if (!raw?.trim()) throw new Error('Paraphraser webhook returned empty response');
+
+    let root = JSON.parse(raw);
+    if (Array.isArray(root) && root.length) root = root[0];
+
+    for (const f of ['output', 'body', 'data', 'json', 'result', 'paraphrasedText']) {
+      if (root[f] && typeof root[f] === 'string') { paraphrased = root[f]; break; }
+      if (root[f] && typeof root[f] === 'object' && typeof root[f].paraphrasedText === 'string') {
+        paraphrased = root[f].paraphrasedText; break;
+      }
+    }
+    if (!paraphrased && root.paraphrasedText) paraphrased = root.paraphrasedText;
+    if (!paraphrased) {
+      return res.status(502).json({ success: false, message: 'Could not extract paraphrased text from n8n response' });
+    }
+  } catch (err) {
+    console.error('[paraphrase] n8n call failed:', err.message);
+    return res.status(502).json({ success: false, message: `Paraphrase failed: ${err.message}` });
+  }
+
+  // ── Step 3: reattach original citations verbatim ─────────────────────────
+  const PLACEHOLDER_RE = /«CIT(\d+)»/g;
+  const restored = paraphrased.replace(PLACEHOLDER_RE, (_, idx) => citations[Number(idx)] ?? '');
+
+  // Warn about any citations the LLM dropped entirely (no placeholder left).
+  const placeholdersInResult = new Set(
+    [...paraphrased.matchAll(PLACEHOLDER_RE)].map(m => Number(m[1]))
+  );
+  const dropped = citations
+    .map((c, i) => ({ c, i }))
+    .filter(({ i }) => !placeholdersInResult.has(i))
+    .map(({ c }) => c);
+
+  if (dropped.length) {
+    console.warn(`[paraphrase] LLM dropped ${dropped.length} citation(s):`, dropped.join(' '));
+  }
+
+  return res.json({ success: true, text: restored, droppedCitations: dropped });
 });
 
 export default router;

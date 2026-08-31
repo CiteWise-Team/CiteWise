@@ -25,7 +25,10 @@ export default function Login() {
     setIsLoading(true);
     try {
       const data = await loginAPI({ email, password });
-      login(data.user, data.token);
+      login(data.user, data.access_token);
+      if (data.refresh_token) {
+        localStorage.setItem("refresh_token", data.refresh_token);
+      }
       setTimeout(() => navigate("/groups"), 1000);
     } catch (err) {
       showFeedback({

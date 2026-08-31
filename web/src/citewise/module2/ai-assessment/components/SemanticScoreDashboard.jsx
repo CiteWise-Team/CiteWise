@@ -38,7 +38,9 @@ const formatFlagLabel = (flag) => {
   }
 
   if (!/^[A-Z0-9_]+$/.test(rawValue)) {
-    return rawValue.replace(/\s+/g, " ");
+    return rawValue
+      .replace(/\s+/g, " ")
+      .replace(/([A-Z]+(?:_[A-Z]+)+)/g, (match) => match.replace(/_/g, " ").toLowerCase());
   }
 
   const readable = rawValue
@@ -126,7 +128,7 @@ const ScoreBar = ({ label, value }) => {
   );
 };
 
-const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceLevel, relevanceLevel, weaknessFlags = [], validationFlags = [] }) => {
+const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceLevel, relevanceLevel, weaknessFlags = [], validationFlags = [], metricWeights }) => {
   const displayValidationFlags = validationFlags.filter((flag) => {
     const label = String(flag ?? "");
     if (getPercentage(scores.theoretical) === 0 && /^Theory\/Framework.*capped/i.test(label)) {
@@ -136,7 +138,24 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
   });
 
   const renderFlagList = (flags, variant) => {
-    if (!flags || flags.length === 0) return null;
+    if (!flags || flags.length === 0) {
+      return (
+        <li
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: "13px",
+            color: "#a1a1b5",
+            lineHeight: 1.65,
+            marginBottom: "6px",
+            fontWeight: 400,
+            listStyle: "none",
+            marginLeft: "-22px"
+          }}
+        >
+          None detected.
+        </li>
+      );
+    }
 
     return flags.map((flag, idx) => {
       const label = formatFlagLabel(flag);
@@ -161,28 +180,56 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
   const overallScore = scores.overall !== null && scores.overall !== undefined ? Math.round(scores.overall) : 0;
   const displayStatus = recommendationStatus ? String(recommendationStatus).trim() : "";
 
+  const getWeightText = () => {
+    if (!metricWeights) return "Default Weights (35/30/20/15)";
+    const w = metricWeights;
+    const sum = (w.gap || 0) + (w.methodology || 0) + (w.theory || 0) + (w.citation || 0);
+    if (sum === 0) return "All metrics disabled";
+    const g = Math.round(((w.gap || 0) / sum) * 100);
+    const m = Math.round(((w.methodology || 0) / sum) * 100);
+    const t = Math.round(((w.theory || 0) / sum) * 100);
+    const c = Math.round(((w.citation || 0) / sum) * 100);
+    return `Custom Weights (${g}% Gap, ${m}% Method, ${t}% Theory, ${c}% Citation)`;
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", fontFamily: "'Poppins', sans-serif" }}>
       {/* Section Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-          <circle cx="12" cy="12" r="10" />
-          <circle cx="12" cy="12" r="3" fill="#5b5bd6" />
-          <line x1="12" y1="2" x2="12" y2="6" />
-          <line x1="12" y1="18" x2="12" y2="22" />
-          <line x1="2" y1="12" x2="6" y2="12" />
-          <line x1="18" y1="12" x2="22" y2="12" />
-        </svg>
-        <span
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="3" fill="#5b5bd6" />
+            <line x1="12" y1="2" x2="12" y2="6" />
+            <line x1="12" y1="18" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="6" y2="12" />
+            <line x1="18" y1="12" x2="22" y2="12" />
+          </svg>
+          <span
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "16px",
+              fontWeight: "700",
+              color: "#5b5bd6",
+            }}
+          >
+            Semantic Alignment Scores
+          </span>
+        </div>
+        <div
           style={{
-            fontFamily: "'Poppins', sans-serif",
-            fontSize: "16px",
-            fontWeight: "700",
-            color: "#5b5bd6",
+            padding: "4px 10px",
+            borderRadius: "12px",
+            background: "rgba(91, 91, 214, 0.15)",
+            border: "1px solid rgba(91, 91, 214, 0.3)",
+            color: "#a1a1b5",
+            fontSize: "11px",
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 500,
           }}
         >
-          Semantic Alignment Scores
-        </span>
+          {getWeightText()}
+        </div>
       </div>
 
       {/* Top Section: Circular Score + Metric Bars */}

@@ -36,7 +36,8 @@
 //   return useContext(AuthContext);
 // }
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { clearSession, SESSION_EXPIRED_EVENT } from "../api/http";
 
 const AuthContext = createContext();
 
@@ -69,14 +70,43 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
-    try {
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-      setUser(null);
-    } catch (error) {
-      console.error("Failed to remove user from localStorage:", error);
-    }
+    clearSession();
+    setUser(null);
   }
+
+  // The HTTP layer clears storage when a token can no longer be refreshed, but
+  // `user` also lives in React state, so without this the current tab kept
+  // rendering the signed-in navbar (and passing route guards) after the session
+  // was already dead.
+  useEffect(() => {
+    const handleSessionExpired = () => setUser(null);
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
+
+  // CATalyst and CiteWise are served from the same origin and therefore share one
+  // session. Signing out in one tab has to sign out the others too, instead of
+  // leaving them showing an account that no longer has a token.
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key !== null && event.key !== "user" && event.key !== "token") return;
+
+      const token = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
+      if (!token || !savedUser) {
+        setUser(null);
+        return;
+      }
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        setUser(null);
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
