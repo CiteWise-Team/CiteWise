@@ -50,9 +50,13 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   // State for modular Upload modal
   const [showUploadModal, setShowUploadModal] = useState(false);
 
+  // Only a *completed* assessment retires the weight-customization hero panel.
+  // Flipping on "processing" meant that assessing one document swapped the panel
+  // out on the very next poll, so a user assessing files one at a time with
+  // different weights lost the controls before they could set up the second file.
   const [hasEverAssessed, setHasEverAssessed] = useState(false);
   useEffect(() => {
-    if (documents.some((doc) => doc.rawStatus === "complete" || doc.rawStatus === "processing")) {
+    if (documents.some((doc) => doc.rawStatus === "complete")) {
       setHasEverAssessed(true);
     }
   }, [documents]);
@@ -143,11 +147,34 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     }
   }, [resolvedSessionId]);
 
+  // Adaptive polling. A flat 5s interval costs ~120 requests / 10 min per open
+  // tab even when nothing is happening, which on its own exhausted the API rate
+  // limit and surfaced as an opaque "Failed to fetch". Poll quickly only while a
+  // document is actually pending or being assessed, then back off.
+  const documentsActiveRef = useRef(false);
+  useEffect(() => {
+    documentsActiveRef.current = documents.some(
+      (doc) => doc.rawStatus === "pending" || doc.rawStatus === "processing"
+    );
+  }, [documents]);
+
   useEffect(() => {
     if (!resolvedSessionId) return;
-    fetchDocuments();
-    const pollId = setInterval(fetchDocuments, 5000);
-    return () => clearInterval(pollId);
+    let cancelled = false;
+    let timer = null;
+
+    const tick = async () => {
+      if (cancelled) return;
+      await fetchDocuments();
+      if (cancelled) return;
+      timer = setTimeout(tick, documentsActiveRef.current ? 5000 : 30000);
+    };
+
+    tick();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [resolvedSessionId, fetchDocuments]);
 
   useEffect(() => {

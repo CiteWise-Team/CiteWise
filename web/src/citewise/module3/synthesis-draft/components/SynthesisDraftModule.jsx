@@ -310,7 +310,7 @@
       return () => window.removeEventListener('storage', handleStorageChange);
     }, [DOCS_STORAGE_KEY]);
 
-    const startSynthesis = async (isRegenerate = false) => {
+    const startSynthesis = async () => {
       if (approvedDocuments.length === 0) {
         setStatusText("No approved documents available. Please approve documents in AI Assessment first.");
         return;
@@ -373,19 +373,27 @@
           .map((ref) => ref.trim())
           .filter((ref) => ref.length > 0);
 
-        const existingContent = isRegenerate ? "" : (generatedContent || "");
+        const previousContent = generatedContent || "";
         const newContent = payload.contentText || "";
-        
-        let mergedContent = newContent;
-        let mergedReferences = refsArray;
-        
-        if (existingContent && existingContent.length > 0) {
-          if (!existingContent.includes(newContent.substring(0, 100))) {
-            mergedContent = existingContent + "\n\n---\n\n" + newContent;
-            const existingRefs = references || [];
-            const newRefsSet = new Set([...existingRefs, ...refsArray]);
-            mergedReferences = Array.from(newRefsSet);
-          }
+
+        // A re-draft REPLACES the introduction. The previous code branched on an
+        // `isRegenerate` flag and would otherwise concatenate the old and new
+        // drafts with a "---" separator and union both reference lists — two whole
+        // introductions in one document. That path only stayed dormant by accident:
+        // the button wires onClick={onSynthesize}, so the flag always received a
+        // truthy MouseEvent. Replacing unconditionally makes the intent explicit,
+        // and the previous draft is snapshotted below so it stays restorable from
+        // Draft Version History.
+        const mergedContent = newContent;
+        const mergedReferences = refsArray;
+
+        if (previousContent && previousContent !== newContent) {
+          store.addDraftVersion(sessionId, {
+            content: previousContent,
+            references: references || [],
+            label: `Replaced v${store.getDraftVersions(sessionId).length + 1}`,
+            source: "generated",
+          });
         }
 
         setGenerationProgress(100);
@@ -416,9 +424,12 @@
       } catch (err) {
         clearInterval(interval);
         console.error("Synthesis error:", err);
-        setGenerationStatus("idle");
         setGenerationProgress(0);
         setStatusText(err.message || "Synthesis failed");
+        // A failed re-draft must not throw away the draft already on screen.
+        // Dropping straight back to "idle" swapped a perfectly good draft for the
+        // "No Content Generated Yet" placeholder.
+        setGenerationStatus(generatedContent ? "complete" : "idle");
       }
     };
 
@@ -577,16 +588,44 @@
 
     return (
       <div style={styles.container}>
+        {/* The toast animations live here rather than in a global stylesheet, and
+            have to be injected wherever they are referenced — the equivalent toast
+            in Module 2 defines its own copy. Without them the toast rendered as a
+            static box with a motionless icon and no progress indicator. */}
+        <style>{`
+          @keyframes fadeInToast { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes scaleInToast {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+          }
+          @keyframes pulseRing {
+            0%, 100% { box-shadow: 0 0 20px rgba(91, 91, 214, 0.2); }
+            50% { box-shadow: 0 0 40px rgba(91, 91, 214, 0.4); }
+          }
+          @keyframes drawCheckmark { to { stroke-dashoffset: 0; } }
+          @keyframes fillProgress { to { width: 100%; } }
+        `}</style>
+
         {showSuccessToast && (
           <div style={styles.toastOverlay}>
             <div style={styles.toastContainer}>
               <div style={styles.toastIcon}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="3">
-                  <polyline points="20 6 9 17 4 12" />
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline
+                    points="20 6 9 17 4 12"
+                    style={{
+                      strokeDasharray: 50,
+                      strokeDashoffset: 50,
+                      animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
+                    }}
+                  />
                 </svg>
               </div>
               <h3 style={styles.toastTitle}>Synthesis Complete</h3>
               <p style={styles.toastMessage}>Your literature synthesis has been generated with APA citations.</p>
+              <div style={styles.toastProgressTrack}>
+                <div style={styles.toastProgressFill} />
+              </div>
             </div>
           </div>
         )}
@@ -730,6 +769,7 @@
       alignItems: "center",
       justifyContent: "center",
       zIndex: 9999,
+      animation: "fadeInToast 0.3s ease-out forwards",
     },
     toastContainer: {
       background: "#1e1e2f",
@@ -739,6 +779,8 @@
       maxWidth: "480px",
       width: "90%",
       textAlign: "center",
+      boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(91, 91, 214, 0.15)",
+      animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
     },
     toastIcon: {
       width: "80px",
@@ -750,6 +792,22 @@
       alignItems: "center",
       justifyContent: "center",
       margin: "0 auto 1.5rem",
+      boxShadow: "0 0 20px rgba(91, 91, 214, 0.2)",
+      animation: "pulseRing 2s infinite",
+    },
+    toastProgressTrack: {
+      width: "100%",
+      height: "4px",
+      background: "rgba(255, 255, 255, 0.08)",
+      borderRadius: "2px",
+      overflow: "hidden",
+    },
+    toastProgressFill: {
+      height: "100%",
+      background: "linear-gradient(90deg, #5b5bd6, #5b5bd6)",
+      width: "0%",
+      borderRadius: "2px",
+      animation: "fillProgress 2.2s linear forwards",
     },
     toastTitle: {
       fontFamily: "'Poppins', sans-serif",

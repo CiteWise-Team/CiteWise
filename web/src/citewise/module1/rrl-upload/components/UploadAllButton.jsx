@@ -46,6 +46,16 @@ export default function UploadAllButton({ onClick, isUploading, disabled }) {
         }
       }}
     >
+      {/* The icon's motion previously used
+          transition: "transform 0.5s infinite alternate" — invalid CSS, since
+          `infinite` and `alternate` are animation keywords. The browser dropped the
+          whole declaration, so the icon never moved while uploading. */}
+      <style>{`
+        @keyframes citewise-upload-bob {
+          from { transform: translateY(1px); }
+          to   { transform: translateY(-3px); }
+        }
+      `}</style>
       <svg
         width="16"
         height="16"
@@ -55,7 +65,11 @@ export default function UploadAllButton({ onClick, isUploading, disabled }) {
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ transform: isUploading ? "translateY(-2px)" : "none", transition: "transform 0.5s infinite alternate" }}
+        style={
+          isUploading
+            ? { animation: "citewise-upload-bob 0.9s ease-in-out infinite alternate" }
+            : { transform: "none", transition: "transform 0.3s ease" }
+        }
       >
         <polyline points="16 16 12 12 8 16" />
         <line x1="12" y1="12" x2="12" y2="21" />

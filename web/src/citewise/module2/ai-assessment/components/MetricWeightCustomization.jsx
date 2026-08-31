@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
 import { apiFetch } from "../../../../api/http";
@@ -14,6 +14,18 @@ export default function MetricWeightCustomization({
   const [open, setOpen] = useState(isHero); // always open if in hero position
   const [selectedDocs, setSelectedDocs] = useState(new Set());
   const [showSelectModal, setShowSelectModal] = useState(false);
+
+  // Documents still waiting to be assessed. Assessing files one at a time with
+  // different weights means coming back to this panel, so surface it (and say how
+  // many are left) rather than leaving it collapsed and easy to miss.
+  const pendingDocs = documents.filter((d) => d.rawStatus === "pending");
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!isHero && !autoOpenedRef.current && pendingDocs.length > 0) {
+      autoOpenedRef.current = true;
+      setOpen(true);
+    }
+  }, [isHero, pendingDocs.length]);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasChanged, setHasChanged] = useState(false);
@@ -132,8 +144,10 @@ export default function MetricWeightCustomization({
           <span style={{ ...ui.cardTitle, fontSize: "0.9rem", lineHeight: 1.3 }}>
             Metric Weight Customization
           </span>
-          <span style={{ color: theme.textMuted, fontFamily: theme.font, fontSize: "0.78rem", whiteSpace: "nowrap" }}>
-            {open ? "Hide ▲" : "Customize ▼"}
+          <span style={{ color: pendingDocs.length ? theme.accent : theme.textMuted, fontFamily: theme.font, fontSize: "0.78rem", whiteSpace: "nowrap" }}>
+            {pendingDocs.length > 0 && !open
+              ? `${pendingDocs.length} pending ▼`
+              : (open ? "Hide ▲" : "Customize ▼")}
           </span>
         </button>
       )}
@@ -157,6 +171,15 @@ export default function MetricWeightCustomization({
           {!isHero && (
              <p style={{ margin: 0, fontSize: "0.76rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
                Customize metric weights for assessment scoring.
+               {pendingDocs.length > 0 && (
+                 <>
+                   {" "}
+                   <span style={{ color: theme.accent, fontWeight: 600 }}>
+                     {pendingDocs.length} document{pendingDocs.length !== 1 ? "s" : ""} not assessed yet
+                   </span>
+                   {" — set the weights you want, then use “Assess Selected” to apply them to just those files."}
+                 </>
+               )}
              </p>
           )}
 

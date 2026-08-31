@@ -177,9 +177,13 @@ router.post('/assess-batch', async (req, res) => {
   // but DO NOT delete existing insights here.
   // We leave them intact so scoringPipeline can extract and reuse 
   // the `raw_ai_response_json` to instantly apply new weights without re-triggering the slow n8n AI inference.
+  // Scoped to the caller's session, like the weights update above. Without the
+  // session filter this endpoint could reset scoring for documents belonging to
+  // another session just by guessing their ids.
   await supabase.from('uploaded_documents')
     .update({ scoring_status: 'PENDING', scoring_error_message: null })
-    .in('id', documentIds);
+    .in('id', documentIds)
+    .eq('session_id', sessionId);
 
   // Run sequentially in background to avoid any race conditions or silent event loop drops
   console.log(`[Batch Assess] Starting background pipeline for ${documentIds.length} docs...`);

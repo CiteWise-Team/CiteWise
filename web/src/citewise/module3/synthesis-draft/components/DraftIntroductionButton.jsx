@@ -9,6 +9,7 @@ export default function DraftIntroductionButton({
 }) {
   return (
     <>
+      <style>{`@keyframes citewise-spin { to { transform: rotate(360deg); } }`}</style>
       {generationStatus !== "complete" ? (
         <button
           onClick={onSynthesize}
@@ -84,6 +85,8 @@ const styles = {
     border: "2px solid rgba(255,255,255,0.3)",
     borderTop: "2px solid white",
     borderRadius: "50%",
-    animation: "progress-bar-stripes 0.8s linear infinite",
+    // `progress-bar-stripes` is Bootstrap's keyframe: it animates
+    // background-position-x, so this ring sat perfectly still instead of spinning.
+    animation: "citewise-spin 0.8s linear infinite",
   },
 };

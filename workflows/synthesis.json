@@ -736,20 +736,6 @@
             "type": "main",
             "index": 0
           }
-        ],
-        [
-          {
-            "node": "Deterministic Citation Engine1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Prepare Retry Context 6",
-            "type": "main",
-            "index": 0
-          }
         ]
       ]
     },
@@ -791,20 +777,6 @@
         [
           {
             "node": "IF Validation Passed 9",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Deterministic Citation Engine1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Build Failure Response1",
             "type": "main",
             "index": 0
           }
@@ -908,6 +880,11 @@
             "node": "AI Agent - RAG Synthesis Attempt  (Key 1)",
             "type": "ai_languageModel",
             "index": 0
+          },
+          {
+            "node": "AI Agent - RAG Synthesis Attempt 8",
+            "type": "ai_languageModel",
+            "index": 0
           }
         ]
       ]
@@ -928,6 +905,11 @@
         [
           {
             "node": "AI Agent - RAG Synthesis Attempt  (Key 2)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent - RAG Synthesis Attempt 9",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -1027,6 +1009,42 @@
         [
           {
             "node": "Parse AI Draft JSON ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Validation Passed 8": {
+      "main": [
+        [
+          {
+            "node": "Deterministic Citation Engine1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Retry Context 6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Validation Passed 9": {
+      "main": [
+        [
+          {
+            "node": "Deterministic Citation Engine1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Failure Response1",
             "type": "main",
             "index": 0
           }

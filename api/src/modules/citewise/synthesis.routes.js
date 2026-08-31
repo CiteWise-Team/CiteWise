@@ -318,8 +318,30 @@ router.post('/generate', async (req, res) => {
     });
     const raw = await n8nRes.text();
     console.log(`[synthesis] n8n responded with status: ${n8nRes.status}, text: ${raw.slice(0, 100)}...`);
-    if (!raw?.trim()) throw new Error(`Synthesis webhook returned empty response. HTTP ${n8nRes.status}`);
-    let root = JSON.parse(raw);
+
+    // An empty body on HTTP 200 means the n8n execution finished without ever
+    // reaching a "Respond to Webhook" node (the webhook uses responseMode:
+    // responseNode). That is either a broken branch in the workflow or an
+    // execution that died mid-run — e.g. the Gemini node hitting its quota.
+    // Say so, instead of reporting a bare "empty response".
+    if (!raw?.trim()) {
+      throw new Error(
+        n8nRes.status === 200
+          ? 'The synthesis workflow finished without returning a draft. Check the latest execution in n8n — it ended before reaching a "Respond to Webhook" node (commonly an AI node failing or hitting its quota).'
+          : `Synthesis webhook returned an empty response. HTTP ${n8nRes.status}`
+      );
+    }
+
+    if (!n8nRes.ok) {
+      throw new Error(`Synthesis workflow returned HTTP ${n8nRes.status}: ${raw.slice(0, 300)}`);
+    }
+
+    let root;
+    try {
+      root = JSON.parse(raw);
+    } catch {
+      throw new Error(`Synthesis workflow returned a non-JSON response: ${raw.slice(0, 300)}`);
+    }
     if (Array.isArray(root) && root.length) root = root[0];
     for (const f of ['output','body','data','json','result']) {
       if (root[f] && typeof root[f] === 'object') { root = root[f]; break; }
