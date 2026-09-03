@@ -111,7 +111,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         size: formatBytes(item.sizeBytes),
         pages: prev?.pages ?? "-",
         rawStatus,
-        status: rawStatus === "complete" ? "Ready" : (rawStatus === "processing" ? "Assessing" : (rawStatus === "pending" ? "Pending Assessment" : "Processing")),
+        status: rawStatus === "complete" ? "Ready" : (rawStatus === "processing" ? "Assessing" : (rawStatus === "extracting" ? "Extracting Text" : (rawStatus === "pending" ? "Pending Assessment" : "Processing"))),
         approved: item.approved === true || item.approved === 1 || item.approved === "true" || prev?.approved === true,
         relevancyScore: overallFromInsight ?? item.relevancyScore ?? null,
         recommendationStatus: item.recommendationStatus ?? item.insight?.recommendationStatus ?? null,

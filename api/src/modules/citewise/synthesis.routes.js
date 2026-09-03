@@ -6,6 +6,7 @@ import fetch   from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
 import supabase from '../../common/config/supabaseClient.js';
 import requireAuth from '../../common/middlewares/auth.middleware.js';
+import { getTextFromR2 } from '../../common/config/r2Client.js';
 import {
   extractCitationMetadata,
   buildReferenceList,
@@ -95,9 +96,316 @@ function parseJsonArray(str) {
   } catch { return []; }
 }
 
+// Async background synthesis worker
+async function asyncSynthesisJob({
+  sessionId,
+  chosenGap,
+  userInstructions,
+  weights,
+  userGaps,
+  rrlUsage,
+  approvedDocs,
+}) {
+  console.info(`[synthesis-async] Background synthesis started for session ${sessionId}...`);
+  try {
+    // Load baseline
+    const { data: baselines } = await supabase
+      .from('research_baselines').select('*')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: false }).limit(1);
+    const baseline = baselines?.[0] ?? null;
+
+    // Load insights + determine tiers
+    const tieredDocs = await Promise.all(approvedDocs.map(async (doc) => {
+      const { data: insight } = await supabase.from('document_insights').select('*').eq('document_id', doc.id).maybeSingle();
+      const { data: excerpts } = insight
+        ? await supabase.from('evidence_excerpts').select('*').eq('document_insight_id', insight.id).order('display_order')
+        : { data: [] };
+      const fullInsight = insight ? { ...insight, evidenceExcerpts: excerpts ?? [] } : null;
+      const docUsage = rrlUsage[doc.id] ?? rrlUsage[String(doc.id)] ?? {};
+      const usageChoice = docUsage.usage ?? null;
+      const tier = resolveTier(fullInsight, usageChoice, weights);
+      const emphasizedExcerpts = docUsage.emphasizedExcerpts ?? [];
+      const customExcerpts = docUsage.customExcerpts ?? [];
+      return { doc, insight: fullInsight, tier, emphasizedExcerpts, customExcerpts };
+    }));
+
+    const usableDocs = tieredDocs.filter(d => d.tier !== 'EXCLUDED');
+    if (!usableDocs.length) {
+      console.warn(`[synthesis-async] No usable documents for session ${sessionId}`);
+      await supabase.from('generated_draft').update({
+        validation_status: 'FAILED',
+        metrics_json: JSON.stringify({ error: 'No sufficiently relevant approved sources are available for synthesis.' }),
+      }).eq('session_id', sessionId);
+      return;
+    }
+
+    // Build n8n payload
+    const gapsRaw = baseline?.research_gaps;
+    const baselineGaps = Array.isArray(gapsRaw) ? gapsRaw : (gapsRaw ? [gapsRaw] : []);
+    const gapsArray = userGaps && userGaps.length ? userGaps : baselineGaps;
+
+    const citationByDocId = new Map();
+    for (const { doc } of usableDocs) {
+      citationByDocId.set(
+        String(doc.id),
+        extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json),
+      );
+    }
+    const allCitationMetas = [...citationByDocId.values()];
+    const lowConfidence = allCitationMetas.filter((m) => !m.metadataReliable);
+
+    const citationRules =
+      'CITATION RULES (STRICT): every approved document carries a `citation` object '
+      + '(`inTextParenthetical`, `inTextNarrative`, `reference`) extracted from that PDF\'s own '
+      + 'front matter. Cite ONLY by copying those strings verbatim. Never invent, guess, shorten, '
+      + 'reorder or re-date an author. Never place a paper\'s TITLE in the author position. Never take '
+      + 'a year from the body text, a dataset name, or another work\'s in-text citation. '
+      + 'When `citation.reliable` is false the metadata could not be verified: cite it exactly as '
+      + 'supplied (APA title-in-author-position and/or "n.d.") and do not substitute a guessed author or year. '
+      + 'The References section must contain exactly one entry per cited source, copied verbatim from `citation.reference`.';
+
+    const baseInstructions =
+      'The CATalyst Title, Rationale, and Research Gap are the primary source of truth. '
+      + 'Approved documents are supplementary evidence. You should aim to cite the approved documents provided in the `approvedDocuments` array. '
+      + 'However, if an approved document contains absolutely no usable content related to the topic or chosen research gap, you have the freedom to omit it from the synthesis. '
+      + 'Do not force a citation if the document is completely irrelevant to the narrative. '
+      + 'The primaryFocusGap is the user\'s selected gap and should be treated as the main structural narrative pivot. '
+      + 'The remaining gaps provide supporting context. '
+      + 'When a source provides emphasizedExcerpts or customHighlights, treat those passages as the user\'s highlighted, highest-priority evidence. '
+      + citationRules;
+
+    // Resolve full text lazily from R2 if r2_text_key is available
+    const resolvedApprovedDocuments = await Promise.all(
+      usableDocs.map(async ({ doc, insight, tier, emphasizedExcerpts, customExcerpts }) => {
+        let fullText = doc.parsed_text;
+        if (doc.r2_text_key) {
+          try {
+            const r2Text = await getTextFromR2(doc.r2_text_key);
+            if (r2Text?.trim()) fullText = r2Text;
+          } catch (r2Err) {
+            console.warn(`[synthesis-async] Failed to load R2 text for doc ${doc.id}:`, r2Err.message);
+          }
+        }
+
+        const meta = citationByDocId.get(String(doc.id));
+        const emphasizeSet = new Set((emphasizedExcerpts || []).map(Number));
+        const dbExcerpts = (insight?.evidenceExcerpts ?? []).map((e, idx) => ({
+          quoteText:     e.quote_text,
+          pageNumber:    e.page_number,
+          relevanceLevel:e.relevance_level,
+          criterion:     e.criterion,
+          evidenceType:  e.evidence_type,
+          displayOrder:  e.display_order,
+          emphasized:    emphasizeSet.has(idx),
+        }));
+        const userCustomHighlights = (customExcerpts || []).map((t) => ({
+          quoteText: String(t).trim(),
+          pageNumber: null,
+          relevanceLevel: 'High',
+          criterion: 'User Emphasis',
+          evidenceType: 'Custom Highlight',
+          displayOrder: 0,
+          emphasized: true,
+          isCustom: true,
+        })).filter((c) => c.quoteText);
+        const excerpts = [...userCustomHighlights, ...dbExcerpts];
+        const userEmphasizedExcerpts = excerpts.filter((e) => e.emphasized);
+        const scores = {
+          gapAlignment:  insight?.gap_alignment_score ?? null,
+          methodology:   insight?.methodology_score    ?? null,
+          theory:        insight?.theoretical_score    ?? null,
+          citationQuality:insight?.citation_score      ?? null,
+          overall:        insight?.overall_score        ?? null,
+        };
+
+        return {
+          documentId:          String(doc.id),
+          filename:            doc.file_name ?? '',
+          extracted_text:      fullText,
+          sourceTier:          TIER_META[tier].payloadValue,
+          sourceUseGuidance:   TIER_META[tier].guidance,
+          overallScore:        insight?.overall_score         ?? null,
+          recommendationStatus:insight?.recommendation_status ?? null,
+          confidenceLevel:     insight?.confidence_level       ?? null,
+          relevanceLevel:      insight?.relevance_level         ?? null,
+          mismatchFlagsJson:   insight?.mismatch_flags_json  ?? '[]',
+          weaknessFlagsJson:   insight?.weakness_flags_json  ?? '[]',
+          mismatchFlags:       parseJsonArray(insight?.mismatch_flags_json),
+          weaknessFlags:       parseJsonArray(insight?.weakness_flags_json),
+          scores,
+          evidenceExcerpts:    excerpts,
+          emphasizedExcerpts:  userEmphasizedExcerpts,
+          customHighlights:    (customExcerpts || []).map((t) => String(t).trim()).filter(Boolean),
+          metadata:            meta,
+          citation:            meta.citation,
+        };
+      })
+    );
+
+    const payload = {
+      sessionId,
+      synthesisInstructions: userInstructions
+        ? `${baseInstructions} ADDITIONAL USER INSTRUCTIONS (must be followed): ${userInstructions}`
+        : baseInstructions,
+      userInstructions: userInstructions || null,
+      baseline: {
+        title:     baseline?.project_title ?? '',
+        rationale: baseline?.rationale     ?? '',
+        gaps:      gapsArray,
+        ...(chosenGap?.trim() ? { primaryFocusGap: chosenGap.trim(), chosenGap: chosenGap.trim() } : {}),
+      },
+      sourceTierSummary: {
+        core:       usableDocs.filter(d => d.tier === 'CORE').length,
+        supporting: usableDocs.filter(d => d.tier === 'SUPPORTING').length,
+        tangential: usableDocs.filter(d => d.tier === 'TANGENTIAL').length,
+      },
+      citationRules,
+      referenceList: buildReferenceList(allCitationMetas),
+      approvedDocuments: resolvedApprovedDocuments,
+    };
+
+    const webhookUrl = process.env.CITEWISE_N8N_SYNTHESIS_WEBHOOK_URL
+      || 'http://localhost:5678/webhook/citewise-synthesizer-fixed';
+
+    let n8nData;
+    const n8nRes = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Connection: 'close' },
+      body:    JSON.stringify(payload),
+      timeout: parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS) || 120000,
+    });
+    const raw = await n8nRes.text();
+
+    if (!raw?.trim()) {
+      throw new Error(`Synthesis webhook returned an empty response. HTTP ${n8nRes.status}`);
+    }
+    if (!n8nRes.ok) {
+      throw new Error(`Synthesis workflow returned HTTP ${n8nRes.status}: ${raw.slice(0, 300)}`);
+    }
+
+    let root;
+    try {
+      root = JSON.parse(raw);
+    } catch {
+      throw new Error(`Synthesis workflow returned a non-JSON response: ${raw.slice(0, 300)}`);
+    }
+    if (Array.isArray(root) && root.length) root = root[0];
+    for (const f of ['output','body','data','json','result']) {
+      if (root[f] && typeof root[f] === 'object') { root = root[f]; break; }
+      if (root[f] && typeof root[f] === 'string') { try { root = JSON.parse(root[f]); break; } catch {} }
+    }
+    n8nData = root;
+
+    const success          = n8nData.success !== false;
+    const message          = n8nData.message ?? '';
+    const validationStatus = n8nData.validationStatus ?? '';
+    const validationFlags  = Array.isArray(n8nData.validationFlags) ? n8nData.validationFlags : [];
+
+    // Citation integrity pass
+    const citationFixes = [];
+    const unverifiedCitations = [];
+    const reconcile = (text) => {
+      const { text: fixed, fixes, unverified } = reconcileInTextCitations(text, allCitationMetas);
+      citationFixes.push(...fixes);
+      unverifiedCitations.push(...unverified);
+      return fixed;
+    };
+
+    const contentText = reconcile(n8nData.contentText ?? '');
+    const sections = n8nData.sections
+      ? {
+          ...n8nData.sections,
+          background: reconcile(n8nData.sections.background),
+          rationale:  reconcile(n8nData.sections.rationale),
+          gap:        reconcile(n8nData.sections.gap),
+        }
+      : null;
+
+    const fullTextToCheck = contentText + ' ' + 
+      (sections?.background || '') + ' ' + 
+      (sections?.rationale || '') + ' ' + 
+      (sections?.gap || '');
+
+    const citedMetas = allCitationMetas.filter((meta) => {
+      if (!meta?.citation) return false;
+      const inTextP = meta.citation.inTextParenthetical;
+      const inTextAuthors = meta.citation.inTextAuthors;
+      const shortTitle = meta.citation.shortTitle;
+      const srcFile = meta.citation.sourceFile;
+      if (inTextP && fullTextToCheck.includes(inTextP)) return true;
+      if (inTextAuthors && fullTextToCheck.includes(inTextAuthors)) return true;
+      if (shortTitle && fullTextToCheck.includes(shortTitle)) return true;
+      if (srcFile && fullTextToCheck.includes(srcFile)) return true;
+      return false;
+    });
+
+    const referencesText = n8nData.referencesText ?? ((citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas)) || '');
+
+    const omittedDocuments = usableDocs
+      .filter(d => {
+        const meta = citationByDocId.get(String(d.doc.id));
+        return meta && !citedMetas.includes(meta);
+      })
+      .map(d => ({
+        file: d.doc.file_name || d.doc.name || 'Unnamed source',
+        id: d.doc.id,
+      }));
+
+    const citationIntegrity = {
+      correctedCount:  citationFixes.length,
+      corrections:     citationFixes,
+      unverified:      [...new Set(unverifiedCitations)],
+      lowConfidenceSources: lowConfidence.map((m) => ({
+        file:     m.citation.sourceFile,
+        citation: m.citation.inTextParenthetical,
+        warnings: m.warnings,
+      })),
+      omittedDocuments,
+    };
+
+    if (!success || (validationStatus && validationStatus.toUpperCase() !== 'PASSED')) {
+      console.warn(`[synthesis-async] Synthesis validation not passed: status="${validationStatus}"`);
+      await supabase.from('generated_draft').update({
+        validation_status: validationStatus || 'FAILED',
+        validation_flags_json: JSON.stringify(validationFlags),
+        metrics_json: JSON.stringify({
+          error: message || n8nData.errorMessage || 'Synthesis validation failed',
+          retryRecommended: n8nData.retryRecommended ?? false,
+        }),
+      }).eq('session_id', sessionId);
+      return;
+    }
+
+    // Persist finalized draft
+    await supabase.from('generated_draft').update({
+      content_text:                contentText,
+      references_text:             referencesText,
+      background_text:             sections?.background ?? null,
+      rationale_text:              sections?.rationale  ?? null,
+      gap_text:                    sections?.gap        ?? null,
+      citations_used_json:         n8nData.citationsUsed ? JSON.stringify(n8nData.citationsUsed) : '[]',
+      validation_status:           'PASSED',
+      validation_flags_json:       JSON.stringify(validationFlags),
+      unsupported_claim_flags_json:JSON.stringify(n8nData.unsupportedClaimFlags ?? []),
+      metrics_json:                JSON.stringify({
+        ...(n8nData.metrics ?? {}),
+        citationIntegrity,
+      }),
+    }).eq('session_id', sessionId);
+
+    console.info(`[synthesis-async] ✅ Draft synthesis completed and persisted for session ${sessionId}.`);
+  } catch (err) {
+    console.error(`[synthesis-async] Fatal error during synthesis for session ${sessionId}:`, err.message);
+    await supabase.from('generated_draft').update({
+      validation_status: 'FAILED',
+      metrics_json: JSON.stringify({ error: err.message }),
+    }).eq('session_id', sessionId);
+  }
+}
+
 // POST /api/v1/synthesis/generate?sessionId=...&chosenGap=...
-// Optional JSON body for user-guided synthesis:
-//   { userInstructions, weights, gaps[], primaryFocusGap, rrlUsage: { [docId]: { usage, emphasizedExcerpts[] } } }
+// Returns HTTP 202 Accepted in <100ms and executes synthesis asynchronously in background.
 router.post('/generate', async (req, res) => {
   const sessionId = req.query.sessionId;
   const body = req.body || {};
@@ -123,15 +431,7 @@ router.post('/generate', async (req, res) => {
     await supabase.from('uploaded_documents').update({ approved: true, session_id: sessionId }).in('id', allApprovedIds);
   }
 
-  // Load baseline
-  const { data: baselines } = await supabase
-    .from('research_baselines').select('*')
-    .eq('session_id', sessionId)
-    .order('created_at', { ascending: false }).limit(1);
-  const baseline = baselines?.[0] ?? null;
-  if (!baseline) console.warn(`[synthesis] no baseline for session ${sessionId}`);
-
-  // Load approved documents with text
+  // Load approved documents
   let { data: approvedDocs, error: docsErr } = await supabase
     .from('uploaded_documents').select('*')
     .eq('session_id', sessionId).eq('approved', true);
@@ -148,341 +448,135 @@ router.post('/generate', async (req, res) => {
     }
   }
 
-  // Respect the explicit approvedDocumentIds selection from the frontend if provided
   if (Array.isArray(approvedDocumentIds)) {
     const allowed = new Set(approvedDocumentIds.map(String));
     approvedDocs = (approvedDocs || []).filter(d => allowed.has(String(d.id)));
   }
 
-  const docsWithText = (approvedDocs ?? []).filter(d => d.parsed_text?.trim());
+  const docsWithText = (approvedDocs ?? []).filter(d => d.parsed_text?.trim() || d.r2_text_key);
   if (!docsWithText.length) {
-    return res.json({ success: false, message: 'Approve at least one document before generating an introduction.' });
+    return res.status(400).json({ success: false, message: 'Approve at least one document before generating an introduction.' });
   }
 
-  // Load insights + determine tiers
-  // Load insights + determine tiers
-  const tieredDocs = await Promise.all(docsWithText.map(async (doc) => {
-    const { data: insight } = await supabase.from('document_insights').select('*').eq('document_id', doc.id).maybeSingle();
-    const { data: excerpts } = insight
-      ? await supabase.from('evidence_excerpts').select('*').eq('document_insight_id', insight.id).order('display_order')
-      : { data: [] };
-    const fullInsight = insight ? { ...insight, evidenceExcerpts: excerpts ?? [] } : null;
-    const docUsage = rrlUsage[doc.id] ?? rrlUsage[String(doc.id)] ?? {};
-    const usageChoice = docUsage.usage ?? null;
-    const tier = resolveTier(fullInsight, usageChoice, weights);
-    const emphasizedExcerpts = docUsage.emphasizedExcerpts ?? [];
-    const customExcerpts = docUsage.customExcerpts ?? [];
-    return { doc, insight: fullInsight, tier, emphasizedExcerpts, customExcerpts };
-  }));
+  // Reset or create placeholder draft row in GENERATING status
+  await supabase.from('generated_draft').delete().eq('session_id', sessionId);
+  const { data: placeholderDraft, error: draftInitErr } = await supabase
+    .from('generated_draft')
+    .insert({
+      session_id:                  sessionId,
+      content_text:                '',
+      references_text:             '',
+      background_text:             null,
+      rationale_text:              null,
+      gap_text:                    null,
+      citations_used_json:         '[]',
+      validation_status:           'GENERATING',
+      validation_flags_json:       '[]',
+      unsupported_claim_flags_json:'[]',
+      metrics_json:                '{}',
+    })
+    .select()
+    .single();
 
-  const usableDocs = tieredDocs.filter(d => d.tier !== 'EXCLUDED');
-  if (!usableDocs.length) {
-    return res.json({
-      success: false,
-      status:  'NO_RELEVANT_SOURCES',
-      message: 'No sufficiently relevant approved sources are available for synthesis. Review approved documents in Module 2.',
-      meta: { approvedDocumentCount: docsWithText.length, excludedSourceCount: tieredDocs.length },
+  if (draftInitErr) {
+    console.error('[synthesis] failed to initialize draft row:', draftInitErr.message);
+    return res.status(500).json({ success: false, message: draftInitErr.message });
+  }
+
+  // Dispatch background job (Heroku-safe async execution)
+  setImmediate(() => {
+    asyncSynthesisJob({
+      sessionId,
+      chosenGap,
+      userInstructions,
+      weights,
+      userGaps,
+      rrlUsage,
+      approvedDocs: docsWithText,
     });
-  }
-
-  // Build n8n payload. User-edited gaps (from the Gap Workshop) take priority
-  // over the raw CATalyst baseline gaps when provided.
-  const gapsRaw = baseline?.research_gaps;
-  const baselineGaps = Array.isArray(gapsRaw) ? gapsRaw : (gapsRaw ? [gapsRaw] : []);
-  const gapsArray = userGaps && userGaps.length ? userGaps : baselineGaps;
-
-  // Authoritative citation metadata, derived only from each uploaded PDF's own
-  // front matter. Computed once here so the same strings drive both the model
-  // prompt and the post-generation reference list.
-  const citationByDocId = new Map();
-  for (const { doc } of usableDocs) {
-    citationByDocId.set(
-      String(doc.id),
-      extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json),
-    );
-  }
-  const allCitationMetas = [...citationByDocId.values()];
-  const lowConfidence = allCitationMetas.filter((m) => !m.metadataReliable);
-  if (lowConfidence.length) {
-    console.warn(
-      `[synthesis] ${lowConfidence.length}/${allCitationMetas.length} source(s) have low-confidence citation metadata:`,
-      lowConfidence.map((m) => `${m.citation.sourceFile} -> ${m.citation.inTextParenthetical}`).join('; '),
-    );
-  }
-
-  const citationRules =
-    'CITATION RULES (STRICT): every approved document carries a `citation` object '
-    + '(`inTextParenthetical`, `inTextNarrative`, `reference`) extracted from that PDF\'s own '
-    + 'front matter. Cite ONLY by copying those strings verbatim. Never invent, guess, shorten, '
-    + 'reorder or re-date an author. Never place a paper\'s TITLE in the author position. Never take '
-    + 'a year from the body text, a dataset name, or another work\'s in-text citation. '
-    + 'When `citation.reliable` is false the metadata could not be verified: cite it exactly as '
-    + 'supplied (APA title-in-author-position and/or "n.d.") and do not substitute a guessed author or year. '
-    + 'The References section must contain exactly one entry per cited source, copied verbatim from `citation.reference`.';
-
-  const baseInstructions =
-    'The CATalyst Title, Rationale, and Research Gap are the primary source of truth. '
-    + 'Approved documents are supplementary evidence. You should aim to cite the approved documents provided in the `approvedDocuments` array. '
-    + 'However, if an approved document contains absolutely no usable content related to the topic or chosen research gap, you have the freedom to omit it from the synthesis. '
-    + 'Do not force a citation if the document is completely irrelevant to the narrative. '
-    + 'The primaryFocusGap is the user\'s selected gap and should be treated as the main structural narrative pivot. '
-    + 'The remaining gaps provide supporting context. '
-    + 'When a source provides emphasizedExcerpts or customHighlights, treat those passages as the user\'s highlighted, highest-priority evidence. '
-    + citationRules;
-
-  const payload = {
-    sessionId,
-    synthesisInstructions: userInstructions
-      ? `${baseInstructions} ADDITIONAL USER INSTRUCTIONS (must be followed): ${userInstructions}`
-      : baseInstructions,
-    userInstructions: userInstructions || null,
-    baseline: {
-      title:     baseline?.project_title ?? '',
-      rationale: baseline?.rationale     ?? '',
-      gaps:      gapsArray,
-      ...(chosenGap?.trim() ? { primaryFocusGap: chosenGap.trim(), chosenGap: chosenGap.trim() } : {}),
-    },
-    sourceTierSummary: {
-      core:       usableDocs.filter(d => d.tier === 'CORE').length,
-      supporting: usableDocs.filter(d => d.tier === 'SUPPORTING').length,
-      tangential: usableDocs.filter(d => d.tier === 'TANGENTIAL').length,
-    },
-    citationRules,
-    // The exact reference list the draft must reproduce, in APA order.
-    referenceList: buildReferenceList(allCitationMetas),
-    approvedDocuments: usableDocs.map(({ doc, insight, tier, emphasizedExcerpts, customExcerpts }) => {
-      const meta = citationByDocId.get(String(doc.id));
-      const emphasizeSet = new Set((emphasizedExcerpts || []).map(Number));
-      const dbExcerpts = (insight?.evidenceExcerpts ?? []).map((e, idx) => ({
-        quoteText:     e.quote_text,
-        pageNumber:    e.page_number,
-        relevanceLevel:e.relevance_level,
-        criterion:     e.criterion,
-        evidenceType:  e.evidence_type,
-        displayOrder:  e.display_order,
-        emphasized:    emphasizeSet.has(idx),
-      }));
-      const userCustomHighlights = (customExcerpts || []).map((t) => ({
-        quoteText: String(t).trim(),
-        pageNumber: null,
-        relevanceLevel: 'High',
-        criterion: 'User Emphasis',
-        evidenceType: 'Custom Highlight',
-        displayOrder: 0,
-        emphasized: true,
-        isCustom: true,
-      })).filter((c) => c.quoteText);
-      const excerpts = [...userCustomHighlights, ...dbExcerpts];
-      const userEmphasizedExcerpts = excerpts.filter((e) => e.emphasized);
-      const scores = {
-        gapAlignment:  insight?.gap_alignment_score ?? null,
-        methodology:   insight?.methodology_score    ?? null,
-        theory:        insight?.theoretical_score    ?? null,
-        citationQuality:insight?.citation_score      ?? null,
-        overall:        insight?.overall_score        ?? null,
-      };
-      return {
-        documentId:          String(doc.id),
-        filename:            doc.file_name ?? '',
-        extracted_text:      doc.parsed_text,
-        sourceTier:          TIER_META[tier].payloadValue,
-        sourceUseGuidance:   TIER_META[tier].guidance,
-        overallScore:        insight?.overall_score         ?? null,
-        recommendationStatus:insight?.recommendation_status ?? null,
-        confidenceLevel:     insight?.confidence_level       ?? null,
-        relevanceLevel:      insight?.relevance_level         ?? null,
-        mismatchFlagsJson:   insight?.mismatch_flags_json  ?? '[]',
-        weaknessFlagsJson:   insight?.weakness_flags_json  ?? '[]',
-        mismatchFlags:       parseJsonArray(insight?.mismatch_flags_json),
-        weaknessFlags:       parseJsonArray(insight?.weakness_flags_json),
-        scores,
-        evidenceExcerpts: excerpts,
-        emphasizedExcerpts: userEmphasizedExcerpts,
-        customHighlights: (customExcerpts || []).map((t) => String(t).trim()).filter(Boolean),
-        metadata: meta,
-        citation: meta.citation,
-      };
-    }),
-  };
-
-  const webhookUrl = process.env.CITEWISE_N8N_SYNTHESIS_WEBHOOK_URL
-    || 'http://localhost:5678/webhook/citewise-synthesizer-fixed';
-
-  let n8nData;
-  try {
-    const n8nRes = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Connection: 'close' },
-      body:    JSON.stringify(payload),
-      timeout: parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS) || 120000,
-    });
-    const raw = await n8nRes.text();
-    console.log(`[synthesis] n8n responded with status: ${n8nRes.status}, text: ${raw.slice(0, 100)}...`);
-
-    // An empty body on HTTP 200 means the n8n execution finished without ever
-    // reaching a "Respond to Webhook" node (the webhook uses responseMode:
-    // responseNode). That is either a broken branch in the workflow or an
-    // execution that died mid-run — e.g. the Gemini node hitting its quota.
-    // Say so, instead of reporting a bare "empty response".
-    if (!raw?.trim()) {
-      throw new Error(
-        n8nRes.status === 200
-          ? 'The synthesis workflow finished without returning a draft. Check the latest execution in n8n — it ended before reaching a "Respond to Webhook" node (commonly an AI node failing or hitting its quota).'
-          : `Synthesis webhook returned an empty response. HTTP ${n8nRes.status}`
-      );
-    }
-
-    if (!n8nRes.ok) {
-      throw new Error(`Synthesis workflow returned HTTP ${n8nRes.status}: ${raw.slice(0, 300)}`);
-    }
-
-    let root;
-    try {
-      root = JSON.parse(raw);
-    } catch {
-      throw new Error(`Synthesis workflow returned a non-JSON response: ${raw.slice(0, 300)}`);
-    }
-    if (Array.isArray(root) && root.length) root = root[0];
-    for (const f of ['output','body','data','json','result']) {
-      if (root[f] && typeof root[f] === 'object') { root = root[f]; break; }
-      if (root[f] && typeof root[f] === 'string') { try { root = JSON.parse(root[f]); break; } catch {} }
-    }
-    n8nData = root;
-  } catch (err) {
-    console.error('[synthesis] n8n call failed:', err.message);
-    return res.status(502).json({ success: false, message: `Synthesis failed: ${err.message}` });
-  }
-
-  const success       = n8nData.success        !== false;
-  const message       = n8nData.message        ?? '';
-  const validationStatus = n8nData.validationStatus ?? '';
-  const validationFlags  = Array.isArray(n8nData.validationFlags) ? n8nData.validationFlags : [];
-
-  // ── Citation integrity pass ────────────────────────────────────────
-  // Last line of defence: whatever the model returned, in-text citations are
-  // reconciled against the metadata extracted from the uploaded PDFs and the
-  // reference list is rebuilt from that same metadata. A generated draft can
-  // therefore never carry an author or year the source files don't support.
-  const citationFixes = [];
-  const unverifiedCitations = [];
-
-  const reconcile = (text) => {
-    const { text: fixed, fixes, unverified } = reconcileInTextCitations(text, allCitationMetas);
-    citationFixes.push(...fixes);
-    unverifiedCitations.push(...unverified);
-    return fixed;
-  };
-
-  const contentText = reconcile(n8nData.contentText ?? '');
-  const sections = n8nData.sections
-    ? {
-        ...n8nData.sections,
-        background: reconcile(n8nData.sections.background),
-        rationale:  reconcile(n8nData.sections.rationale),
-        gap:        reconcile(n8nData.sections.gap),
-      }
-    : null;
-
-  const fullTextToCheck = contentText + ' ' + 
-    (sections?.background || '') + ' ' + 
-    (sections?.rationale || '') + ' ' + 
-    (sections?.gap || '');
-
-  // The reference list is regenerated, filtered strictly to sources actually cited in the generated draft body.
-  const citedMetas = allCitationMetas.filter((meta) => {
-    if (!meta?.citation) return false;
-    const inTextP = meta.citation.inTextParenthetical;
-    const inTextAuthors = meta.citation.inTextAuthors;
-    const shortTitle = meta.citation.shortTitle;
-    const srcFile = meta.citation.sourceFile;
-    if (inTextP && fullTextToCheck.includes(inTextP)) return true;
-    if (inTextAuthors && fullTextToCheck.includes(inTextAuthors)) return true;
-    if (shortTitle && fullTextToCheck.includes(shortTitle)) return true;
-    if (srcFile && fullTextToCheck.includes(srcFile)) return true;
-    return false;
   });
 
-  const referencesText = n8nData.referencesText ?? ((citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas)) || '');
+  return res.status(202).json({
+    success: true,
+    status: 'GENERATING',
+    draftId: placeholderDraft.id,
+    sessionId,
+    message: 'Draft synthesis started in the background.',
+  });
+});
 
-  if (citationFixes.length) {
-    console.warn(`[synthesis] corrected ${citationFixes.length} in-text citation(s):`,
-      citationFixes.map((f) => `${f.from} -> ${f.to}`).join('; '));
+// GET /api/v1/synthesis/status?sessionId=...
+// Fast status endpoint for frontend polling
+router.get('/status', async (req, res) => {
+  const { sessionId } = req.query;
+  if (!sessionId) return res.status(400).json({ success: false, message: 'sessionId is required' });
+
+  const { data: draft, error } = await supabase
+    .from('generated_draft')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return res.status(500).json({ success: false, message: error.message });
+  if (!draft) {
+    return res.status(404).json({ success: false, status: 'NOT_FOUND', message: 'No draft found for this session' });
   }
-  if (unverifiedCitations.length) {
-    console.warn('[synthesis] in-text citations not traceable to any uploaded source:',
-      [...new Set(unverifiedCitations)].join('; '));
-  }
 
-  const omittedDocuments = usableDocs
-    .filter(d => {
-      const meta = citationByDocId.get(String(d.doc.id));
-      return meta && !citedMetas.includes(meta);
-    })
-    .map(d => ({
-      file: d.doc.file_name || d.doc.name || 'Unnamed source',
-      id: d.doc.id,
-    }));
-
-  const citationIntegrity = {
-    correctedCount:  citationFixes.length,
-    corrections:     citationFixes,
-    unverified:      [...new Set(unverifiedCitations)],
-    lowConfidenceSources: lowConfidence.map((m) => ({
-      file:     m.citation.sourceFile,
-      citation: m.citation.inTextParenthetical,
-      warnings: m.warnings,
-    })),
-    omittedDocuments,
-  };
-
-  if (!success || (validationStatus && validationStatus.toUpperCase() !== 'PASSED')) {
+  if (draft.validation_status === 'GENERATING') {
     return res.json({
-      success:    false,
-      status:     validationStatus || 'VALIDATION_FAILED',
-      message:    message || 'Synthesis failed or validation failed',
-      validationFlags,
-      retryRecommended: n8nData.retryRecommended ?? false,
-      errorMessage:     n8nData.errorMessage     ?? null,
+      success: true,
+      status: 'GENERATING',
+      sessionId,
+      draftId: draft.id,
+      createdAt: draft.created_at,
     });
   }
 
-  // Persist draft – replace any previous draft for this session
-  await supabase.from('generated_draft').delete().eq('session_id', sessionId);
+  const metrics = draft.metrics_json
+    ? (typeof draft.metrics_json === 'string' ? JSON.parse(draft.metrics_json) : draft.metrics_json)
+    : {};
 
-  const { data: draft, error: draftErr } = await supabase
-    .from('generated_draft').insert({
-      session_id:                  sessionId,
-      content_text:                contentText,
-      references_text:             referencesText,
-      background_text:             sections?.background ?? null,
-      rationale_text:              sections?.rationale  ?? null,
-      gap_text:                    sections?.gap        ?? null,
-      citations_used_json:         n8nData.citationsUsed ? JSON.stringify(n8nData.citationsUsed) : '[]',
-      validation_status:           n8nData.validationStatus        ?? null,
-      validation_flags_json:       n8nData.validationFlags ? JSON.stringify(n8nData.validationFlags) : '[]',
-      unsupported_claim_flags_json:n8nData.unsupportedClaimFlags ? JSON.stringify(n8nData.unsupportedClaimFlags) : '[]',
-      metrics_json:                n8nData.metrics ? JSON.stringify(n8nData.metrics) : '{}',
-    }).select().single();
-
-  if (draftErr) {
-    console.error('[synthesis] failed to save draft:', draftErr.message);
-    return res.status(500).json({ success: false, message: draftErr.message });
+  if (draft.validation_status === 'FAILED') {
+    return res.json({
+      success: false,
+      status: 'FAILED',
+      message: metrics.error || 'Synthesis generation failed',
+      validationFlags: draft.validation_flags_json
+        ? (typeof draft.validation_flags_json === 'string' ? JSON.parse(draft.validation_flags_json) : draft.validation_flags_json)
+        : [],
+      metrics,
+      createdAt: draft.created_at,
+    });
   }
 
+  const citationsUsed = draft.citations_used_json
+    ? (typeof draft.citations_used_json === 'string' ? JSON.parse(draft.citations_used_json) : draft.citations_used_json)
+    : [];
+
+  const validationFlags = draft.validation_flags_json
+    ? (typeof draft.validation_flags_json === 'string' ? JSON.parse(draft.validation_flags_json) : draft.validation_flags_json)
+    : [];
+
   return res.json({
-    draftId:        draft.id,
+    success: true,
+    status: draft.validation_status || 'PASSED',
+    draftId: draft.id,
     sessionId,
-    contentText,
-    referencesText,
-    sections,
-    citationsUsed:  n8nData.citationsUsed ?? [],
-    citationIntegrity,
+    contentText: draft.content_text,
+    referencesText: draft.references_text,
+    sections: {
+      background: draft.background_text,
+      rationale:  draft.rationale_text,
+      gap:        draft.gap_text,
+    },
+    citationsUsed,
+    citationIntegrity: metrics.citationIntegrity ?? null,
     validationStatus: draft.validation_status,
     validationFlags,
-    metrics:        n8nData.metrics ?? null,
-    createdAt:      draft.created_at,
-    success:        true,
-    message,
+    metrics,
+    createdAt: draft.created_at,
   });
 });
 

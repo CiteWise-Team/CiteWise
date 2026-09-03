@@ -20,6 +20,7 @@ export default function UploadStatusBar({ readyCount, totalCount, statusMessage,
     ready: "#5b5bd6",
     success: "#5b5bd6",
     uploading: "#5b5bd6",
+    extracting: "#5b5bd6",
     error: "#e05555",
     warning: "#e0a835",
   }[uploadState] || "rgba(240, 236, 230, 0.4)";

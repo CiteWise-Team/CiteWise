@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import FormData from "form-data";
 import supabase from "../../common/config/supabaseClient.js";
+import { isR2Configured, uploadPdfToR2, getPresignedDownloadUrl } from "../../common/config/r2Client.js";
 
 /**
  * Trigger n8n workflow with a file
@@ -102,11 +103,29 @@ export async function insertExtractorRepo(group_id, extractedData, fileMeta = nu
 const EXTRACTOR_BUCKET = process.env.SUPABASE_EXTRACTOR_BUCKET || "extractor-files";
 
 /**
- * Uploads the original PDF to Supabase Storage so it survives page refreshes
- * (previously only the extracted text fields were persisted).
+ * Uploads the original PDF to Cloudflare R2 (or Supabase Storage as fallback)
+ * so it survives page refreshes and avoids Supabase database / storage limits.
  */
 export async function uploadExtractorFileToStorage(group_id, file, filename) {
   const safeName = (filename || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const r2Key = `catalyst/${group_id}/${Date.now()}-${safeName}`;
+
+  if (isR2Configured) {
+    try {
+      await uploadPdfToR2(file, r2Key, "application/pdf");
+      const publicBase = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
+      const fileUrl = publicBase
+        ? `${publicBase}/${r2Key}`
+        : `/api/extractor/file/view?key=${encodeURIComponent(r2Key)}`;
+
+      console.info(`[extractor] Uploaded "${filename}" to Cloudflare R2 (${r2Key})`);
+      return { fileUrl, fileName: filename || safeName, r2Key };
+    } catch (r2Err) {
+      console.warn("[extractor] R2 upload failed, falling back to Supabase Storage:", r2Err.message);
+    }
+  }
+
+  // Graceful fallback to Supabase Storage
   const path = `${group_id}/${Date.now()}-${safeName}`;
 
   const doUpload = () =>

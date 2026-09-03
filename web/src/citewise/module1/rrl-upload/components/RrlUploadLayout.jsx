@@ -249,11 +249,12 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
       const accepted = payload?.data?.acceptedFiles || 0;
       const failed = payload?.data?.failedFiles || 0;
 
-      setUploadState(failed > 0 ? "warning" : "success");
+      const hasExtracting = results.some((r) => r.status === "EXTRACTING");
+      setUploadState(failed > 0 ? "warning" : (hasExtracting ? "extracting" : "success"));
       setStatusMessage(
         failed > 0
           ? `Uploaded ${accepted} file(s), ${failed} need attention.`
-          : `Uploaded ${accepted} file(s) successfully.`
+          : (hasExtracting ? `Uploaded ${accepted} file(s). Extracting text...` : `Uploaded ${accepted} file(s) successfully.`)
       );
 
       const serverDupes = [];
@@ -268,10 +269,11 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           if (isDupe) {
             serverDupes.push(item.name);
           }
+          const isExtracting = match.status === "EXTRACTING";
           return {
             ...item,
-            status: isDupe ? "duplicate" : match.success ? "uploaded" : "failed",
-            message: isDupe ? "Duplicate — removing from queue" : match.message,
+            status: isDupe ? "duplicate" : match.success ? (isExtracting ? "extracting" : "uploaded") : "failed",
+            message: isDupe ? "Duplicate — removing from queue" : (isExtracting ? "Extracting text in background..." : match.message),
             docId: match.success ? match.docId : undefined,
           };
         })

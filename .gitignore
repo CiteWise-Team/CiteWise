@@ -154,9 +154,12 @@ best_practices_audit.md
 task.md
 qa_walkthrough.md
 security_audit.md
+implementation_plan.md
 
+# Patch and scratch files
+*.patch
 
 # PDFs and document inputs
-*.pdfs c r a t c h _ s c r i p t s /  
- 
+*.pdf
 scratch_scripts/
+

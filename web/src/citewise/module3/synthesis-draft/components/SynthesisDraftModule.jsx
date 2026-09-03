@@ -357,16 +357,52 @@
           rrlUsage: store.getRrlUsage(sessionId),
           approvedDocumentIds: approvedDocuments.map((d) => d.id).filter(Boolean),
         };
-        const { res: response, data: payload } = await apiFetch(synthesisUrl, {
+        const { res: response, data: initialPayload } = await apiFetch(synthesisUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(requestBody),
         });
-        clearInterval(interval);
 
-        if (!response.ok || !payload || payload.success === false) {
-          throw new Error(payload?.message || `Synthesis failed (HTTP ${response.status})`);
+        if (!response.ok || !initialPayload || initialPayload.success === false) {
+          clearInterval(interval);
+          throw new Error(initialPayload?.message || `Synthesis failed (HTTP ${response.status})`);
         }
+
+        let payload = initialPayload;
+
+        // If backend accepted async job (HTTP 202 or GENERATING status), poll /status until completion
+        if (response.status === 202 || initialPayload.status === "GENERATING") {
+          const statusUrl = `/api/v1/synthesis/status?sessionId=${encodeURIComponent(sessionId)}`;
+          let pollAttempts = 0;
+          const maxAttempts = 80; // ~3.5 minutes at 2.5s intervals
+
+          while (pollAttempts < maxAttempts) {
+            await new Promise((r) => setTimeout(r, 2500));
+            pollAttempts++;
+
+            const { res: statusRes, data: statusData } = await apiFetch(statusUrl);
+            if (!statusRes.ok || !statusData) {
+              continue;
+            }
+
+            if (statusData.status === "FAILED") {
+              clearInterval(interval);
+              throw new Error(statusData.message || "Synthesis generation failed");
+            }
+
+            if (statusData.status === "PASSED" || (statusData.contentText && statusData.status !== "GENERATING")) {
+              payload = statusData;
+              break;
+            }
+          }
+
+          if (pollAttempts >= maxAttempts) {
+            clearInterval(interval);
+            throw new Error("Draft synthesis timed out. Please check your AI workflows.");
+          }
+        }
+
+        clearInterval(interval);
 
         const refsArray = (payload.referencesText || "")
           .split("\n")

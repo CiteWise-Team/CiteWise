@@ -44,12 +44,49 @@ router.get('/session/:sessionId', async (req, res) => {
   if (headerSession && headerSession !== sessionId) return res.status(404).json({ success: false, message: 'Not found' });
 
   const { data: docs, error } = await supabase
-    .from('uploaded_documents').select('*').eq('session_id', sessionId);
+    .from('uploaded_documents')
+    .select(`
+      id,
+      file_name,
+      size_bytes,
+      approved,
+      scoring_status,
+      scoring_error_message,
+      metric_weights_json,
+      citation_metadata_json,
+      parsed_text,
+      r2_file_key,
+      r2_text_key,
+      document_insights (
+        id,
+        overall_score,
+        average_overall_score,
+        gap_alignment_score,
+        methodology_score,
+        theoretical_score,
+        citation_score,
+        recommendation_status,
+        confidence_level,
+        relevance_level,
+        evidence_excerpts (
+          quote_text,
+          page_number,
+          criterion,
+          relevance_level,
+          evidence_type,
+          display_order
+        )
+      )
+    `)
+    .eq('session_id', sessionId);
+
   if (error) return res.status(500).json({ message: error.message });
 
-  const summaries = await Promise.all((docs ?? []).map(async (doc) => {
+  const summaries = (docs ?? []).map((doc) => {
     const title = extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json).title;
-    const insight = await loadInsight(doc.id);
+    // Handle PostgREST array response for 1-to-many relationship
+    const insight = Array.isArray(doc.document_insights) ? doc.document_insights[0] : doc.document_insights;
+
     if (insight) {
       const g  = insight.gap_alignment_score  ?? 0;
       const m  = insight.methodology_score    ?? 0;
@@ -61,7 +98,7 @@ router.get('/session/:sessionId', async (req, res) => {
         fileName:             doc.file_name,
         title,
         sizeBytes:            doc.size_bytes,
-        scoringStatus:        'complete',
+        scoringStatus:        (doc.scoring_status ?? 'complete').toLowerCase(),
         relevancyScore:       relevancy,
         gapAlignmentScore:    g,
         methodologyScore:     m,
@@ -73,6 +110,7 @@ router.get('/session/:sessionId', async (req, res) => {
         metricWeights:        doc.metric_weights_json ? (typeof doc.metric_weights_json === 'string' ? JSON.parse(doc.metric_weights_json) : doc.metric_weights_json) : null,
       };
     }
+
     return {
       id:           doc.id,
       fileName:     doc.file_name,
@@ -80,12 +118,16 @@ router.get('/session/:sessionId', async (req, res) => {
       sizeBytes:    doc.size_bytes,
       scoringStatus:(doc.scoring_status ?? 'pending').toLowerCase(),
       relevancyScore: null,
-      gapAlignmentScore: null, methodologyScore: null, theoreticalScore: null, citationScore: null,
+      gapAlignmentScore: null,
+      methodologyScore: null,
+      theoreticalScore: null,
+      citationScore: null,
       approved:     doc.approved,
-      recommendationStatus: null, relevanceLevel: null,
+      recommendationStatus: null,
+      relevanceLevel: null,
       metricWeights: doc.metric_weights_json ? (typeof doc.metric_weights_json === 'string' ? JSON.parse(doc.metric_weights_json) : doc.metric_weights_json) : null,
     };
-  }));
+  });
 
   return res.json(summaries);
 });
@@ -98,7 +140,9 @@ router.get('/:id/insights', async (req, res) => {
   const { data: docInfo } = await supabase.from('uploaded_documents').select('session_id, scoring_status, scoring_error_message, file_name, metric_weights_json').eq('id', docId).maybeSingle();
   
   if (!docInfo || (sessionId && docInfo.session_id !== sessionId)) return res.status(404).json({ success: false, message: 'Not found' });
-  if (docInfo.scoring_status === 'PENDING' || docInfo.scoring_status === 'PROCESSING') return res.status(202).json({ success: true, message: 'Processing' });
+  if (docInfo.scoring_status === 'EXTRACTING' || docInfo.scoring_status === 'PENDING' || docInfo.scoring_status === 'PROCESSING') {
+    return res.status(202).json({ success: true, message: 'Processing', status: docInfo.scoring_status });
+  }
   
   if (docInfo.scoring_status === 'FAILED') {
     return res.status(400).json({ success: false, message: docInfo.scoring_error_message || 'Assessment failed' });
