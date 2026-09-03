@@ -1,0 +1,6 @@
+node_modules/
+.env.test
+playwright-report/
+test-results/
+.last-run.json
+test-data/pdfs/*.pdf
