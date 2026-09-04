@@ -6,3 +6,11 @@ body {
   min-height: 100vh;
   border-right: 1px solid #ddd;
 }
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

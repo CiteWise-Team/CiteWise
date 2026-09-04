@@ -15,7 +15,7 @@
     "@supabase/supabase-js": "^2.87.1",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
     "express-validator": "^7.3.1",
@@ -23,7 +23,8 @@
     "multer": "^2.0.2",
     "node-fetch": "^2.7.0",
     "pdf-parse": "^1.1.1",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.11",

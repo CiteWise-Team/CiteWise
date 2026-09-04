@@ -3,6 +3,7 @@ import InputPanel from "../components/workspace/InputPanel";
 import { useState } from "react";
 import WorkflowTracker from "../components/workspace/WorkflowTracker";
 import ResultPanel from "../components/workspace/ResultPanel";
+import "../styles/workspace.css";
 
 export default function GroupWorkflow() {
   const [step, setStep] = useState("extractor"); // change to focus

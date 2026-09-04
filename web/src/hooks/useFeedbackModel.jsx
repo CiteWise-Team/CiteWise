@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 export function useFeedbackModal() {
   const [config, setConfig] = useState({
@@ -8,13 +8,13 @@ export function useFeedbackModal() {
     message: "",
   });
 
-  function showFeedback({ type, title, message }) {
+  const showFeedback = useCallback(({ type, title, message }) => {
     setConfig({ isOpen: true, type, title, message });
-  }
+  }, []);
 
-  function hideFeedback() {
+  const hideFeedback = useCallback(() => {
     setConfig((prev) => ({ ...prev, isOpen: false }));
-  }
+  }, []);
 
   return { config, showFeedback, hideFeedback };
 }
