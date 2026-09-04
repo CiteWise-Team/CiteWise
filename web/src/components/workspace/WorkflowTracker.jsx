@@ -4,11 +4,14 @@ import { HiOutlineDocumentSearch } from "react-icons/hi";
 import { IoExtensionPuzzle } from "react-icons/io5";
 import { PiHeadCircuitBold } from "react-icons/pi";
 import { MdSync } from "react-icons/md";
+import { Target } from "lucide-react";
+
 const steps = [
   { key: "extractor", label: "Extractor", icon: IoDocumentText },
   { key: "summarizer", label: "Summarizer", icon: HiOutlineDocumentSearch },
   { key: "gap", label: "Gap Extractor", icon: IoExtensionPuzzle },
   { key: "topic", label: "Topic Suggester", icon: PiHeadCircuitBold },
+  { key: "smart-goals", label: "SMART Goals", icon: Target },
   { key: "integration", label: "Integration", icon: MdSync },
   // { key: "search", label: "Searcher", icon: IoGlobeOutline },
 ];
