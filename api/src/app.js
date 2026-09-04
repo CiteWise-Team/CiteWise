@@ -15,6 +15,7 @@ import catalystCwRoutes  from './modules/citewise/catalyst.routes.js';
 import rrlRoutes         from './modules/citewise/rrl.routes.js';
 import documentsRoutes   from './modules/citewise/documents.routes.js';
 import synthesisRoutes   from './modules/citewise/synthesis.routes.js';
+import catalyst2Routes    from './modules/catalyst2/catalyst2.routes.js';
 
 const app = express();
 
@@ -106,6 +107,7 @@ app.use('/api/topic', topicRoutes);
 
 // CiteWise routes
 app.use('/api/catalyst', catalystCwRoutes);
+app.use('/api/catalyst2', catalyst2Routes);
 app.use('/api/rrl',      rrlRoutes);
 app.use('/api/v1/documents', documentsRoutes);
 app.use('/api/v1/synthesis', synthesisRoutes);

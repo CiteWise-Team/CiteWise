@@ -8,6 +8,7 @@ import NotFound from "./NotFound";
 import { useGroup } from "../context/GroupContext";
 import { useAuth } from "../context/AuthContext";
 import { getGroupsByUserIdAPI } from "../api/group.api";
+import "../styles/workspace.css";
 
 export default function GroupWorkflow() {
   const [step, setStep] = useState("extractor"); // change to focus

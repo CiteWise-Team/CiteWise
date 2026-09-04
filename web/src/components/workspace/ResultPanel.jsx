@@ -4,12 +4,14 @@ import ExtractorOutput from "./output/ExtractorOutput";
 import GapExtractorOutput from "./output/GapOutput";
 import TopicSuggesterOutput from "../workspace/output/TopicSuggesterOutput.jsx";
 import SearcherOutput from "../workspace/output/SearcherOutput.jsx";
+import IntegrationOutput from "./output/IntegrationOutput.jsx";
 const STEP_INPUT_COMPONENTS = {
   extractor: ExtractorOutput,
   summarizer: SummarizerResult,
   gap: GapExtractorOutput,
   topic: TopicSuggesterOutput,
-  search: SearcherOutput
+  search: SearcherOutput,
+  integration: IntegrationOutput
 };
 
 export default function ResultPanel({ step, result }) {
