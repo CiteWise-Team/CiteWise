@@ -298,7 +298,7 @@ export function addDraftVersion(sessionId, { content, references, label, source 
     source: source || "generated",
     timestamp: new Date().toISOString(),
   };
-  const next = [entry, ...versions].slice(0, 30); // cap history
+  const next = [entry, ...versions].slice(0, 10); // cap history to 10 most recent versions (LRU cap)
   write(sessionId, "draftVersions", next);
   return next;
 }

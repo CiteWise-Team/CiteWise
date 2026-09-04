@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 
-export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy, isEnabled }) {
+export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy, isEnabled, isExportingPdf = false }) {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -27,18 +27,20 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
     transition: "background 0.2s ease",
   };
 
+  const isButtonDisabled = !isEnabled || isExportingPdf;
+
   return (
     <div style={{ position: "relative" }} ref={dropdownRef}>
       <button
-        onClick={() => onToggle(!isOpen)}
-        disabled={!isEnabled}
+        onClick={() => !isExportingPdf && onToggle(!isOpen)}
+        disabled={isButtonDisabled}
         style={{
-          background: isEnabled ? "#5b5bd6" : "rgba(0, 0, 0, 0.15)",
-          color: isEnabled ? "#e4e4f0" : "#a1a1b5",
+          background: !isButtonDisabled ? "#5b5bd6" : "rgba(0, 0, 0, 0.15)",
+          color: !isButtonDisabled ? "#e4e4f0" : "#a1a1b5",
           border: "none",
           borderRadius: "8px",
           padding: "8px 16px",
-          cursor: isEnabled ? "pointer" : "not-allowed",
+          cursor: !isButtonDisabled ? "pointer" : "not-allowed",
           display: "flex",
           alignItems: "center",
           gap: "8px",
@@ -48,42 +50,63 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
           transition: "background 0.18s ease, transform 0.18s ease, box-shadow 0.22s ease",
         }}
         onMouseEnter={(e) => {
-          if (!isEnabled) return;
+          if (isButtonDisabled) return;
           e.currentTarget.style.transform = "scale(1.04)";
           e.currentTarget.style.background = "#6f6fe0";
           e.currentTarget.style.boxShadow = "0 10px 28px rgba(91, 91, 214,0.35), 0 0 40px rgba(91, 91, 214,0.22)";
         }}
         onMouseLeave={(e) => {
-          if (!isEnabled) return;
+          if (isButtonDisabled) return;
           e.currentTarget.style.transform = "scale(1)";
           e.currentTarget.style.background = "#5b5bd6";
           e.currentTarget.style.boxShadow = "none";
         }}
-        onMouseDown={(e) => { if (isEnabled) e.currentTarget.style.transform = "scale(0.98)"; }}
-        onMouseUp={(e) => { if (isEnabled) e.currentTarget.style.transform = "scale(1.04)"; }}
+        onMouseDown={(e) => { if (!isButtonDisabled) e.currentTarget.style.transform = "scale(0.98)"; }}
+        onMouseUp={(e) => { if (!isButtonDisabled) e.currentTarget.style.transform = "scale(1.04)"; }}
       >
-        Export
-        <svg
-          width="10"
-          height="6"
-          viewBox="0 0 10 6"
-          fill="none"
-          style={{
-            transform: isOpen ? "rotate(180deg)" : "rotate(0)",
-            transition: "transform 0.2s ease",
-          }}
-        >
-          <path
-            d="M1 1L5 5L9 1"
-            stroke={isEnabled ? "#e4e4f0" : "#a1a1b5"}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        {isExportingPdf ? (
+          <>
+            <svg
+              style={{
+                width: "12px",
+                height: "12px",
+                animation: "spinPdf 0.8s linear infinite",
+              }}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
+              <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+            </svg>
+            <span>Preparing PDF...</span>
+          </>
+        ) : (
+          <>
+            Export
+            <svg
+              width="10"
+              height="6"
+              viewBox="0 0 10 6"
+              fill="none"
+              style={{
+                transform: isOpen ? "rotate(180deg)" : "rotate(0)",
+                transition: "transform 0.2s ease",
+              }}
+            >
+              <path
+                d="M1 1L5 5L9 1"
+                stroke={isEnabled ? "#e4e4f0" : "#a1a1b5"}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </>
+        )}
       </button>
 
-      {isOpen && (
+      {isOpen && !isExportingPdf && (
         <div
           style={{
             position: "absolute",
@@ -138,6 +161,10 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
         @keyframes slideIn {
           from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spinPdf {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

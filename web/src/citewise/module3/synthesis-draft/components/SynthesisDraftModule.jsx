@@ -1,5 +1,4 @@
   import { useState, useEffect } from "react";
-  import { jsPDF } from "jspdf";
   import SynthesisControlPanel from "./SynthesisControlPanel";
   import ApprovedSourceList from "./ApprovedSourceList";
   import GeneratedDraftDisplay from "./GeneratedDraftDisplay";
@@ -167,6 +166,7 @@
     const [citationsUsed, setCitationsUsed] = useState([]);
     const [citationIntegrity, setCitationIntegrity] = useState(null);
     const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
+    const [isExportingPdf, setIsExportingPdf] = useState(false);
     const [showSuccessToast, setShowSuccessToast] = useState(false);
 
     const DRAFT_STORAGE_KEY = `citewise_draft_${sessionId}`;
@@ -576,7 +576,9 @@
       }
 
       if (format === "PDF") {
+        setIsExportingPdf(true);
         try {
+          const { jsPDF } = await import("jspdf");
           const doc = new jsPDF({ unit: "pt", format: "letter" });
           const margin = 72; // 1 inch
           const pageWidth = doc.internal.pageSize.getWidth();
@@ -610,6 +612,8 @@
           document.body.appendChild(element);
           element.click();
           document.body.removeChild(element);
+        } finally {
+          setIsExportingPdf(false);
         }
         return;
       }
@@ -718,6 +722,7 @@
                   onExport={handleExport}
                   onCopy={copyToClipboard}
                   isEnabled={generationStatus === "complete"}
+                  isExportingPdf={isExportingPdf}
                 />
               </div>
               <div style={styles.rightPanelContent}>

@@ -60,6 +60,10 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
   // Ref so appendFiles always reads the latest uploaded names without stale closure
   const uploadedFileNamesRef = useRef(new Set());
+  const fileQueueRef = useRef(fileQueue);
+  fileQueueRef.current = fileQueue;
+  const activeUploadsRef = useRef(new Set());
+  const isProcessingQueueRef = useRef(false);
 
   // Fetch already-uploaded file names from the backend on mount and after uploads
   const fetchUploadedFiles = useCallback(async () => {
@@ -204,9 +208,179 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   };
 
 
-  const MAX_FILES = 5;
+  const MAX_FILES = 50;
 
   // ── RRL Upload ─────────────────────────────────────────────────
+  const updateOverallStatus = useCallback((queue) => {
+    const list = queue || fileQueueRef.current;
+    const active = list.filter((i) => i.status !== "duplicate" && i.status !== "invalid");
+    const failed = active.filter((i) => i.status === "failed").length;
+    const extracting = active.filter((i) => i.status === "extracting").length;
+    const uploaded = active.filter((i) => i.status === "uploaded").length;
+    const queuedOrUploading = active.filter((i) => i.status === "queued" || i.status === "uploading").length;
+
+    if (queuedOrUploading > 0) {
+      setUploadState("uploading");
+      setStatusMessage("Uploading...");
+    } else if (failed > 0) {
+      setUploadState("warning");
+      setStatusMessage(
+        uploaded + extracting > 0
+          ? `Uploaded ${uploaded + extracting} file(s), ${failed} need attention.`
+          : `${failed} file(s) failed to upload.`
+      );
+    } else if (extracting > 0) {
+      setUploadState("extracting");
+      setStatusMessage(`Uploaded ${uploaded + extracting} file(s). Extracting text...`);
+    } else if (uploaded > 0) {
+      setUploadState("success");
+      setStatusMessage(`Uploaded ${uploaded} file(s) successfully.`);
+    } else {
+      setUploadState("ready");
+      setStatusMessage("Ready to upload");
+    }
+
+    // When queue has finished uploading and at least one document succeeded, proceed
+    if (queuedOrUploading === 0 && (uploaded > 0 || extracting > 0)) {
+      setShowSuccessToast(true);
+      setTimeout(() => {
+        onProceed?.();
+      }, 2200);
+    }
+  }, [onProceed]);
+
+  const uploadSingleFile = async (item) => {
+    const currentSid = sessionId.trim();
+    const formData = new FormData();
+    formData.append("files", item.file);
+
+    try {
+      const { res: response, data: payload } = await apiFetch("/api/rrl/upload", {
+        method: "POST",
+        headers: { "X-Session-Id": currentSid },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(payload?.message || payload?.error || `Upload failed with status ${response.status}`);
+      }
+
+      const results = payload?.data?.results || [];
+      const match = results[0] || results.find((r) => r.fileName === item.name);
+      if (!match) {
+        throw new Error("No response received from server");
+      }
+
+      const msg = match.message?.toLowerCase() || "";
+      const isDupe = !match.success && (msg.includes("already uploaded") || msg.includes("duplicate"));
+      if (isDupe) {
+        triggerDuplicateToast([item.name]);
+        setFileQueue((prev) =>
+          prev.map((i) =>
+            i.id === item.id
+              ? { ...i, status: "duplicate", message: "Duplicate — removing from queue" }
+              : i
+          )
+        );
+        return;
+      }
+
+      if (!match.success) {
+        throw new Error(match.message || "Upload rejected");
+      }
+
+      const isExtracting = match.status === "EXTRACTING";
+      setFileQueue((prev) =>
+        prev.map((i) =>
+          i.id === item.id
+            ? {
+                ...i,
+                status: isExtracting ? "extracting" : "uploaded",
+                message: isExtracting
+                  ? "Extracting text in background..."
+                  : (match.message || "Uploaded successfully"),
+                docId: match.docId,
+              }
+            : i
+        )
+      );
+
+      fetchUploadedFiles();
+    } catch (err) {
+      const currentRetry = item.retryCount || 0;
+      if (currentRetry < 1) {
+        console.warn(`[upload] Auto-retrying ${item.name} once due to error:`, err.message);
+        setFileQueue((prev) =>
+          prev.map((i) =>
+            i.id === item.id
+              ? { ...i, retryCount: currentRetry + 1, message: "Retrying upload..." }
+              : i
+          )
+        );
+        await new Promise((r) => setTimeout(r, 1000));
+        return await uploadSingleFile({ ...item, retryCount: currentRetry + 1 });
+      }
+
+      // Failed after auto-retry
+      setFileQueue((prev) =>
+        prev.map((i) =>
+          i.id === item.id
+            ? {
+                ...i,
+                status: "failed",
+                retryCount: currentRetry,
+                message: err.message ? err.message.slice(0, 45) : "Upload failed",
+              }
+            : i
+        )
+      );
+    }
+  };
+
+  const processQueue = useCallback(() => {
+    if (isProcessingQueueRef.current) return;
+    isProcessingQueueRef.current = true;
+
+    try {
+      while (activeUploadsRef.current.size < 2) {
+        const nextItem = fileQueueRef.current.find(
+          (i) => i.status === "queued" && !activeUploadsRef.current.has(i.id)
+        );
+
+        if (!nextItem) break;
+
+        activeUploadsRef.current.add(nextItem.id);
+
+        setFileQueue((prev) =>
+          prev.map((i) =>
+            i.id === nextItem.id
+              ? { ...i, status: "uploading", message: "Uploading..." }
+              : i
+          )
+        );
+        setUploadState("uploading");
+        setStatusMessage("Uploading...");
+
+        (async (itemToUpload) => {
+          try {
+            await uploadSingleFile(itemToUpload);
+          } finally {
+            activeUploadsRef.current.delete(itemToUpload.id);
+            setTimeout(() => {
+              processQueue();
+            }, 0);
+          }
+        })(nextItem);
+      }
+
+      if (activeUploadsRef.current.size === 0) {
+        updateOverallStatus();
+      }
+    } finally {
+      isProcessingQueueRef.current = false;
+    }
+  }, [sessionId, updateOverallStatus]);
+
   const appendFiles = (incomingFiles) => {
     if (!incomingFiles?.length) return;
 
@@ -272,6 +446,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
             size: file.size,
             status: "duplicate",
             message: "Already uploaded previously",
+            retryCount: 0,
           });
           return;
         }
@@ -286,6 +461,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
             size: file.size,
             status: "duplicate",
             message: "Already in queue",
+            retryCount: 0,
           });
           return;
         }
@@ -310,16 +486,50 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           size: file.size,
           status,
           message,
+          retryCount: 0,
         });
       });
       return next;
     });
   };
 
-  const removeFileItem = (id) => setFileQueue((prev) => prev.filter((item) => item.id !== id));
+  const removeFileItem = async (id) => {
+    activeUploadsRef.current.delete(id);
+    const itemToRemove = fileQueue.find((item) => item.id === id);
+    if (itemToRemove?.docId) {
+      try {
+        await apiFetch(`/api/v1/documents/${itemToRemove.docId}`, {
+          method: "DELETE",
+          headers: { "X-Session-Id": sessionId.trim() },
+        });
+      } catch (e) {
+        console.warn("Failed to delete from DB:", e);
+      }
+    }
+    setFileQueue((prev) => {
+      const next = prev.filter((item) => item.id !== id);
+      setTimeout(() => updateOverallStatus(next), 0);
+      return next;
+    });
+  };
 
-  const handleUpload = async () => {
-    const readyFiles = fileQueue.filter((item) => item.status === "queued");
+  const handleRetry = (id) => {
+    setFileQueue((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? { ...item, status: "queued", retryCount: 0, message: "Ready for upload" }
+          : item
+      )
+    );
+    setUploadState("uploading");
+    setStatusMessage("Uploading...");
+    setTimeout(() => {
+      processQueue();
+    }, 50);
+  };
+
+  const handleUpload = () => {
+    const readyFiles = fileQueueRef.current.filter((item) => item.status === "queued");
     if (!sessionId.trim()) {
       setUploadState("error");
       setStatusMessage("Import CATalyst data first to get a session ID.");
@@ -332,75 +542,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
     }
     setUploadState("uploading");
     setStatusMessage("Uploading...");
-    setFileQueue((prev) =>
-      prev.map((item) =>
-        item.status === "queued" ? { ...item, status: "uploading", message: "Uploading..." } : item
-      )
-    );
-    const formData = new FormData();
-    readyFiles.forEach((item) => formData.append("files", item.file));
-    try {
-      const { res: response, data: payload } = await apiFetch("/api/rrl/upload", {
-        method: "POST",
-        headers: { "X-Session-Id": sessionId.trim() },
-        body: formData,
-      });
-      if (!response.ok) {
-        throw new Error(payload?.message || payload?.error || `Upload failed with status ${response.status}`);
-      }
-      const results = payload?.data?.results || [];
-      const accepted = payload?.data?.acceptedFiles || 0;
-      const failed = payload?.data?.failedFiles || 0;
-
-      setUploadState(failed > 0 ? "warning" : "success");
-      setStatusMessage(
-        failed > 0 ? `${accepted} uploaded, ${failed} failed.` : `${accepted} file(s) uploaded.`
-      );
-
-      const serverDupes = [];
-      setFileQueue((prev) =>
-        prev.map((item) => {
-          if (item.status !== "uploading") return item;
-          const match = results.find((r) => r.fileName === item.name);
-          if (!match) return { ...item, status: "failed", message: "No response received" };
-          
-          // Server rejected as duplicate → show as duplicate (will auto-remove)
-          const msg = match.message?.toLowerCase() || "";
-          const isDupe = !match.success && (msg.includes("already uploaded") || msg.includes("duplicate"));
-          if (isDupe) {
-            serverDupes.push(item.name);
-          }
-          return {
-            ...item,
-            status: isDupe ? "duplicate" : match.success ? "uploaded" : "failed",
-            message: isDupe ? "Duplicate — removing from queue" : match.message,
-          };
-        })
-      );
-
-      if (serverDupes.length > 0) {
-        triggerDuplicateToast(serverDupes);
-      }
-
-      // Refresh ref so future selections detect newly uploaded files immediately
-      await fetchUploadedFiles();
-
-      // Proceed to AI Assessment tab if at least one file was successfully accepted
-      if (accepted > 0) {
-        setShowSuccessToast(true);
-        setTimeout(() => {
-          onProceed?.();
-        }, 2200);
-      }
-    } catch (err) {
-      setUploadState("error");
-      setStatusMessage(err.message);
-      setFileQueue((prev) =>
-        prev.map((item) =>
-          item.status === "uploading" ? { ...item, status: "failed", message: err.message } : item
-        )
-      );
-    }
+    processQueue();
   };
 
   const resetSession = () => {
@@ -439,6 +581,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   };
 
   const totalCount = fileQueue.length;
+  const readyCount = fileQueue.filter((item) => item.status === "queued").length;
 
   return (
     <div style={{ maxWidth: 1400, width: "100%", margin: "0 auto", padding: "2rem 2.5rem 3rem", display: "flex", flexDirection: "column", gap: "2rem" }}>
@@ -662,7 +805,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
             </div>
 
             <div style={{ padding: "1.5rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem", height: "360px" }}>
                 <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
 
                 <div
@@ -670,29 +813,109 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
                     background: "rgba(0, 0, 0, 0.15)",
                     border: "1px solid #3a3a55",
                     borderRadius: "12px",
-                    padding: "1.25rem",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "0.875rem",
-                    minHeight: 200,
+                    height: "100%",
+                    overflow: "hidden",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={selectedLabel}>Queue</span>
+                  <div
+                    style={{
+                      padding: "0.85rem 1.15rem",
+                      borderBottom: "1px solid #3a3a55",
+                      background: "rgba(0, 0, 0, 0.12)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{ ...selectedLabel, margin: 0 }}>Queue</span>
+                      {totalCount > 0 && (
+                        <span
+                          style={{
+                            fontSize: "0.72rem",
+                            fontWeight: 600,
+                            padding: "0.15rem 0.5rem",
+                            borderRadius: "12px",
+                            background: "rgba(91, 91, 214, 0.2)",
+                            color: "#8b8bf5",
+                            border: "1px solid rgba(91, 91, 214, 0.35)",
+                          }}
+                        >
+                          {totalCount} file{totalCount !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
                     {totalCount > 0 && (
-                      <span style={{ fontSize: "0.72rem", color: "#a1a1b5", fontFamily: "'Poppins', sans-serif" }}>
-                        {totalCount} file{totalCount !== 1 ? "s" : ""}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFileQueue([])}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#a1a1b5",
+                          fontSize: "0.72rem",
+                          cursor: "pointer",
+                          fontFamily: "'Poppins', sans-serif",
+                          padding: "0.2rem 0.4rem",
+                          borderRadius: "4px",
+                          transition: "color 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#e05555")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "#a1a1b5")}
+                      >
+                        Clear All
+                      </button>
                     )}
                   </div>
-                  <div style={{ flex: 1, borderRadius: "8px", overflow: "hidden" }}>
-                    <SelectedFilesList files={fileQueue} onRemove={removeFileItem} />
+                  <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                    <SelectedFilesList files={fileQueue} onRemove={removeFileItem} onRetry={handleRetry} />
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "1rem", alignItems: "center" }}>
                 <UploadAllButton onClick={handleUpload} isUploading={uploadState === "uploading"} />
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    background: "rgba(0, 0, 0, 0.15)",
+                    border: "1px solid #3a3a55",
+                    borderRadius: "8px",
+                    padding: "0.6rem 1.1rem",
+                    fontSize: "0.82rem",
+                    fontFamily: "'Poppins', sans-serif",
+                    minHeight: "42px",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <span style={{ color: "#a1a1b5" }}>
+                    {totalCount === 0
+                      ? "No files in queue"
+                      : `${readyCount} ready · ${totalCount - readyCount} in progress/uploaded`}
+                  </span>
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color:
+                        uploadState === "uploading"
+                          ? "#5b5bd6"
+                          : uploadState === "success"
+                          ? "#4caf82"
+                          : uploadState === "warning"
+                          ? "#e0a835"
+                          : uploadState === "error"
+                          ? "#e05555"
+                          : "#a1a1b5",
+                    }}
+                  >
+                    {statusMessage}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

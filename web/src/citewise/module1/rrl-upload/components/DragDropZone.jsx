@@ -51,10 +51,12 @@ export default function DragDropZone({ onFilesAdded }) {
         alignItems: "center",
         justifyContent: "center",
         gap: "0.4rem",
-        padding: "2rem 1rem",
+        padding: "1.5rem 1rem",
         cursor: "pointer",
         transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+        height: "100%",
         minHeight: "200px",
+        boxSizing: "border-box",
         textAlign: "center",
         background: isDragging ? "rgba(91, 91, 214, 0.05)" : "rgba(0, 0, 0, 0.15)",
       }}
@@ -105,7 +107,7 @@ export default function DragDropZone({ onFilesAdded }) {
           fontFamily: "'Poppins', sans-serif",
         }}
       >
-        Up to 5 PDFs per batch
+        Up to 50 PDFs per batch (20MB each)
       </small>
     </div>
   );

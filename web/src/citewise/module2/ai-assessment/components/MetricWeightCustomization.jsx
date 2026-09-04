@@ -222,24 +222,111 @@ export default function MetricWeightCustomization({
             <button 
               onClick={handleApplyToAll}
               disabled={isProcessing || documents.length === 0}
-              style={{ ...ui.primaryBtn, fontSize: "0.85rem", padding: "10px", width: "100%", textAlign: "center" }}>
-              {isHero ? "Apply Weights & Assess All" : (hasChanged ? "Reassess All With New Weights" : "Assess All")}
+              style={{
+                ...ui.primaryBtn,
+                fontSize: "0.85rem",
+                padding: "11px 16px",
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                cursor: isProcessing ? "wait" : (documents.length === 0 ? "not-allowed" : "pointer"),
+                background: isProcessing
+                  ? "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)"
+                  : ui.primaryBtn.background,
+                boxShadow: isProcessing
+                  ? "0 0 16px rgba(91, 91, 214, 0.55)"
+                  : "0 2px 6px rgba(0, 0, 0, 0.2)",
+                opacity: documents.length === 0 ? 0.5 : 1,
+                transition: "all 0.2s ease",
+              }}
+            >
+              {isProcessing ? (
+                <>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ animation: "citewise-spin 0.8s linear infinite" }}
+                  >
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                  <span>
+                    {isHero
+                      ? "Applying Weights & Starting Assessment..."
+                      : (hasChanged ? "Reassessing With New Weights..." : "Starting AI Assessment...")}
+                  </span>
+                </>
+              ) : (
+                isHero ? "Apply Weights & Assess All" : (hasChanged ? "Reassess All With New Weights" : "Assess All")
+              )}
             </button>
             <div style={{ display: "flex", gap: "10px", width: "100%" }}>
               <button 
                 onClick={() => { 
-                  console.log("Assess Selected clicked! Opening modal with docs:", documents);
                   setSelectedDocs(new Set()); 
                   setShowSelectModal(true); 
                 }}
                 disabled={isProcessing || documents.length === 0}
-                style={{ ...ui.ghostBtn, border: `1px solid ${theme.border}`, fontSize: "0.75rem", padding: "8px", flex: 1 }}>
+                style={{
+                  ...ui.ghostBtn,
+                  border: `1px solid ${theme.border}`,
+                  fontSize: "0.75rem",
+                  padding: "8px",
+                  flex: 1,
+                  cursor: isProcessing ? "wait" : (documents.length === 0 ? "not-allowed" : "pointer"),
+                }}
+              >
                 Assess Selected
               </button>
-              <button onClick={reset} style={{ ...ui.ghostBtn, fontSize: "0.75rem", padding: "8px", flex: 1 }}>
+              <button
+                onClick={reset}
+                disabled={isProcessing}
+                style={{
+                  ...ui.ghostBtn,
+                  fontSize: "0.75rem",
+                  padding: "8px",
+                  flex: 1,
+                  cursor: isProcessing ? "wait" : "pointer",
+                }}
+              >
                 Reset Default
               </button>
             </div>
+            {isProcessing && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  background: "rgba(91, 91, 214, 0.12)",
+                  border: "1px solid rgba(91, 91, 214, 0.35)",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    background: "#5b5bd6",
+                    boxShadow: "0 0 8px #5b5bd6",
+                    animation: "citewise-pulse-dot 1s infinite alternate",
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ fontSize: "0.75rem", color: "#e4e4f0", fontFamily: theme.font }}>
+                  Sending {documents.length} document{documents.length !== 1 ? "s" : ""} to AI evaluation models...
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -281,15 +368,51 @@ export default function MetricWeightCustomization({
                   <button 
                     onClick={handleAssessSelected}
                     disabled={selectedDocs.size === 0 || isProcessing}
-                    style={ui.primaryBtn}
+                    style={{
+                      ...ui.primaryBtn,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      cursor: isProcessing ? "wait" : (selectedDocs.size === 0 ? "not-allowed" : "pointer"),
+                      opacity: selectedDocs.size === 0 ? 0.5 : 1,
+                      boxShadow: isProcessing ? "0 0 14px rgba(91, 91, 214, 0.5)" : "none",
+                    }}
                   >
-                    Assess Selected
+                    {isProcessing ? (
+                      <>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{ animation: "citewise-spin 0.8s linear infinite" }}
+                        >
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
+                        <span>Starting Assessment ({selectedDocs.size})...</span>
+                      </>
+                    ) : (
+                      `Assess Selected (${selectedDocs.size})`
+                    )}
                   </button>
               </div>
             </div>
           </div>
         </div>
       )}
+      <style>{`
+        @keyframes citewise-spin {
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes citewise-pulse-dot {
+          0% { opacity: 0.35; transform: scale(0.85); }
+          100% { opacity: 1; transform: scale(1.15); }
+        }
+      `}</style>
     </div>
   );
 }

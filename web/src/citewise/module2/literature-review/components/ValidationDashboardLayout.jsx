@@ -802,6 +802,7 @@ const handleProceed = () => {
           gridTemplateColumns: "320px 1fr",
           gap: "24px",
           minHeight: 0,
+          alignItems: "start",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "20px", minHeight: 0 }}>
@@ -822,7 +823,9 @@ const handleProceed = () => {
               sessionId={resolvedSessionId} 
               documents={documents}
               onAssessmentTriggered={(assessedDocIds) => {
+                setHasEverAssessed(true);
                 insightsCacheRef.current.clear();
+                setIsInsightsLoading(true);
                 setAssessVersion(v => v + 1);
                 fetchDocuments();
                 if (assessedDocIds && assessedDocIds.length > 0) {
@@ -842,7 +845,9 @@ const handleProceed = () => {
             sessionId={resolvedSessionId} 
             documents={documents}
             onAssessmentTriggered={(assessedDocIds) => {
+              setHasEverAssessed(true);
               insightsCacheRef.current.clear();
+              setIsInsightsLoading(true);
               setAssessVersion(v => v + 1);
               fetchDocuments();
               if (assessedDocIds && assessedDocIds.length > 0) {

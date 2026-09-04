@@ -236,8 +236,9 @@ const AIAssessmentPanel = ({
               fontFamily: "'Poppins', sans-serif",
               fontSize: '14px',
               fontWeight: '600',
-              cursor: isAssessing ? 'not-allowed' : 'pointer',
-              opacity: isAssessing ? 0.5 : 1,
+              cursor: isAssessing ? 'wait' : 'pointer',
+              opacity: isAssessing ? 0.75 : 1,
+              boxShadow: isAssessing ? '0 0 12px rgba(91, 91, 214, 0.35)' : 'none',
               transition: 'all 0.2s ease',
             }}
             onMouseOver={(e) => {
