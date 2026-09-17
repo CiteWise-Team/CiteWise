@@ -10,6 +10,12 @@ export async function extractorAPI(file,group_id) {
     body: formData,
   });
 }
+
+export async function getExtractorJobStatusAPI(jobId) {
+  return apiRequest(`/extractor/status/${encodeURIComponent(jobId)}`, {
+    method: "GET",
+  });
+}
 export async function summarizerAPI(id,group_id){
   return apiRequest(`/summarizer/${id}`, {
     method: "POST",

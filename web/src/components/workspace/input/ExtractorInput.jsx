@@ -1,8 +1,8 @@
 import { FaCloudUploadAlt, FaPlay } from "react-icons/fa";
 import { MdInput } from "react-icons/md";
-import { extractorAPI } from "../../../api/workflow.api";
+import { extractorAPI, getExtractorJobStatusAPI } from "../../../api/workflow.api";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGroup } from "../../../context/GroupContext.jsx";
 
 import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
@@ -13,8 +13,19 @@ export default function InputPanel({ setResult }) {
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("Running...");
+  const pollTimerRef = useRef(null);
 
   const { config, showFeedback, hideFeedback } = useFeedbackModal();
+
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, []);
 
   function handleFile(selectedFiles) {
     const picked = selectedFiles[0];
@@ -55,36 +66,96 @@ export default function InputPanel({ setResult }) {
       return;
     }
 
+    if (!group_id) {
+      showFeedback({
+        type: "error",
+        title: "Missing Workspace",
+        message: "No active workspace selected. Please select a workspace first.",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
+      setLoadingText("Starting extraction...");
 
       const response = await extractorAPI(file, group_id);
 
+      // If backend dispatched background extraction job (202 Accepted)
+      if (response?.jobId) {
+        setLoadingText("Extracting sections with AI...");
+
+        const startTime = Date.now();
+        const MAX_POLL_TIME = 180 * 1000; // 3 minutes timeout
+
+        pollTimerRef.current = setInterval(async () => {
+          try {
+            if (Date.now() - startTime > MAX_POLL_TIME) {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setLoading(false);
+              showFeedback({
+                type: "error",
+                title: "Timeout",
+                message: "Extraction took longer than expected. Please refresh in a moment to check results.",
+              });
+              return;
+            }
+
+            const pollRes = await getExtractorJobStatusAPI(response.jobId);
+            if (pollRes.status === "COMPLETED") {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setLoading(false);
+              setResult(pollRes.data);
+              showFeedback({
+                type: "success",
+                title: "Extraction Complete",
+                message: "Your document was processed successfully.",
+              });
+            } else if (pollRes.status === "FAILED") {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setLoading(false);
+              showFeedback({
+                type: "error",
+                title: "Extraction Failed",
+                message: pollRes.error || "The AI workflow encountered an error processing this paper.",
+              });
+            }
+          } catch (pollErr) {
+            console.warn("Polling error:", pollErr);
+          }
+        }, 2000);
+
+        return;
+      }
+
+      // Synchronous fallback
       if (response.success) {
         setResult(response.data);
-
         showFeedback({
           type: "success",
           title: "Extraction Complete",
           message: "Your document was processed successfully.",
         });
+        setLoading(false);
       } else {
         showFeedback({
           type: "error",
           title: "Extraction Failed",
           message: response.message || "Something went wrong.",
         });
+        setLoading(false);
       }
     } catch (err) {
       console.error(err);
-
+      setLoading(false);
       showFeedback({
         type: "error",
         title: "Server Error",
-        message: err.message ||"Error running workflow.",
+        message: err.message || "Error running workflow.",
       });
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -208,7 +279,7 @@ export default function InputPanel({ setResult }) {
               }}
             >
               <FaPlay className="me-1" />
-              {loading ? "Running..." : "Run Workflow"}
+              {loading ? loadingText : "Run Workflow"}
             </button>
           </div>
 

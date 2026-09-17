@@ -123,4 +123,18 @@ describe('Phase 2 & 3: Asynchronous Status Contracts & Query Optimization', () =
     const viewUrl = `/api/extractor/file/view?key=${encodeURIComponent(r2Key)}`;
     expect(viewUrl).toContain('/api/extractor/file/view?key=catalyst%2Fgroup-uuid-999%2F1788000000000-Research_Paper.pdf');
   });
+
+  it('validates 202 async response contract for Extractor upload', () => {
+    const buildExtractor202 = (jobId) => ({
+      success: true,
+      status: 'PROCESSING',
+      jobId,
+      message: 'File received. Extraction started in background.',
+    });
+
+    const res = buildExtractor202('job-uuid-789');
+    expect(res.success).toBe(true);
+    expect(res.status).toBe('PROCESSING');
+    expect(res.jobId).toBe('job-uuid-789');
+  });
 });
