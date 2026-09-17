@@ -39,7 +39,10 @@ export default function InputPanel({ setResult }) {
   }
 
   function openFilePicker() {
-    fileInputRef.current.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
   }
 
   async function handleRunWorkflow() {
@@ -132,6 +135,7 @@ export default function InputPanel({ setResult }) {
             </p>
 
             <button
+              type="button"
               className="btn mt-2"
               style={{
                 backgroundColor: "#5b5bd6",
@@ -149,8 +153,9 @@ export default function InputPanel({ setResult }) {
             <input
               ref={fileInputRef}
               type="file"
-              hidden
               accept="application/pdf"
+              style={{ display: "none" }}
+              onClick={(e) => e.stopPropagation()}
               onChange={(e) => handleFile(e.target.files)}
             />
           </div>
@@ -170,13 +175,19 @@ export default function InputPanel({ setResult }) {
                 <span className="small text-white">{file.name}</span>
 
                 <button
+                  type="button"
                   className="btn btn-sm"
                   style={{
                     border: "1px solid #ff6b6b",
                     color: "#ff6b6b",
                     background: "transparent"
                   }}
-                  onClick={() => setFile(null)}
+                  onClick={() => {
+                    setFile(null);
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = "";
+                    }
+                  }}
                 >
                   Remove
                 </button>

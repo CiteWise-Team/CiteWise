@@ -1,0 +1,149 @@
+[
+  {
+    "id": 0,
+    "relevance": "catalyst",
+    "title": "Exploring LLMs and RAG for Plausible and Explainable Material Prediction of Vehicle Components",
+    "filePath": "test-data/golden-pdfs/catalyst-0.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18437v1.pdf"
+  },
+  {
+    "id": 1,
+    "relevance": "relevant",
+    "title": "Designing Grid-Aware Dynamic Specifications for Large Data Center Loads",
+    "filePath": "test-data/golden-pdfs/relevant-1.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18888v1.pdf"
+  },
+  {
+    "id": 2,
+    "relevance": "relevant",
+    "title": "Preventing Model Collapse: A Fisher-Rao Perspective on the Dynamics of Training with Synthetic Data",
+    "filePath": "test-data/golden-pdfs/relevant-2.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18878v1.pdf"
+  },
+  {
+    "id": 3,
+    "relevance": "relevant",
+    "title": "TeleAntiFraud 2.0: A Refreshable, Profile-Grounded, and Audio-Based Benchmark for Telecom Fraud Detection",
+    "filePath": "test-data/golden-pdfs/relevant-3.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18748v1.pdf"
+  },
+  {
+    "id": 4,
+    "relevance": "relevant",
+    "title": "A Scalable Framework for Automated NER Annotation Correction in Low-Resource Languages",
+    "filePath": "test-data/golden-pdfs/relevant-4.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18739v1.pdf"
+  },
+  {
+    "id": 5,
+    "relevance": "relevant",
+    "title": "Clueing up LLMs with Tool-Augmented Deductive Reasoning",
+    "filePath": "test-data/golden-pdfs/relevant-5.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18736v1.pdf"
+  },
+  {
+    "id": 6,
+    "relevance": "relevant",
+    "title": "Which LLM is Best for Translating Natural Language Goals to PDDL",
+    "filePath": "test-data/golden-pdfs/relevant-6.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18731v1.pdf"
+  },
+  {
+    "id": 7,
+    "relevance": "relevant",
+    "title": "Beyond Truncation: Rethinking LLM Decoding as Ensemble Pruning",
+    "filePath": "test-data/golden-pdfs/relevant-7.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18723v1.pdf"
+  },
+  {
+    "id": 8,
+    "relevance": "relevant",
+    "title": "Rethinking Critic Learning in PPO: Understanding and Mitigating Value Flattening",
+    "filePath": "test-data/golden-pdfs/relevant-8.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18708v1.pdf"
+  },
+  {
+    "id": 9,
+    "relevance": "relevant",
+    "title": "HBFlex: A Flexible Memory System for Bridging Fine-Grained LLM States and Coarse-Grained HBF Parallel Execution",
+    "filePath": "test-data/golden-pdfs/relevant-9.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18675v1.pdf"
+  },
+  {
+    "id": 10,
+    "relevance": "relevant",
+    "title": "M$^3$P-R1: Reinforcement Learning for Large Language Model Guided Multi-Modal Motion Planning via MIP Code Generation",
+    "filePath": "test-data/golden-pdfs/relevant-10.pdf",
+    "originalUrl": "https://arxiv.org/pdf/2609.18669v1.pdf"
+  },
+  {
+    "id": 11,
+    "relevance": "irrelevant",
+    "title": "Bremsstrahlung emission from nuclear reactions in compact stars",
+    "filePath": "test-data/golden-pdfs/irrelevant-11.pdf",
+    "originalUrl": "https://arxiv.org/pdf/1912.12092v1.pdf"
+  },
+  {
+    "id": 12,
+    "relevance": "irrelevant",
+    "title": "Towards a warped inflationary brane scanning",
+    "filePath": "test-data/golden-pdfs/irrelevant-12.pdf",
+    "originalUrl": "https://arxiv.org/pdf/0812.4649v3.pdf"
+  },
+  {
+    "id": 13,
+    "relevance": "irrelevant",
+    "title": "Ultraviolet Spectra of Local Galaxies and their Link with the High-z Population",
+    "filePath": "test-data/golden-pdfs/irrelevant-13.pdf",
+    "originalUrl": "https://arxiv.org/pdf/0812.5113v1.pdf"
+  },
+  {
+    "id": 14,
+    "relevance": "irrelevant",
+    "title": "Correlated variability in the blazar 3C 454.3",
+    "filePath": "test-data/golden-pdfs/irrelevant-14.pdf",
+    "originalUrl": "https://arxiv.org/pdf/0812.4582v1.pdf"
+  },
+  {
+    "id": 15,
+    "relevance": "irrelevant",
+    "title": "Biases and Uncertainties in Physical Parameter Estimates of Lyman Break Galaxies from Broad-band Photometry",
+    "filePath": "test-data/golden-pdfs/irrelevant-15.pdf",
+    "originalUrl": "https://arxiv.org/pdf/0812.5111v1.pdf"
+  },
+  {
+    "id": 16,
+    "relevance": "irrelevant",
+    "title": "Dynamics of a Spherical Accretion Shock with Neutrino Heating and Alpha-Particle Recombination",
+    "filePath": "test-data/golden-pdfs/irrelevant-16.pdf",
+    "originalUrl": "https://arxiv.org/pdf/0812.4574v2.pdf"
+  },
+  {
+    "id": 17,
+    "relevance": "irrelevant",
+    "title": "Asymptotically FRW black holes",
+    "filePath": "test-data/golden-pdfs/irrelevant-17.pdf",
+    "originalUrl": "https://arxiv.org/pdf/0812.5108v3.pdf"
+  },
+  {
+    "id": 18,
+    "relevance": "irrelevant",
+    "title": "Quantum Black Holes As Elementary Particles",
+    "filePath": "test-data/golden-pdfs/irrelevant-18.pdf",
+    "originalUrl": "https://arxiv.org/pdf/0812.5012v1.pdf"
+  },
+  {
+    "id": 19,
+    "relevance": "irrelevant",
+    "title": "Reaction of Accretion Disks to Abrupt Mass Loss During Binary Black Hole Merger",
+    "filePath": "test-data/golden-pdfs/irrelevant-19.pdf",
+    "originalUrl": "https://arxiv.org/pdf/0812.4874v2.pdf"
+  },
+  {
+    "id": 20,
+    "relevance": "irrelevant",
+    "title": "A Gamma-Ray Burst/Pulsar for Cosmic-Ray Positrons with a Dark Matter-like Spectrum",
+    "filePath": "test-data/golden-pdfs/irrelevant-20.pdf",
+    "originalUrl": "https://arxiv.org/pdf/0812.4851v4.pdf"
+  }
+]

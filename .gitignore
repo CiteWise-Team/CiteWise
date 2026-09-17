@@ -162,4 +162,5 @@ implementation_plan.md
 # PDFs and document inputs
 *.pdf
 scratch_scripts/
+no-ai-slop/
 
