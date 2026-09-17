@@ -25,25 +25,44 @@ export async function summarizerAPI(id,group_id){
     },
   });
 }
-export async function GapAPI(id){
-    return apiRequest(`/gap/${id}`, {
+
+export async function getSummarizerJobStatusAPI(jobId) {
+  return apiRequest(`/summarizer/status/${encodeURIComponent(jobId)}`, {
+    method: "GET",
+  });
+}
+
+export async function GapAPI(id, group_id){
+  return apiRequest(`/gap/${id}`, {
     method: "POST",
-    body: JSON.stringify({ id }),
+    body: JSON.stringify({ id, group_id }),
     headers: {
       "Content-Type": "application/json",
     },
   });
 }
+
+export async function getGapJobStatusAPI(jobId) {
+  return apiRequest(`/gap/status/${encodeURIComponent(jobId)}`, {
+    method: "GET",
+  });
+}
+
 export async function TopicSuggesterAPI({group_id, gaps}){
-      return apiRequest(`/topic/run`, {
+  return apiRequest(`/topic/run`, {
     method: "POST",
     body: JSON.stringify({ 
       group_id,
       gaps
-     }),
+    }),
     headers: {
       "Content-Type": "application/json",
     },
   });
-
 }
+
+export async function getTopicJobStatusAPI(jobId) {
+  return apiRequest(`/topic/status/${encodeURIComponent(jobId)}`, {
+    method: "GET",
+  });
+}

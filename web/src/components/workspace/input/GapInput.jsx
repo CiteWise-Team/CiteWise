@@ -4,7 +4,7 @@ import { MdInput } from "react-icons/md";
 
 import { useGroup } from "../../../context/GroupContext.jsx";
 import { getSummaryByGroupAPI } from "../../../api/workflow.summarizer.js";
-import { GapAPI } from "../../../api/workflow.api.js";
+import { GapAPI, getGapJobStatusAPI } from "../../../api/workflow.api.js";
 
 import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
@@ -19,8 +19,19 @@ export default function GapInput({ setResult }) {
   const [selectedSummaries, setSelectedSummaries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [runningText, setRunningText] = useState("Running...");
+  const pollTimerRef = useRef(null);
 
   const { config, showFeedback, hideFeedback } = useFeedbackModal();
+
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, []);
 
   function handleFile(selectedFiles) {
     const picked = selectedFiles[0];
@@ -54,16 +65,77 @@ export default function GapInput({ setResult }) {
       return;
     }
 
+    if (!group_id) {
+      showFeedback({
+        type: "error",
+        title: "Missing Workspace",
+        message: "No active workspace selected. Please select a workspace first.",
+      });
+      return;
+    }
+
     try {
       setRunning(true);
+      setRunningText("Starting gap analysis...");
 
       const response = await GapAPI({
         group_id,
         summary_id: selectedSummaries[0],
       });
 
-      setResult(response.data);
+      // Handle async 202 background job
+      if (response?.jobId) {
+        setRunningText("Analyzing research gaps with AI...");
 
+        const startTime = Date.now();
+        const MAX_POLL_TIME = 180 * 1000; // 3 minutes timeout
+
+        pollTimerRef.current = setInterval(async () => {
+          try {
+            if (Date.now() - startTime > MAX_POLL_TIME) {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setRunning(false);
+              showFeedback({
+                type: "error",
+                title: "Timeout",
+                message: "Gap extraction took longer than expected. Please refresh in a moment to check results.",
+              });
+              return;
+            }
+
+            const pollRes = await getGapJobStatusAPI(response.jobId);
+            if (pollRes.status === "COMPLETED") {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setRunning(false);
+              setResult(pollRes.data);
+              showFeedback({
+                type: "success",
+                title: "Gap Analysis Complete",
+                message: "Gap workflow finished successfully.",
+              });
+            } else if (pollRes.status === "FAILED") {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setRunning(false);
+              showFeedback({
+                type: "error",
+                title: "Workflow Failed",
+                message: pollRes.error || "Failed to run gap workflow.",
+              });
+            }
+          } catch (pollErr) {
+            console.warn("Polling error:", pollErr);
+          }
+        }, 2000);
+
+        return;
+      }
+
+      // Synchronous fallback
+      setResult(response.data);
+      setRunning(false);
       showFeedback({
         type: "success",
         title: "Gap Analysis Complete",
@@ -71,14 +143,12 @@ export default function GapInput({ setResult }) {
       });
     } catch (err) {
       console.error(err);
-
+      setRunning(false);
       showFeedback({
         type: "error",
         title: "Workflow Failed",
-        message: "Failed to run workflow",
+        message: err.message || "Failed to run workflow",
       });
-    } finally {
-      setRunning(false);
     }
   };
 
@@ -182,7 +252,7 @@ export default function GapInput({ setResult }) {
               }}
             >
               <FaPlay className="me-1" />
-              {running ? "Running..." : "Run Workflow"}
+              {running ? runningText : "Run Workflow"}
             </button>
           </div>
         </div>

@@ -28,7 +28,7 @@ export async function fetchTopicsByGroupIdService(group_id){
     try {
         const data = await fetchTopicDataByGroupIdRepo(group_id);
         if (!data || data.length === 0) {
-            return { status: 404, message: "No data found for the given group ID" };
+            return { status: 200, message: "No data found for the given group ID", data: [] };
         }
         return { status: 200, message: "Data retrieved successfully", data: data };
     } catch (err) {

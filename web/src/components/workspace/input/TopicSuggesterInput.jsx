@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FaPlay } from "react-icons/fa";
 import { MdInput } from "react-icons/md";
 
 import { useGroup } from "../../../context/GroupContext.jsx";
 import { getGapsByGroupAPI } from "../../../api/workflow.gap.js";
-import { TopicSuggesterAPI } from "../../../api/workflow.api.js";
+import { TopicSuggesterAPI, getTopicJobStatusAPI } from "../../../api/workflow.api.js";
 
 import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
@@ -16,8 +16,19 @@ export default function TopicSuggesterInput({ setResult }) {
   const [selectedGaps, setSelectedGaps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [runningText, setRunningText] = useState("Running...");
+  const pollTimerRef = useRef(null);
 
   const { config, showFeedback, hideFeedback } = useFeedbackModal();
+
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchGaps() {
@@ -53,8 +64,18 @@ export default function TopicSuggesterInput({ setResult }) {
       return;
     }
 
+    if (!group_id) {
+      showFeedback({
+        type: "error",
+        title: "Missing Workspace",
+        message: "No active workspace selected. Please select a workspace first.",
+      });
+      return;
+    }
+
     try {
       setRunning(true);
+      setRunningText("Starting topic discovery...");
 
       const selectedGapTexts = gaps
         .filter((g) => selectedGaps.includes(g.id))
@@ -65,23 +86,72 @@ export default function TopicSuggesterInput({ setResult }) {
         gaps: selectedGapTexts,
       });
 
-      setResult(response.data);
+      // Handle async 202 background job
+      if (response?.jobId) {
+        setRunningText("Generating topic recommendations with AI...");
 
+        const startTime = Date.now();
+        const MAX_POLL_TIME = 180 * 1000; // 3 minutes timeout
+
+        pollTimerRef.current = setInterval(async () => {
+          try {
+            if (Date.now() - startTime > MAX_POLL_TIME) {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setRunning(false);
+              showFeedback({
+                type: "error",
+                title: "Timeout",
+                message: "Topic suggestion took longer than expected. Please refresh in a moment to check results.",
+              });
+              return;
+            }
+
+            const pollRes = await getTopicJobStatusAPI(response.jobId);
+            if (pollRes.status === "COMPLETED") {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setRunning(false);
+              setResult(pollRes.data);
+              showFeedback({
+                type: "success",
+                title: "Topic Suggestions Ready",
+                message: "Topic suggestion workflow finished successfully.",
+              });
+            } else if (pollRes.status === "FAILED") {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setRunning(false);
+              showFeedback({
+                type: "error",
+                title: "Workflow Failed",
+                message: pollRes.error || "Failed to run topic suggestion workflow.",
+              });
+            }
+          } catch (pollErr) {
+            console.warn("Polling error:", pollErr);
+          }
+        }, 2000);
+
+        return;
+      }
+
+      // Synchronous fallback
+      setResult(response.data);
+      setRunning(false);
       showFeedback({
         type: "success",
         title: "Topic Suggestions Ready",
-        message: "Topic suggestion workflow started successfully.",
+        message: "Topic suggestion workflow finished successfully.",
       });
     } catch (err) {
       console.error(err);
-
+      setRunning(false);
       showFeedback({
         type: "error",
         title: "Workflow Failed",
         message: err.message || "Failed to run workflow",
       });
-    } finally {
-      setRunning(false);
     }
   };
 
@@ -165,7 +235,7 @@ export default function TopicSuggesterInput({ setResult }) {
               }}
             >
               <FaPlay className="me-1" />
-              {running ? "Running..." : "Run Workflow"}
+              {running ? runningText : "Run Workflow"}
             </button>
           </div>
         </div>

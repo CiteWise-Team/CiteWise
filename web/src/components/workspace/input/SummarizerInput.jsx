@@ -4,7 +4,7 @@ import { MdInput } from "react-icons/md";
 
 import { useGroup } from "../../../context/GroupContext.jsx";
 import { getExtractedFilesByGroupAPI } from "../../../api/workflow.extractor.js";
-import { summarizerAPI } from "../../../api/workflow.api.js";
+import { summarizerAPI, getSummarizerJobStatusAPI } from "../../../api/workflow.api.js";
 
 import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
@@ -18,9 +18,20 @@ export default function SummarizerInput({ setResult }) {
   const [extractedFiles, setExtractedFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [runningText, setRunningText] = useState("Running...");
   const [selectedInstruction, setSelectedInstruction] = useState(null);
+  const pollTimerRef = useRef(null);
 
   const { config, showFeedback, hideFeedback } = useFeedbackModal();
+
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, []);
 
   function handleFile(selectedFiles) {
     const picked = selectedFiles[0];
@@ -50,13 +61,74 @@ export default function SummarizerInput({ setResult }) {
       return;
     }
 
+    if (!group_id) {
+      showFeedback({
+        type: "error",
+        title: "Missing Workspace",
+        message: "No active workspace selected. Please select a workspace first.",
+      });
+      return;
+    }
+
     try {
       setRunning(true);
+      setRunningText("Starting summarizer...");
 
       const response = await summarizerAPI(selectedInstruction, group_id);
 
-      setResult(response.data);
+      // Handle async 202 background job
+      if (response?.jobId) {
+        setRunningText("Summarizing sections with AI...");
 
+        const startTime = Date.now();
+        const MAX_POLL_TIME = 180 * 1000; // 3 minutes timeout
+
+        pollTimerRef.current = setInterval(async () => {
+          try {
+            if (Date.now() - startTime > MAX_POLL_TIME) {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setRunning(false);
+              showFeedback({
+                type: "error",
+                title: "Timeout",
+                message: "Summarization took longer than expected. Please refresh in a moment to check results.",
+              });
+              return;
+            }
+
+            const pollRes = await getSummarizerJobStatusAPI(response.jobId);
+            if (pollRes.status === "COMPLETED") {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setRunning(false);
+              setResult(pollRes.data);
+              showFeedback({
+                type: "success",
+                title: "Summarization Complete",
+                message: "Summarizer workflow finished successfully.",
+              });
+            } else if (pollRes.status === "FAILED") {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+              setRunning(false);
+              showFeedback({
+                type: "error",
+                title: "Workflow Failed",
+                message: pollRes.error || "Failed to run summarizer workflow.",
+              });
+            }
+          } catch (pollErr) {
+            console.warn("Polling error:", pollErr);
+          }
+        }, 2000);
+
+        return;
+      }
+
+      // Synchronous fallback
+      setResult(response.data);
+      setRunning(false);
       showFeedback({
         type: "success",
         title: "Summarization Complete",
@@ -64,14 +136,12 @@ export default function SummarizerInput({ setResult }) {
       });
     } catch (err) {
       console.error(err);
-
+      setRunning(false);
       showFeedback({
         type: "error",
         title: "Workflow Failed",
-        message:  "Failed to run workflow",
+        message: err.message || "Failed to run workflow",
       });
-    } finally {
-      setRunning(false);
     }
   };
 
@@ -177,7 +247,7 @@ export default function SummarizerInput({ setResult }) {
               }}
             >
               <FaPlay className="me-1" />
-              {running ? "Running..." : "Run Workflow"}
+              {running ? runningText : "Run Workflow"}
             </button>
           </div>
         </div>

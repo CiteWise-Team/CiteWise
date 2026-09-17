@@ -46,7 +46,7 @@ export async function fetchGapsDataUsingGroupIdService(group_id) {
     const data = await getGapUsingGroupIdRepo(group_id);
 
     if (!data || data.length === 0) {
-      return { status: 404, message: "No data found for the given group ID" };
+      return { status: 200, message: "No data found for the given group ID", data: [] };
     }
 
     const flattenedGaps = [];
