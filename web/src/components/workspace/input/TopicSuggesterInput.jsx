@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { FaPlay } from "react-icons/fa";
 import { MdInput } from "react-icons/md";
+import { RiLoader4Line } from "react-icons/ri";
 
 import { useGroup } from "../../../context/GroupContext.jsx";
 import { getGapsByGroupAPI } from "../../../api/workflow.gap.js";
@@ -136,14 +137,15 @@ export default function TopicSuggesterInput({ setResult }) {
         return;
       }
 
-      // Synchronous fallback
-      setResult(response.data);
-      setRunning(false);
-      showFeedback({
-        type: "success",
-        title: "Topic Suggestions Ready",
-        message: "Topic suggestion workflow finished successfully.",
-      });
+      if (!response?.jobId) {
+        setRunning(false);
+        showFeedback({
+          type: "error",
+          title: "Topic Suggestion Failed",
+          message: response?.message || "Failed to start topic suggestion. No job ID received from server.",
+        });
+        return;
+      }
     } catch (err) {
       console.error(err);
       setRunning(false);
@@ -232,9 +234,16 @@ export default function TopicSuggesterInput({ setResult }) {
                 backgroundColor: "#5b5bd6",
                 color: "#fff",
                 border: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
-              <FaPlay className="me-1" />
+              {running ? (
+                <RiLoader4Line className="spinner-border spinner-border-sm" style={{ animation: "spin 1s linear infinite" }} />
+              ) : (
+                <FaPlay className="me-1" />
+              )}
               {running ? runningText : "Run Workflow"}
             </button>
           </div>

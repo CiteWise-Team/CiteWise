@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { FaCloudUploadAlt, FaPlay } from "react-icons/fa";
 import { MdInput } from "react-icons/md";
+import { RiLoader4Line } from "react-icons/ri";
 
 import { useGroup } from "../../../context/GroupContext.jsx";
 import { getExtractedFilesByGroupAPI } from "../../../api/workflow.extractor.js";
@@ -126,14 +127,15 @@ export default function SummarizerInput({ setResult }) {
         return;
       }
 
-      // Synchronous fallback
-      setResult(response.data);
-      setRunning(false);
-      showFeedback({
-        type: "success",
-        title: "Summarization Complete",
-        message: "Summarizer workflow finished successfully.",
-      });
+      if (!response?.jobId) {
+        setRunning(false);
+        showFeedback({
+          type: "error",
+          title: "Summarization Failed",
+          message: response?.message || "Failed to start summarization. No job ID received from server.",
+        });
+        return;
+      }
     } catch (err) {
       console.error(err);
       setRunning(false);
@@ -244,9 +246,16 @@ export default function SummarizerInput({ setResult }) {
                 backgroundColor: "#5b5bd6",
                 color: "#fff",
                 border: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
-              <FaPlay className="me-1" />
+              {running ? (
+                <RiLoader4Line className="spinner-border spinner-border-sm" style={{ animation: "spin 1s linear infinite" }} />
+              ) : (
+                <FaPlay className="me-1" />
+              )}
               {running ? runningText : "Run Workflow"}
             </button>
           </div>

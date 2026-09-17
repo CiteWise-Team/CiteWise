@@ -32,10 +32,19 @@ export async function getSummarizerJobStatusAPI(jobId) {
   });
 }
 
-export async function GapAPI(id, group_id){
-  return apiRequest(`/gap/${id}`, {
+export async function GapAPI(idOrPayload, group_id){
+  let body;
+  let targetId;
+  if (typeof idOrPayload === "object" && idOrPayload !== null) {
+    body = idOrPayload;
+    targetId = idOrPayload.summary_id || idOrPayload.id || idOrPayload.group_id;
+  } else {
+    body = { id: idOrPayload, group_id };
+    targetId = idOrPayload;
+  }
+  return apiRequest(`/gap/${encodeURIComponent(targetId)}`, {
     method: "POST",
-    body: JSON.stringify({ id, group_id }),
+    body: JSON.stringify(body),
     headers: {
       "Content-Type": "application/json",
     },

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { FaCloudUploadAlt, FaPlay } from "react-icons/fa";
 import { MdInput } from "react-icons/md";
+import { RiLoader4Line } from "react-icons/ri";
 
 import { useGroup } from "../../../context/GroupContext.jsx";
 import { getSummaryByGroupAPI } from "../../../api/workflow.summarizer.js";
@@ -133,14 +134,15 @@ export default function GapInput({ setResult }) {
         return;
       }
 
-      // Synchronous fallback
-      setResult(response.data);
-      setRunning(false);
-      showFeedback({
-        type: "success",
-        title: "Gap Analysis Complete",
-        message: "Gap workflow finished successfully.",
-      });
+      if (!response?.jobId) {
+        setRunning(false);
+        showFeedback({
+          type: "error",
+          title: "Gap Analysis Failed",
+          message: response?.message || "Failed to start gap analysis. No job ID received from server.",
+        });
+        return;
+      }
     } catch (err) {
       console.error(err);
       setRunning(false);
@@ -249,9 +251,16 @@ export default function GapInput({ setResult }) {
                 backgroundColor: "#5b5bd6",
                 color: "#fff",
                 border: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
-              <FaPlay className="me-1" />
+              {running ? (
+                <RiLoader4Line className="spinner-border spinner-border-sm" style={{ animation: "spin 1s linear infinite" }} />
+              ) : (
+                <FaPlay className="me-1" />
+              )}
               {running ? runningText : "Run Workflow"}
             </button>
           </div>

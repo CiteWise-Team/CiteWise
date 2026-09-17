@@ -1,5 +1,6 @@
 import { FaCloudUploadAlt, FaPlay } from "react-icons/fa";
 import { MdInput } from "react-icons/md";
+import { RiLoader4Line } from "react-icons/ri";
 import { extractorAPI, getExtractorJobStatusAPI } from "../../../api/workflow.api";
 
 import { useEffect, useRef, useState } from "react";
@@ -131,22 +132,14 @@ export default function InputPanel({ setResult }) {
         return;
       }
 
-      // Synchronous fallback
-      if (response.success) {
-        setResult(response.data);
-        showFeedback({
-          type: "success",
-          title: "Extraction Complete",
-          message: "Your document was processed successfully.",
-        });
+      if (!response?.jobId) {
         setLoading(false);
-      } else {
         showFeedback({
           type: "error",
           title: "Extraction Failed",
-          message: response.message || "Something went wrong.",
+          message: response?.message || "Failed to start extraction. No job ID received from server.",
         });
-        setLoading(false);
+        return;
       }
     } catch (err) {
       console.error(err);
@@ -275,10 +268,17 @@ export default function InputPanel({ setResult }) {
               style={{
                 backgroundColor: "#5b5bd6",
                 color: "#fff",
-                border: "none"
+                border: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
-              <FaPlay className="me-1" />
+              {loading ? (
+                <RiLoader4Line className="spinner-border spinner-border-sm" style={{ animation: "spin 1s linear infinite" }} />
+              ) : (
+                <FaPlay className="me-1" />
+              )}
               {loading ? loadingText : "Run Workflow"}
             </button>
           </div>
