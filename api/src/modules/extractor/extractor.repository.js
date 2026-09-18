@@ -11,45 +11,58 @@ import { isR2Configured, uploadPdfToR2, getPresignedDownloadUrl } from "../../co
 export async function triggerExtractorWorkflow(file, filename) {
   const webhookUrl = process.env.N8N_EXTRACTOR_WEBHOOK;
 
-  try {
-    const formData = new FormData();
-    formData.append("file", file, filename);
+  const maxAttempts = 3;
+  let lastError;
 
-    const res = await fetch(webhookUrl, {
-      method: "POST",
-      body: formData,
-      headers: formData.getHeaders(),
-    });
-
-    // Read body as text first — n8n returns an empty body when the workflow
-    // errors mid-run (before the Respond to Webhook node fires), which causes
-    // res.json() to throw "Unexpected end of JSON input".
-    const text = await res.text();
-
-    if (!res.ok) {
-      throw new Error(`n8n webhook failed: ${res.status} ${text}`);
-    }
-
-    if (!text || !text.trim()) {
-      throw new Error(
-        "n8n workflow did not return a response. " +
-        "The workflow may have errored before reaching the Respond node. " +
-        "Check the n8n execution log for details."
-      );
-    }
-
-    let data;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error(`n8n returned invalid JSON: ${text.slice(0, 200)}`);
-    }
+      const formData = new FormData();
+      formData.append("file", file, filename);
 
-    return data;
-  } catch (err) {
-    console.error("Workflow repo error:", err);
-    throw err;
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        body: formData,
+        headers: formData.getHeaders(),
+      });
+
+      // Read body as text first — n8n returns an empty body when the workflow
+      // errors mid-run (before the Respond to Webhook node fires), which causes
+      // res.json() to throw "Unexpected end of JSON input".
+      const text = await res.text();
+
+      if (!res.ok) {
+        throw new Error(`n8n webhook failed: ${res.status} ${text}`);
+      }
+
+      if (!text || !text.trim()) {
+        throw new Error(
+          "n8n workflow did not return a response. " +
+          "The workflow may have errored before reaching the Respond node. " +
+          "Check the n8n execution log for details."
+        );
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`n8n returned invalid JSON: ${text.slice(0, 200)}`);
+      }
+
+      return data;
+    } catch (err) {
+      lastError = err;
+      console.warn(`[Extractor Workflow] Attempt ${attempt}/${maxAttempts} failed: ${err.message}`);
+      if (attempt < maxAttempts) {
+        const delay = attempt * 3000;
+        console.log(`[Extractor Workflow] Retrying in ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
   }
+
+  console.error("Workflow repo error after retries:", lastError);
+  throw lastError;
 }
 
 export async function insertExtractorRepo(group_id, extractedData, fileMeta = null) {
