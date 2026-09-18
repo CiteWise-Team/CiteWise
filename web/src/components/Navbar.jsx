@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import citeWiseLogo from "../assets/citewise-logo.png";
 import "../App.css";
 
 export default function Navbar() {
@@ -56,11 +57,11 @@ export default function Navbar() {
               justifyContent: "center",
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#5b5bd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M2 17L12 22L22 17" stroke="#5b5bd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M2 12L12 17L22 12" stroke="#5b5bd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
-            </svg>
+            <img
+              src={citeWiseLogo}
+              alt="CiteWise"
+              style={{ width: "22px", height: "22px", objectFit: "contain" }}
+            />
           </span>
           <span
             className="brand-text"

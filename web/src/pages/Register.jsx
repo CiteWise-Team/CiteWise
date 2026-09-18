@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 import { FaCheckCircle, FaEye, FaEyeSlash, FaLightbulb } from "react-icons/fa";
 import { GrSecure } from "react-icons/gr";
+import citeWiseLogo from "../assets/citewise-logo.png";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -132,11 +133,11 @@ export default function Register() {
                     boxShadow: "0 0 60px -12px rgba(91,91,214,0.6), 0 0 100px -30px rgba(91,91,214,0.3)"
                   }}
                 >
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M2 17L12 22L22 17" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M2 12L12 17L22 12" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
-                  </svg>
+                  <img
+                    src={citeWiseLogo}
+                    alt="CiteWise"
+                    style={{ width: "36px", height: "36px", objectFit: "contain" }}
+                  />
                 </div>
                 <div>
                   <div style={{ 
