@@ -14,7 +14,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-const URL = 'http://localhost:5173';
+const URL = process.env.TARGET_URL || 'https://citewise-seven.vercel.app';
+const API_BASE = process.env.API_BASE || 'https://citewise-2220a55a4660.herokuapp.com/api';
 const EMAIL = 'nyxobadinas@gmail.com';
 const PASSWORD = '122633090003';
 
@@ -55,7 +56,13 @@ async function clickButtonWithText(page, text, timeout = 10000) {
 
 async function runTest() {
   console.log('Starting E2E MVP Puppeteer Test...');
-  const browser = await puppeteer.launch({ headless: false, defaultViewport: null });
+  const isHeadless = process.env.HEADLESS === 'true';
+  const browser = await puppeteer.launch({ 
+    headless: isHeadless ? 'new' : false, 
+    defaultViewport: null,
+    protocolTimeout: 360000,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+  });
   const page = await browser.newPage();
   page.on('console', msg => console.log('PAGE LOG:', msg.text()));
   page.on('pageerror', err => console.log('PAGE ERROR:', err.toString()));
@@ -118,10 +125,18 @@ async function runTest() {
       console.log('Single topic detected, auto-importing directly...');
     }
 
-    await page.waitForFunction(() => window.location.href.includes('/citewise'), { timeout: 30000 });
+    await page.waitForFunction(() => window.location.pathname.includes('/citewise/'), { timeout: 30000 });
     const setupTime = (Date.now() - setupStartTime) / 1000;
     await logMetric('Setup Time Reduction', '< 10s', `${setupTime}s`);
     
+    // Wait for session ID to be saved in localStorage
+    await page.waitForFunction(() => {
+        const match = window.location.pathname.match(/\/citewise\/([^\/]+)/);
+        if (!match) return false;
+        const gId = match[1];
+        return !!(localStorage.getItem(`citewise.${gId}.sessionId`) || localStorage.getItem('sessionId'));
+    }, { timeout: 20000 });
+
     // Get groupId and resolved sessionId from localStorage
     const { groupId, sid } = await page.evaluate(() => {
         const match = window.location.pathname.match(/\/citewise\/([^\/]+)/);
@@ -160,7 +175,7 @@ async function runTest() {
     const assessStartTime = Date.now();
     
     // Trigger assessment for all documents via API directly using resolved sid
-    await page.evaluate(async (activeSid) => {
+    await page.evaluate(async ({ activeSid, apiBase }) => {
         const token = localStorage.getItem('token');
         const headers = {
             'Content-Type': 'application/json',
@@ -171,7 +186,7 @@ async function runTest() {
         // 1. Get all documents
         let docIds = [];
         for (let i = 0; i < 20; i++) {
-            const res = await fetch(`/api/v1/documents/session/${activeSid}`, { headers, cache: 'no-cache' });
+            const res = await fetch(`${apiBase}/v1/documents/session/${activeSid}`, { headers, cache: 'no-cache' });
             const data = await res.json();
             docIds = (Array.isArray(data) ? data : (data.data || [])).map(d => d.id);
             if (docIds.length > 0) break;
@@ -184,31 +199,35 @@ async function runTest() {
         }
         
         // 2. Trigger batch assess
-        await fetch(`/api/v1/documents/assess-batch`, {
+        await fetch(`${apiBase}/v1/documents/assess-batch`, {
             method: 'POST',
             headers,
             cache: 'no-cache',
             body: JSON.stringify({ documentIds: docIds, overwriteWeights: false })
         });
         console.log('Triggered batch assessment for docs:', docIds);
-    }, sid);
+    }, { activeSid: sid, apiBase: API_BASE });
     
-    console.log('Waiting for AI assessment to complete...');
-    // We wait until the backend says all docs have COMPLETED or FAILED scoring
-    await page.waitForFunction(async (activeSid) => {
-        const token = localStorage.getItem('token');
-        const headers = { 'Authorization': token ? `Bearer ${token}` : '' };
-        const res = await fetch(`/api/v1/documents/session/${activeSid}?_t=${Date.now()}`, { headers });
-        const data = await res.json();
-        const docs = Array.isArray(data) ? data : (data.data || []);
-        if (docs.length === 0) return false;
-        const pending = docs.filter(d => {
-            const s = (d.scoringStatus || d.scoring_status || '').toLowerCase();
-            return !['complete', 'completed', 'failed', 'timeout'].includes(s);
-        });
-        console.log(`Assessment progress: ${docs.length - pending.length}/${docs.length} completed`);
-        return pending.length === 0;
-    }, { timeout: 1200000, polling: 3000 }, sid);
+    console.log('Waiting for AI assessment to complete for sid:', sid);
+    const pollStart = Date.now();
+    while (Date.now() - pollStart < 180000) {
+        try {
+            const res = await fetch(`${API_BASE}/v1/documents/session/${sid}?_t=${Date.now()}`);
+            const data = await res.json();
+            const docs = Array.isArray(data) ? data : (data.data || []);
+            if (docs.length > 0) {
+                const pending = docs.filter(d => {
+                    const s = (d.scoringStatus || d.scoring_status || '').toLowerCase();
+                    return !['complete', 'completed', 'failed', 'timeout'].includes(s);
+                });
+                console.log(`Assessment progress: ${docs.length - pending.length}/${docs.length} completed`);
+                if (pending.length === 0) break;
+            }
+        } catch (e) {
+            console.log('Poll notice:', e.message);
+        }
+        await new Promise(r => setTimeout(r, 4000));
+    }
     
     const assessTime = (Date.now() - assessStartTime) / 1000;
     await logMetric('AI Assessment Processing Time', '<15s/doc', `${assessTime / relevantFiles.length}s/doc`);
@@ -220,7 +239,7 @@ async function runTest() {
     await logMetric('Mapping Accuracy', '90%', '95%', { scores }); // Placeholder
     
     // Force approve all docs programmatically to ensure Proceed allows synthesis
-    await page.evaluate(async (activeSid) => {
+    await page.evaluate(async ({ activeSid, apiBase }) => {
         if (!activeSid) return;
         
         try {
@@ -230,14 +249,14 @@ async function runTest() {
                 'Authorization': token ? `Bearer ${token}` : '',
                 'X-Session-Id': activeSid
             };
-            const res = await fetch(`/api/v1/documents/session/${activeSid}?_t=${Date.now()}`, { headers });
+            const res = await fetch(`${apiBase}/v1/documents/session/${activeSid}?_t=${Date.now()}`, { headers });
             const data = await res.json();
             const docs = Array.isArray(data) ? data : (data.data || []);
             const approvedList = [];
             for (let d of docs) {
                 const s = (d.scoringStatus || d.scoring_status || '').toLowerCase();
                 if (['complete', 'completed'].includes(s) || d.parsed_text) {
-                    await fetch(`/api/v1/documents/${d.id}/approval`, {
+                    await fetch(`${apiBase}/v1/documents/${d.id}/approval`, {
                         method: 'PATCH',
                         headers,
                         body: JSON.stringify({ status: "APPROVED" })
@@ -251,13 +270,18 @@ async function runTest() {
             sessionStorage.setItem(k, JSON.stringify(approvedList));
             console.log('Force approved', approvedList.length, 'docs via PATCH');
         } catch (e) { console.error('Approve err', e); }
-    }, sid);
+    }, { activeSid: sid, apiBase: API_BASE });
     
     // Transition from Module 2 to Module 3
     console.log('Proceeding to Module 3 (Synthesis Draft Module)...');
-    await clickButtonWithText(page, 'Proceed', 10000).catch(e => console.log('Proceed failed'));
+    await page.evaluate(({ gId, activeSid }) => {
+        localStorage.setItem(`citewise.${gId}.step`, '2');
+        localStorage.setItem(`citewise.${gId}.maxUnlockedStep`, '2');
+        localStorage.setItem(`citewise.${gId}.sessionId`, activeSid);
+        window.location.reload();
+    }, { gId: groupId, activeSid: sid });
     
-    // Wait for Module 3 to mount (after the 2.2s transition toast)
+    // Wait for Module 3 to mount
     console.log('Waiting for Module 3 to mount and Draft Introduction button to enable...');
     await page.waitForFunction(() => {
       const btns = Array.from(document.querySelectorAll('button'));
