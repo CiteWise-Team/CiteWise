@@ -412,6 +412,32 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     const updatedDocs = documents.filter((_, i) => i !== index);
     setDocuments(updatedDocs);
 
+    // Synchronize storage immediately so Step 3 never resurrects deleted doc
+    const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
+    const updatedApproved = updatedDocs.filter((d) => d.approved);
+    localStorage.setItem(storageKey, JSON.stringify(updatedApproved));
+    sessionStorage.setItem(storageKey, JSON.stringify(updatedApproved));
+
+    // Remove from rrlUsage in citewiseStore
+    const currentUsage = store.getRrlUsage(resolvedSessionId) || {};
+    if (currentUsage[docToDelete.id] || currentUsage[String(docToDelete.id)]) {
+      const nextUsage = { ...currentUsage };
+      delete nextUsage[docToDelete.id];
+      delete nextUsage[String(docToDelete.id)];
+      store.setRrlUsage(resolvedSessionId, nextUsage);
+    }
+
+    // Update batch stats
+    const scoredDocs = updatedApproved.filter((d) => typeof d.relevancyScore === "number");
+    const avgScore = scoredDocs.length
+      ? scoredDocs.reduce((s, d) => s + d.relevancyScore, 0) / scoredDocs.length
+      : 0;
+    setBatchStats({
+      approvedCount: updatedApproved.length,
+      totalCount: updatedDocs.length,
+      averageScore: avgScore,
+    });
+
     if (index < currentIndex) {
       setCurrentIndex(currentIndex - 1);
     } else if (index === currentIndex) {

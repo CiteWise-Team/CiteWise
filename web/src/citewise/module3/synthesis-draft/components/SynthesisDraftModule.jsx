@@ -237,18 +237,15 @@
           });
           
           if (response.ok && Array.isArray(data)) {
-            const storedDocIds = new Set((initialDocs || []).map(d => String(d.id || d.name || d.fileName)));
             const rrlUsage = store.getRrlUsage(sessionId) || {};
-            const rrlDocIds = new Set(Object.keys(rrlUsage).filter(id => rrlUsage[id]?.usage !== 'exclude'));
+            const rrlExcludedIds = new Set(Object.keys(rrlUsage).filter(id => rrlUsage[id]?.usage === 'exclude'));
 
-            const apiApproved = data.filter(doc => 
-              doc.approved === true || 
-              doc.approved === 1 || 
-              doc.approved === "true" ||
-              storedDocIds.has(String(doc.id)) ||
-              storedDocIds.has(String(doc.fileName)) ||
-              rrlDocIds.has(String(doc.id))
-            );
+            // The API response is the source of truth for existing session documents.
+            // Only documents that are approved in the database (and not explicitly excluded by user) are loaded.
+            const apiApproved = data.filter(doc => {
+              const isApproved = doc.approved === true || doc.approved === 1 || doc.approved === "true";
+              return isApproved && !rrlExcludedIds.has(String(doc.id));
+            });
 
             const merged = apiApproved.map(doc => {
               const localDoc = (initialDocs || []).find(d => String(d.id) === String(doc.id) || String(d.name) === String(doc.fileName));
@@ -262,25 +259,8 @@
               };
             });
 
-            // Ensure any local initialDocs not in API data are also preserved
-            for (const localDoc of (initialDocs || [])) {
-              if (localDoc.id && !merged.some(m => String(m.id) === String(localDoc.id))) {
-                merged.push({
-                  id: localDoc.id,
-                  name: localDoc.name || localDoc.fileName || "Untitled.pdf",
-                  title: localDoc.title || null,
-                  size: localDoc.size || "-",
-                  relevancyScore: localDoc.relevancyScore ?? 0,
-                  approved: true,
-                });
-              }
-            }
-
-            const finalDocs = merged.length > 0 ? merged : initialDocs;
-            if (finalDocs && finalDocs.length > 0) {
-              setApprovedDocuments(finalDocs);
-              localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(finalDocs));
-            }
+            setApprovedDocuments(merged);
+            localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(merged));
           }
         } catch (err) {
           console.error("Error fetching documents:", err);
@@ -461,7 +441,11 @@
         clearInterval(interval);
         console.error("Synthesis error:", err);
         setGenerationProgress(0);
-        setStatusText(err.message || "Synthesis failed");
+        let errorMsg = err.message || "Synthesis failed";
+        if (/error in workflow/i.test(errorMsg) || /HTTP 500/i.test(errorMsg) || /\{.*message.*\}/i.test(errorMsg)) {
+          errorMsg = "The AI synthesis engine encountered a temporary processing hiccup. Please try generating again.";
+        }
+        setStatusText(errorMsg);
         // A failed re-draft must not throw away the draft already on screen.
         // Dropping straight back to "idle" swapped a perfectly good draft for the
         // "No Content Generated Yet" placeholder.

@@ -211,6 +211,16 @@ export async function scoringPipeline(docId, sessionId) {
       overlap:   parseInt(process.env.CITEWISE_SCORING_CHUNK_OVERLAP)     || 100,
     });
 
+    if (!selectedText || !selectedText.trim()) {
+      console.warn(`[scoring] doc ${docId} has no extractable text, skipping n8n and marking as FAILED.`);
+      await supabase.from('uploaded_documents').update({
+        scoring_status:        'FAILED',
+        scoring_error_message: 'The PDF contains no extractable text (e.g. scanned image or empty document). Please upload a readable, text-based PDF.',
+        scoring_completed_at:  new Date().toISOString(),
+      }).eq('id', docId);
+      return;
+    }
+
     const gapsRaw = baseline.research_gaps;
     const gapsStr = Array.isArray(gapsRaw) ? gapsRaw.join('; ') : (gapsRaw ?? '');
 

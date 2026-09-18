@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import citeWiseLogo from "../assets/citewise-logo.png";
 import "../App.css";
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false); // dropdown state
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const isCiteWise = location.pathname.startsWith("/citewise");
+  const appName = isCiteWise ? "CiteWise" : "CATalyst";
 
   const handleLogout = () => {
     logout();
@@ -229,10 +233,10 @@ export default function Navbar() {
               </svg>
             </div>
             <h2 id="logout-confirm-title" style={{ margin: "0 0 8px", fontSize: "1.15rem", fontWeight: 700 }}>
-              Log out of CiteWise?
+              Log out of {appName}?
             </h2>
             <p style={{ margin: "0 0 24px", color: "#a1a1b5", fontSize: "0.85rem", lineHeight: 1.6 }}>
-              You will need to sign in again to access your workspaces.
+              You will need to sign in again to access your {isCiteWise ? "session." : "workspaces."}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               <button

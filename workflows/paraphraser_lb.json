@@ -1,0 +1,117 @@
+{
+  "name": "Anti-AI Slop Paraphraser LB",
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Webhook",
+      "webhookId": "citewise-paraphraser-lb",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1104
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "citewise-paraphraser-lb",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "format-output",
+      "name": "Format Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        1104
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { paraphrasedText: $json.text } }];"
+      }
+    },
+    {
+      "id": "gemini-model-0",
+      "name": "Google Vertex AI Model (Gemini 2.5 Flash)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+      "typeVersion": 1,
+      "position": [
+        744,
+        232
+      ],
+      "parameters": {
+        "modelName": "gemini-2.5-flash",
+        "projectId": "citewise-n8n-prod",
+        "options": {}
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "weWyIYZsZQfNONDm",
+          "name": "Google Vertex AI Account (CiteWise)"
+        }
+      }
+    },
+    {
+      "id": "Chain LLM 0",
+      "name": "Chain LLM (Vertex AI)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a sharp human editor reviewing an academic text. Preserve the writer's point and personal voice while making the writing clearer, more alive, and less robotic. Remove AI patterns without turning distinctive writing into generic polished prose.\n\nEditing principles:\n- Target Burstiness: Drastically vary sentence length. Mix very short, declarative, punchy sentences with longer, complex explanatory sentences to create a natural human rhythm.\n- Protect Terminology: Never paraphrase scientific terminology, methodology names, or technical nouns. Only adjust the verbs and transitional phrases around them.\n- Preserve the writer's real voice.\n- Make the minimum effective edit.\n- Use active voice.\n- Be concrete and specific.\n- Always show, don't tell the reader what to think.\n- Protect the specific fact. Don't smooth a useful detail into generic importance.\n- Keep structure unless it's hurting the piece.\n\nBanned outright: delve, foster, leverage, utilize, facilitate, empower, streamline, robust, cutting-edge, paradigm shift, game changer, this is huge, this changes everything, tapestry, realm, beacon, multifaceted, meticulous, intricate, paramount, transformative, elevate, embark, supercharge, harness, ever-evolving.\n\nOften-empty phrases to cut: it's worth noting, it's important to note, at the end of the day, when it comes to, at its core, in today's world, in the age of, in the world of, the reality is, the truth is, in terms of, with regard to, in order to, going forward, in this article, let's dive in.\n\nPatterns to cut:\n- Binary contrasts: \"This is not X. It's Y.\" -> State Y directly.\n- Throat-clearing openers: \"Here's the thing,\" \"Let me be clear.\"\n- Faux-insight setups: \"What most people get wrong,\" \"The part everyone misses.\"\n- Colon reveals: \"The best part: it learns.\"\n- Superficial analysis: trailing -ing clauses like \"highlighting,\" \"underscoring.\"\n- Importance puffery: \"Stands as a testament,\" \"marks a pivotal moment.\"\n- Synonym cycling.\n- Dramatic fragmentation.\n- Fake-profound kickers.\n- Summary-recap endings: \"In conclusion,\" \"Ultimately,\" \"Overall.\"\n\nReturn ONLY the edited draft. Do not add any introductory or concluding text (e.g., 'Here is the edited draft:'). Maintain all APA parenthetical citations exactly as they are."
+            }
+          ]
+        },
+        "promptType": "define",
+        "text": "={{ $json.body.text }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Chain LLM (Vertex AI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chain LLM (Vertex AI)": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Vertex AI Model (Gemini 2.5 Flash)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Chain LLM (Vertex AI)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "id": "4UnVphvw8mSP6as2"
+}

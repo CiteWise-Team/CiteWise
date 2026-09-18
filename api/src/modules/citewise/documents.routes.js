@@ -229,17 +229,24 @@ router.post('/assess-batch', async (req, res) => {
     .in('id', documentIds)
     .eq('session_id', sessionId);
 
-  // Run sequentially in background to avoid any race conditions or silent event loop drops
-  console.log(`[Batch Assess] Starting background pipeline for ${documentIds.length} docs...`);
+  // Run concurrently with a worker pool (concurrency = 4) using Google Vertex AI capacity
+  console.log(`[Batch Assess] Starting concurrent background pipeline for ${documentIds.length} docs (concurrency = 4)...`);
   (async () => {
-    for (const docId of documentIds) {
-      try {
-        console.log(`[Batch Assess] Launching scoringPipeline for doc ${docId}...`);
-        await scoringPipeline(docId, sessionId);
-      } catch (e) {
-        console.error(`[Batch Assess] Error processing doc ${docId}:`, e);
+    const CONCURRENCY = 4;
+    let idx = 0;
+    async function worker() {
+      while (idx < documentIds.length) {
+        const currentDocId = documentIds[idx++];
+        try {
+          console.log(`[Batch Assess] Launching scoringPipeline for doc ${currentDocId}...`);
+          await scoringPipeline(currentDocId, sessionId);
+        } catch (e) {
+          console.error(`[Batch Assess] Error processing doc ${currentDocId}:`, e);
+        }
       }
     }
+    const workers = Array.from({ length: Math.min(CONCURRENCY, documentIds.length) }, () => worker());
+    await Promise.all(workers);
     console.log(`[Batch Assess] Finished background pipeline for all docs.`);
   })().catch(e => console.error("[Batch Assess] Unhandled background error:", e));
 

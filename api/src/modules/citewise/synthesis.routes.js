@@ -190,6 +190,16 @@ async function asyncSynthesisJob({
 
         const meta = citationByDocId.get(String(doc.id));
         const emphasizeSet = new Set((emphasizedExcerpts || []).map(Number));
+        const cleanCustomHighlights = (customExcerpts || []).map((t) => String(t).trim()).filter(Boolean);
+
+        let docContextText = fullText;
+        if (cleanCustomHighlights.length > 0) {
+          const highlightsBanner = cleanCustomHighlights
+            .map((h, i) => `[USER HIGHLIGHT ${i + 1} - CRITICAL EMPHASIS]: "${h}"`)
+            .join('\n');
+          docContextText = `*** HIGH PRIORITY USER HIGHLIGHTS FOR THIS SOURCE (MUST BE INTEGRATED & CITED) ***\n${highlightsBanner}\n\n*** SOURCE BODY TEXT ***\n${fullText}`;
+        }
+
         const dbExcerpts = (insight?.evidenceExcerpts ?? []).map((e, idx) => ({
           quoteText:     e.quote_text,
           pageNumber:    e.page_number,
@@ -199,8 +209,8 @@ async function asyncSynthesisJob({
           displayOrder:  e.display_order,
           emphasized:    emphasizeSet.has(idx),
         }));
-        const userCustomHighlights = (customExcerpts || []).map((t) => ({
-          quoteText: String(t).trim(),
+        const userCustomHighlights = cleanCustomHighlights.map((t) => ({
+          quoteText: t,
           pageNumber: null,
           relevanceLevel: 'High',
           criterion: 'User Emphasis',
@@ -208,7 +218,7 @@ async function asyncSynthesisJob({
           displayOrder: 0,
           emphasized: true,
           isCustom: true,
-        })).filter((c) => c.quoteText);
+        }));
         const excerpts = [...userCustomHighlights, ...dbExcerpts];
         const userEmphasizedExcerpts = excerpts.filter((e) => e.emphasized);
         const scores = {
@@ -222,7 +232,8 @@ async function asyncSynthesisJob({
         return {
           documentId:          String(doc.id),
           filename:            doc.file_name ?? '',
-          extracted_text:      fullText,
+          text:                docContextText,
+          extracted_text:      docContextText,
           sourceTier:          TIER_META[tier].payloadValue,
           sourceUseGuidance:   TIER_META[tier].guidance,
           overallScore:        insight?.overall_score         ?? null,
@@ -236,18 +247,46 @@ async function asyncSynthesisJob({
           scores,
           evidenceExcerpts:    excerpts,
           emphasizedExcerpts:  userEmphasizedExcerpts,
-          customHighlights:    (customExcerpts || []).map((t) => String(t).trim()).filter(Boolean),
+          customHighlights:    cleanCustomHighlights,
+          custom_highlights:   cleanCustomHighlights,
+          customExcerpts:      cleanCustomHighlights,
           metadata:            meta,
           citation:            meta.citation,
         };
       })
     );
 
+    // Build synthesized instructions with explicit overriding user guidance
+    const allCustomHighlights = [];
+    usableDocs.forEach(({ doc, customExcerpts }) => {
+      const meta = citationByDocId.get(String(doc.id));
+      const cite = meta?.citation?.inTextParenthetical || doc.file_name;
+      (customExcerpts || []).forEach((h) => {
+        const text = String(h).trim();
+        if (text) allCustomHighlights.push(`From ${cite} (${doc.file_name}): "${text}"`);
+      });
+    });
+
+    let combinedInstructions = baseInstructions;
+    if (userInstructions && userInstructions.trim()) {
+      combinedInstructions =
+        `OVERRIDING USER INSTRUCTION (HIGHEST PRIORITY - MUST FOLLOW EXACTLY):\n` +
+        `"${userInstructions.trim()}"\n` +
+        `Note: If this user instruction specifies section lengths (such as 1 sentence only per section), sentence counts, formatting, or focus, you MUST follow this instruction over any default paragraph length rules.\n\n` +
+        combinedInstructions;
+    }
+    if (allCustomHighlights.length > 0) {
+      combinedInstructions =
+        `MANDATORY USER CUSTOM HIGHLIGHTS (CRITICAL):\n` +
+        `The user specifically highlighted the following excerpts from their source PDFs. You MUST integrate the core concepts, theories, and cited authors/findings from these excerpts into the synthesis narrative and cite the corresponding source:\n` +
+        allCustomHighlights.map((h) => `- ${h}`).join('\n') +
+        `\n\n` +
+        combinedInstructions;
+    }
+
     const payload = {
       sessionId,
-      synthesisInstructions: userInstructions
-        ? `${baseInstructions} ADDITIONAL USER INSTRUCTIONS (must be followed): ${userInstructions}`
-        : baseInstructions,
+      synthesisInstructions: combinedInstructions,
       userInstructions: userInstructions || null,
       baseline: {
         title:     baseline?.project_title ?? '',
@@ -366,11 +405,15 @@ async function asyncSynthesisJob({
 
     if (!success || (validationStatus && validationStatus.toUpperCase() !== 'PASSED')) {
       console.warn(`[synthesis-async] Synthesis validation not passed: status="${validationStatus}"`);
+      let rawErr = message || n8nData.errorMessage || 'Synthesis validation failed';
+      if (/error in workflow/i.test(rawErr) || /HTTP 500/i.test(rawErr) || typeof rawErr === 'object') {
+        rawErr = 'The AI synthesis engine encountered a temporary processing hiccup. Please try generating again.';
+      }
       await supabase.from('generated_draft').update({
         validation_status: validationStatus || 'FAILED',
         validation_flags_json: JSON.stringify(validationFlags),
         metrics_json: JSON.stringify({
-          error: message || n8nData.errorMessage || 'Synthesis validation failed',
+          error: rawErr,
           retryRecommended: n8nData.retryRecommended ?? false,
         }),
       }).eq('session_id', sessionId);
@@ -397,9 +440,13 @@ async function asyncSynthesisJob({
     console.info(`[synthesis-async] ✅ Draft synthesis completed and persisted for session ${sessionId}.`);
   } catch (err) {
     console.error(`[synthesis-async] Fatal error during synthesis for session ${sessionId}:`, err.message);
+    let userFacingError = err.message || 'Synthesis encountered an unexpected error.';
+    if (/error in workflow/i.test(err.message) || /HTTP 500/i.test(err.message) || /non-JSON response/i.test(err.message) || /fetch failed/i.test(err.message)) {
+      userFacingError = 'The AI synthesis engine encountered a temporary processing hiccup. Please try generating again.';
+    }
     await supabase.from('generated_draft').update({
       validation_status: 'FAILED',
-      metrics_json: JSON.stringify({ error: err.message }),
+      metrics_json: JSON.stringify({ error: userFacingError }),
     }).eq('session_id', sessionId);
   }
 }
@@ -456,6 +503,20 @@ router.post('/generate', async (req, res) => {
   const docsWithText = (approvedDocs ?? []).filter(d => d.parsed_text?.trim() || d.r2_text_key);
   if (!docsWithText.length) {
     return res.status(400).json({ success: false, message: 'Approve at least one document before generating an introduction.' });
+  }
+
+  // Check for in-flight generation to prevent duplicate concurrent runs
+  const { data: existingDraft } = await supabase
+    .from('generated_draft')
+    .select('validation_status')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  if (existingDraft?.validation_status === 'GENERATING') {
+    return res.status(409).json({
+      success: false,
+      message: 'Synthesis is already in progress for this session. Please wait a moment.'
+    });
   }
 
   // Reset or create placeholder draft row in GENERATING status
