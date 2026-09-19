@@ -22,6 +22,36 @@ function parseScoreNode(node) {
   return isNaN(n) ? null : n;
 }
 
+// The scoring workflow decides a metric lacks verified evidence and says so in
+// validationFlags ("Methodology capped at 74 because ..."), but the payload it
+// sends still carries the uncapped number. Nothing downstream reconciled the
+// two, so a paper the rubric had judged insufficient still arrived as
+// "Recommended". Treat the declared cap as binding here, whichever workflow
+// version produced the response.
+const CAP_FLAG_RE = /^\s*(.+?)\s+capped\s+at\s+(\d{1,3})\b/i;
+
+function capKeyFor(label) {
+  const k = String(label).toLowerCase();
+  if (k.includes('gap')) return 'gapAlignment';
+  if (k.includes('method')) return 'methodology';
+  if (k.includes('theor') || k.includes('framework')) return 'theoretical';
+  if (k.includes('citation')) return 'citation';
+  return null;
+}
+
+function parseDeclaredCaps(validationFlags) {
+  const caps = {};
+  for (const flag of validationFlags ?? []) {
+    const m = CAP_FLAG_RE.exec(String(flag ?? ''));
+    if (!m) continue;
+    const key = capKeyFor(m[1]);
+    if (!key) continue;
+    const value = clamp(Number(m[2]));
+    caps[key] = caps[key] === undefined ? value : Math.min(caps[key], value);
+  }
+  return caps;
+}
+
 // Try field names at root, then inside common containers
 function readOptionalScore(root, ...names) {
   for (const name of names) {
@@ -166,10 +196,10 @@ export function parseAIResponse(rawJson, documentId, customWeights = null) {
 
   const root = unwrapPayload(parsed);
 
-  const gapAlignment = clamp(normalizeScore(readScore(root, 'gapAlignment','gapAlignmentScore','gap_alignment_score')));
-  const methodology  = clamp(normalizeScore(readScore(root, 'methodology','methodologyScore','methodology_score')));
-  const theoretical  = clamp(normalizeScore(readScore(root, 'theory','theoretical','theoreticalScore','theoretical_score','theoryScore')));
-  const citation     = clamp(normalizeScore(readScore(root, 'citationQuality','citationScore','citation_quality','citation_score')));
+  let gapAlignment = clamp(normalizeScore(readScore(root, 'gapAlignment','gapAlignmentScore','gap_alignment_score')));
+  let methodology  = clamp(normalizeScore(readScore(root, 'methodology','methodologyScore','methodology_score')));
+  let theoretical  = clamp(normalizeScore(readScore(root, 'theory','theoretical','theoreticalScore','theoretical_score','theoryScore')));
+  let citation     = clamp(normalizeScore(readScore(root, 'citationQuality','citationScore','citation_quality','citation_score')));
 
 
   const excerpts = parseEvidenceExcerpts(root);
@@ -178,8 +208,23 @@ export function parseAIResponse(rawJson, documentId, customWeights = null) {
   const weaknessFlags  = parseStringArray(root, 'weaknessFlags','weakness_flags');
   const validationFlags= parseStringArray(root, 'validationFlags','validation_flags');
 
+  const declaredCaps = parseDeclaredCaps(validationFlags);
+  const capped = { gapAlignment, methodology, theoretical, citation };
+  let capApplied = false;
+  for (const [key, cap] of Object.entries(declaredCaps)) {
+    if (capped[key] > cap) {
+      console.log(`[Scoring] doc ${documentId}: ${key} ${capped[key]} -> ${cap} (declared cap)`);
+      capped[key] = cap;
+      capApplied = true;
+    }
+  }
+  ({ gapAlignment, methodology, theoretical, citation } = capped);
+
   let overall = readOptionalScore(root, 'overall','overallScore','overall_score');
-  
+
+  // A cap invalidates whatever overall the workflow sent with it.
+  if (capApplied && !customWeights) overall = null;
+
   if (customWeights) {
     console.log(`[Scoring] Recalculating overall score for doc ${documentId} using custom weights:`, customWeights);
     overall = computeOverallScore(gapAlignment, methodology, theoretical, citation, customWeights);

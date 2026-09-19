@@ -5,6 +5,7 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import supabase from '../../common/config/supabaseClient.js';
 import requireAuth from '../../common/middlewares/auth.middleware.js';
+import { deriveSessionId } from './helpers/sessionId.js';
 
 const router = express.Router();
 
@@ -132,16 +133,30 @@ router.post('/import', async (req, res) => {
       });
     }
 
-    const sessionId = uuidv4();
+    // Deriving the session from the account + workspace instead of minting a
+    // fresh uuid means importing again — on another machine, or after clearing
+    // site data — lands on the same session, so papers already uploaded against
+    // it are still there. A random id per import stranded them.
+    const sessionId = deriveSessionId(req.user?.id, workspaceId.trim()) || uuidv4();
 
-    const { error: insertError } = await supabase.from('research_baselines').insert({
+    const baseline = {
       session_id:             sessionId,
       catalyst_workspace_id:  workspaceId.trim(),
       project_title:          finalTitle,
       rationale:              finalRationale,
       research_gaps:          payload.gaps,
       source_system:          'CATalyst',
-    });
+    };
+
+    const { data: existingBaseline } = await supabase
+      .from('research_baselines')
+      .select('id')
+      .eq('session_id', sessionId)
+      .maybeSingle();
+
+    const { error: insertError } = existingBaseline
+      ? await supabase.from('research_baselines').update(baseline).eq('session_id', sessionId)
+      : await supabase.from('research_baselines').insert(baseline);
 
     if (insertError) throw new Error(`Failed to persist baseline: ${insertError.message}`);
 
