@@ -31,9 +31,12 @@ const AFFILIATION_WORDS = new Set([
 ]);
 
 // Lowercase particles that belong to a surname rather than being a given name.
+// Filipino compound surnames (Dela Cruz, Delos Santos, San Juan) are the common
+// case for this app's users, and are capitalised, so the lookup is lowercased.
 const NAME_PARTICLES = new Set([
   'van', 'von', 'de', 'del', 'della', 'di', 'da', 'du', 'la', 'le', 'den', 'der',
   'ten', 'ter', 'bin', 'ibn', 'al', 'dos', 'das', 'do', 'st', 'mc', 'mac',
+  'dela', 'delas', 'delos', 'san', 'santa', 'santo', 'abu', 'bint', 'ben',
 ]);
 
 // Function words that betray a prose sentence masquerading as an author line.

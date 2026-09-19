@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
+const FOCUSABLE =
+  'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
  * Shown when a group has 2+ suggested topics.
  * User picks one topic; we then import it into CiteWise.
  */
 export default function TopicSelectModal({ topics, gaps, groupName, onSelect, onClose }) {
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(topics?.length === 1 ? topics[0] : null);
   const [importing, setImporting] = useState(false);
+  const modalRef = useRef(null);
 
   async function handleConfirm() {
     if (!selected) return;
@@ -16,9 +20,47 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
     setImporting(false);
   }
 
+  // Tabbing used to walk the page behind the dialog — "Enter Group", "CiteWise
+  // →" and the rest stayed reachable while the modal was open. Keep focus in
+  // here and let Escape close it.
+  useEffect(() => {
+    const node = modalRef.current;
+    node?.querySelector(FOCUSABLE)?.focus();
+
+    function onKeyDown(e) {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !node) return;
+
+      const items = [...node.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null);
+      if (!items.length) return;
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   return createPortal(
     <div style={styles.overlay}>
-      <div style={styles.modal}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Select a research topic"
+        style={styles.modal}
+      >
 
         {/* Header */}
         <div style={styles.header}>
@@ -32,13 +74,26 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
 
         {/* Topic cards */}
         <div style={styles.body}>
-          <div style={styles.topicList}>
+          <div style={styles.topicList} role="radiogroup" aria-label="Suggested topics">
             {topics.map((topic, i) => {
               const isSelected = selected?.id === topic.id;
               return (
                 <div
                   key={topic.id}
+                  // A plain div with onClick could not be reached by keyboard at
+                  // all, which left the whole CiteWise flow unusable without a
+                  // mouse, since the confirm button stays disabled until a topic
+                  // is chosen.
+                  role="radio"
+                  aria-checked={isSelected}
+                  tabIndex={0}
                   onClick={() => setSelected(topic)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelected(topic);
+                    }
+                  }}
                   style={{
                     ...styles.topicCard,
                     borderColor: isSelected ? "#D98A21" : "#3a3a55",

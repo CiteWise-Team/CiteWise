@@ -1,6 +1,15 @@
 import crypto from "crypto";
 import { addToGroupMembersRepo,createGroupRepo, deleteGroupRepo, updateGroupRepo,
-   getAllDataBy, joinGroupRepo, getDataByField,getPendingReq,getAllDataByField, changeRequestStatus} from "./group.repository.js";
+   getAllDataBy, joinGroupRepo, getDataByField,getPendingReq,getAllDataByField, changeRequestStatus, getGroupById} from "./group.repository.js";
+
+/** The group row, or null when it does not exist. Used for ownership checks. */
+export async function findGroupService(id) {
+  try {
+    return await getGroupById(id);
+  } catch {
+    return null;
+  }
+}
 
 export async function createGroupService({ name, description, ownerId, color }) {
   try {

@@ -6,3 +6,25 @@ body {
   min-height: 100vh;
   border-right: 1px solid #ddd;
 }
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-loader,
+.spinning {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  transform-origin: center center;
+}
+
+.spinner-border {
+  animation: spin 1s linear infinite !important;
+  transform-origin: center center;
+}
+

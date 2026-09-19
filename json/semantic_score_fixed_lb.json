@@ -1,0 +1,629 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "citewise-evaluator",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        80,
+        240
+      ],
+      "id": "d2e62137-e64f-4d65-8cf3-409929549906",
+      "name": "Webhook",
+      "webhookId": "e9fe0c72-f615-4063-af73-e337125206bf"
+    },
+    {
+      "parameters": {
+        "content": "## CiteWise Strict Semantic Scoring Pipeline\nAI analyzes. Backend validates, scores, and applies deterministic threshold rules.\n",
+        "height": 664,
+        "width": 2028
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "809bc551-1fa5-451f-8eff-6a21ec59686d",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "jsCode": "const incoming = $input.first().json;\nconst body = incoming.body ?? incoming;\n\nfunction flatten(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value.trim();\n\n  if (Array.isArray(value)) {\n    return value\n      .map((entry, index) => {\n        if (typeof entry === 'string') return `${index + 1}. ${entry}`;\n        if (entry == null) return '';\n\n        const parts = [\n          entry.gap,\n          entry.research_gap,\n          entry.researchGap,\n          entry.description,\n          entry.statement,\n          entry.text,\n          entry.title\n        ].filter(Boolean);\n\n        return parts.length ? `${index + 1}. ${parts.join(' - ')}` : JSON.stringify(entry);\n      })\n      .filter(Boolean)\n      .join('\\n');\n  }\n\n  if (typeof value === 'object') {\n    const parts = [\n      value.title,\n      value.rationale,\n      value.gap,\n      value.gaps,\n      value.researchGap,\n      value.research_gap,\n      value.description,\n      value.statement,\n      value.text\n    ].filter(Boolean);\n\n    return parts.length ? parts.map(flatten).join('\\n') : JSON.stringify(value);\n  }\n\n  return String(value).trim();\n}\n\nconst baselineSource =\n  body.baseline ??\n  body.researchBaseline ??\n  body.semanticBaseline ??\n  body.catalystBaseline ??\n  body.catalyst_baseline ??\n  {};\n\nconst title = flatten(\n  baselineSource.title ??\n  baselineSource.researchTitle ??\n  baselineSource.research_title ??\n  body.title ??\n  body.researchTitle\n);\n\nconst rationale = flatten(\n  baselineSource.rationale ??\n  baselineSource.researchRationale ??\n  baselineSource.research_rationale ??\n  body.rationale\n);\n\nconst gaps = flatten(\n  baselineSource.gaps ??\n  baselineSource.gap ??\n  baselineSource.researchGaps ??\n  baselineSource.research_gaps ??\n  baselineSource.researchGap ??\n  baselineSource.research_gap ??\n  body.gaps ??\n  body.gap\n);\n\nconst rawText = String(\n  body.extracted_text ??\n  body.extractedText ??\n  body.text ??\n  body.documentText ??\n  body.document_text ??\n  body.body?.extracted_text ??\n  body.body?.text ??\n  ''\n).trim();\n\nif (!rawText) {\n  throw new Error('No extracted text found. Expected extracted_text, extractedText, text, documentText, or document_text.');\n}\n\nif (!title && !rationale && !gaps) {\n  throw new Error('No research baseline found. Expected body.baseline with title/rationale/gaps or equivalent fields.');\n}\n\nreturn [{\n  json: {\n    baseline: {\n      title,\n      rationale,\n      gaps\n    },\n    raw_extracted_text: rawText,\n    meta: {\n      documentId: body.documentId ?? body.document_id ?? body.id ?? null,\n      filename: body.filename ?? body.fileName ?? body.file_name ?? null,\n      source: 'citewise-n8n-semantic-evaluator'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        240
+      ],
+      "id": "30b9c39d-61b1-4058-812c-2a149d033d03",
+      "name": "Build Clean Evaluation Packet"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nconst baseline = item.baseline ?? {};\nconst rawText = String(item.raw_extracted_text ?? '').trim();\n\nfunction normalize(s) {\n  return String(s ?? '')\n    .toLowerCase()\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst stopwords = new Set([\n  'about', 'above', 'after', 'again', 'against', 'among', 'based', 'because',\n  'before', 'being', 'below', 'between', 'could', 'during', 'early', 'field',\n  'first', 'found', 'from', 'have', 'having', 'into', 'more', 'most', 'other',\n  'paper', 'research', 'result', 'results', 'should', 'study', 'studies',\n  'system', 'than', 'their', 'there', 'these', 'this', 'those', 'through',\n  'using', 'where', 'which', 'while', 'within', 'with', 'would'\n]);\n\nconst baselineText = [baseline.title, baseline.rationale, baseline.gaps]\n  .filter(Boolean)\n  .join(' ');\n\nconst keywords = [...new Set(\n  normalize(baselineText)\n    .split(/\\s+/)\n    .filter(w => w.length >= 5 && !stopwords.has(w))\n)].slice(0, 80);\n\nfunction splitToCandidateChunks(text) {\n  let chunks = text\n    .split(/\\n\\s*\\n+/)\n    .map(p => p.trim())\n    .filter(p => p.length >= 120);\n\n  // PDF extraction sometimes has weak paragraph breaks. Fall back to sliding chunks.\n  if (chunks.length < 8) {\n    chunks = [];\n    const size = 1400;\n    const overlap = 180;\n    for (let i = 0; i < text.length; i += (size - overlap)) {\n      const part = text.slice(i, i + size).trim();\n      if (part.length >= 120) chunks.push(part);\n    }\n  }\n\n  return chunks;\n}\n\nconst candidates = splitToCandidateChunks(rawText);\n\nfunction chunkScore(chunk, index) {\n  const lower = normalize(chunk);\n  const keywordHits = keywords.filter(k => lower.includes(k)).length;\n\n  const academicSignal =\n    /\\b(abstract|introduction|methodology|method|framework|model|experiment|evaluation|findings|results|discussion|conclusion)\\b/i.test(chunk)\n      ? 2\n      : 0;\n\n  const citationSignal =\n    /\\b(doi|references|journal|conference|proceedings|et al\\.|volume|issue)\\b/i.test(chunk)\n      ? 1\n      : 0;\n\n  // Keep a little preference for early chunks because abstracts/intros are usually there.\n  const earlySignal = index < 8 ? 1 : 0;\n\n  return keywordHits * 5 + academicSignal + citationSignal + earlySignal;\n}\n\nconst ranked = candidates\n  .map((chunk, index) => ({\n    chunk,\n    index,\n    score: chunkScore(chunk, index)\n  }))\n  .sort((a, b) => b.score - a.score || a.index - b.index);\n\n// Select top-scoring chunks, but preserve original document order for readability.\nlet selected = ranked\n  .slice(0, 14)\n  .sort((a, b) => a.index - b.index);\n\nif (!selected.length) {\n  selected = candidates.slice(0, 8).map((chunk, index) => ({ chunk, index, score: 0 }));\n}\n\nlet finalText = selected\n  .map((x, i) => `[CHUNK ${i + 1} | original_order=${x.index + 1} | relevance_hint=${x.score}]\\n${x.chunk}`)\n  .join('\\n\\n---CHUNK BREAK---\\n\\n');\n\n// Keep request size manageable for <=15s scoring.\nconst MAX_CHARS = 30000;\nif (finalText.length > MAX_CHARS) {\n  finalText = finalText.slice(0, MAX_CHARS);\n}\n\nreturn [{\n  json: {\n    baseline,\n    extracted_text: finalText,\n    raw_extracted_text: rawText,\n    meta: item.meta ?? {},\n    chunkStats: {\n      rawCharacters: rawText.length,\n      candidateChunks: candidates.length,\n      selectedChunks: selected.length,\n      selectedCharacters: finalText.length,\n      keywordCount: keywords.length\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        240
+      ],
+      "id": "cca8df19-ed44-47c1-9254-6687cc4cd51f",
+      "name": "Select Relevant Text Chunks"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nlet raw =\n  item.output ??\n  item.text ??\n  item.response ??\n  item.message?.content ??\n  item.content;\n\nif (raw == null) {\n  throw new Error('No AI Agent text found. Keys on item: ' + Object.keys(item).join(', '));\n}\n\nraw = String(raw)\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\n// If the model accidentally includes text before/after JSON, recover the JSON object.\nconst firstBrace = raw.indexOf('{');\nconst lastBrace = raw.lastIndexOf('}');\n\nif (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {\n  throw new Error('AI Agent did not return a JSON object. Raw output: ' + raw.slice(0, 500));\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));\n} catch (error) {\n  throw new Error('AI Agent returned invalid JSON. Parse error: ' + error.message + '. Raw output: ' + raw.slice(0, 500));\n}\n\nconst validationFlags = [];\n\nfunction clampScore(value, fieldName) {\n  const n = Number(value);\n  if (!Number.isFinite(n)) {\n    validationFlags.push(`${fieldName} missing or invalid; defaulted to 0`);\n    return 0;\n  }\n\n  const rounded = Math.round(n);\n  if (rounded < 0 || rounded > 100) {\n    validationFlags.push(`${fieldName} was outside 0-100 and was clamped`);\n  }\n\n  return Math.max(0, Math.min(100, rounded));\n}\n\nfunction cleanStringArray(value, fieldName, maxItems = 8) {\n  if (!Array.isArray(value)) {\n    validationFlags.push(`${fieldName} missing or invalid; defaulted to []`);\n    return [];\n  }\n\n  return value\n    .map(v => String(v ?? '').trim())\n    .filter(Boolean)\n    .slice(0, maxItems);\n}\n\nconst allowedConfidence = ['High', 'Medium', 'Low'];\nlet confidenceLevel = String(parsed.confidenceLevel ?? '').trim();\nif (!allowedConfidence.includes(confidenceLevel)) {\n  validationFlags.push('confidenceLevel missing or invalid; defaulted to Low');\n  confidenceLevel = 'Low';\n}\n\nconst allowedCriteria = ['Gap Alignment', 'Methodology', 'Theory', 'Citation Quality'];\nconst allowedRelevance = ['High', 'Medium', 'Low'];\nconst allowedEvidenceTypes = ['supporting', 'weakness', 'mismatch'];\n\nconst evidence = Array.isArray(parsed.evidenceExcerpts)\n  ? parsed.evidenceExcerpts\n      .map((e, index) => {\n        const criterion = allowedCriteria.includes(String(e.criterion))\n          ? String(e.criterion)\n          : 'Gap Alignment';\n\n        if (!allowedCriteria.includes(String(e.criterion))) {\n          validationFlags.push(`evidenceExcerpts[${index}].criterion invalid; defaulted to Gap Alignment`);\n        }\n\n        const relevanceLevel = allowedRelevance.includes(String(e.relevanceLevel))\n          ? String(e.relevanceLevel)\n          : 'Low';\n\n        if (!allowedRelevance.includes(String(e.relevanceLevel))) {\n          validationFlags.push(`evidenceExcerpts[${index}].relevanceLevel invalid; defaulted to Low`);\n        }\n\n        const evidenceType = allowedEvidenceTypes.includes(String(e.evidenceType))\n          ? String(e.evidenceType)\n          : 'supporting';\n\n        if (!allowedEvidenceTypes.includes(String(e.evidenceType))) {\n          validationFlags.push(`evidenceExcerpts[${index}].evidenceType invalid; defaulted to supporting`);\n        }\n\n        return {\n          criterion,\n          quoteText: String(e.quoteText ?? '').trim(),\n          pageNumber: Number.isFinite(Number(e.pageNumber)) ? Number(e.pageNumber) : 1,\n          relevanceLevel,\n          evidenceType\n        };\n      })\n      .filter(e => e.quoteText.length > 0)\n      .slice(0, 5)\n  : [];\n\nif (!Array.isArray(parsed.evidenceExcerpts)) {\n  validationFlags.push('evidenceExcerpts missing or invalid; defaulted to []');\n}\n\nreturn [{\n  json: {\n    gapAlignmentScore: clampScore(parsed.gapAlignmentScore, 'gapAlignmentScore'),\n    methodologyScore: clampScore(parsed.methodologyScore, 'methodologyScore'),\n    theoreticalScore: clampScore(parsed.theoreticalScore, 'theoreticalScore'),\n    citationScore: clampScore(parsed.citationScore, 'citationScore'),\n    confidenceLevel,\n    mismatchFlags: cleanStringArray(parsed.mismatchFlags, 'mismatchFlags'),\n    weaknessFlags: cleanStringArray(parsed.weaknessFlags, 'weaknessFlags'),\n    evidenceExcerpts: evidence,\n    validationFlags,\n    rawAiResponse: raw.slice(firstBrace, lastBrace + 1)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        240
+      ],
+      "id": "5ee8258e-5221-4fc2-801f-011e78c6f6a9",
+      "name": "Parse and Validate AI JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ai = $input.first().json;\n\n// In n8n Code nodes, this fetches data from a previous node by name.\n// If your n8n version complains, replace .first().json with .item.json.\nconst source = $('Select Relevant Text Chunks').first().json;\n\nconst rawText = String(source.raw_extracted_text ?? source.extracted_text ?? '');\nconst baseline = source.baseline ?? {};\nconst meta = source.meta ?? {};\n\nconst WEIGHTS = {\n  gap: 0.40,\n  methodology: 0.25,\n  theory: 0.20,\n  citation: 0.15\n};\n\nconst THRESHOLDS = {\n  recommendedOverall: 80,\n  recommendedGapMinimum: 75,\n  needsReviewOverall: 60,\n  lowGapMaximum: 40\n};\n\nfunction clamp(value) {\n  const n = Number(value);\n  if (!Number.isFinite(n)) return 0;\n  return Math.max(0, Math.min(100, Math.round(n)));\n}\n\nfunction normalize(s) {\n  return String(s ?? '')\n    .toLowerCase()\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction looseContains(text, quote) {\n  const q = normalize(quote);\n  if (q.length < 20) return false;\n  return normalize(text).includes(q);\n}\n\nfunction uniqStrings(values, maxItems = 12) {\n  return [...new Set(\n    (Array.isArray(values) ? values : [])\n      .map(v => String(v ?? '').trim())\n      .filter(Boolean)\n  )].slice(0, maxItems);\n}\n\nconst stopwords = new Set([\n  'about', 'above', 'after', 'again', 'against', 'among', 'based', 'because',\n  'before', 'being', 'below', 'between', 'could', 'during', 'early', 'field',\n  'first', 'found', 'from', 'have', 'having', 'into', 'more', 'most', 'other',\n  'paper', 'research', 'result', 'results', 'should', 'study', 'studies',\n  'system', 'than', 'their', 'there', 'these', 'this', 'those', 'through',\n  'using', 'where', 'which', 'while', 'within', 'with', 'would'\n]);\n\nconst baselineText = [\n  baseline.title,\n  baseline.rationale,\n  baseline.gaps\n].filter(Boolean).join(' ');\n\nconst baselineKeywords = [...new Set(\n  normalize(baselineText)\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .split(/\\s+/)\n    .filter(w => w.length >= 5 && !stopwords.has(w))\n)].slice(0, 80);\n\nfunction keywordHits(text) {\n  const lower = normalize(text);\n  return baselineKeywords.filter(k => lower.includes(k)).length;\n}\n\nconst validationFlags = uniqStrings(ai.validationFlags ?? [], 20);\n\nconst originalEvidenceCount = Array.isArray(ai.evidenceExcerpts) ? ai.evidenceExcerpts.length : 0;\n\nconst verifiedEvidence = (Array.isArray(ai.evidenceExcerpts) ? ai.evidenceExcerpts : [])\n  .map(e => ({\n    criterion: ['Gap Alignment', 'Methodology', 'Theory', 'Citation Quality'].includes(String(e.criterion))\n      ? String(e.criterion)\n      : 'Gap Alignment',\n    quoteText: String(e.quoteText ?? '').trim(),\n    pageNumber: Number.isFinite(Number(e.pageNumber)) ? Number(e.pageNumber) : 1,\n    relevanceLevel: ['High', 'Medium', 'Low'].includes(String(e.relevanceLevel))\n      ? String(e.relevanceLevel)\n      : 'Low',\n    evidenceType: ['supporting', 'weakness', 'mismatch'].includes(String(e.evidenceType))\n      ? String(e.evidenceType)\n      : 'supporting'\n  }))\n  .filter(e => looseContains(rawText, e.quoteText))\n  .slice(0, 5);\n\nif (verifiedEvidence.length < originalEvidenceCount) {\n  validationFlags.push('Some AI evidence excerpts were removed because they were not found in the extracted PDF text');\n}\n\nlet gap = clamp(ai.gapAlignmentScore);\nlet methodology = clamp(ai.methodologyScore);\nlet theoretical = clamp(ai.theoreticalScore);\nlet citation = clamp(ai.citationScore);\n\nlet mismatchFlags = uniqStrings(ai.mismatchFlags ?? [], 12);\nlet weaknessFlags = uniqStrings(ai.weaknessFlags ?? [], 12);\n\nconst highEvidenceCount = verifiedEvidence.filter(e => e.relevanceLevel === 'High').length;\nconst mediumOrHighEvidenceCount = verifiedEvidence.filter(e => e.relevanceLevel === 'High' || e.relevanceLevel === 'Medium').length;\nconst evidenceText = verifiedEvidence.map(e => e.quoteText).join(' ');\nconst evidenceKeywordHits = keywordHits(evidenceText);\n\nconst hasGapEvidence = verifiedEvidence.some(e =>\n  e.criterion === 'Gap Alignment' &&\n  (e.relevanceLevel === 'High' || e.relevanceLevel === 'Medium') &&\n  e.evidenceType !== 'mismatch'\n);\n\nconst hasMethodEvidence = verifiedEvidence.some(e =>\n  e.criterion === 'Methodology' &&\n  e.evidenceType !== 'mismatch'\n);\n\nconst hasTheoryEvidence = verifiedEvidence.some(e =>\n  e.criterion === 'Theory' &&\n  e.evidenceType !== 'mismatch'\n);\n\n// Hard evidence caps.\nif (verifiedEvidence.length === 0) {\n  gap = Math.min(gap, 40);\n  methodology = Math.min(methodology, 45);\n  theoretical = Math.min(theoretical, 45);\n  weaknessFlags.push('No verified evidence excerpts were found in the extracted document text');\n  validationFlags.push('Scores capped because no verified evidence excerpts were found');\n}\n\nif (!hasGapEvidence) {\n  gap = Math.min(gap, 40);\n  weaknessFlags.push('No verified evidence directly supports the research gap alignment');\n  validationFlags.push('Gap score capped because no verified gap-alignment evidence was found');\n}\n\nif (mediumOrHighEvidenceCount === 0) {\n  gap = Math.min(gap, 50);\n  validationFlags.push('Gap score capped because all verified evidence was low relevance');\n}\n\nif (highEvidenceCount === 0) {\n  gap = Math.min(gap, 60);\n  validationFlags.push('Gap score capped because no high-relevance evidence was verified');\n}\n\n// If the evidence does not share meaningful baseline terms, prevent inflated gap scores.\nif (evidenceKeywordHits === 0) {\n  gap = Math.min(gap, 45);\n  validationFlags.push('Gap score capped because verified evidence did not share meaningful baseline terms');\n} else if (evidenceKeywordHits < 2) {\n  gap = Math.min(gap, 60);\n  validationFlags.push('Gap score capped because verified evidence had weak baseline keyword overlap');\n}\n\nif (!hasMethodEvidence) {\n  methodology = Math.min(methodology, 60);\n  weaknessFlags.push('No verified methodology evidence was found');\n}\n\nif (!hasTheoryEvidence) {\n  theoretical = Math.min(theoretical, 60);\n  weaknessFlags.push('No verified theory or framework evidence was found');\n}\n\n// Methods/theory should not outrank a weakly aligned document too much.\nif (gap < 50) {\n  methodology = Math.min(methodology, 60);\n  theoretical = Math.min(theoretical, 60);\n  validationFlags.push('Methodology and theory scores capped because gap alignment is weak');\n}\n\n// Citation score should be based on visible academic signals only.\nconst hasCitationSignals = /\\b(doi|references|journal|conference|proceedings|volume|issue|publisher|issn|isbn|et al\\.|abstract|keywords)\\b/i.test(rawText);\nif (!hasCitationSignals) {\n  citation = Math.min(citation, 55);\n  weaknessFlags.push('Limited visible citation or academic source traceability signals');\n  validationFlags.push('Citation score capped because citation/source quality signals were limited');\n}\n\n// Detect critical mismatch from AI flags and verified mismatch evidence.\nconst mismatchText = [\n  ...mismatchFlags,\n  ...verifiedEvidence\n    .filter(e => e.evidenceType === 'mismatch')\n    .map(e => e.quoteText)\n].join(' ');\n\nconst hasCriticalMismatch = /\\b(critical|unrelated|not related|does not address|no connection|wrong population|different population|different domain|different field|different problem|outside scope)\\b/i.test(mismatchText);\n\nif (hasCriticalMismatch) {\n  gap = Math.min(gap, 45);\n  validationFlags.push('Gap score capped because a critical mismatch was detected');\n}\n\nconst overallScore = Math.round(\n  gap * WEIGHTS.gap +\n  methodology * WEIGHTS.methodology +\n  theoretical * WEIGHTS.theory +\n  citation * WEIGHTS.citation\n);\n\nlet confidenceLevel = ['High', 'Medium', 'Low'].includes(String(ai.confidenceLevel))\n  ? String(ai.confidenceLevel)\n  : 'Low';\n\nfunction downgradeConfidence(current, target) {\n  const rank = { High: 3, Medium: 2, Low: 1 };\n  return rank[target] < rank[current] ? target : current;\n}\n\nif (verifiedEvidence.length === 0 || hasCriticalMismatch) {\n  confidenceLevel = downgradeConfidence(confidenceLevel, 'Low');\n} else if (validationFlags.length >= 3 || highEvidenceCount === 0 || evidenceKeywordHits < 2) {\n  confidenceLevel = downgradeConfidence(confidenceLevel, 'Medium');\n}\n\nlet recommendationStatus;\n\nif (\n  verifiedEvidence.length === 0 ||\n  gap <= THRESHOLDS.lowGapMaximum ||\n  overallScore < THRESHOLDS.needsReviewOverall ||\n  hasCriticalMismatch\n) {\n  recommendationStatus = 'Low Relevance';\n} else if (\n  overallScore >= THRESHOLDS.recommendedOverall &&\n  gap >= THRESHOLDS.recommendedGapMinimum &&\n  confidenceLevel !== 'Low' &&\n  !hasCriticalMismatch\n) {\n  recommendationStatus = 'Recommended';\n} else {\n  recommendationStatus = 'Needs Review';\n}\n\nconst relevanceLevel =\n  recommendationStatus === 'Recommended'\n    ? 'High'\n    : recommendationStatus === 'Needs Review'\n      ? 'Medium'\n      : 'Low';\n\n// Final schema compatible with CiteWise backend expectations.\nreturn [{\n  json: {\n    documentId: meta.documentId ?? null,\n    filename: meta.filename ?? null,\n    scores: {\n      gapAlignment: Math.round(gap),\n      methodology: Math.round(methodology),\n      theory: Math.round(theoretical),\n      citationQuality: Math.round(citation)\n    },\n    gapAlignmentScore: Math.round(gap),\n    methodologyScore: Math.round(methodology),\n    theoreticalScore: Math.round(theoretical),\n    citationScore: Math.round(citation),\n    overallScore,\n    recommendationStatus,\n    confidenceLevel,\n    relevanceLevel,\n    mismatchFlags: uniqStrings(mismatchFlags, 12),\n    weaknessFlags: uniqStrings(weaknessFlags, 12),\n    validationFlags: uniqStrings(validationFlags, 20),\n    evidenceExcerpts: verifiedEvidence.map((e, index) => ({\n      criterion: e.criterion,\n      quoteText: e.quoteText,\n      pageNumber: e.pageNumber,\n      relevanceLevel: e.relevanceLevel,\n      evidenceType: e.evidenceType,\n      displayOrder: index + 1\n    })),\n    rawAiResponse: ai.rawAiResponse ?? null,\n    scoringModel: {\n      weights: WEIGHTS,\n      thresholds: THRESHOLDS,\n      note: 'Provisional configurable demo rules. Replace with teacher-approved rubric/manual thresholds when provided.'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        240
+      ],
+      "id": "8d1fc95f-9f3b-4926-b2ed-52ae127b41e1",
+      "name": "Apply Deterministic Scoring Rules"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1600,
+        240
+      ],
+      "id": "be87c9e9-e08f-4296-89c1-81acebe0fc2a",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { ...$input.all()[0].json, route: Math.floor(Math.random() * 6) } };"
+      },
+      "id": "code-f57f44ef-6310-4474-8b99-04006fb99432",
+      "name": "Randomizer Code - AI Agent - Strict Semantic Scoring",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "value1": "={{ $json.route }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal"
+            },
+            {
+              "operation": "equal",
+              "value2": 1
+            },
+            {
+              "operation": "equal",
+              "value2": 2
+            },
+            {
+              "operation": "equal",
+              "value2": 3
+            },
+            {
+              "operation": "equal",
+              "value2": 4
+            },
+            {
+              "operation": "equal",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "switch-f57f44ef-6310-4474-8b99-04006fb99432",
+      "name": "Load Balancer Switch - AI Agent - Strict Semantic Scoring",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        576,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict academic semantic evaluator.\n\nYou will receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nTask:\nEvaluate whether the uploaded RRL document is actually relevant to the CATalyst Semantic Baseline. Be conservative. Do not reward broad topical similarity. A document about the same general field is NOT automatically gap-aligned.\n\nUse only extracted_text. Do not invent evidence. Do not infer relevance from title keywords alone.\n\nImportant backend boundary:\n- You generate analysis only.\n- Do not assign the final recommendation status.\n- Do not calculate the final overall score.\n- The backend will validate your JSON, verify evidence, calculate the overall score, and apply deterministic threshold rules.\n\nScoring rules, 0-100:\n\nGap Alignment:\n0-20 = unrelated or only shares generic terms.\n21-40 = same broad domain but does not address the baseline gap.\n41-60 = partially related topic, but missing the specific gap, target problem, or context.\n61-75 = addresses a similar problem but differs in population, method, technology, or intended contribution.\n76-89 = strongly addresses the same gap with clear supporting evidence.\n90-100 = directly matches the baseline gap, problem context, and intended contribution with explicit evidence.\n\nMethodological Relevance:\n0-30 = no usable method or unrelated method.\n31-60 = method exists but is not useful for the baseline problem.\n61-80 = method is somewhat transferable.\n81-100 = method is directly applicable to the baseline.\n\nTheoretical Contribution:\n0-30 = no theory/framework/conceptual contribution.\n31-60 = general background only.\n61-80 = useful concepts related to the baseline.\n81-100 = strong theory/framework directly supporting the baseline gap.\n\nCitation Quality:\nScore based on visible credibility signals in the text: DOI, journal/conference/source name, publication year, references, academic structure, and source traceability. Do not use citation quality to inflate semantic relevance.\n\nHard caps you must follow:\n- If there is no exact evidence excerpt that connects the document to baseline.gaps, gapAlignmentScore must be 40 or lower.\n- If the document is only generally related to the field, gapAlignmentScore must be 50 or lower.\n- If the method does not appear in extracted_text, methodologyScore must be 35 or lower.\n- If there is no theoretical/conceptual framework, theoreticalScore must be 45 or lower.\n- If the document appears irrelevant to the baseline, return low semantic scores even if citation quality is high.\n- Scores above 85 require very strong direct evidence.\n\nEvidence rules:\n- Extract 2 to 5 exact quotes from extracted_text when available.\n- Every quote must be copied exactly from extracted_text.\n- Each quote must support one of the four rubric scores or identify a mismatch/weakness.\n- If no relevant quote exists, evidenceExcerpts must be [].\n- pageNumber may be 1 if page data is unavailable.\n- relevanceLevel must be \"High\", \"Medium\", or \"Low\".\n- criterion must be one of: \"Gap Alignment\", \"Methodology\", \"Theory\", \"Citation Quality\".\n- evidenceType must be one of: \"supporting\", \"weakness\", \"mismatch\".\n\nFlag rules:\n- mismatchFlags should identify alignment problems, such as different population, different domain, different method, different technology, or missing research gap connection.\n- weaknessFlags should identify limitations, such as weak method detail, weak theoretical basis, limited citation traceability, or insufficient direct evidence.\n- confidenceLevel must be \"High\", \"Medium\", or \"Low\" based on evidence strength and completeness.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        -256
+      ],
+      "id": "f57f44ef-6310-4474-8b99-04006fb99432_copy0",
+      "name": "AI Agent - Strict Semantic Scoring (Key 1)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        768,
+        -32
+      ],
+      "id": "a1c120aa-c14a-4b40-b72e-2a3bb113afe5_copy0",
+      "name": "Google Gemini Chat Model (Key 1)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "a0DiY39A6LyGC7XZ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict academic semantic evaluator.\n\nYou will receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nTask:\nEvaluate whether the uploaded RRL document is actually relevant to the CATalyst Semantic Baseline. Be conservative. Do not reward broad topical similarity. A document about the same general field is NOT automatically gap-aligned.\n\nUse only extracted_text. Do not invent evidence. Do not infer relevance from title keywords alone.\n\nImportant backend boundary:\n- You generate analysis only.\n- Do not assign the final recommendation status.\n- Do not calculate the final overall score.\n- The backend will validate your JSON, verify evidence, calculate the overall score, and apply deterministic threshold rules.\n\nScoring rules, 0-100:\n\nGap Alignment:\n0-20 = unrelated or only shares generic terms.\n21-40 = same broad domain but does not address the baseline gap.\n41-60 = partially related topic, but missing the specific gap, target problem, or context.\n61-75 = addresses a similar problem but differs in population, method, technology, or intended contribution.\n76-89 = strongly addresses the same gap with clear supporting evidence.\n90-100 = directly matches the baseline gap, problem context, and intended contribution with explicit evidence.\n\nMethodological Relevance:\n0-30 = no usable method or unrelated method.\n31-60 = method exists but is not useful for the baseline problem.\n61-80 = method is somewhat transferable.\n81-100 = method is directly applicable to the baseline.\n\nTheoretical Contribution:\n0-30 = no theory/framework/conceptual contribution.\n31-60 = general background only.\n61-80 = useful concepts related to the baseline.\n81-100 = strong theory/framework directly supporting the baseline gap.\n\nCitation Quality:\nScore based on visible credibility signals in the text: DOI, journal/conference/source name, publication year, references, academic structure, and source traceability. Do not use citation quality to inflate semantic relevance.\n\nHard caps you must follow:\n- If there is no exact evidence excerpt that connects the document to baseline.gaps, gapAlignmentScore must be 40 or lower.\n- If the document is only generally related to the field, gapAlignmentScore must be 50 or lower.\n- If the method does not appear in extracted_text, methodologyScore must be 35 or lower.\n- If there is no theoretical/conceptual framework, theoreticalScore must be 45 or lower.\n- If the document appears irrelevant to the baseline, return low semantic scores even if citation quality is high.\n- Scores above 85 require very strong direct evidence.\n\nEvidence rules:\n- Extract 2 to 5 exact quotes from extracted_text when available.\n- Every quote must be copied exactly from extracted_text.\n- Each quote must support one of the four rubric scores or identify a mismatch/weakness.\n- If no relevant quote exists, evidenceExcerpts must be [].\n- pageNumber may be 1 if page data is unavailable.\n- relevanceLevel must be \"High\", \"Medium\", or \"Low\".\n- criterion must be one of: \"Gap Alignment\", \"Methodology\", \"Theory\", \"Citation Quality\".\n- evidenceType must be one of: \"supporting\", \"weakness\", \"mismatch\".\n\nFlag rules:\n- mismatchFlags should identify alignment problems, such as different population, different domain, different method, different technology, or missing research gap connection.\n- weaknessFlags should identify limitations, such as weak method detail, weak theoretical basis, limited citation traceability, or insufficient direct evidence.\n- confidenceLevel must be \"High\", \"Medium\", or \"Low\" based on evidence strength and completeness.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        -64
+      ],
+      "id": "f57f44ef-6310-4474-8b99-04006fb99432_copy1",
+      "name": "AI Agent - Strict Semantic Scoring (Key 2)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        768,
+        176
+      ],
+      "id": "a1c120aa-c14a-4b40-b72e-2a3bb113afe5_copy1",
+      "name": "Google Gemini Chat Model (Key 2)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "fhDICke3PRIUx9S4",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict academic semantic evaluator.\n\nYou will receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nTask:\nEvaluate whether the uploaded RRL document is actually relevant to the CATalyst Semantic Baseline. Be conservative. Do not reward broad topical similarity. A document about the same general field is NOT automatically gap-aligned.\n\nUse only extracted_text. Do not invent evidence. Do not infer relevance from title keywords alone.\n\nImportant backend boundary:\n- You generate analysis only.\n- Do not assign the final recommendation status.\n- Do not calculate the final overall score.\n- The backend will validate your JSON, verify evidence, calculate the overall score, and apply deterministic threshold rules.\n\nScoring rules, 0-100:\n\nGap Alignment:\n0-20 = unrelated or only shares generic terms.\n21-40 = same broad domain but does not address the baseline gap.\n41-60 = partially related topic, but missing the specific gap, target problem, or context.\n61-75 = addresses a similar problem but differs in population, method, technology, or intended contribution.\n76-89 = strongly addresses the same gap with clear supporting evidence.\n90-100 = directly matches the baseline gap, problem context, and intended contribution with explicit evidence.\n\nMethodological Relevance:\n0-30 = no usable method or unrelated method.\n31-60 = method exists but is not useful for the baseline problem.\n61-80 = method is somewhat transferable.\n81-100 = method is directly applicable to the baseline.\n\nTheoretical Contribution:\n0-30 = no theory/framework/conceptual contribution.\n31-60 = general background only.\n61-80 = useful concepts related to the baseline.\n81-100 = strong theory/framework directly supporting the baseline gap.\n\nCitation Quality:\nScore based on visible credibility signals in the text: DOI, journal/conference/source name, publication year, references, academic structure, and source traceability. Do not use citation quality to inflate semantic relevance.\n\nHard caps you must follow:\n- If there is no exact evidence excerpt that connects the document to baseline.gaps, gapAlignmentScore must be 40 or lower.\n- If the document is only generally related to the field, gapAlignmentScore must be 50 or lower.\n- If the method does not appear in extracted_text, methodologyScore must be 35 or lower.\n- If there is no theoretical/conceptual framework, theoreticalScore must be 45 or lower.\n- If the document appears irrelevant to the baseline, return low semantic scores even if citation quality is high.\n- Scores above 85 require very strong direct evidence.\n\nEvidence rules:\n- Extract 2 to 5 exact quotes from extracted_text when available.\n- Every quote must be copied exactly from extracted_text.\n- Each quote must support one of the four rubric scores or identify a mismatch/weakness.\n- If no relevant quote exists, evidenceExcerpts must be [].\n- pageNumber may be 1 if page data is unavailable.\n- relevanceLevel must be \"High\", \"Medium\", or \"Low\".\n- criterion must be one of: \"Gap Alignment\", \"Methodology\", \"Theory\", \"Citation Quality\".\n- evidenceType must be one of: \"supporting\", \"weakness\", \"mismatch\".\n\nFlag rules:\n- mismatchFlags should identify alignment problems, such as different population, different domain, different method, different technology, or missing research gap connection.\n- weaknessFlags should identify limitations, such as weak method detail, weak theoretical basis, limited citation traceability, or insufficient direct evidence.\n- confidenceLevel must be \"High\", \"Medium\", or \"Low\" based on evidence strength and completeness.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        144
+      ],
+      "id": "f57f44ef-6310-4474-8b99-04006fb99432_copy2",
+      "name": "AI Agent - Strict Semantic Scoring (Key 3)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        768,
+        368
+      ],
+      "id": "a1c120aa-c14a-4b40-b72e-2a3bb113afe5_copy2",
+      "name": "Google Gemini Chat Model (Key 3)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ix2eGijs0DaH8X4r",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict academic semantic evaluator.\n\nYou will receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nTask:\nEvaluate whether the uploaded RRL document is actually relevant to the CATalyst Semantic Baseline. Be conservative. Do not reward broad topical similarity. A document about the same general field is NOT automatically gap-aligned.\n\nUse only extracted_text. Do not invent evidence. Do not infer relevance from title keywords alone.\n\nImportant backend boundary:\n- You generate analysis only.\n- Do not assign the final recommendation status.\n- Do not calculate the final overall score.\n- The backend will validate your JSON, verify evidence, calculate the overall score, and apply deterministic threshold rules.\n\nScoring rules, 0-100:\n\nGap Alignment:\n0-20 = unrelated or only shares generic terms.\n21-40 = same broad domain but does not address the baseline gap.\n41-60 = partially related topic, but missing the specific gap, target problem, or context.\n61-75 = addresses a similar problem but differs in population, method, technology, or intended contribution.\n76-89 = strongly addresses the same gap with clear supporting evidence.\n90-100 = directly matches the baseline gap, problem context, and intended contribution with explicit evidence.\n\nMethodological Relevance:\n0-30 = no usable method or unrelated method.\n31-60 = method exists but is not useful for the baseline problem.\n61-80 = method is somewhat transferable.\n81-100 = method is directly applicable to the baseline.\n\nTheoretical Contribution:\n0-30 = no theory/framework/conceptual contribution.\n31-60 = general background only.\n61-80 = useful concepts related to the baseline.\n81-100 = strong theory/framework directly supporting the baseline gap.\n\nCitation Quality:\nScore based on visible credibility signals in the text: DOI, journal/conference/source name, publication year, references, academic structure, and source traceability. Do not use citation quality to inflate semantic relevance.\n\nHard caps you must follow:\n- If there is no exact evidence excerpt that connects the document to baseline.gaps, gapAlignmentScore must be 40 or lower.\n- If the document is only generally related to the field, gapAlignmentScore must be 50 or lower.\n- If the method does not appear in extracted_text, methodologyScore must be 35 or lower.\n- If there is no theoretical/conceptual framework, theoreticalScore must be 45 or lower.\n- If the document appears irrelevant to the baseline, return low semantic scores even if citation quality is high.\n- Scores above 85 require very strong direct evidence.\n\nEvidence rules:\n- Extract 2 to 5 exact quotes from extracted_text when available.\n- Every quote must be copied exactly from extracted_text.\n- Each quote must support one of the four rubric scores or identify a mismatch/weakness.\n- If no relevant quote exists, evidenceExcerpts must be [].\n- pageNumber may be 1 if page data is unavailable.\n- relevanceLevel must be \"High\", \"Medium\", or \"Low\".\n- criterion must be one of: \"Gap Alignment\", \"Methodology\", \"Theory\", \"Citation Quality\".\n- evidenceType must be one of: \"supporting\", \"weakness\", \"mismatch\".\n\nFlag rules:\n- mismatchFlags should identify alignment problems, such as different population, different domain, different method, different technology, or missing research gap connection.\n- weaknessFlags should identify limitations, such as weak method detail, weak theoretical basis, limited citation traceability, or insufficient direct evidence.\n- confidenceLevel must be \"High\", \"Medium\", or \"Low\" based on evidence strength and completeness.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        352
+      ],
+      "id": "f57f44ef-6310-4474-8b99-04006fb99432_copy3",
+      "name": "AI Agent - Strict Semantic Scoring (Key 4)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        768,
+        576
+      ],
+      "id": "a1c120aa-c14a-4b40-b72e-2a3bb113afe5_copy3",
+      "name": "Google Gemini Chat Model (Key 4)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Up41f396D2EdFyFW",
+          "name": "Google Gemini(PaLM) Api account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict academic semantic evaluator.\n\nYou will receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nTask:\nEvaluate whether the uploaded RRL document is actually relevant to the CATalyst Semantic Baseline. Be conservative. Do not reward broad topical similarity. A document about the same general field is NOT automatically gap-aligned.\n\nUse only extracted_text. Do not invent evidence. Do not infer relevance from title keywords alone.\n\nImportant backend boundary:\n- You generate analysis only.\n- Do not assign the final recommendation status.\n- Do not calculate the final overall score.\n- The backend will validate your JSON, verify evidence, calculate the overall score, and apply deterministic threshold rules.\n\nScoring rules, 0-100:\n\nGap Alignment:\n0-20 = unrelated or only shares generic terms.\n21-40 = same broad domain but does not address the baseline gap.\n41-60 = partially related topic, but missing the specific gap, target problem, or context.\n61-75 = addresses a similar problem but differs in population, method, technology, or intended contribution.\n76-89 = strongly addresses the same gap with clear supporting evidence.\n90-100 = directly matches the baseline gap, problem context, and intended contribution with explicit evidence.\n\nMethodological Relevance:\n0-30 = no usable method or unrelated method.\n31-60 = method exists but is not useful for the baseline problem.\n61-80 = method is somewhat transferable.\n81-100 = method is directly applicable to the baseline.\n\nTheoretical Contribution:\n0-30 = no theory/framework/conceptual contribution.\n31-60 = general background only.\n61-80 = useful concepts related to the baseline.\n81-100 = strong theory/framework directly supporting the baseline gap.\n\nCitation Quality:\nScore based on visible credibility signals in the text: DOI, journal/conference/source name, publication year, references, academic structure, and source traceability. Do not use citation quality to inflate semantic relevance.\n\nHard caps you must follow:\n- If there is no exact evidence excerpt that connects the document to baseline.gaps, gapAlignmentScore must be 40 or lower.\n- If the document is only generally related to the field, gapAlignmentScore must be 50 or lower.\n- If the method does not appear in extracted_text, methodologyScore must be 35 or lower.\n- If there is no theoretical/conceptual framework, theoreticalScore must be 45 or lower.\n- If the document appears irrelevant to the baseline, return low semantic scores even if citation quality is high.\n- Scores above 85 require very strong direct evidence.\n\nEvidence rules:\n- Extract 2 to 5 exact quotes from extracted_text when available.\n- Every quote must be copied exactly from extracted_text.\n- Each quote must support one of the four rubric scores or identify a mismatch/weakness.\n- If no relevant quote exists, evidenceExcerpts must be [].\n- pageNumber may be 1 if page data is unavailable.\n- relevanceLevel must be \"High\", \"Medium\", or \"Low\".\n- criterion must be one of: \"Gap Alignment\", \"Methodology\", \"Theory\", \"Citation Quality\".\n- evidenceType must be one of: \"supporting\", \"weakness\", \"mismatch\".\n\nFlag rules:\n- mismatchFlags should identify alignment problems, such as different population, different domain, different method, different technology, or missing research gap connection.\n- weaknessFlags should identify limitations, such as weak method detail, weak theoretical basis, limited citation traceability, or insufficient direct evidence.\n- confidenceLevel must be \"High\", \"Medium\", or \"Low\" based on evidence strength and completeness.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        544
+      ],
+      "id": "f57f44ef-6310-4474-8b99-04006fb99432_copy4",
+      "name": "AI Agent - Strict Semantic Scoring (Key 5)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        768,
+        768
+      ],
+      "id": "a1c120aa-c14a-4b40-b72e-2a3bb113afe5_copy4",
+      "name": "Google Gemini Chat Model (Key 5)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FRWXdtkuPcCObDq7",
+          "name": "Google Gemini(PaLM) Api account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify({ baseline: $json.baseline, extracted_text: $json.extracted_text, meta: $json.meta }) }}",
+        "options": {
+          "systemMessage": "You are CiteWise's strict academic semantic evaluator.\n\nYou will receive JSON with:\n- baseline.title\n- baseline.rationale\n- baseline.gaps\n- extracted_text\n\nTask:\nEvaluate whether the uploaded RRL document is actually relevant to the CATalyst Semantic Baseline. Be conservative. Do not reward broad topical similarity. A document about the same general field is NOT automatically gap-aligned.\n\nUse only extracted_text. Do not invent evidence. Do not infer relevance from title keywords alone.\n\nImportant backend boundary:\n- You generate analysis only.\n- Do not assign the final recommendation status.\n- Do not calculate the final overall score.\n- The backend will validate your JSON, verify evidence, calculate the overall score, and apply deterministic threshold rules.\n\nScoring rules, 0-100:\n\nGap Alignment:\n0-20 = unrelated or only shares generic terms.\n21-40 = same broad domain but does not address the baseline gap.\n41-60 = partially related topic, but missing the specific gap, target problem, or context.\n61-75 = addresses a similar problem but differs in population, method, technology, or intended contribution.\n76-89 = strongly addresses the same gap with clear supporting evidence.\n90-100 = directly matches the baseline gap, problem context, and intended contribution with explicit evidence.\n\nMethodological Relevance:\n0-30 = no usable method or unrelated method.\n31-60 = method exists but is not useful for the baseline problem.\n61-80 = method is somewhat transferable.\n81-100 = method is directly applicable to the baseline.\n\nTheoretical Contribution:\n0-30 = no theory/framework/conceptual contribution.\n31-60 = general background only.\n61-80 = useful concepts related to the baseline.\n81-100 = strong theory/framework directly supporting the baseline gap.\n\nCitation Quality:\nScore based on visible credibility signals in the text: DOI, journal/conference/source name, publication year, references, academic structure, and source traceability. Do not use citation quality to inflate semantic relevance.\n\nHard caps you must follow:\n- If there is no exact evidence excerpt that connects the document to baseline.gaps, gapAlignmentScore must be 40 or lower.\n- If the document is only generally related to the field, gapAlignmentScore must be 50 or lower.\n- If the method does not appear in extracted_text, methodologyScore must be 35 or lower.\n- If there is no theoretical/conceptual framework, theoreticalScore must be 45 or lower.\n- If the document appears irrelevant to the baseline, return low semantic scores even if citation quality is high.\n- Scores above 85 require very strong direct evidence.\n\nEvidence rules:\n- Extract 2 to 5 exact quotes from extracted_text when available.\n- Every quote must be copied exactly from extracted_text.\n- Each quote must support one of the four rubric scores or identify a mismatch/weakness.\n- If no relevant quote exists, evidenceExcerpts must be [].\n- pageNumber may be 1 if page data is unavailable.\n- relevanceLevel must be \"High\", \"Medium\", or \"Low\".\n- criterion must be one of: \"Gap Alignment\", \"Methodology\", \"Theory\", \"Citation Quality\".\n- evidenceType must be one of: \"supporting\", \"weakness\", \"mismatch\".\n\nFlag rules:\n- mismatchFlags should identify alignment problems, such as different population, different domain, different method, different technology, or missing research gap connection.\n- weaknessFlags should identify limitations, such as weak method detail, weak theoretical basis, limited citation traceability, or insufficient direct evidence.\n- confidenceLevel must be \"High\", \"Medium\", or \"Low\" based on evidence strength and completeness.\n\nReturn ONLY valid JSON using this exact schema:\n{\n  \"gapAlignmentScore\": 0,\n  \"methodologyScore\": 0,\n  \"theoreticalScore\": 0,\n  \"citationScore\": 0,\n  \"confidenceLevel\": \"Low\",\n  \"mismatchFlags\": [],\n  \"weaknessFlags\": [],\n  \"evidenceExcerpts\": [\n    {\n      \"criterion\": \"Gap Alignment\",\n      \"quoteText\": \"exact quote from extracted_text\",\n      \"pageNumber\": 1,\n      \"relevanceLevel\": \"High\",\n      \"evidenceType\": \"supporting\"\n    }\n  ]\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        768,
+        752
+      ],
+      "id": "f57f44ef-6310-4474-8b99-04006fb99432_copy5",
+      "name": "AI Agent - Strict Semantic Scoring (Key 6)"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        768,
+        976
+      ],
+      "id": "a1c120aa-c14a-4b40-b72e-2a3bb113afe5_copy5",
+      "name": "Google Gemini Chat Model (Key 6)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "wSIhcIDxLqN0rfn2",
+          "name": "Google Gemini(PaLM) Api account 6"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Clean Evaluation Packet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Clean Evaluation Packet": {
+      "main": [
+        [
+          {
+            "node": "Select Relevant Text Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Relevant Text Chunks": {
+      "main": [
+        [
+          {
+            "node": "Randomizer Code - AI Agent - Strict Semantic Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and Validate AI JSON": {
+      "main": [
+        [
+          {
+            "node": "Apply Deterministic Scoring Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Deterministic Scoring Rules": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomizer Code - AI Agent - Strict Semantic Scoring": {
+      "main": [
+        [
+          {
+            "node": "Load Balancer Switch - AI Agent - Strict Semantic Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Balancer Switch - AI Agent - Strict Semantic Scoring": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 1)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 2)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 3)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 4)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 5)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 6)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Strict Semantic Scoring (Key 1)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model (Key 1)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 1)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Strict Semantic Scoring (Key 2)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model (Key 2)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 2)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Strict Semantic Scoring (Key 3)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model (Key 3)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 3)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Strict Semantic Scoring (Key 4)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model (Key 4)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 4)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Strict Semantic Scoring (Key 5)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model (Key 5)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 5)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Strict Semantic Scoring (Key 6)": {
+      "main": [
+        [
+          {
+            "node": "Parse and Validate AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model (Key 6)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Strict Semantic Scoring (Key 6)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "20c90488d9af11b44f815e3ae92bfb38482a432dae08166752e2f51286d3ce89"
+  }
+}

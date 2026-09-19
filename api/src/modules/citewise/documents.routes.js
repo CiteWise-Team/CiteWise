@@ -6,11 +6,22 @@ import supabase from '../../common/config/supabaseClient.js';
 import requireAuth from '../../common/middlewares/auth.middleware.js';
 import { scoringPipeline } from './rrl.routes.js';
 import { extractCitationMetadata } from './helpers/citationMetadata.js';
+import { deriveSessionId } from './helpers/sessionId.js';
 
 const router = express.Router();
 
 // All document routes require a valid user session.
 router.use(requireAuth);
+
+// The CiteWise session for this account in this workspace. Replaces the
+// browser-local random id that stranded uploads on one machine.
+router.get('/session-for-group/:groupId', (req, res) => {
+  const sessionId = deriveSessionId(req.user?.id, req.params.groupId);
+  if (!sessionId) {
+    return res.status(400).json({ success: false, message: 'Group ID is required', data: null });
+  }
+  res.json({ success: true, message: 'Session resolved', data: { sessionId } });
+});
 
 
 const WEIGHT_GAP    = 0.35;
@@ -416,7 +427,9 @@ router.delete('/:id', async (req, res) => {
   if (insight) await supabase.from('document_insights').delete().eq('id', insight.id);
 
   await supabase.from('uploaded_documents').delete().eq('id', docId);
-  return res.status(204).end();
+  // Every other route here answers with this envelope; a bare 204 left the
+  // client with nothing to parse.
+  return res.json({ success: true, message: 'Document deleted', data: { id: docId } });
 });
 
 export default router;

@@ -6,6 +6,27 @@
   font-family: "Poppins", sans-serif;
 }
 
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-loader,
+.spinning {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  transform-origin: center center;
+}
+
+.spinner-border {
+  animation: spin 1s linear infinite !important;
+  transform-origin: center center;
+}
+
 .workflow-page button,
 .workflow-page input,
 .workflow-page textarea,

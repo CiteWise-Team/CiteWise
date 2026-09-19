@@ -59,6 +59,43 @@ const upload = multer({
   },
 });
 
+// Multer aborts an oversized upload with its own error. Left to the generic
+// error handler it became a 500 carrying `{error}`, which the upload queue
+// cannot render, so the file silently stalled in the UI. Answer it here in the
+// same envelope as every other per-file rejection.
+function acceptUploads(req, res, next) {
+  upload.array('files')(req, res, (err) => {
+    if (err?.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        success: false,
+        message: `Each file must be ${MAX_FILE_MB} MB or smaller`,
+        data: {
+          totalFiles: 1,
+          acceptedFiles: 0,
+          failedFiles: 1,
+          results: [{
+            success: false,
+            fileName: err.field ?? null,
+            sizeBytes: null,
+            message: 'File exceeds size limit',
+            characterCount: 0,
+          }],
+        },
+      });
+    }
+    if (err) return next(err);
+    next();
+  });
+}
+
+// A filename ending in .pdf used to be enough to get a file queued for AI
+// scoring, so a renamed text file sailed through. Check the signature instead.
+export function looksLikePdf(buffer) {
+  return Buffer.isBuffer(buffer)
+    && buffer.length >= 5
+    && buffer.subarray(0, 5).toString('latin1') === '%PDF-';
+}
+
 
 // --- helpers ---
 
@@ -466,7 +503,7 @@ export async function asyncExtractPipeline(docId, sessionId, buffer, fileName, h
 
 // --- route ---
 
-router.post('/upload', upload.array('files'), async (req, res) => {
+router.post('/upload', acceptUploads, async (req, res) => {
   const sessionId = req.headers['x-session-id'];
   if (!sessionId?.trim()) {
     return res.status(400).json({ success: false, message: 'Session ID is required', data: null });
@@ -494,6 +531,10 @@ router.post('/upload', upload.array('files'), async (req, res) => {
     }
     if (!file.buffer?.length) {
       results.push({ success: false, fileName, sizeBytes, message: 'File is empty', characterCount: 0 });
+      continue;
+    }
+    if (!looksLikePdf(file.buffer)) {
+      results.push({ success: false, fileName, sizeBytes, message: 'File is not a valid PDF', characterCount: 0 });
       continue;
     }
 

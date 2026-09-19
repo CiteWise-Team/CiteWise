@@ -114,7 +114,7 @@ export default function TopicSuggesterOutput({ result }) {
           <div className="flex-grow-1" style={{ overflowY: "auto", minHeight: 0 }}>
             {loading ? (
               <div className="text-center mt-5">
-                <RiLoader4Line className="fs-1 mb-2" />
+                <RiLoader4Line className="fs-1 mb-2 spin-loader" />
                 <p style={{ color: "#a1a1b5" }}>Loading topics...</p>
               </div>
             ) : items.length === 0 ? (

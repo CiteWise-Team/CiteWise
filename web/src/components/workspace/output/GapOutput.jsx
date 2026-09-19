@@ -74,7 +74,7 @@ export default function ExtractorOutput({ result }) {
           >
             {loading ? (
               <div className="text-center mt-5">
-                <RiLoader4Line className="fs-1 mb-2" />
+                <RiLoader4Line className="fs-1 mb-2 spin-loader" />
                 <p style={{ color: "#a1a1b5" }}>Loading gaps...</p>
               </div>
             ) : items.length === 0 ? (

@@ -240,7 +240,7 @@ export default function TopicSuggesterInput({ setResult }) {
               }}
             >
               {running ? (
-                <RiLoader4Line className="spinner-border spinner-border-sm" style={{ animation: "spin 1s linear infinite" }} />
+                <RiLoader4Line className="spinner-border spinner-border-sm spin-loader" style={{ animation: "spin 1s linear infinite" }} />
               ) : (
                 <FaPlay className="me-1" />
               )}

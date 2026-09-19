@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Component } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { apiRequest } from "../api/http";
 import GlobalNavigationBar from "./shared/components/GlobalNavigationBar";
 import WorkspaceImportLayout from "./module1/catalyst-import/components/WorkspaceImportLayout";
 import ValidationDashboardLayout from "./module2/literature-review/components/ValidationDashboardLayout";
@@ -87,6 +88,29 @@ export default function CiteWiseApp() {
   useEffect(() => {
     if (groupId && sessionId) localStorage.setItem(scopedKey(groupId, "sessionId"), sessionId);
   }, [sessionId, groupId]);
+
+  // Without this the session id existed only in this browser, so the same
+  // account on another machine started from an empty Data Import screen while
+  // its uploaded papers sat unreachable on the server. The server derives the
+  // id from the account and the workspace, so it is the same everywhere. An id
+  // already stored here is kept, so sessions created before this still resolve.
+  useEffect(() => {
+    if (!groupId || sessionId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await apiRequest(`/v1/documents/session-for-group/${groupId}`);
+        const resolved = response?.data?.sessionId;
+        if (!cancelled && resolved) setSessionId(resolved);
+      } catch (err) {
+        // Leave sessionId empty; the import step will mint one as before.
+        console.warn("[CiteWise] could not resolve the workspace session:", err?.message);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [groupId, sessionId]);
 
   useEffect(() => {
     if (groupId) localStorage.setItem(scopedKey(groupId, "maxUnlockedStep"), maxUnlockedStep.toString());
