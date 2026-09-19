@@ -131,14 +131,22 @@ export async function apiFetch(endpoint, options = {}, isRetry = false) {
   }
 
   const contentType = res.headers.get("content-type");
-  let data;
+  let data = null;
+
   if (contentType && contentType.includes("application/json")) {
     data = await res.json();
-  } else {
-    if (!res.ok) {
-      throw new Error(`Server returned HTTP ${res.status}: ${res.statusText}`);
+  } else if (!res.ok) {
+    throw new Error(`Server returned HTTP ${res.status}: ${res.statusText}`);
+  } else if (res.status !== 204) {
+    // A successful response with no body at all is a legitimate answer to
+    // DELETE, and treating it as a failure made every "remove document" button
+    // report "Expected JSON. Please verify backend connection." after the
+    // document had in fact been deleted. Anything else non-JSON — an HTML error
+    // page from a misrouted dev proxy, say — still fails loudly.
+    const body = await res.text();
+    if (body.trim()) {
+      throw new Error("Invalid response from server: Expected JSON. Please verify backend connection.");
     }
-    throw new Error("Invalid response from server: Expected JSON. Please verify backend connection.");
   }
 
   return { res, data };

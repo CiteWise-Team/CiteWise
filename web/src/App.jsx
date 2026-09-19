@@ -7,6 +7,7 @@ import Upload from "./pages/Upload";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import GroupWorkflow from "./pages/Workspace";
 import CiteWiseApp from "./citewise/App";
+import NotFound from "./pages/NotFound";
 
 export default function App() {
   return (
@@ -54,6 +55,9 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Without this, a mistyped or stale link rendered a blank document. */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

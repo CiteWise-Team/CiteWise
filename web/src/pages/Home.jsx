@@ -72,7 +72,7 @@ export default function Home() {
 
           <div className="float-badge badge-1">
             <span className="avatar">C</span>
-            CATalyst
+            CiteWise
           </div>
           <div className="float-badge badge-2">
             <span className="avatar">AI</span>
@@ -100,7 +100,7 @@ export default function Home() {
               </h1>
 
               <p className="lead mt-3 mx-auto" style={{ maxWidth: "560px", color: "var(--text-body)", fontSize: "1.1rem" }}>
-                CATalyst helps researchers analyze research papers, identify gaps,
+                CiteWise helps researchers analyze research papers, identify gaps,
                 and guide in topic formulation using AI-driven workflows.
               </p>
 
@@ -127,7 +127,7 @@ export default function Home() {
                 <span className="mark">
                   <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>layers</span>
                 </span>
-                CATalyst
+                CiteWise
               </div>
               <div className="workflow-user">
                 user.info@gmail.com
@@ -242,7 +242,7 @@ export default function Home() {
           <div className="text-center p-5 glass-card reveal" style={{ borderRadius: "1.5rem" }}>
             <h2 className="section-title fw-bold mb-3">Ready to find your thesis topic?</h2>
             <p className="mb-4" style={{ color: "var(--text-body)" }}>
-              Use CATalyst to analyze literature and discover research gaps faster.
+              Use CiteWise to analyze literature and discover research gaps faster.
             </p>
             <Link to={user ? "/groups" : "/login"} className="btn btn-glow">Start Exploring</Link>
           </div>
@@ -253,7 +253,7 @@ export default function Home() {
           <div className="container">
             <div className="row g-4">
               <div className="col-md-3" style={{ flex: "0 0 20.833%", maxWidth: "20.833%" }}>
-                <div className="footer-brand-name">CATalyst</div>
+                <div className="footer-brand-name">CiteWise</div>
                 <p className="footer-description">
                   AI-powered research gap discovery for thesis and research writing.
                 </p>
@@ -284,7 +284,7 @@ export default function Home() {
             <hr className="my-4" style={{ borderColor: "var(--border)" }} />
 
             <div className="text-center small" style={{ color: "var(--text-muted)" }}>
-              © 2026 CATalyst. All rights reserved.
+              © 2026 CiteWise. All rights reserved.
             </div>
           </div>
         </footer>

@@ -349,3 +349,532 @@ describe('web HTTP client – token refresh and session teardown', () => {
     expect(sessionExpiredEvents).toBe(1);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUITE 5 – September 2026 bug report
+//
+//   11. the scorer announced "capped at N" in validationFlags but stored the
+//       uncapped metric, so a paper the rubric judged insufficient still came
+//       back "Recommended"
+//   12. compound surnames lost their particle: "J. Dela Cruz" -> "Cruz, J. D."
+//   13. the upload gate tested mime OR extension, so any file renamed .pdf was
+//       accepted and queued for AI scoring
+//   14. multer's size error escaped to the generic handler as a 500 in a shape
+//       no client could read
+//   1/3/8/9. unauthenticated group + workflow routes, the signup error that
+//       blamed a duplicate email for a weak password, raw Postgres text
+//       reaching the client, and the unenforced 8-character minimum
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('APA author parsing – compound surnames (finding 12)', () => {
+  it('keeps a Filipino compound surname together', async () => {
+    const { toApaName } = await import('../modules/citewise/helpers/citationMetadata.js');
+    expect(toApaName('J. Dela Cruz')).toBe('Dela Cruz, J.');
+  });
+
+  it('keeps "Delos Santos" together', async () => {
+    const { toApaName } = await import('../modules/citewise/helpers/citationMetadata.js');
+    expect(toApaName('Maria Delos Santos')).toBe('Delos Santos, M.');
+  });
+
+  it('keeps "San Juan" together', async () => {
+    const { toApaName } = await import('../modules/citewise/helpers/citationMetadata.js');
+    expect(toApaName('R. San Juan')).toBe('San Juan, R.');
+  });
+
+  it('uses the full compound surname for the in-text citation', async () => {
+    const { toApaName, formatInTextAuthors } = await import('../modules/citewise/helpers/citationMetadata.js');
+    const names = ['J. Dela Cruz', 'M. Okafor', 'L. Bernardo'].map(toApaName);
+    expect(formatInTextAuthors(names)).toBe('Dela Cruz et al.');
+  });
+
+  it('still handles an ordinary two-part name', async () => {
+    const { toApaName } = await import('../modules/citewise/helpers/citationMetadata.js');
+    expect(toApaName('Ashish Vaswani')).toBe('Vaswani, A.');
+  });
+});
+
+describe('Rubric scoring – declared caps must be applied (finding 11)', () => {
+  // Reproduces document 197 from the September sweep verbatim: the rubric
+  // announced two caps and stored the uncapped numbers anyway.
+  const RAW = JSON.stringify({
+    gapAlignmentScore: 95,
+    methodologyScore: 90,
+    theoreticalScore: 75,
+    citationScore: 90,
+    overallScore: 88.75,
+    confidenceLevel: 'High',
+    mismatchFlags: [],
+    weaknessFlags: ['NO_THEORY_OR_FRAMEWORK'],
+    validationFlags: [
+      'Methodology capped at 74 because one supporting methodology evidence item was verified',
+      'Theory/Framework capped at 39 because no explicit framework evidence was verified',
+    ],
+    evidenceExcerpts: [
+      { criterion: 'Gap Alignment', quoteText: 'Sparse attention patterns have been explored.', pageNumber: 2, relevanceLevel: 'High', evidenceType: 'supporting' },
+    ],
+  });
+
+  it('clamps a metric to the cap named in its own validation flag', async () => {
+    const { parseAIResponse } = await import('../modules/citewise/helpers/rubricScoring.js');
+    const parsed = parseAIResponse(RAW, 197);
+    expect(parsed.methodologyScore).toBe(74);
+    expect(parsed.theoreticalScore).toBe(39);
+  });
+
+  it('recomputes the overall score from the capped metrics', async () => {
+    const { parseAIResponse } = await import('../modules/citewise/helpers/rubricScoring.js');
+    const parsed = parseAIResponse(RAW, 197);
+    // 95*.35 + 74*.30 + 39*.20 + 90*.15
+    expect(parsed.overallScore).toBeCloseTo(76.75, 2);
+  });
+
+  it('stops recommending a paper once the caps drop it below the threshold', async () => {
+    const { parseAIResponse } = await import('../modules/citewise/helpers/rubricScoring.js');
+    const parsed = parseAIResponse(RAW, 197);
+    expect(parsed.recommendationStatus).not.toBe('Recommended');
+    expect(parsed.relevanceLevel).not.toBe('High');
+  });
+
+  it('leaves scores alone when no cap was declared', async () => {
+    const { parseAIResponse } = await import('../modules/citewise/helpers/rubricScoring.js');
+    const raw = JSON.stringify({
+      gapAlignmentScore: 95, methodologyScore: 90, theoreticalScore: 75, citationScore: 90,
+      overallScore: 88.75, confidenceLevel: 'High', mismatchFlags: [], weaknessFlags: [],
+      validationFlags: [],
+      evidenceExcerpts: [{ criterion: 'Gap Alignment', quoteText: 'x', pageNumber: 1, relevanceLevel: 'High', evidenceType: 'supporting' }],
+    });
+    const parsed = parseAIResponse(raw, 1);
+    expect(parsed.methodologyScore).toBe(90);
+    expect(parsed.overallScore).toBeCloseTo(88.75, 2);
+  });
+
+  it('applies caps to the custom-weight path too', async () => {
+    const { parseAIResponse } = await import('../modules/citewise/helpers/rubricScoring.js');
+    const parsed = parseAIResponse(RAW, 197, { gap: 0.25, methodology: 0.25, theory: 0.25, citation: 0.25 });
+    expect(parsed.methodologyScore).toBe(74);
+    expect(parsed.overallScore).toBeCloseTo((95 + 74 + 39 + 90) / 4, 2);
+  });
+});
+
+describe('RRL upload – content and size validation (findings 13 & 14)', () => {
+  const PDF_HEADER = Buffer.from('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n', 'latin1');
+  let app;
+
+  beforeEach(async () => {
+    process.env.SUPABASE_URL ||= 'http://127.0.0.1:1/';
+    process.env.SUPABASE_KEY ||= 'test-key';
+    process.env.SUPABASE_ANON_KEY ||= 'test-key';
+    vi.resetModules();
+
+    // Only auth.getUser and a no-row lookup are reached by the paths under test.
+    vi.doMock('../common/config/supabaseClient.js', () => {
+      const chain = {
+        select: () => chain,
+        eq: () => chain,
+        maybeSingle: async () => ({ data: null, error: null }),
+        single: async () => ({ data: null, error: null }),
+      };
+      return {
+        default: {
+          auth: { getUser: async () => ({ data: { user: { id: 'user-1' } }, error: null }) },
+          from: () => chain,
+        },
+      };
+    });
+
+    app = (await import('../app.js')).default;
+  });
+
+  afterEach(() => { vi.doUnmock('../common/config/supabaseClient.js'); });
+
+  it('rejects a text file that was merely renamed .pdf', async () => {
+    const res = await request(app)
+      .post('/api/rrl/upload')
+      .set('Authorization', 'Bearer test-token')
+      .set('X-Session-Id', 'session-1')
+      .attach('files', Buffer.from('plain text wearing a pdf extension'), 'not-a-pdf.pdf');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.acceptedFiles).toBe(0);
+    const result = res.body.data.results[0];
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/pdf/i);
+  });
+
+  it('rejects a file whose PDF header is intact but is otherwise not a PDF', async () => {
+    const res = await request(app)
+      .post('/api/rrl/upload')
+      .set('Authorization', 'Bearer test-token')
+      .set('X-Session-Id', 'session-1')
+      .attach('files', Buffer.from('%PDF'), 'too-short.pdf'); // 4 bytes, no '-'
+
+    expect(res.body.data.acceptedFiles).toBe(0);
+    expect(res.body.data.results[0].message).toMatch(/pdf/i);
+  });
+
+  it('still reports an empty file as empty rather than as a bad PDF', async () => {
+    const res = await request(app)
+      .post('/api/rrl/upload')
+      .set('Authorization', 'Bearer test-token')
+      .set('X-Session-Id', 'session-1')
+      .attach('files', Buffer.alloc(0), 'empty.pdf');
+
+    expect(res.body.data.results[0].message).toMatch(/empty/i);
+  });
+
+  it('answers an oversized upload with 413 in the same envelope as other rejections', async () => {
+    const tooBig = Buffer.concat([PDF_HEADER, Buffer.alloc(21 * 1024 * 1024, 0x20)]);
+    const res = await request(app)
+      .post('/api/rrl/upload')
+      .set('Authorization', 'Bearer test-token')
+      .set('X-Session-Id', 'session-1')
+      .attach('files', tooBig, 'huge.pdf');
+
+    expect(res.status).toBe(413);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/20 MB|size|large|limit/i);
+    // the queue UI renders data.results[], so the shape has to match
+    expect(Array.isArray(res.body.data?.results)).toBe(true);
+  });
+});
+
+describe('Signup – error attribution and password policy (findings 3 & 9)', () => {
+  let app;
+  let createUserResult;
+
+  beforeEach(async () => {
+    process.env.SUPABASE_URL ||= 'http://127.0.0.1:1/';
+    process.env.SUPABASE_KEY ||= 'test-key';
+    process.env.SUPABASE_ANON_KEY ||= 'test-key';
+    vi.resetModules();
+    createUserResult = { data: null, error: null };
+
+    vi.doMock('../common/config/supabaseClient.js', () => {
+      const chain = {
+        select: () => chain, eq: () => chain, insert: async () => ({ error: null }),
+        maybeSingle: async () => ({ data: null, error: null }),
+      };
+      return {
+        default: {
+          auth: {
+            admin: { createUser: async () => createUserResult },
+            getUser: async () => ({ data: { user: { id: 'user-1' } }, error: null }),
+          },
+          from: () => chain,
+        },
+      };
+    });
+    app = (await import('../app.js')).default;
+  });
+
+  afterEach(() => { vi.doUnmock('../common/config/supabaseClient.js'); });
+
+  it('does not blame a duplicate email when Supabase rejects a weak password', async () => {
+    // Supabase answers 422 for BOTH a duplicate email and a weak password; the
+    // old code branched on the status, so every weak password was reported as
+    // "An account with this email address already exists."
+    createUserResult = {
+      data: null,
+      error: { message: 'Password should be at least 6 characters.', status: 422, code: 'weak_password' },
+    };
+
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({ email: 'brand.new.address@example.com', password: 'abcdefgh' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).not.toMatch(/already exists/i);
+    expect(res.body.message).toMatch(/password/i);
+  });
+
+  it('still reports a genuine duplicate email as a duplicate', async () => {
+    createUserResult = {
+      data: null,
+      error: { message: 'A user with this email address has already been registered', status: 422, code: 'email_exists' },
+    };
+
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({ email: 'taken@example.com', password: 'abcdefgh' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/already exists/i);
+  });
+
+  it('enforces the 8-character minimum the form advertises', async () => {
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({ email: 'short.pw@example.com', password: 'abc1234' }); // 7 chars
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/8/);
+    expect(res.body.message).not.toMatch(/already exists/i);
+  });
+
+  it('accepts a password of exactly 8 characters', async () => {
+    createUserResult = { data: { user: { id: 'new-user' } }, error: null };
+
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({ email: 'ok.pw@example.com', password: 'abcd1234' });
+
+    expect(res.status).toBe(201);
+  });
+});
+
+describe('Group + workflow routes require a session (finding 1)', () => {
+  let app;
+  const GROUP = { id: 'g1', name: 'test', owner_id: 'user-1', join_code: 'TT-A62DBC' };
+
+  function fakeSupabase(groupRow) {
+    const chain = {
+      select: () => chain,
+      insert: () => chain,
+      update: () => chain,
+      delete: () => chain,
+      eq: () => chain,
+      single: async () => (groupRow
+        ? { data: groupRow, error: null }
+        : { data: null, error: { message: 'Cannot coerce the result to a single JSON object' } }),
+      maybeSingle: async () => ({ data: groupRow ?? null, error: null }),
+      then: (resolve) => resolve({ data: groupRow ? [groupRow] : [], error: null }),
+    };
+    return {
+      auth: { getUser: async (t) => (t === 'good' ? { data: { user: { id: 'user-1' } }, error: null } : { data: null, error: { message: 'bad token' } }) },
+      from: () => chain,
+    };
+  }
+
+  async function boot(groupRow = GROUP) {
+    process.env.SUPABASE_URL ||= 'http://127.0.0.1:1/';
+    process.env.SUPABASE_KEY ||= 'test-key';
+    process.env.SUPABASE_ANON_KEY ||= 'test-key';
+    vi.resetModules();
+    vi.doMock('../common/config/supabaseClient.js', () => ({ default: fakeSupabase(groupRow) }));
+    return (await import('../app.js')).default;
+  }
+
+  afterEach(() => { vi.doUnmock('../common/config/supabaseClient.js'); });
+
+  it('refuses to list a user\'s workspaces without a token', async () => {
+    app = await boot();
+    const res = await request(app).get('/api/groups/user-1');
+    expect(res.status).toBe(401);
+    expect(JSON.stringify(res.body)).not.toMatch(/join_code/i);
+  });
+
+  it('refuses a workspace list belonging to somebody else', async () => {
+    app = await boot();
+    const res = await request(app).get('/api/groups/someone-else').set('Authorization', 'Bearer good');
+    expect(res.status).toBe(403);
+  });
+
+  it('still returns your own workspaces', async () => {
+    app = await boot();
+    const res = await request(app).get('/api/groups/user-1').set('Authorization', 'Bearer good');
+    expect(res.status).toBe(200);
+  });
+
+  it('refuses an unauthenticated delete', async () => {
+    app = await boot();
+    const res = await request(app).delete('/api/groups/delete/g1');
+    expect(res.status).toBe(401);
+  });
+
+  it('refuses to delete a workspace owned by someone else', async () => {
+    app = await boot({ ...GROUP, owner_id: 'another-user' });
+    const res = await request(app).delete('/api/groups/delete/g1').set('Authorization', 'Bearer good');
+    expect(res.status).toBe(403);
+  });
+
+  it('answers 404 — not 500 — for a workspace that does not exist', async () => {
+    app = await boot(null);
+    const res = await request(app).delete('/api/groups/delete/missing').set('Authorization', 'Bearer good');
+    expect(res.status).toBe(404);
+    // finding 8: the raw Postgres text must not reach the caller
+    expect(JSON.stringify(res.body)).not.toMatch(/coerce/i);
+  });
+
+  it.each([
+    ['/api/extractor/g1'],
+    ['/api/summarizer/g1'],
+    ['/api/gap/g1'],
+    ['/api/topic/g1'],
+  ])('refuses %s without a token', async (url) => {
+    app = await boot();
+    const res = await request(app).get(url);
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('Error handler does not leak internals (finding 8)', () => {
+  function capture() {
+    return { code: null, body: null, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
+  }
+
+  it('hides raw database text behind a generic 500', async () => {
+    const { default: errorHandler } = await import('../common/middlewares/errorHandler.js');
+    const res = capture();
+    errorHandler(
+      new Error('Failed to delete group: Error deleting group: Cannot coerce the result to a single JSON object'),
+      {}, res, () => {},
+    );
+    expect(res.code).toBe(500);
+    expect(JSON.stringify(res.body)).not.toMatch(/coerce|postgres|supabase/i);
+  });
+
+  it('keeps a deliberate client-error message intact', async () => {
+    const { default: errorHandler } = await import('../common/middlewares/errorHandler.js');
+    const res = capture();
+    const err = new Error('Session ID is required');
+    err.status = 400;
+    errorHandler(err, {}, res, () => {});
+    expect(res.code).toBe(400);
+    expect(JSON.stringify(res.body)).toMatch(/Session ID is required/);
+  });
+});
+
+describe('CiteWise session id follows the account, not the browser (finding 5)', () => {
+  // It used to be crypto.randomUUID() in the browser, kept only in localStorage,
+  // so signing in elsewhere left every uploaded paper unreachable.
+  const load = () => import('../modules/citewise/helpers/sessionId.js');
+
+  beforeEach(() => { process.env.SESSION_ID_SECRET = 'test-secret'; });
+
+  it('gives the same id for the same user and workspace', async () => {
+    const { deriveSessionId } = await load();
+    expect(deriveSessionId('user-1', 'group-1')).toBe(deriveSessionId('user-1', 'group-1'));
+  });
+
+  it('gives a different id to a different user in the same workspace', async () => {
+    const { deriveSessionId } = await load();
+    expect(deriveSessionId('user-1', 'group-1')).not.toBe(deriveSessionId('user-2', 'group-1'));
+  });
+
+  it('gives a different id to the same user in a different workspace', async () => {
+    const { deriveSessionId } = await load();
+    expect(deriveSessionId('user-1', 'group-1')).not.toBe(deriveSessionId('user-1', 'group-2'));
+  });
+
+  it('produces a v4-shaped uuid so it fits the existing session column', async () => {
+    const { deriveSessionId } = await load();
+    expect(deriveSessionId('user-1', 'group-1'))
+      .toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it('is not guessable without the server secret', async () => {
+    const { deriveSessionId } = await load();
+    const withOne = deriveSessionId('user-1', 'group-1');
+    process.env.SESSION_ID_SECRET = 'a-different-secret';
+    vi.resetModules();
+    const { deriveSessionId: again } = await load();
+    expect(again('user-1', 'group-1')).not.toBe(withOne);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUITE 6 – deleting a document answered 204 No Content, and the HTTP client
+// treated every body-less response as a broken backend:
+//   "Invalid response from server: Expected JSON."
+// All four delete buttons (import, RRL upload, assessment, draft) hit this.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('web HTTP client – responses with no body', () => {
+  let store;
+  let http;
+
+  const noBody = (status) => ({
+    status,
+    ok: status >= 200 && status < 300,
+    headers: { get: () => null },          // 204 carries no content-type
+    json: async () => { throw new Error('no body'); },
+    text: async () => '',
+  });
+
+  beforeEach(async () => {
+    store = new Map();
+    vi.stubGlobal('localStorage', {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: (k) => store.delete(k),
+    });
+    vi.stubGlobal('CustomEvent', class { constructor(type) { this.type = type; } });
+    vi.stubGlobal('window', { dispatchEvent: () => {} });
+    vi.resetModules();
+    http = await import('../../../web/src/api/http.js');
+  });
+
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('treats a 204 as success rather than a broken backend', async () => {
+    store.set('token', 'T');
+    vi.stubGlobal('fetch', vi.fn(async () => noBody(204)));
+
+    const { res, data } = await http.apiFetch('/api/v1/documents/42', { method: 'DELETE' });
+
+    expect(res.status).toBe(204);
+    expect(data).toBeNull();
+  });
+
+  it('lets apiRequest resolve on a 204 instead of throwing', async () => {
+    store.set('token', 'T');
+    vi.stubGlobal('fetch', vi.fn(async () => noBody(204)));
+
+    await expect(http.apiRequest('/api/v1/documents/42', { method: 'DELETE' })).resolves.toBeNull();
+  });
+
+  it('still surfaces a non-JSON error response as an error', async () => {
+    store.set('token', 'T');
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      status: 502,
+      ok: false,
+      headers: { get: () => 'text/html' },
+      json: async () => { throw new Error('not json'); },
+      text: async () => '<html>gateway</html>',
+    })));
+
+    await expect(http.apiFetch('/api/v1/documents/42', { method: 'DELETE' })).rejects.toThrow(/502/);
+  });
+});
+
+describe('DELETE /api/v1/documents/:id answers in the usual envelope', () => {
+  let app;
+
+  beforeEach(async () => {
+    process.env.SUPABASE_URL ||= 'http://127.0.0.1:1/';
+    process.env.SUPABASE_KEY ||= 'test-key';
+    process.env.SUPABASE_ANON_KEY ||= 'test-key';
+    vi.resetModules();
+
+    vi.doMock('../common/config/supabaseClient.js', () => {
+      const chain = {
+        select: () => chain,
+        delete: () => chain,
+        eq: () => chain,
+        maybeSingle: async () => ({ data: { id: 42, session_id: 'session-1' }, error: null }),
+        then: (resolve) => resolve({ data: null, error: null }),
+      };
+      return {
+        default: {
+          auth: { getUser: async () => ({ data: { user: { id: 'user-1' } }, error: null }) },
+          from: () => chain,
+        },
+      };
+    });
+    app = (await import('../app.js')).default;
+  });
+
+  afterEach(() => { vi.doUnmock('../common/config/supabaseClient.js'); });
+
+  it('returns JSON the upload queue can read, not an empty 204', async () => {
+    const res = await request(app)
+      .delete('/api/v1/documents/42')
+      .set('Authorization', 'Bearer test-token')
+      .set('X-Session-Id', 'session-1');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/json/);
+    expect(res.body.success).toBe(true);
+  });
+});

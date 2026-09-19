@@ -148,7 +148,7 @@ export default function Register() {
                     letterSpacing: "-0.02em",
                     textShadow: "0 0 50px rgba(91,91,214,0.3)"
                   }}>
-                    CATalyst
+                    CiteWise
                   </div>
                   <div style={{ 
                     color: "rgba(161,161,181,0.5)", 
@@ -277,7 +277,7 @@ export default function Register() {
                   Create Account
                 </h3>
                 <p style={{ color: "rgba(161,161,181,0.7)", fontSize: "0.9rem", marginTop: "0.1rem" }}>
-                  Join CATalyst and start your research journey
+                  Join CiteWise and start your research journey
                 </p>
               </div>
 
@@ -291,6 +291,7 @@ export default function Register() {
                     type="email"
                     className="form-control"
                     placeholder="john@example.com"
+                    required
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     style={{
@@ -332,6 +333,8 @@ export default function Register() {
                       type={showPassword ? "text" : "password"}
                       className="form-control"
                       placeholder="••••••••"
+                      required
+                      minLength={8}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       style={{

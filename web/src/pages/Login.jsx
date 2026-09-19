@@ -146,7 +146,7 @@ export default function Login() {
                     letterSpacing: "-0.02em",
                     textShadow: "0 0 50px rgba(91,91,214,0.3)"
                   }}>
-                    CATalyst
+                    CiteWise
                   </div>
                   <div style={{ 
                     color: "rgba(161,161,181,0.5)", 
@@ -177,7 +177,7 @@ export default function Login() {
                   color: "transparent",
                   textShadow: "none"
                 }}>
-                  CATalyst
+                  CiteWise
                 </span>
               </h1>
 
@@ -278,7 +278,7 @@ export default function Login() {
                   Welcome Back
                 </h3>
                 <p style={{ color: "rgba(161,161,181,0.7)", fontSize: "0.9rem", marginTop: "0.1rem" }}>
-                  Sign in to continue using CATalyst
+                  Sign in to continue using CiteWise
                 </p>
               </div>
 

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 const GroupContext = createContext();
 
@@ -14,7 +14,9 @@ export function GroupProvider({ children }) {
     localStorage.getItem("groupColor") || ""
   );
 
-  const enterGroup = ({ id, name = "", color = "" }) => {
+  // Stable identities: the workspace page calls enterGroup from an effect that
+  // depends on it, so a new function every render would loop.
+  const enterGroup = useCallback(({ id, name = "", color = "" }) => {
     setGroupId(id);
     setGroupName(name);
     setGroupColor(color);
@@ -23,9 +25,9 @@ export function GroupProvider({ children }) {
     localStorage.setItem("groupId", id);
     localStorage.setItem("groupName", name);
     localStorage.setItem("groupColor", color);
-  };
+  }, []);
 
-  const leaveGroup = () => {
+  const leaveGroup = useCallback(() => {
     setGroupId(null);
     setGroupName("");
     setGroupColor("");
@@ -33,12 +35,15 @@ export function GroupProvider({ children }) {
     localStorage.removeItem("groupId");
     localStorage.removeItem("groupName");
     localStorage.removeItem("groupColor");
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ groupId, groupName, groupColor, enterGroup, leaveGroup }),
+    [groupId, groupName, groupColor, enterGroup, leaveGroup]
+  );
 
   return (
-    <GroupContext.Provider
-      value={{ groupId, groupName, groupColor, enterGroup, leaveGroup }}
-    >
+    <GroupContext.Provider value={value}>
       {children}
     </GroupContext.Provider>
   );
