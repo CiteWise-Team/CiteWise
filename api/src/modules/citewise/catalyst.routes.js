@@ -148,15 +148,25 @@ router.post('/import', async (req, res) => {
       source_system:          'CATalyst',
     };
 
-    const { data: existingBaseline } = await supabase
+    let { error: insertError } = await supabase
       .from('research_baselines')
-      .select('id')
-      .eq('session_id', sessionId)
-      .maybeSingle();
+      .upsert(baseline, { onConflict: 'session_id' });
 
-    const { error: insertError } = existingBaseline
-      ? await supabase.from('research_baselines').update(baseline).eq('session_id', sessionId)
-      : await supabase.from('research_baselines').insert(baseline);
+    if (insertError) {
+      const { data: existingBaseline } = await supabase
+        .from('research_baselines')
+        .select('session_id')
+        .eq('session_id', sessionId)
+        .maybeSingle();
+
+      if (existingBaseline) {
+        const { error: updateError } = await supabase
+          .from('research_baselines')
+          .update(baseline)
+          .eq('session_id', sessionId);
+        insertError = updateError;
+      }
+    }
 
     if (insertError) throw new Error(`Failed to persist baseline: ${insertError.message}`);
 

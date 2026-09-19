@@ -284,8 +284,8 @@ export default function Login() {
 
               <form onSubmit={handleSubmit}>
 
-                <div className="mb-3">
-                  <label className="form-label" style={{ color: "rgba(228,228,240,0.8)", fontSize: "0.85rem", fontWeight: 600 }}>
+                <div className="mb-3 text-start">
+                  <label className="form-label d-block text-start" style={{ color: "rgba(228,228,240,0.8)", fontSize: "0.85rem", fontWeight: 600, textAlign: "left" }}>
                     Email Address
                   </label>
                   <input
@@ -316,9 +316,9 @@ export default function Login() {
                   />
                 </div>
 
-                <div className="mb-4">
+                <div className="mb-4 text-start">
                   <div className="d-flex justify-content-between align-items-center">
-                    <label className="form-label" style={{ color: "rgba(228,228,240,0.8)", fontSize: "0.85rem", fontWeight: 600 }}>
+                    <label className="form-label text-start" style={{ color: "rgba(228,228,240,0.8)", fontSize: "0.85rem", fontWeight: 600, textAlign: "left" }}>
                       Password
                     </label>
                     <a href="#" style={{ 

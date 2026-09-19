@@ -9,7 +9,7 @@ const FOCUSABLE =
  * User picks one topic; we then import it into CiteWise.
  */
 export default function TopicSelectModal({ topics, gaps, groupName, onSelect, onClose }) {
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(topics?.length === 1 ? topics[0] : null);
   const [importing, setImporting] = useState(false);
   const modalRef = useRef(null);
 

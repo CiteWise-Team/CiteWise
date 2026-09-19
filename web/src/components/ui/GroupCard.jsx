@@ -35,16 +35,8 @@ export default function GroupCard({
   // Returns the scoped localStorage key for this group.
   const gk = (suffix) => `citewise.${group_id}.${suffix}`;
 
-  // Step 1: if a session already exists for this group, go straight in.
-  // Otherwise fetch topics and run the import flow.
+  // Fetch topics and open the topic selection modal so the user can choose which topic to use in CiteWise.
   async function handleOpenCiteWise() {
-    const existingSession = localStorage.getItem(gk("sessionId"));
-    if (existingSession) {
-      enterGroup({ id: group_id, name, color });
-      navigate(`/citewise/${group_id}`);
-      return;
-    }
-
     setImporting(true);
     try {
       const { res, data: payload } = await apiFetch(`/api/catalyst/${encodeURIComponent(group_id)}/topics`);
@@ -67,13 +59,9 @@ export default function GroupCard({
         return;
       }
 
-      if (topics.length === 1) {
-        await importAndNavigate(topics[0].title, topics[0].rationale);
-      } else {
-        setPickerTopics(topics);
-        setPickerGaps(gaps);
-        setShowTopicPicker(true);
-      }
+      setPickerTopics(topics);
+      setPickerGaps(gaps);
+      setShowTopicPicker(true);
     } catch (err) {
       alert("Could not connect to CiteWise: " + err.message);
     } finally {
