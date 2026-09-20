@@ -3,6 +3,26 @@ import FormData from "form-data";
 import supabase from "../../common/config/supabaseClient.js";
 import { isR2Configured, uploadPdfToR2, getPresignedDownloadUrl } from "../../common/config/r2Client.js";
 
+// Normalizes a section value coming from the n8n extractor.
+//
+// The extractor prompt currently returns the literal string "not found" for
+// any section the AI could not locate. We do NOT want that text stored in the
+// database (the frontend renders it verbatim, making empty sections look like
+// real data). Convert those placeholders — and empty/whitespace/n/a values —
+// into `null` so the DB reflects reality and downstream code can rely on
+// presence/absence.
+function clean(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  if (lower === "not found") return null;
+  if (lower === "n/a") return null;
+  if (lower === "na") return null;
+  return s;
+}
+
+
 /**
  * Trigger n8n workflow with a file
  * @param {Buffer|Stream} file - uploaded file
@@ -86,22 +106,22 @@ export async function insertExtractorRepo(group_id, extractedData, fileMeta = nu
       .insert([
         {
           group_id: group_id,
-          title,
-          abstract,
-          introduction,
-          literature_review,  // clean DB column
-          methodology,
-          discussion,
-          results,
-          conclusion,
-          keywords,
+          title:             clean(title),
+          abstract:          clean(abstract),
+          introduction:      clean(introduction),
+          literature_review: clean(literature_review),  // clean DB column
+          methodology:       clean(methodology),
+          discussion:        clean(discussion),
+          results:           clean(results),
+          conclusion:        clean(conclusion),
+          keywords:          clean(keywords),
           file_url: fileMeta?.fileUrl || null,
           file_name: fileMeta?.fileName || null,
         },
       ])
       .select()
       .single();
-    // const data = {yay:group_id}
+
     if (error) {
       throw new Error("Failed to insert extractor result: " + error.message);
     }
@@ -184,6 +204,7 @@ export async function getExtractorDataByGroupIdRepo(groupId) {
     throw err;
   }
 }
+
 export async function getExtractedDataByIdRepo(id) {
   try {
     const { data, error } = await supabase

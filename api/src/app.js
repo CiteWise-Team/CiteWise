@@ -15,7 +15,7 @@ import catalystCwRoutes  from './modules/citewise/catalyst.routes.js';
 import rrlRoutes         from './modules/citewise/rrl.routes.js';
 import documentsRoutes   from './modules/citewise/documents.routes.js';
 import synthesisRoutes   from './modules/citewise/synthesis.routes.js';
-import catalyst2Routes    from './modules/catalyst2/catalyst2.routes.js';
+import smartGoalsRoutes  from './modules/citewise/smartgoals.routes.js';
 
 const app = express();
 
@@ -24,7 +24,8 @@ const allowedOrigins = [
   'http://localhost:5173',               // Local development
   'http://localhost:3000',
   'https://catalyst-nu-gilt.vercel.app',  // Production frontend
-  'https://citewise-seven.vercel.app'
+  'https://citewise-seven.vercel.app',
+  'https://working-citewise.onrender.com'  // Deployed Render frontend
 ];
 
 if (process.env.FRONTEND_URL) {
@@ -41,6 +42,7 @@ app.use(
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
+      console.warn('[CORS] Blocked origin:', origin, '| Allowed:', allowedOrigins);
       return callback(new Error('Not allowed by CORS'), false);
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -107,10 +109,10 @@ app.use('/api/topic', topicRoutes);
 
 // CiteWise routes
 app.use('/api/catalyst', catalystCwRoutes);
-app.use('/api/catalyst2', catalyst2Routes);
 app.use('/api/rrl',      rrlRoutes);
 app.use('/api/v1/documents', documentsRoutes);
 app.use('/api/v1/synthesis', synthesisRoutes);
+app.use('/api/v1/smart-goals', smartGoalsRoutes);
 
 app.use(errorHandler);
 

@@ -18,6 +18,10 @@ async function signup(req, res) {
 
     const username = email.split("@")[0];
     console.log('Signup request received for email:', email);
+    console.log('[DEBUG] SERVICE KEY first 25:', process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 25));
+    console.log('[DEBUG] SERVICE KEY last 10:', process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(-10));
+    console.log('[DEBUG] SERVICE KEY length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
+    console.log('[DEBUG] SUPABASE_URL:', process.env.SUPABASE_URL);
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
@@ -86,7 +90,6 @@ async function login(req, res) {
 
     const data = await response.json();
 
-    // if (data.error) return res.status(400).json({ error: data.error_description });
     if (!response.ok) {
       console.error('Login error:', data);
       return res.status(response.status).json({
