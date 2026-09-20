@@ -168,6 +168,7 @@
     const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
     const [isExportingPdf, setIsExportingPdf] = useState(false);
     const [showSuccessToast, setShowSuccessToast] = useState(false);
+    const [errorModal, setErrorModal] = useState(null);
 
     const DRAFT_STORAGE_KEY = `citewise_draft_${sessionId}`;
     const DOCS_STORAGE_KEY = `citewise_approved_docs_${sessionId}`;
@@ -441,15 +442,51 @@
         clearInterval(interval);
         console.error("Synthesis error:", err);
         setGenerationProgress(0);
-        let errorMsg = err.message || "Synthesis failed";
-        if (/error in workflow/i.test(errorMsg) || /HTTP 500/i.test(errorMsg) || /\{.*message.*\}/i.test(errorMsg)) {
-          errorMsg = "The AI synthesis engine encountered a temporary processing hiccup. Please try generating again.";
+        setGenerationStatus("error");
+
+        let rawMsg = err.message || "Synthesis failed";
+        let cleanMsg = rawMsg;
+        let details = [
+          "Ensure you have approved at least one document with text in AI Assessment.",
+          "Preprints and undated papers are supported and automatically cite as 'n.d.' (no date).",
+          "Click 'Draft Introduction' to try generating again.",
+        ];
+
+        // Parse any JSON embedded in raw message
+        if (rawMsg.includes('{') && rawMsg.includes('}')) {
+          try {
+            const match = rawMsg.match(/\{.*\}/);
+            if (match) {
+              const parsed = JSON.parse(match[0]);
+              cleanMsg = parsed.message || parsed.errorMessage || parsed.error || cleanMsg;
+            }
+          } catch {}
         }
-        setStatusText(errorMsg);
-        // A failed re-draft must not throw away the draft already on screen.
-        // Dropping straight back to "idle" swapped a perfectly good draft for the
-        // "No Content Generated Yet" placeholder.
-        setGenerationStatus(generatedContent ? "complete" : "idle");
+
+        cleanMsg = cleanMsg.replace(/^Synthesis workflow returned HTTP \d+:\s*/i, '');
+        cleanMsg = cleanMsg.replace(/^Error:\s*/i, '');
+
+        if (/no usable approved documents/i.test(cleanMsg) || /usable approved documents were available/i.test(cleanMsg)) {
+          cleanMsg = "The approved document(s) could not be included in the synthesis. This can happen if an approved paper had a low relevance score or missing citation metadata.";
+          details = [
+            "We have updated the workflow to automatically accept preprints and undated papers.",
+            "Verify that your chosen paper is checked as Approved in Module 2.",
+            "Click 'Draft Introduction' to try generating again.",
+          ];
+        } else if (/temporary processing hiccup/i.test(cleanMsg) || /timed out/i.test(cleanMsg) || /fetch failed/i.test(cleanMsg)) {
+          cleanMsg = "The AI synthesis service experienced a brief delay or connection timeout.";
+          details = [
+            "Your workflow and API credentials are active.",
+            "Click 'Draft Introduction' to retry.",
+          ];
+        }
+
+        setStatusText("Generation Failed");
+        setErrorModal({
+          title: "Synthesis Notice",
+          message: cleanMsg,
+          details: details,
+        });
       }
     };
 
@@ -654,6 +691,58 @@
           </div>
         )}
 
+        {errorModal && (
+          <div style={styles.errorModalOverlay} onClick={() => setErrorModal(null)}>
+            <div style={styles.errorModalCard} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.errorModalHeader}>
+                <div style={styles.errorModalIconBox}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={styles.errorModalTitle}>{errorModal.title || "Unable to Complete Synthesis"}</h3>
+                  <span style={styles.errorModalSubtitle}>Notice & Next Steps</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setErrorModal(null)}
+                  style={styles.errorModalCloseBtn}
+                  title="Close"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={styles.errorModalBody}>
+                <p style={styles.errorModalMessage}>{errorModal.message}</p>
+                {errorModal.details && errorModal.details.length > 0 && (
+                  <div style={styles.errorModalDetailsBox}>
+                    <span style={styles.errorModalDetailsLabel}>Recommended Actions:</span>
+                    <ul style={styles.errorModalList}>
+                      {errorModal.details.map((d, i) => (
+                        <li key={i} style={styles.errorModalListItem}>{d}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div style={styles.errorModalFooter}>
+                <button
+                  type="button"
+                  onClick={() => setErrorModal(null)}
+                  style={styles.errorModalPrimaryBtn}
+                >
+                  Got It
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={styles.gridContainer}>
           <div style={styles.leftColumn}>
             <SynthesisControlPanel
@@ -662,6 +751,15 @@
               statusText={statusText}
               onSynthesize={startSynthesis}
               onRegenerate={resetGeneration}
+              onErrorDetails={() => setErrorModal((prev) => prev || {
+                title: "Synthesis Notice",
+                message: "Generation could not be completed with the current document settings.",
+                details: [
+                  "Preprints and undated papers are now supported.",
+                  "Check that your paper is marked as Approved in Module 2.",
+                  "Click Draft Introduction to try again."
+                ]
+              })}
               hasApprovedDocuments={approvedDocuments.length > 0}
               approvedCount={approvedDocuments.length}
             />
@@ -847,5 +945,124 @@
       color: "rgba(240, 236, 230, 0.7)",
       lineHeight: "1.6",
       margin: 0,
+    },
+    errorModalOverlay: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: "rgba(10, 10, 20, 0.75)",
+      backdropFilter: "blur(8px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 10000,
+      animation: "fadeInToast 0.25s ease-out forwards",
+    },
+    errorModalCard: {
+      background: "#1e1e2f",
+      border: "1px solid rgba(239, 68, 68, 0.35)",
+      borderRadius: "20px",
+      padding: "24px 28px",
+      maxWidth: "520px",
+      width: "90%",
+      boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(239, 68, 68, 0.12)",
+      animation: "scaleInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+    },
+    errorModalHeader: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "14px",
+      marginBottom: "16px",
+    },
+    errorModalIconBox: {
+      width: "42px",
+      height: "42px",
+      borderRadius: "12px",
+      background: "rgba(239, 68, 68, 0.12)",
+      border: "1px solid rgba(239, 68, 68, 0.3)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    },
+    errorModalTitle: {
+      fontFamily: "'Poppins', sans-serif",
+      fontWeight: 700,
+      fontSize: "1.15rem",
+      color: "#fca5a5",
+      margin: "0 0 2px 0",
+    },
+    errorModalSubtitle: {
+      fontSize: "0.75rem",
+      color: "#a1a1b5",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      fontWeight: 600,
+    },
+    errorModalCloseBtn: {
+      background: "transparent",
+      border: "none",
+      color: "#a1a1b5",
+      fontSize: "1.1rem",
+      cursor: "pointer",
+      padding: "4px 8px",
+      borderRadius: "6px",
+      lineHeight: 1,
+    },
+    errorModalBody: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "14px",
+      marginBottom: "20px",
+    },
+    errorModalMessage: {
+      fontSize: "0.88rem",
+      color: "#e4e4f0",
+      lineHeight: "1.55",
+      margin: 0,
+    },
+    errorModalDetailsBox: {
+      background: "rgba(0, 0, 0, 0.25)",
+      border: "1px solid rgba(255, 255, 255, 0.08)",
+      borderRadius: "12px",
+      padding: "12px 16px",
+    },
+    errorModalDetailsLabel: {
+      fontSize: "0.75rem",
+      fontWeight: 700,
+      color: "#93c5fd",
+      textTransform: "uppercase",
+      letterSpacing: "0.04em",
+      display: "block",
+      marginBottom: "8px",
+    },
+    errorModalList: {
+      margin: 0,
+      paddingLeft: "18px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "6px",
+    },
+    errorModalListItem: {
+      fontSize: "0.82rem",
+      color: "rgba(228, 228, 240, 0.85)",
+      lineHeight: "1.45",
+    },
+    errorModalFooter: {
+      display: "flex",
+      justifyContent: "flex-end",
+    },
+    errorModalPrimaryBtn: {
+      background: "#5b5bd6",
+      color: "#ffffff",
+      border: "none",
+      borderRadius: "10px",
+      padding: "10px 22px",
+      fontSize: "0.88rem",
+      fontWeight: 600,
+      cursor: "pointer",
+      transition: "background 0.2s ease",
     },
   };

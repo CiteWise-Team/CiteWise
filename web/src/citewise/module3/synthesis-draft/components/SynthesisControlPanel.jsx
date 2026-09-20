@@ -7,9 +7,12 @@ export default function SynthesisControlPanel({
   statusText, 
   onSynthesize, 
   onRegenerate,
+  onErrorDetails,
   hasApprovedDocuments,
   approvedCount
 }) {
+  const isError = generationStatus === "error";
+
   return (
     <div style={styles.card}>
       <div style={styles.cardHeader}>
@@ -18,11 +21,26 @@ export default function SynthesisControlPanel({
 
       <div style={styles.cardBody}>
         {/* Generation Status Box */}
-        <div style={styles.statusBox}>
-          <span style={styles.statusLabel}>Generation Status</span>
-          <span style={styles.statusText}>
+        <div style={{ ...styles.statusBox, ...(isError ? styles.statusBoxError : {}) }}>
+          <div style={styles.statusHeaderRow}>
+            <span style={isError ? styles.statusLabelError : styles.statusLabel}>
+              {isError ? "Notice" : "Generation Status"}
+            </span>
+            {isError && onErrorDetails && (
+              <button
+                type="button"
+                onClick={onErrorDetails}
+                style={styles.viewDetailsBtn}
+                title="View error explanation and recommended actions"
+              >
+                View Details
+              </button>
+            )}
+          </div>
+          <span style={isError ? styles.statusTextError : styles.statusText}>
             {generationStatus === "generating" && <span style={styles.statusDot} />}
-            {statusText}
+            {isError && <span style={{ marginRight: 6 }}>⚠️</span>}
+            {isError ? "Generation could not complete" : statusText}
           </span>
 
           {generationStatus === "generating" && (
@@ -96,12 +114,28 @@ const styles = {
     flexDirection: "column",
     gap: "6px",
   },
+  statusBoxError: {
+    background: "rgba(239, 68, 68, 0.08)",
+    border: "1px solid rgba(239, 68, 68, 0.35)",
+  },
+  statusHeaderRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   statusLabel: {
     fontSize: "0.7rem",
     fontWeight: "700",
     letterSpacing: "0.08em",
     textTransform: "uppercase",
     color: "#a1a1b5",
+  },
+  statusLabelError: {
+    fontSize: "0.7rem",
+    fontWeight: "700",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: "#f87171",
   },
   statusText: {
     fontSize: "0.85rem",
@@ -110,6 +144,24 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "8px",
+  },
+  statusTextError: {
+    fontSize: "0.85rem",
+    color: "#fca5a5",
+    fontWeight: "600",
+    display: "flex",
+    alignItems: "center",
+  },
+  viewDetailsBtn: {
+    background: "rgba(239, 68, 68, 0.2)",
+    border: "1px solid rgba(239, 68, 68, 0.4)",
+    borderRadius: "6px",
+    color: "#fca5a5",
+    fontSize: "0.72rem",
+    fontWeight: "600",
+    padding: "2px 8px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
   },
   statusDot: {
     width: "8px",

@@ -320,7 +320,12 @@ async function asyncSynthesisJob({
       throw new Error(`Synthesis webhook returned an empty response. HTTP ${n8nRes.status}`);
     }
     if (!n8nRes.ok) {
-      throw new Error(`Synthesis workflow returned HTTP ${n8nRes.status}: ${raw.slice(0, 300)}`);
+      let cleanError = null;
+      try {
+        const parsed = JSON.parse(raw);
+        cleanError = parsed.message || parsed.errorMessage || parsed.error;
+      } catch {}
+      throw new Error(cleanError || `Synthesis workflow returned HTTP ${n8nRes.status}`);
     }
 
     let root;
@@ -441,8 +446,16 @@ async function asyncSynthesisJob({
   } catch (err) {
     console.error(`[synthesis-async] Fatal error during synthesis for session ${sessionId}:`, err.message);
     let userFacingError = err.message || 'Synthesis encountered an unexpected error.';
-    if (/error in workflow/i.test(err.message) || /HTTP 500/i.test(err.message) || /non-JSON response/i.test(err.message) || /fetch failed/i.test(err.message)) {
+    if (/error in workflow/i.test(userFacingError) || /HTTP 500/i.test(userFacingError) || /non-JSON response/i.test(userFacingError) || /fetch failed/i.test(userFacingError)) {
       userFacingError = 'The AI synthesis engine encountered a temporary processing hiccup. Please try generating again.';
+    }
+    // Remove any leftover technical JSON prefixes
+    userFacingError = userFacingError.replace(/^Synthesis workflow returned HTTP \d+:\s*/i, '');
+    if (userFacingError.startsWith('{') && userFacingError.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(userFacingError);
+        userFacingError = parsed.message || parsed.errorMessage || parsed.error || userFacingError;
+      } catch {}
     }
     await supabase.from('generated_draft').update({
       validation_status: 'FAILED',
