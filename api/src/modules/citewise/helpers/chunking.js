@@ -81,8 +81,8 @@ function splitSlidingWindow(text, chunkSize, overlap) {
 }
 
 export function selectRelevantChunks(fullText, baseline, opts = {}) {
-  const maxChars  = opts.maxChars  ?? 9000;
-  const maxChunks = opts.maxChunks ?? 6;
+  const maxChars  = opts.maxChars  ?? 35000;
+  const maxChunks = opts.maxChunks ?? 16;
   const chunkSize = opts.chunkSize ?? 1000;
   const overlap   = opts.overlap   ?? 100;
 

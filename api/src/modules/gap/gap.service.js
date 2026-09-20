@@ -2,10 +2,11 @@ import { triggerGapExtractorWorkflow, insertDataToGapRepository, getGapUsingGrou
 import {  fetchSummaryDataByIdService } from "../summarizer/summarizer.service.js";
 
 export async function runGapExtractorService(data){
-    const id = data.id.summary_id;
     if(!data){
         return { status: 400, message: "Data is required"};
     }
+    const id = (typeof data.id === "object" && data.id !== null ? data.id.summary_id : null) || data.summary_id || data.id;
+    const groupId = data.group_id || (typeof data.id === "object" && data.id !== null ? data.id.group_id : null);
 
     try{
         const summary = await fetchSummaryDataByIdService(id);
@@ -23,7 +24,7 @@ export async function runGapExtractorService(data){
         }
         const gapResult = await triggerGapExtractorWorkflow(finalSummarizedData);
         
-        const insertedData = await insertDataToGapRepository(data.id.group_id,summary.data?.title,gapResult[0]);
+        const insertedData = await insertDataToGapRepository(groupId,summary.data?.title,gapResult[0]);
        
         
         return {
@@ -46,7 +47,7 @@ export async function fetchGapsDataUsingGroupIdService(group_id) {
     const data = await getGapUsingGroupIdRepo(group_id);
 
     if (!data || data.length === 0) {
-      return { status: 404, message: "No data found for the given group ID" };
+      return { status: 200, message: "No data found for the given group ID", data: [] };
     }
 
     const flattenedGaps = [];

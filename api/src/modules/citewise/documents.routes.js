@@ -6,11 +6,22 @@ import supabase from '../../common/config/supabaseClient.js';
 import requireAuth from '../../common/middlewares/auth.middleware.js';
 import { scoringPipeline } from './rrl.routes.js';
 import { extractCitationMetadata } from './helpers/citationMetadata.js';
+import { deriveSessionId } from './helpers/sessionId.js';
 
 const router = express.Router();
 
 // All document routes require a valid user session.
 router.use(requireAuth);
+
+// The CiteWise session for this account in this workspace. Replaces the
+// browser-local random id that stranded uploads on one machine.
+router.get('/session-for-group/:groupId', (req, res) => {
+  const sessionId = deriveSessionId(req.user?.id, req.params.groupId);
+  if (!sessionId) {
+    return res.status(400).json({ success: false, message: 'Group ID is required', data: null });
+  }
+  res.json({ success: true, message: 'Session resolved', data: { sessionId } });
+});
 
 
 const WEIGHT_GAP    = 0.35;
@@ -44,12 +55,49 @@ router.get('/session/:sessionId', async (req, res) => {
   if (headerSession && headerSession !== sessionId) return res.status(404).json({ success: false, message: 'Not found' });
 
   const { data: docs, error } = await supabase
-    .from('uploaded_documents').select('*').eq('session_id', sessionId);
+    .from('uploaded_documents')
+    .select(`
+      id,
+      file_name,
+      size_bytes,
+      approved,
+      scoring_status,
+      scoring_error_message,
+      metric_weights_json,
+      citation_metadata_json,
+      parsed_text,
+      r2_file_key,
+      r2_text_key,
+      document_insights (
+        id,
+        overall_score,
+        average_overall_score,
+        gap_alignment_score,
+        methodology_score,
+        theoretical_score,
+        citation_score,
+        recommendation_status,
+        confidence_level,
+        relevance_level,
+        evidence_excerpts (
+          quote_text,
+          page_number,
+          criterion,
+          relevance_level,
+          evidence_type,
+          display_order
+        )
+      )
+    `)
+    .eq('session_id', sessionId);
+
   if (error) return res.status(500).json({ message: error.message });
 
-  const summaries = await Promise.all((docs ?? []).map(async (doc) => {
+  const summaries = (docs ?? []).map((doc) => {
     const title = extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json).title;
-    const insight = await loadInsight(doc.id);
+    // Handle PostgREST array response for 1-to-many relationship
+    const insight = Array.isArray(doc.document_insights) ? doc.document_insights[0] : doc.document_insights;
+
     if (insight) {
       const g  = insight.gap_alignment_score  ?? 0;
       const m  = insight.methodology_score    ?? 0;
@@ -61,7 +109,7 @@ router.get('/session/:sessionId', async (req, res) => {
         fileName:             doc.file_name,
         title,
         sizeBytes:            doc.size_bytes,
-        scoringStatus:        'complete',
+        scoringStatus:        (doc.scoring_status ?? 'complete').toLowerCase(),
         relevancyScore:       relevancy,
         gapAlignmentScore:    g,
         methodologyScore:     m,
@@ -73,6 +121,7 @@ router.get('/session/:sessionId', async (req, res) => {
         metricWeights:        doc.metric_weights_json ? (typeof doc.metric_weights_json === 'string' ? JSON.parse(doc.metric_weights_json) : doc.metric_weights_json) : null,
       };
     }
+
     return {
       id:           doc.id,
       fileName:     doc.file_name,
@@ -80,12 +129,16 @@ router.get('/session/:sessionId', async (req, res) => {
       sizeBytes:    doc.size_bytes,
       scoringStatus:(doc.scoring_status ?? 'pending').toLowerCase(),
       relevancyScore: null,
-      gapAlignmentScore: null, methodologyScore: null, theoreticalScore: null, citationScore: null,
+      gapAlignmentScore: null,
+      methodologyScore: null,
+      theoreticalScore: null,
+      citationScore: null,
       approved:     doc.approved,
-      recommendationStatus: null, relevanceLevel: null,
+      recommendationStatus: null,
+      relevanceLevel: null,
       metricWeights: doc.metric_weights_json ? (typeof doc.metric_weights_json === 'string' ? JSON.parse(doc.metric_weights_json) : doc.metric_weights_json) : null,
     };
-  }));
+  });
 
   return res.json(summaries);
 });
@@ -98,7 +151,9 @@ router.get('/:id/insights', async (req, res) => {
   const { data: docInfo } = await supabase.from('uploaded_documents').select('session_id, scoring_status, scoring_error_message, file_name, metric_weights_json').eq('id', docId).maybeSingle();
   
   if (!docInfo || (sessionId && docInfo.session_id !== sessionId)) return res.status(404).json({ success: false, message: 'Not found' });
-  if (docInfo.scoring_status === 'PENDING' || docInfo.scoring_status === 'PROCESSING') return res.status(202).json({ success: true, message: 'Processing' });
+  if (docInfo.scoring_status === 'EXTRACTING' || docInfo.scoring_status === 'PENDING' || docInfo.scoring_status === 'PROCESSING') {
+    return res.status(202).json({ success: true, message: 'Processing', status: docInfo.scoring_status });
+  }
   
   if (docInfo.scoring_status === 'FAILED') {
     return res.status(400).json({ success: false, message: docInfo.scoring_error_message || 'Assessment failed' });
@@ -185,17 +240,24 @@ router.post('/assess-batch', async (req, res) => {
     .in('id', documentIds)
     .eq('session_id', sessionId);
 
-  // Run sequentially in background to avoid any race conditions or silent event loop drops
-  console.log(`[Batch Assess] Starting background pipeline for ${documentIds.length} docs...`);
+  // Run concurrently with a worker pool (concurrency = 4) using Google Vertex AI capacity
+  console.log(`[Batch Assess] Starting concurrent background pipeline for ${documentIds.length} docs (concurrency = 4)...`);
   (async () => {
-    for (const docId of documentIds) {
-      try {
-        console.log(`[Batch Assess] Launching scoringPipeline for doc ${docId}...`);
-        await scoringPipeline(docId, sessionId);
-      } catch (e) {
-        console.error(`[Batch Assess] Error processing doc ${docId}:`, e);
+    const CONCURRENCY = 4;
+    let idx = 0;
+    async function worker() {
+      while (idx < documentIds.length) {
+        const currentDocId = documentIds[idx++];
+        try {
+          console.log(`[Batch Assess] Launching scoringPipeline for doc ${currentDocId}...`);
+          await scoringPipeline(currentDocId, sessionId);
+        } catch (e) {
+          console.error(`[Batch Assess] Error processing doc ${currentDocId}:`, e);
+        }
       }
     }
+    const workers = Array.from({ length: Math.min(CONCURRENCY, documentIds.length) }, () => worker());
+    await Promise.all(workers);
     console.log(`[Batch Assess] Finished background pipeline for all docs.`);
   })().catch(e => console.error("[Batch Assess] Unhandled background error:", e));
 
@@ -365,7 +427,9 @@ router.delete('/:id', async (req, res) => {
   if (insight) await supabase.from('document_insights').delete().eq('id', insight.id);
 
   await supabase.from('uploaded_documents').delete().eq('id', docId);
-  return res.status(204).end();
+  // Every other route here answers with this envelope; a bare 204 left the
+  // client with nothing to parse.
+  return res.json({ success: true, message: 'Document deleted', data: { id: docId } });
 });
 
 export default router;

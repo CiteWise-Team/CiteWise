@@ -1,6 +1,9 @@
 import supabase from '../../common/config/supabaseClient.js';
 import fetch from 'node-fetch';
 
+// Kept in step with the "Min 8 characters" hint on the registration form.
+const MIN_PASSWORD_LENGTH = 8;
+
 async function signup(req, res) {
   try {
     const { email, password } = req.body;
@@ -8,8 +11,17 @@ async function signup(req, res) {
       return res.status(400).json({ error: 'Email and password are required', message: 'Email and password are required' });
     }
 
+    if (String(password).length < MIN_PASSWORD_LENGTH) {
+      const message = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+      return res.status(400).json({ error: message, message });
+    }
+
     const username = email.split("@")[0];
     console.log('Signup request received for email:', email);
+    console.log('[DEBUG] SERVICE KEY first 25:', process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 25));
+    console.log('[DEBUG] SERVICE KEY last 10:', process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(-10));
+    console.log('[DEBUG] SERVICE KEY length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
+    console.log('[DEBUG] SUPABASE_URL:', process.env.SUPABASE_URL);
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
@@ -19,10 +31,13 @@ async function signup(req, res) {
 
     if (authError) {
       console.error('Supabase createUser error:', authError);
-      const isDuplicate = authError.message?.toLowerCase().includes('already registered') || 
-                          authError.message?.toLowerCase().includes('already exists') || 
-                          authError.status === 422 || 
-                          authError.code === 'email_exists';
+      // Supabase answers 422 for a weak password as well as for a taken email,
+      // so the status alone cannot tell them apart. Branching on it reported
+      // every rejected password as "this account already exists" and sent the
+      // user off to sign in to an account that was never created.
+      const isDuplicate = authError.code === 'email_exists' ||
+                          authError.message?.toLowerCase().includes('already registered') ||
+                          authError.message?.toLowerCase().includes('already exists');
       const errorMessage = isDuplicate 
         ? 'An account with this email address already exists. Please sign in instead.' 
         : (authError.message || 'Failed to create account');
@@ -75,7 +90,6 @@ async function login(req, res) {
 
     const data = await response.json();
 
-    // if (data.error) return res.status(400).json({ error: data.error_description });
     if (!response.ok) {
       console.error('Login error:', data);
       return res.status(response.status).json({

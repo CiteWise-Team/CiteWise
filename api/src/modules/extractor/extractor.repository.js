@@ -1,6 +1,26 @@
 import fetch from "node-fetch";
 import FormData from "form-data";
 import supabase from "../../common/config/supabaseClient.js";
+import { isR2Configured, uploadPdfToR2, getPresignedDownloadUrl } from "../../common/config/r2Client.js";
+
+// Normalizes a section value coming from the n8n extractor.
+//
+// The extractor prompt currently returns the literal string "not found" for
+// any section the AI could not locate. We do NOT want that text stored in the
+// database (the frontend renders it verbatim, making empty sections look like
+// real data). Convert those placeholders — and empty/whitespace/n/a values —
+// into `null` so the DB reflects reality and downstream code can rely on
+// presence/absence.
+function clean(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  if (lower === "not found") return null;
+  if (lower === "n/a") return null;
+  if (lower === "na") return null;
+  return s;
+}
 
 /**
  * Trigger n8n workflow with a file
@@ -10,45 +30,58 @@ import supabase from "../../common/config/supabaseClient.js";
 export async function triggerExtractorWorkflow(file, filename) {
   const webhookUrl = process.env.N8N_EXTRACTOR_WEBHOOK;
 
-  try {
-    const formData = new FormData();
-    formData.append("file", file, filename);
+  const maxAttempts = 3;
+  let lastError;
 
-    const res = await fetch(webhookUrl, {
-      method: "POST",
-      body: formData,
-      headers: formData.getHeaders(),
-    });
-
-    // Read body as text first — n8n returns an empty body when the workflow
-    // errors mid-run (before the Respond to Webhook node fires), which causes
-    // res.json() to throw "Unexpected end of JSON input".
-    const text = await res.text();
-
-    if (!res.ok) {
-      throw new Error(`n8n webhook failed: ${res.status} ${text}`);
-    }
-
-    if (!text || !text.trim()) {
-      throw new Error(
-        "n8n workflow did not return a response. " +
-        "The workflow may have errored before reaching the Respond node. " +
-        "Check the n8n execution log for details."
-      );
-    }
-
-    let data;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error(`n8n returned invalid JSON: ${text.slice(0, 200)}`);
-    }
+      const formData = new FormData();
+      formData.append("file", file, filename);
 
-    return data;
-  } catch (err) {
-    console.error("Workflow repo error:", err);
-    throw err;
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        body: formData,
+        headers: formData.getHeaders(),
+      });
+
+      // Read body as text first — n8n returns an empty body when the workflow
+      // errors mid-run (before the Respond to Webhook node fires), which causes
+      // res.json() to throw "Unexpected end of JSON input".
+      const text = await res.text();
+
+      if (!res.ok) {
+        throw new Error(`n8n webhook failed: ${res.status} ${text}`);
+      }
+
+      if (!text || !text.trim()) {
+        throw new Error(
+          "n8n workflow did not return a response. " +
+          "The workflow may have errored before reaching the Respond node. " +
+          "Check the n8n execution log for details."
+        );
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`n8n returned invalid JSON: ${text.slice(0, 200)}`);
+      }
+
+      return data;
+    } catch (err) {
+      lastError = err;
+      console.warn(`[Extractor Workflow] Attempt ${attempt}/${maxAttempts} failed: ${err.message}`);
+      if (attempt < maxAttempts) {
+        const delay = attempt * 3000;
+        console.log(`[Extractor Workflow] Retrying in ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
   }
+
+  console.error("Workflow repo error after retries:", lastError);
+  throw lastError;
 }
 
 export async function insertExtractorRepo(group_id, extractedData, fileMeta = null) {
@@ -72,22 +105,22 @@ export async function insertExtractorRepo(group_id, extractedData, fileMeta = nu
       .insert([
         {
           group_id: group_id,
-          title,
-          abstract,
-          introduction,
-          literature_review,  // clean DB column
-          methodology,
-          discussion,
-          results,
-          conclusion,
-          keywords,
+          title:             clean(title),
+          abstract:          clean(abstract),
+          introduction:      clean(introduction),
+          literature_review: clean(literature_review),  // clean DB column
+          methodology:       clean(methodology),
+          discussion:        clean(discussion),
+          results:           clean(results),
+          conclusion:        clean(conclusion),
+          keywords:          clean(keywords),
           file_url: fileMeta?.fileUrl || null,
           file_name: fileMeta?.fileName || null,
         },
       ])
       .select()
       .single();
-    // const data = {yay:group_id}
+
     if (error) {
       throw new Error("Failed to insert extractor result: " + error.message);
     }
@@ -102,11 +135,29 @@ export async function insertExtractorRepo(group_id, extractedData, fileMeta = nu
 const EXTRACTOR_BUCKET = process.env.SUPABASE_EXTRACTOR_BUCKET || "extractor-files";
 
 /**
- * Uploads the original PDF to Supabase Storage so it survives page refreshes
- * (previously only the extracted text fields were persisted).
+ * Uploads the original PDF to Cloudflare R2 (or Supabase Storage as fallback)
+ * so it survives page refreshes and avoids Supabase database / storage limits.
  */
 export async function uploadExtractorFileToStorage(group_id, file, filename) {
   const safeName = (filename || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const r2Key = `catalyst/${group_id}/${Date.now()}-${safeName}`;
+
+  if (isR2Configured) {
+    try {
+      await uploadPdfToR2(file, r2Key, "application/pdf");
+      const publicBase = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
+      const fileUrl = publicBase
+        ? `${publicBase}/${r2Key}`
+        : `/api/extractor/file/view?key=${encodeURIComponent(r2Key)}`;
+
+      console.info(`[extractor] Uploaded "${filename}" to Cloudflare R2 (${r2Key})`);
+      return { fileUrl, fileName: filename || safeName, r2Key };
+    } catch (r2Err) {
+      console.warn("[extractor] R2 upload failed, falling back to Supabase Storage:", r2Err.message);
+    }
+  }
+
+  // Graceful fallback to Supabase Storage
   const path = `${group_id}/${Date.now()}-${safeName}`;
 
   const doUpload = () =>
@@ -152,6 +203,7 @@ export async function getExtractorDataByGroupIdRepo(groupId) {
     throw err;
   }
 }
+
 export async function getExtractedDataByIdRepo(id) {
   try {
     const { data, error } = await supabase

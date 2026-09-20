@@ -3,20 +3,34 @@ import supabase from "../../common/config/supabaseClient.js";
 
 export async function triggerTopicSuggesterWorkflow(data) {
     const webhookUrl = process.env.N8N_TOPIC_PROD_WEBHOOK_URL;
-    // const webhookUrl = process.env.N8N_TOPIC_TEST_WEBHOOK_URL;
+    const maxAttempts = 3;
+    let lastError;
 
-    const res = await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to trigger workflow: ${res.status} - ${errorText}`);
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const res = await fetch(webhookUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Failed to trigger workflow: ${res.status} - ${errorText}`);
+            }
+            const result = await res.json();
+            return result;
+        } catch (err) {
+            lastError = err;
+            console.warn(`[Topic Workflow] Attempt ${attempt}/${maxAttempts} failed: ${err.message}`);
+            if (attempt < maxAttempts) {
+                const delay = attempt * 3000;
+                console.log(`[Topic Workflow] Retrying in ${delay}ms...`);
+                await new Promise((r) => setTimeout(r, delay));
+            }
+        }
     }
-    const result = await res.json();
-    return result
 
+    throw lastError;
 }
 
 export async function insertDataToTopicRepository(group_id,topicResult){
