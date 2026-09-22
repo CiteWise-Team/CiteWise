@@ -31,24 +31,26 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
           onClick={onLogoClick}
         >
           <div
+            className="navbar-brand-icon-box"
             style={{
               width: "34px",
               height: "34px",
               borderRadius: "9px",
-              background: "#25253a",
-              border: "1px solid rgba(91,91,214,0.3)",
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06)",
               transition: "transform 0.25s ease, box-shadow 0.25s ease",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "scale(1.08) rotate(5deg)";
-              e.currentTarget.style.boxShadow = "0 0 16px rgba(91,91,214,0.35)";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "none";
-              e.currentTarget.style.boxShadow = "none";
+              e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.06)";
             }}
           >
             <img

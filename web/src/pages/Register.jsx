@@ -34,6 +34,9 @@ export default function Register() {
     setIsLoading(true);
     try {
       const data = await registerAPI({ email, password });
+      // Flag this as a newly registered user so the Guide Flow automatically welcomes them on first login
+      localStorage.setItem("citewise.newlyRegistered", "true");
+      localStorage.setItem("citewise.newlyRegisteredEmail", email.trim().toLowerCase());
       showFeedback({
         type: "success",
         title: "Account Created Successfully",

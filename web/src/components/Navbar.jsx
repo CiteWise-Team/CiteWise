@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import citeWiseLogo from "../assets/citewise-logo.png";
 import "../App.css";
 
@@ -52,16 +53,18 @@ export default function Navbar() {
           style={{ margin: 0, flexShrink: 0 }}
         >
           <span
+            className="navbar-brand-icon-box"
             aria-hidden="true"
             style={{
               width: "34px",
               height: "34px",
               borderRadius: "9px",
-              background: "#25253a",
-              border: "1px solid rgba(91, 91, 214, 0.35)",
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06)",
             }}
           >
             <img
@@ -193,111 +196,125 @@ export default function Navbar() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "24px",
-            background: "rgba(14, 12, 10, 0.75)",
-            backdropFilter: "blur(8px)",
+            padding: "20px",
+            background: "rgba(15, 14, 23, 0.65)",
           }}
         >
           <div
-            className="logout-confirm-modal"
+            className="logout-confirm-modal workspace-create-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="logout-confirm-title"
             onClick={(event) => event.stopPropagation()}
             style={{
               width: "min(100%, 420px)",
-              padding: "28px",
-              border: "1px solid #3a3a55",
-              borderRadius: "16px",
-              background: "#25253a",
-              color: "#e4e4f0",
-              fontFamily: "'Poppins', sans-serif",
-              textAlign: "center",
-              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
+              background: "#ffffff",
+              borderRadius: "18px",
+              overflow: "hidden",
+              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.22)",
+              border: "none",
+              outline: "none",
+              textAlign: "left",
             }}
           >
+            {/* Modal Header */}
             <div
+              className="workspace-create-header text-white"
               style={{
-                width: "64px",
-                height: "64px",
-                margin: "0 auto 16px",
+                minHeight: "auto",
+                padding: "20px 24px",
+                background: "linear-gradient(135deg, #ea580c, #c2410c)",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "1px solid #e5544b",
-                borderRadius: "50%",
-                background: "rgba(229, 84, 75, 0.14)",
-                color: "#e5544b",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                border: "none",
+                outline: "none",
+                borderRadius: "18px 18px 0 0",
               }}
             >
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M10.3 3.3 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.3a2 2 0 0 0-3.4 0Z" />
-                <path d="M12 9v4" />
-                <path d="M12 17h.01" />
-              </svg>
+              <div className="workspace-create-header-content">
+                <p
+                  className="workspace-create-kicker logout-kicker"
+                  style={{
+                    margin: "0 0 3px",
+                    color: "#f3f4f6",
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: "0.68rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Session Sign-Out
+                </p>
+                <h5
+                  id="logout-confirm-title"
+                  className="mb-0 fw-bold"
+                  style={{ color: "#ffffff", fontFamily: "'Poppins', sans-serif", fontSize: "1.18rem", fontWeight: 700, margin: 0 }}
+                >
+                  Log out of {appName}?
+                </h5>
+              </div>
+              <div
+                className="logout-header-mark"
+                aria-hidden="true"
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  border: "1.5px solid #ffffff",
+                  background: "rgba(154, 52, 18, 0.55)",
+                  display: "grid",
+                  placeItems: "center",
+                  color: "#ffffff",
+                  boxShadow: "0 2px 10px rgba(0, 0, 0, 0.15)",
+                  backdropFilter: "none",
+                  WebkitBackdropFilter: "none",
+                  flexShrink: 0,
+                }}
+              >
+                <LogOut size={18} strokeWidth={2.4} color="#ffffff" stroke="#ffffff" />
+              </div>
             </div>
-            <h2 id="logout-confirm-title" style={{ margin: "0 0 8px", fontSize: "1.15rem", fontWeight: 700 }}>
-              Log out of {appName}?
-            </h2>
-            <p style={{ margin: "0 0 24px", color: "#a1a1b5", fontSize: "0.85rem", lineHeight: 1.6 }}>
-              You will need to sign in again to access your {isCiteWise ? "session." : "workspaces."}
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+
+            {/* Modal Body - Matching Delete Modal font style and font color */}
+            <div className="workspace-create-body" style={{ padding: "26px 24px 24px", background: "#ffffff" }}>
+              <p
+                style={{
+                  margin: 0,
+                  color: "#4b5563",
+                  fontSize: "0.92rem",
+                  lineHeight: 1.6,
+                  fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif',
+                  fontWeight: 400,
+                }}
+              >
+                Are you sure you want to log out? You will need to sign in again to access your {isCiteWise ? "session." : "workspaces."}
+              </p>
+            </div>
+
+            {/* Modal Actions */}
+            <div
+              style={{
+                padding: "0 24px 24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: "10px",
+                background: "#ffffff",
+              }}
+            >
               <button
                 type="button"
-                className="logout-modal-button logout-modal-cancel"
+                className="workspace-modal-button workspace-modal-cancel"
                 onClick={() => setShowLogoutConfirm(false)}
-                style={{
-                  padding: "9px 12px",
-                  border: "1px solid #3a3a55",
-                  borderRadius: "10px",
-                  background: "transparent",
-                  color: "#e4e4f0",
-                  fontFamily: "'Poppins', sans-serif",
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
-                }}
-                onMouseEnter={(event) => {
-                  event.currentTarget.style.background = "rgba(91, 91, 214, 0.14)";
-                  event.currentTarget.style.borderColor = "#5b5bd6";
-                  event.currentTarget.style.color = "#a5b4fc";
-                }}
-                onMouseLeave={(event) => {
-                  event.currentTarget.style.background = "transparent";
-                  event.currentTarget.style.borderColor = "#3a3a55";
-                  event.currentTarget.style.color = "#e4e4f0";
-                }}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className="logout-modal-button logout-modal-submit"
+                className="workspace-modal-button workspace-modal-submit"
                 onClick={handleLogout}
-                style={{
-                  padding: "9px 12px",
-                  border: "1px solid #e5544b",
-                  borderRadius: "10px",
-                  background: "#e5544b",
-                  color: "#fff",
-                  fontFamily: "'Poppins', sans-serif",
-                  fontSize: "0.8rem",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
-                }}
-                onMouseEnter={(event) => {
-                  event.currentTarget.style.background = "#ff6f66";
-                  event.currentTarget.style.borderColor = "#ff6f66";
-                  event.currentTarget.style.color = "#fff";
-                }}
-                onMouseLeave={(event) => {
-                  event.currentTarget.style.background = "#e5544b";
-                  event.currentTarget.style.borderColor = "#e5544b";
-                  event.currentTarget.style.color = "#fff";
-                }}
               >
                 Log out
               </button>

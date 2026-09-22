@@ -25,10 +25,12 @@
 }
 
 .logout-confirm-modal {
-  border: 1px solid #45458a !important;
+  border: none !important;
+  outline: none !important;
   border-radius: 18px !important;
-  background: linear-gradient(145deg, #292945, #1e1e2f) !important;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55), 0 0 42px rgba(91, 91, 214, 0.14) !important;
+  background: #ffffff !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22) !important;
+  overflow: hidden !important;
 }
 
 .logout-modal-button {
@@ -38,37 +40,39 @@
   font-family: "Poppins", sans-serif !important;
   font-size: 0.9rem !important;
   font-weight: 600 !important;
-  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease !important;
+  cursor: pointer !important;
+  transition: all 180ms ease !important;
 }
 
 .logout-modal-cancel {
-  border: 1px solid #45456a !important;
+  border: 1px solid #d1d5db !important;
   background: transparent !important;
-  color: #e4e4f0 !important;
+  color: #4b5563 !important;
 }
 
 .logout-modal-cancel:hover,
 .logout-modal-cancel:focus-visible {
-  border-color: #7777e8 !important;
-  background: rgba(91, 91, 214, 0.14) !important;
-  color: #fff !important;
-  transform: translateY(-2px);
+  border-color: #ea580c !important;
+  background: rgba(234, 88, 12, 0.08) !important;
+  color: #0f0e17 !important;
+  transform: translateY(-2px) !important;
 }
 
 .logout-modal-submit {
-  border: 1px solid #7777e8 !important;
-  background: linear-gradient(135deg, #5b5bd6, #4a4ac2) !important;
-  color: #fff !important;
-  box-shadow: 0 0 24px -8px rgba(91, 91, 214, 0.45);
+  border: 1px solid #ea580c !important;
+  background: #ea580c !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.28) !important;
 }
 
 .logout-modal-submit:hover,
 .logout-modal-submit:focus-visible {
-  border-color: #a5b4fc !important;
-  background: linear-gradient(135deg, #7777e8, #5b5bd6) !important;
-  color: #fff !important;
-  box-shadow: 0 14px 34px -8px rgba(91, 91, 214, 0.7) !important;
-  transform: translateY(-2px);
+  border-color: #c2410c !important;
+  background: #c2410c !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.4) !important;
 }
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
@@ -90,10 +94,6 @@
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
   }
-}
-
-.card {
-  padding: 2em;
 }
 
 .read-the-docs {

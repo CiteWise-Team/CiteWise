@@ -18,12 +18,13 @@ export default function FeedbackModal({ isOpen, type, title, message, onClose })
         <div
           className="modal-content text-center p-4"
           style={{
-            backgroundColor: "#25253a",
-            border: "1px solid #3a3a55",
+            backgroundColor: "#ffffff",
+            border: "none",
+            outline: "none",
             borderRadius: "16px",
-            color: "#e4e4f0",
+            color: "#4b5563",
             fontFamily: "'Poppins', sans-serif",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.45)",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.15)",
           }}
         >
 
@@ -33,10 +34,10 @@ export default function FeedbackModal({ isOpen, type, title, message, onClose })
             style={{
               width: 64,
               height: 64,
-              backgroundColor: isSuccess ? "rgba(91, 91, 214, 0.1)" : "rgba(229, 84, 75, 0.14)",
-              border: `1px solid ${isSuccess ? "#5b5bd6" : "#e5544b"}`,
-              color: isSuccess ? "#5b5bd6" : "#e5544b",
-              boxShadow: isSuccess ? "0 0 20px rgba(91, 91, 214, 0.14)" : "none",
+              backgroundColor: isSuccess ? "rgba(234, 88, 12, 0.12)" : "rgba(242, 95, 76, 0.14)",
+              border: `1px solid ${isSuccess ? "#ea580c" : "#f25f4c"}`,
+              color: isSuccess ? "#ea580c" : "#f25f4c",
+              boxShadow: isSuccess ? "0 0 20px rgba(234, 88, 12, 0.2)" : "none",
             }}
           >
             {isSuccess ? (
@@ -53,19 +54,19 @@ export default function FeedbackModal({ isOpen, type, title, message, onClose })
           </div>
 
           {/* Text */}
-          <h5 className="fw-bold" style={{ color: "#e4e4f0" }}>{title}</h5>
-          <p className="mb-4" style={{ color: "#a1a1b5" }}>{message}</p>
+          <h5 className="fw-bold" style={{ color: "#0f0e17" }}>{title}</h5>
+          <p className="mb-4" style={{ color: "#4b5563" }}>{message}</p>
 
           {/* OK Button */}
           <button
             className="btn px-5"
             style={{
-              backgroundColor: "#5b5bd6",
-              border: "1px solid #5b5bd6",
+              backgroundColor: "#ea580c",
+              border: "1px solid #ea580c",
               borderRadius: "10px",
-              color: "#fff",
+              color: "#ffffff",
               fontFamily: "'Poppins', sans-serif",
-              fontWeight: 600,
+              fontWeight: 700,
             }}
             onClick={onClose}
           >

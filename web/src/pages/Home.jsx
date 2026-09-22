@@ -207,7 +207,7 @@ export default function Home() {
           <div className="intro-split reveal">
             <div className="intro-heading">
               <h2 className="section-title" style={{ fontSize: "clamp(1.6rem, 2.6vw, 2.2rem)" }}>
-                Designed for modern <span style={{ color: "#8b85f0" }}>research</span> workflows
+                Designed for modern <span style={{ color: "#ea580c" }}>research</span> workflows
               </h2>
             </div>
             <div className="intro-copy">

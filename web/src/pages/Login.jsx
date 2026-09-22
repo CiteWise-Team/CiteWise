@@ -38,6 +38,18 @@ export default function Login() {
       if (data.refresh_token) {
         localStorage.setItem("refresh_token", data.refresh_token);
       }
+
+      // Check if this user was newly registered to trigger Guide Flow on their very first time
+      const isNewlyRegistered = localStorage.getItem("citewise.newlyRegistered") === "true";
+      const registeredEmail = localStorage.getItem("citewise.newlyRegisteredEmail");
+      const loggedInEmail = (data.user?.email || email || "").trim().toLowerCase();
+
+      if (isNewlyRegistered && (!registeredEmail || registeredEmail === loggedInEmail)) {
+        localStorage.setItem(`citewise.guidePending.${data.user.id}`, "true");
+      }
+      localStorage.removeItem("citewise.newlyRegistered");
+      localStorage.removeItem("citewise.newlyRegisteredEmail");
+
       setTimeout(() => navigate("/groups"), 600);
     } catch (err) {
       showFeedback({
