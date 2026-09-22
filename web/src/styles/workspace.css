@@ -34,6 +34,28 @@
   font-family: "Poppins", sans-serif;
 }
 
+.workflow-page .workflow-action-button {
+  min-height: 42px !important;
+  border: 1px solid #7777e8 !important;
+  border-radius: 12px !important;
+  padding: 0.65rem 1.5rem !important;
+  background: linear-gradient(135deg, #5b5bd6, #4a4ac2) !important;
+  color: #fff !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  box-shadow: 0 0 24px -8px rgba(91, 91, 214, 0.45) !important;
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease !important;
+}
+
+.workflow-page .workflow-action-button:hover,
+.workflow-page .workflow-action-button:focus-visible {
+  border-color: #a5b4fc !important;
+  background: linear-gradient(135deg, #7777e8, #5b5bd6) !important;
+  box-shadow: 0 14px 34px -8px rgba(91, 91, 214, 0.7), 0 0 34px -10px rgba(165, 180, 252, 0.75) !important;
+  color: #fff !important;
+  transform: translateY(-2px) !important;
+}
+
 .workflow-shell {
   width: 100%;
   box-sizing: border-box;
@@ -99,16 +121,18 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  border: 1px solid #45458a;
-  border-radius: 9px;
-  padding: 8px 13px;
-  background: rgba(91, 91, 214, 0.12);
+  min-height: 42px;
+  border: 1px solid #7777e8;
+  border-radius: 12px;
+  padding: 0.65rem 1.5rem;
+  background: linear-gradient(135deg, #5b5bd6, #4a4ac2);
   color: #fff;
   font-family: "Poppins", sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  box-shadow: 0 0 24px -8px rgba(91, 91, 214, 0.45);
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 .workflow-guide-button span {
@@ -116,7 +140,7 @@
   width: 19px;
   height: 19px;
   place-items: center;
-  border: 1px solid currentColor;
+  border: 1px solid #fff;
   border-radius: 50%;
   font-size: 0.7rem;
   line-height: 1;
@@ -124,9 +148,9 @@
 
 .workflow-guide-button:hover,
 .workflow-guide-button:focus-visible {
-  border-color: #8b85f0;
-  background: #5b5bd6;
-  color: #fff;
+  border-color: #a5b4fc;
+  background: linear-gradient(135deg, #7777e8, #5b5bd6);
+  box-shadow: 0 14px 34px -8px rgba(91, 91, 214, 0.7), 0 0 34px -10px rgba(165, 180, 252, 0.75);
   transform: translateY(-2px);
 }
 

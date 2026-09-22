@@ -142,7 +142,7 @@ export default function SearcherInput({
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
-          <button className="btn btn-primary" onClick={addKeyword}>
+          <button className="btn btn-primary workflow-action-button" onClick={addKeyword}>
             Add
           </button>
         </div>
@@ -171,7 +171,7 @@ export default function SearcherInput({
           onChange={(e) => setInstructions(e.target.value)}
         />
 
-        <button className="btn btn-primary w-100" onClick={onRun}>
+        <button className="btn btn-primary workflow-action-button w-100" onClick={onRun}>
           Run Workflow
         </button>
       </div>

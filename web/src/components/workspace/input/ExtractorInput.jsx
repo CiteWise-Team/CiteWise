@@ -200,7 +200,7 @@ export default function InputPanel({ setResult }) {
 
             <button
               type="button"
-              className="btn mt-2"
+              className="btn workflow-action-button mt-2"
               style={{
                 backgroundColor: "#5b5bd6",
                 color: "#fff",
@@ -264,7 +264,7 @@ export default function InputPanel({ setResult }) {
             <button
               onClick={handleRunWorkflow}
               disabled={loading}
-              className="btn"
+              className="btn workflow-action-button"
               style={{
                 backgroundColor: "#5b5bd6",
                 color: "#fff",

@@ -241,7 +241,7 @@ export default function SummarizerInput({ setResult }) {
             <button
               onClick={handleRunWorkflow}
               disabled={running}
-              className="btn"
+              className="btn workflow-action-button"
               style={{
                 backgroundColor: "#5b5bd6",
                 color: "#fff",

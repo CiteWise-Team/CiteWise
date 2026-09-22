@@ -137,7 +137,7 @@ export default function CiteWiseApp() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#16162a", textAlign: "left" }}>
+    <div className="citewise-app-shell" style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#16162a", textAlign: "left" }}>
 
       <GlobalNavigationBar
         currentStep={step}

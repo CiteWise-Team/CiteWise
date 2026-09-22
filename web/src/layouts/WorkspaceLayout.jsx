@@ -46,18 +46,36 @@ function getGuideSteps(currentStep) {
     },
     { target: "workflow-input", title: copy.inputTitle, description: copy.inputDescription },
     { target: "workflow-results", title: copy.resultsTitle, description: copy.resultsDescription },
+    {
+      target: "workflow-guide-button",
+      title: "Find the Guide anytime",
+      description: "Use this button whenever you need a quick explanation of the current workflow section.",
+    },
   ];
 
-  if (["summarizer", "gap", "topic"].includes(currentStep)) return steps.slice(2);
+  if (["summarizer", "gap", "topic"].includes(currentStep)) return steps.slice(2, 4);
   return steps;
 }
 
 export default function WorkflowLayout({ children, currentStep = "extractor" }) {
-  const { groupName } = useGroup();
-  const [guideStep, setGuideStep] = useState(-1);
+  const { groupId, groupName } = useGroup();
+  const [guideStep, setGuideStep] = useState(() => (
+    currentStep === "extractor"
+      && groupId
+      && localStorage.getItem("catalyst.firstWorkspaceGuidePending") === String(groupId)
+      ? 0
+      : -1
+  ));
   const [spotlight, setSpotlight] = useState(null);
   const guideOpen = guideStep >= 0;
   const guideSteps = getGuideSteps(currentStep);
+
+  useEffect(() => {
+    if (currentStep !== "extractor" || !groupId) return;
+    if (localStorage.getItem("catalyst.firstWorkspaceGuidePending") !== String(groupId)) return;
+
+    localStorage.removeItem("catalyst.firstWorkspaceGuidePending");
+  }, [currentStep, groupId]);
 
   useEffect(() => {
     if (!guideOpen) return undefined;
@@ -118,7 +136,7 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
               Process a document through extraction, summarization, gap analysis, and topic discovery.
             </p>
           </div>
-          <button type="button" className="workflow-guide-button" onClick={() => setGuideStep(0)}>
+          <button type="button" className="workflow-guide-button" data-guide="workflow-guide-button" onClick={() => setGuideStep(0)}>
             <span aria-hidden="true">?</span>
             Guide
           </button>

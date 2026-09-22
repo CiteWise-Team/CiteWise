@@ -57,6 +57,9 @@ export default function Groups() {
       };
 
       setGroups((prev) => [...prev, normalized]);
+      if (groups.filter((group) => group.is_active === true || group.is_active === 1).length === 0) {
+        localStorage.setItem("catalyst.firstWorkspaceGuidePending", String(normalized.id));
+      }
 
       const modalEl = document.getElementById("createGroupModal");
       const modal = Modal.getInstance(modalEl) || new Modal(modalEl);

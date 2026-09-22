@@ -28,76 +28,60 @@ export default function CreateGroupModal({ onSubmit }) {
       tabIndex="-1"
       aria-hidden="true"
     >
-      <div className="modal-dialog modal-dialog-centered modal-lg">
-        <div className="modal-content border-0 rounded-4 overflow-hidden">
+      <div className="modal-dialog modal-dialog-centered modal-lg workspace-create-dialog">
+        <div className="modal-content workspace-create-modal border-0 overflow-hidden">
 
           {/* Modal Header (Navbar-like) */}
-          <div
-            className="px-4 py-3 text-white"
-            style={{ backgroundColor: "#5b5bd6" }}
-          >
-            <h5 className="mb-0 fw-bold">Create Workspace</h5>
+          <div className="workspace-create-header text-white">
+            <div>
+              <p className="workspace-create-kicker">New research space</p>
+              <h5 className="mb-0 fw-bold">Create Workspace</h5>
+            </div>
+            <span className="workspace-create-header-mark" aria-hidden="true">+</span>
           </div>
 
           {/* Modal Body */}
           <div
-            className="p-4"
-            style={{
-              backgroundColor: "#25253a",
-            }}
+            className="workspace-create-body"
           >
             <form onSubmit={handleSubmit}>
               {/* Name */}
               <div className="mb-3">
-                <label className="form-label fw-bold" style={{ color: "#e4e4f0" }}>Workspace Name</label>
+                <label className="form-label workspace-create-label">Workspace Name</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-control workspace-create-field"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  style={{
-                    backgroundColor: "#1e1e2f",
-                    color: "#e4e4f0",
-                    border: "1px solid #3a3a55",
-                  }}
                 />
               </div>
 
               {/* Description */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#e4e4f0" }}>Description</label>
+                <label className="form-label workspace-create-label">Description</label>
                 <textarea
-                  className="form-control"
+                  className="form-control workspace-create-field"
                   rows="3"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  style={{
-                    backgroundColor: "#1e1e2f",
-                    color: "#e4e4f0",
-                    border: "1px solid #3a3a55",
-                  }}
                 />
               </div>
 
               {/* Color Picker */}
               <div className="mb-4">
-                <label className="form-label fw-bold" style={{ color: "#e4e4f0" }}>Workspace Color</label>
+                <label className="form-label workspace-create-label">Workspace Color</label>
                 <div className="d-flex gap-3 flex-wrap">
                   {COLORS.map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => setColor(c)}
-                      className="border-0 rounded-circle"
+                      className={`workspace-color-swatch${color === c ? " is-selected" : ""}`}
                       style={{
                         width: 36,
                         height: 36,
                         backgroundColor: c,
-                        outline:
-                          color === c
-                            ? "3px solid #5b5bd6"
-                            : "2px solid rgba(255,255,255,0.2)",
                       }}
                     />
                   ))}
@@ -108,16 +92,14 @@ export default function CreateGroupModal({ onSubmit }) {
               <div className="d-flex justify-content-end gap-2">
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
+                  className="workspace-modal-button workspace-modal-cancel"
                   data-bs-dismiss="modal"
-                  style={{ color: "#e4e4f0", borderColor: "#3a3a55" }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn text-white"
-                  style={{ backgroundColor: "#5b5bd6" }}
+                  className="workspace-modal-button workspace-modal-submit"
                 >
                   Create Group
                 </button>
