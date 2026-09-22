@@ -12,7 +12,8 @@ export default function Navbar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const isCiteWise = location.pathname.startsWith("/citewise");
-  const isCatalyst = location.pathname === "/groups"
+  const isCatalyst = location.pathname === "/"
+    || location.pathname === "/groups"
     || location.pathname.startsWith("/workspace/")
     || location.pathname === "/upload";
   const appName = isCatalyst ? "CATalyst" : "CiteWise";
@@ -46,7 +47,7 @@ export default function Navbar() {
         }}
       >
         <Link
-          to="/"
+          to={isAuthenticated ? "/groups" : "/login"}
           className="navbar-brand text-decoration-none d-flex align-items-center gap-2"
           style={{ margin: 0, flexShrink: 0 }}
         >
@@ -198,6 +199,7 @@ export default function Navbar() {
           }}
         >
           <div
+            className="logout-confirm-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="logout-confirm-title"
@@ -243,6 +245,7 @@ export default function Navbar() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               <button
                 type="button"
+                className="logout-modal-button logout-modal-cancel"
                 onClick={() => setShowLogoutConfirm(false)}
                 style={{
                   padding: "9px 12px",
@@ -271,6 +274,7 @@ export default function Navbar() {
               </button>
               <button
                 type="button"
+                className="logout-modal-button logout-modal-submit"
                 onClick={handleLogout}
                 style={{
                   padding: "9px 12px",

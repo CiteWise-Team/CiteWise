@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 
 import { IoIosAddCircle } from "react-icons/io";
 import { FaLink } from "react-icons/fa";
+import { Search, X } from "lucide-react";
 
 const MIN_GROUPS_LOADING_MS = 450;
 const LOADING_COMPLETION_HOLD_MS = 140;
@@ -29,6 +30,7 @@ export default function Groups() {
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(8);
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [workspaceQuery, setWorkspaceQuery] = useState("");
 
   const { config, showFeedback, hideFeedback } = useFeedbackModal();
 
@@ -209,6 +211,11 @@ export default function Groups() {
   }, [id]);
 
   const activeGroups = groups.filter((g) => g.is_active === true || g.is_active === 1);
+  const filteredGroups = activeGroups.filter((group) => {
+    const query = workspaceQuery.trim().toLowerCase();
+    if (!query) return true;
+    return `${group.name || ""} ${group.description || ""}`.toLowerCase().includes(query);
+  });
 
   return (
     <GroupsLayout>
@@ -229,8 +236,28 @@ export default function Groups() {
 
         {/* Groups List */}
         <div className="groups-section-heading">
-          <h2>Workspaces</h2>
-          <span>Choose a space to continue your research</span>
+          <div className="workspace-search-wrap">
+            <Search size={18} aria-hidden="true" />
+            <input
+              type="search"
+              value={workspaceQuery}
+              onChange={(event) => setWorkspaceQuery(event.target.value)}
+              placeholder="Search workspaces by name or topic..."
+              aria-label="Search workspaces by name or topic"
+            />
+            {workspaceQuery && (
+              <button
+                type="button"
+                className="workspace-search-clear"
+                onClick={() => setWorkspaceQuery("")}
+                aria-label="Clear workspace search"
+                title="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          <span>{filteredGroups.length} {filteredGroups.length === 1 ? "workspace" : "workspaces"}</span>
         </div>
 
         <div className="row g-4 groups-grid">
@@ -267,8 +294,17 @@ export default function Groups() {
                 <IoIosAddCircle size={18} /> Create workspace
               </button>
             </div>
+          ) : filteredGroups.length === 0 ? (
+            <div className="groups-empty-state groups-search-empty-state">
+              <div className="groups-empty-icon"><Search size={24} /></div>
+              <h3>No matching workspaces</h3>
+              <p>Try another workspace name or research topic.</p>
+              <button className="groups-primary-action" onClick={() => setWorkspaceQuery("")}>
+                Clear search
+              </button>
+            </div>
           ) : (
-            activeGroups.map((group) => (
+            filteredGroups.map((group) => (
               <div className="col-xl-3 col-md-6" key={group.id}>
                 <GroupCard
                   name={group.name}

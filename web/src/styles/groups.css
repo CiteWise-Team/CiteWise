@@ -43,18 +43,25 @@
   margin: 0;
   color: #e4e4f0;
   font-family: "Poppins", sans-serif;
-  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  font-size: clamp(2rem, 3.4vw, 2.75rem);
   font-weight: 700;
   line-height: 1.2;
 }
 
 .groups-description {
-  max-width: 610px;
+  max-width: none;
   margin: 9px 0 0;
   color: #a1a1b5;
   font-family: "Poppins", sans-serif;
   font-size: 0.9rem;
+  white-space: nowrap;
   line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .groups-description {
+    white-space: normal;
+  }
 }
 
 .groups-summary {
@@ -78,10 +85,68 @@
 
 .groups-section-heading {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin: 30px 0 16px;
+}
+
+.workspace-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 560px);
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid #353550;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #202036, #1b1b2d);
+  color: #a5b4fc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 10px 24px rgba(0, 0, 0, 0.12);
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.workspace-search-wrap:focus-within {
+  border-color: #7777e8;
+  background: #25253f;
+  box-shadow: 0 0 0 3px rgba(91, 91, 214, 0.16), 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.workspace-search-wrap input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #e4e4f0;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.82rem;
+}
+
+.workspace-search-wrap input::placeholder {
+  color: #85859e;
+}
+
+.workspace-search-clear {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  min-height: 28px !important;
+  flex: 0 0 28px;
+  place-items: center;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: #9696ad !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.workspace-search-clear:hover,
+.workspace-search-clear:focus-visible {
+  background: rgba(91, 91, 214, 0.22) !important;
+  color: #fff !important;
 }
 
 .groups-section-heading h2 {
@@ -383,6 +448,10 @@
   border-radius: 14px;
   background: rgba(30, 30, 47, 0.55);
   text-align: center;
+}
+
+.groups-search-empty-state {
+  min-height: 230px;
 }
 
 .groups-empty-icon {
@@ -818,6 +887,10 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 5px;
+  }
+
+  .workspace-search-wrap {
+    width: 100%;
   }
 
   .fab {

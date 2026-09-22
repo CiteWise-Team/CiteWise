@@ -23,6 +23,53 @@
   letter-spacing: 0.5px;
   color: #e6f4ff;
 }
+
+.logout-confirm-modal {
+  border: 1px solid #45458a !important;
+  border-radius: 18px !important;
+  background: linear-gradient(145deg, #292945, #1e1e2f) !important;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55), 0 0 42px rgba(91, 91, 214, 0.14) !important;
+}
+
+.logout-modal-button {
+  min-height: 42px !important;
+  border-radius: 12px !important;
+  padding: 0.65rem 1.5rem !important;
+  font-family: "Poppins", sans-serif !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease !important;
+}
+
+.logout-modal-cancel {
+  border: 1px solid #45456a !important;
+  background: transparent !important;
+  color: #e4e4f0 !important;
+}
+
+.logout-modal-cancel:hover,
+.logout-modal-cancel:focus-visible {
+  border-color: #7777e8 !important;
+  background: rgba(91, 91, 214, 0.14) !important;
+  color: #fff !important;
+  transform: translateY(-2px);
+}
+
+.logout-modal-submit {
+  border: 1px solid #7777e8 !important;
+  background: linear-gradient(135deg, #5b5bd6, #4a4ac2) !important;
+  color: #fff !important;
+  box-shadow: 0 0 24px -8px rgba(91, 91, 214, 0.45);
+}
+
+.logout-modal-submit:hover,
+.logout-modal-submit:focus-visible {
+  border-color: #a5b4fc !important;
+  background: linear-gradient(135deg, #7777e8, #5b5bd6) !important;
+  color: #fff !important;
+  box-shadow: 0 14px 34px -8px rgba(91, 91, 214, 0.7) !important;
+  transform: translateY(-2px);
+}
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
