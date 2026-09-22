@@ -35,10 +35,9 @@
 }
 
 .workflow-shell {
-  width: min(100%, 1400px);
-  margin: 0 auto;
+  width: 100%;
   box-sizing: border-box;
-  padding: 2rem 2.5rem 3rem;
+  padding: 2rem clamp(1rem, 2vw, 2rem) 3rem;
 }
 
 .workflow-breadcrumb {

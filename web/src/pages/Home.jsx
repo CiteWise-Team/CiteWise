@@ -91,7 +91,7 @@ export default function Home() {
             Literature Review
           </div>
 
-          <div className="container" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 2rem" }}>
+          <div className="container landing-full-width-content">
             <div className="hero-copy-wrap text-center reveal">
               <h1 className="hero-title-v2">
                 Discover research gaps

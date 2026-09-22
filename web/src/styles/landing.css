@@ -46,6 +46,19 @@ body{
 }
 .cat-landing > *{ position:relative; z-index:1; }
 
+/* Landing sections use the full viewport instead of Bootstrap's centered container caps. */
+.cat-landing .container {
+  width: 100%;
+  max-width: none;
+  padding-left: clamp(1rem, 2vw, 2rem);
+  padding-right: clamp(1rem, 2vw, 2rem);
+}
+
+.cat-landing .landing-full-width-content {
+  padding-left: clamp(1rem, 2vw, 2rem);
+  padding-right: clamp(1rem, 2vw, 2rem);
+}
+
 /* ---------- Typography ---------- */
 .eyebrow-label{
   font-family:'IBM Plex Mono', monospace;

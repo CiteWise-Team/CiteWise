@@ -735,10 +735,8 @@
       position: "relative",
     },
     gridContainer: {
-      maxWidth: 1400,
       width: "100%",
-      margin: "0 auto",
-      padding: "2rem 2.5rem 3rem",
+      padding: "2rem clamp(1rem, 2vw, 2rem) 3rem",
       boxSizing: "border-box",
       flex: 1,
       display: "grid",

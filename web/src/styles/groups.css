@@ -14,10 +14,8 @@
 
 .groups-page {
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
   box-sizing: border-box;
-  padding: 2rem 2.5rem 3rem;
+  padding: 2rem clamp(1rem, 2vw, 2rem) 3rem;
   color: #e4e4f0;
   text-align: left;
 }

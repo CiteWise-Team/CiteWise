@@ -584,7 +584,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   const readyCount = fileQueue.filter((item) => item.status === "queued").length;
 
   return (
-    <div style={{ maxWidth: 1400, width: "100%", margin: "0 auto", padding: "2rem 2.5rem 3rem", display: "flex", flexDirection: "column", gap: "2rem" }}>
+    <div style={{ width: "100%", padding: "2rem clamp(1rem, 2vw, 2rem) 3rem", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "2rem" }}>
       {styleInject}
 
       {duplicateToast.show && (

@@ -35,9 +35,8 @@ export default function Navbar() {
       <div
         className="container-fluid"
         style={{
-          maxWidth: 1400,
-          margin: "0 auto",
-          padding: "0 2.5rem",
+          width: "100%",
+          padding: "0 clamp(1rem, 2vw, 2rem)",
           height: "64px",
           display: "flex",
           alignItems: "center",
