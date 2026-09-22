@@ -1,9 +1,10 @@
 import { CiSettings } from "react-icons/ci";
 import { MdDelete } from "react-icons/md";
 import { FaPen } from "react-icons/fa";
+import { ArrowRight, FileSearch, PenLine, Target, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useGroup } from "../../context/GroupContext.jsx";
-import { useState } from "react";
+import { createElement, useState } from "react";
 import { Modal } from "bootstrap";
 import ConfirmModal from "../modals/ConfirmModal";
 import TopicSelectModal from "../modals/TopicSelectModal";
@@ -21,6 +22,7 @@ export default function GroupCard({
   const { enterGroup } = useGroup();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [showLauncher, setShowLauncher] = useState(false);
 
   // Topic picker state
   const [showTopicPicker, setShowTopicPicker] = useState(false);
@@ -28,8 +30,32 @@ export default function GroupCard({
   const [pickerGaps, setPickerGaps] = useState([]);
 
   function handleEnter() {
+    localStorage.setItem(gk("gapVisited"), "true");
     enterGroup({ id: group_id, name, color });
     navigate(`/workspace/${group_id}`);
+  }
+
+  function handleCardKeyDown(event) {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setShowLauncher(true);
+    }
+  }
+
+  function getProgressState() {
+    const hasCiteWiseSession = Boolean(localStorage.getItem(gk("sessionId")));
+    const savedStep = Number.parseInt(localStorage.getItem(gk("maxUnlockedStep")), 10);
+    const maxStep = Number.isNaN(savedStep) ? 0 : savedStep;
+
+    if (maxStep >= 2) return "smart";
+    if (hasCiteWiseSession || maxStep >= 1) return "introduction";
+    return localStorage.getItem(gk("gapVisited")) === "true" ? "gap" : "new";
+  }
+
+  function openWorkspaceLauncher() {
+    setDropdownOpen(false);
+    setShowLauncher(true);
   }
 
   // Returns the scoped localStorage key for this group.
@@ -113,9 +139,57 @@ export default function GroupCard({
 
   const headerColor = color || "#5b5bd6";
   const headerGradient = `linear-gradient(135deg, ${headerColor}e6, ${headerColor}99)`;
+  const progressState = getProgressState();
 
   return (
     <>
+      {showLauncher && (
+        <div className="workspace-launcher" role="presentation" onClick={() => setShowLauncher(false)}>
+          <section
+            className="workspace-launcher-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Workspace tools"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="workspace-launcher-close"
+              aria-label="Close workspace menu"
+              onClick={() => setShowLauncher(false)}
+            >
+              <X size={18} />
+            </button>
+
+            <div className="workspace-launcher-options">
+              <WorkspaceOption
+                icon={FileSearch}
+                title="Gap Extractor"
+                description="Find research gaps and organize evidence with CATalyst."
+                active={progressState === "gap"}
+                onClick={handleEnter}
+              />
+              <WorkspaceOption
+                icon={PenLine}
+                title="Introduction Drafting"
+                description="Turn your selected evidence into a focused introduction with CiteWise."
+                active={progressState === "introduction"}
+                disabled={progressState !== "introduction"}
+                loading={importing}
+                onClick={handleOpenCiteWise}
+              />
+              <WorkspaceOption
+                icon={Target}
+                title="SMART Goals Generation"
+                description="Translate your research direction into clear, measurable goals."
+                active={progressState === "smart"}
+                disabled
+                onClick={() => {}}
+              />
+            </div>
+          </section>
+        </div>
+      )}
       {showTopicPicker && (
         <TopicSelectModal
           topics={pickerTopics}
@@ -127,7 +201,12 @@ export default function GroupCard({
       )}
 
       <div
-        className="card border-0 rounded-4 shadow-sm overflow-hidden h-100"
+        className="card border-0 rounded-4 shadow-sm overflow-hidden h-100 workspace-card"
+        role="button"
+        tabIndex={0}
+        aria-label={`Open ${name} workspace tools`}
+        onClick={openWorkspaceLauncher}
+        onKeyDown={handleCardKeyDown}
         style={{ backgroundColor: "#1e1e2f" }}
       >
         {/* Header */}
@@ -140,7 +219,7 @@ export default function GroupCard({
             <button
               className="btn btn-sm text-light"
               aria-label={`Settings for ${name}`}
-              onClick={() => setDropdownOpen(!dropdownOpen)}
+              onClick={(event) => { event.stopPropagation(); setDropdownOpen(!dropdownOpen); }}
             >
               <CiSettings />
             </button>
@@ -158,7 +237,7 @@ export default function GroupCard({
                 <div
                   className="d-flex align-items-center p-1 hover-bg"
                   style={{ cursor: "pointer", color: "#e4e4f0", fontFamily: "'Poppins', sans-serif" }}
-                  onClick={() => { setDropdownOpen(false); onEdit?.(); }}
+                  onClick={(event) => { event.stopPropagation(); setDropdownOpen(false); onEdit?.(); }}
                 >
                   <FaPen className="me-2" />
                   Edit
@@ -166,7 +245,7 @@ export default function GroupCard({
                 <div
                   className="d-flex align-items-center p-1 hover-bg mt-1"
                   style={{ cursor: "pointer", color: "#e5544b", fontFamily: "'Poppins', sans-serif" }}
-                  onClick={() => { setDropdownOpen(false); openDeleteModal(); }}
+                  onClick={(event) => { event.stopPropagation(); setDropdownOpen(false); openDeleteModal(); }}
                 >
                   <MdDelete className="me-2" />
                   Delete
@@ -187,69 +266,9 @@ export default function GroupCard({
             {description || "No description"}
           </div>
 
-          <button
-            type="button"
-            onClick={handleEnter}
-            title="Enter this group to run research workflows"
-            aria-label={`Enter ${name} and run research workflows`}
-            className="btn w-100 fw-bold mt-auto"
-            style={{
-              backgroundColor: "transparent",
-              border: "1px solid #3a3a55",
-              color: "#a5b4fc",
-              borderRadius: "10px",
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "0.82rem",
-              transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease",
-            }}
-            onMouseEnter={(event) => {
-              event.currentTarget.style.background = "rgba(91, 91, 214, 0.14)";
-              event.currentTarget.style.borderColor = "#5b5bd6";
-              event.currentTarget.style.color = "#e4e4f0";
-              event.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(event) => {
-              event.currentTarget.style.background = "transparent";
-              event.currentTarget.style.borderColor = "#3a3a55";
-              event.currentTarget.style.color = "#a5b4fc";
-              event.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            Enter Group
-          </button>
-
-          <button
-            type="button"
-            onClick={handleOpenCiteWise}
-            disabled={importing}
-            title="Open this workspace in CiteWise"
-            aria-label={`Open ${name} in CiteWise`}
-            className="btn w-100 fw-bold mt-2"
-            style={{
-              backgroundColor: importing ? "#25253a" : "#5b5bd6",
-              border: "1px solid #5b5bd6",
-              color: importing ? "#a1a1b5" : "#ffffff",
-              borderRadius: "10px",
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "0.82rem",
-              opacity: importing ? 0.7 : 1,
-              transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease",
-            }}
-            onMouseEnter={(event) => {
-              if (importing) return;
-              event.currentTarget.style.background = "#6f6fe0";
-              event.currentTarget.style.borderColor = "#6f6fe0";
-              event.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(event) => {
-              if (importing) return;
-              event.currentTarget.style.background = "#5b5bd6";
-              event.currentTarget.style.borderColor = "#5b5bd6";
-              event.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            {importing ? "Loading..." : "CiteWise →"}
-          </button>
+          <div className="workspace-card-hint mt-auto">
+            Open workspace <ArrowRight size={15} />
+          </div>
         </div>
       </div>
       {/* Confirm Delete Modal */}
@@ -262,5 +281,23 @@ export default function GroupCard({
         onConfirm={handleDelete}
       />
     </>
+  );
+}
+
+function WorkspaceOption({ icon: Icon, title, description, active, disabled = false, loading = false, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`workspace-launcher-option${active ? " is-active" : ""}`}
+      disabled={disabled || loading}
+      onClick={(event) => { event.stopPropagation(); onClick(); }}
+    >
+      <span className="workspace-launcher-icon">{createElement(Icon, { size: 46, strokeWidth: 1.5 })}</span>
+      <span className="workspace-launcher-copy">
+        <strong>{loading ? "Loading..." : title}</strong>
+        {active && <em className="workspace-launcher-current">Current step</em>}
+        <small>{description}</small>
+      </span>
+    </button>
   );
 }
