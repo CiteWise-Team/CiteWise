@@ -129,7 +129,6 @@ export default function SearcherInput({
   return (
     <div className="card h-100 shadow-sm">
       <div className="card-header d-flex justify-content-between align-items-center">
-        <h5 className="mb-0">Input</h5>
         <span className="material-symbols-outlined">search</span>
       </div>
 

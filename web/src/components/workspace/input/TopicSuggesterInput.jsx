@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
 import { FaPlay } from "react-icons/fa";
-import { MdInput } from "react-icons/md";
 import { RiLoader4Line } from "react-icons/ri";
 
 import { useGroup } from "../../../context/GroupContext.jsx";
@@ -160,7 +159,7 @@ export default function TopicSuggesterInput({ setResult }) {
   return (
     <>
       <div
-        className="h-100 rounded-4 p-3"
+        className="h-100 rounded-4 p-3 workflow-input-card"
         style={{
           backgroundColor: "#1e1e2f",
           border: "1px solid #3a3a55",
@@ -169,17 +168,15 @@ export default function TopicSuggesterInput({ setResult }) {
       >
         <div className="d-flex justify-content-between align-items-start mb-3">
           <div>
-            <h5 className="fw-bold mb-0 text-white">Input</h5>
             <small style={{ color: "#a1a1b5" }}>
-              Select gaps for topic suggestion
+              Select gaps to generate focused research directions.
             </small>
           </div>
-          <MdInput size={22} />
         </div>
 
         <div className="d-flex flex-column gap-4">
           <div>
-            <small style={{ color: "#a1a1b5" }}>Available Gaps</small>
+            <small style={{ color: "#a1a1b5" }}>Choose one or more gaps</small>
 
             <div
               className="topic-gaps-list mt-2 d-flex flex-column gap-2"

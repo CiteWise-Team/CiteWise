@@ -1,5 +1,4 @@
-import { FaCloudUploadAlt, FaPlay } from "react-icons/fa";
-import { MdInput } from "react-icons/md";
+import { FaCloudUploadAlt, FaPlay, FaTrashAlt } from "react-icons/fa";
 import { RiLoader4Line } from "react-icons/ri";
 import { extractorAPI, getExtractorJobStatusAPI } from "../../../api/workflow.api";
 
@@ -155,7 +154,7 @@ export default function InputPanel({ setResult }) {
   return (
     <>
       <div
-        className="h-100 rounded-4 p-3"
+        className="h-100 rounded-4 p-3 workflow-input-card"
         style={{
           backgroundColor: "#1e1e2f",
           border: "1px solid #3a3a55",
@@ -165,12 +164,10 @@ export default function InputPanel({ setResult }) {
         {/* Header */}
         <div className="d-flex justify-content-between mb-3">
           <div>
-            <h5 className="fw-bold mb-0 text-white">Input</h5>
             <small style={{ color: "#a1a1b5" }}>
-              Upload document or paste text.
+              Add a PDF to extract its sections and research-ready content.
             </small>
           </div>
-          <MdInput size={22} />
         </div>
 
         {/* Body */}
@@ -240,7 +237,9 @@ export default function InputPanel({ setResult }) {
 
                 <button
                   type="button"
-                  className="btn btn-sm"
+                  className="btn btn-sm workflow-icon-action"
+                  aria-label="Remove selected file"
+                  title="Remove selected file"
                   style={{
                     border: "1px solid #ff6b6b",
                     color: "#ff6b6b",
@@ -253,7 +252,7 @@ export default function InputPanel({ setResult }) {
                     }
                   }}
                 >
-                  Remove
+                  <FaTrashAlt aria-hidden="true" />
                 </button>
               </div>
             </div>

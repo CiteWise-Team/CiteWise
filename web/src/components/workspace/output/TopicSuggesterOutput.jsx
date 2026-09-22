@@ -6,7 +6,7 @@ import { getTopicsByGroupIdAPI } from "../../../api/workflow.topic";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 import { apiFetch } from "../../../api/http";
 
-export default function TopicSuggesterOutput({ result }) {
+export default function TopicSuggesterOutput({ result, onComplete }) {
   const group_id = useGroup().groupId;
   const navigate = useNavigate();
 
@@ -23,6 +23,7 @@ export default function TopicSuggesterOutput({ result }) {
         const res = await getTopicsByGroupIdAPI(group_id);
         const data = res.data || [];
         setItems(data);
+        if (data.length > 0) onComplete?.();
 
         if (result?.id) {
           setActiveId(result.id);
@@ -83,7 +84,7 @@ export default function TopicSuggesterOutput({ result }) {
 
   return (
     <div
-      className="h-100 d-flex flex-column rounded-4 p-3"
+      className="h-100 d-flex flex-column rounded-4 p-3 workflow-result-card topic-result-card"
       style={{
         backgroundColor: "#1e1e2f",
         border: "1px solid #3a3a55",
@@ -93,7 +94,7 @@ export default function TopicSuggesterOutput({ result }) {
     >
       <div className="d-flex gap-3 h-100" style={{ minHeight: 0 }}>
         <div
-          className="d-flex flex-column"
+          className="d-flex flex-column workflow-result-sidebar"
           style={{
             width: "200px",
             maxWidth: "35%",
@@ -129,7 +130,7 @@ export default function TopicSuggesterOutput({ result }) {
                 <div
                   key={item.id}
                   onClick={() => setActiveId(item.id)}
-                  className="p-3 mb-2 rounded-3"
+                  className={`p-3 mb-2 rounded-3 workflow-result-list-item${activeId === item.id ? " is-selected" : ""}`}
                   style={{
                     cursor: "pointer",
                     backgroundColor: activeId === item.id ? "#5b5bd6" : "#25253a",
@@ -165,7 +166,7 @@ export default function TopicSuggesterOutput({ result }) {
         </div>
 
         <div
-          className="flex-grow-1 d-flex flex-column"
+          className="flex-grow-1 d-flex flex-column workflow-result-detail"
           style={{
             paddingLeft: "1rem",
             minHeight: 0,
@@ -175,11 +176,12 @@ export default function TopicSuggesterOutput({ result }) {
         >
           {activeItem ? (
             <>
-              <h4 className="fw-bold mb-3" style={{ color: "#fff" }}>
-                {activeItem.title}
-              </h4>
+              <div className="workflow-result-heading">
+                <span className="workflow-result-kicker">Selected suggestion</span>
+                <h4 className="fw-bold mb-0" style={{ color: "#fff" }}>{activeItem.title}</h4>
+              </div>
               <div
-                className="p-4 rounded-3"
+                className="p-4 rounded-3 workflow-result-reading-card"
                 style={{
                   backgroundColor: "#25253a",
                   border: "1px solid #3a3a55",

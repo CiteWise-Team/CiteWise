@@ -211,7 +211,7 @@ export default function GroupCard({
       >
         {/* Header */}
         <div
-          className="position-relative"
+          className="position-relative workspace-card-header"
           style={{ height: 120, background: headerGradient, borderBottom: "3px solid #5b5bd6" }}
         >
           {/* Settings Dropdown */}
@@ -256,17 +256,17 @@ export default function GroupCard({
         </div>
 
         {/* Body */}
-        <div className="card-body d-flex flex-column" style={{ color: "#e4e4f0" }}>
+        <div className="card-body d-flex flex-column workspace-card-body" style={{ color: "#e4e4f0" }}>
           <h5 className="fw-bold">{name}</h5>
 
           <div
             className="mb-3"
-            style={{ color: "#a1a1b5", maxHeight: 60, overflowY: "auto", whiteSpace: "pre-wrap" }}
+            style={{ color: "#a1a1b5", maxHeight: 60, overflowY: "auto", whiteSpace: "pre-wrap", fontSize: "0.82rem", fontWeight: 400, lineHeight: 1.5 }}
           >
             {description || "No description"}
           </div>
 
-          <div className="workspace-card-hint mt-auto">
+          <div className="workspace-card-hint">
             Open workspace <ArrowRight size={15} />
           </div>
         </div>

@@ -1,6 +1,6 @@
 import WorkflowLayout from "../layouts/WorkspaceLayout";
 import InputPanel from "../components/workspace/InputPanel";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import WorkflowTracker from "../components/workspace/WorkflowTracker";
 import ResultPanel from "../components/workspace/ResultPanel";
@@ -17,6 +17,14 @@ export default function GroupWorkflow() {
   // was decorative: two tabs shared one "current group", and opening a second
   // workspace silently repointed the first. The URL is the source of truth now.
   const { groupName: routeGroupId } = useParams();
+  const [completedSteps, setCompletedSteps] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`catalyst.${routeGroupId}.completedSteps`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const { groupId, enterGroup } = useGroup();
   const { user } = useAuth();
   // Holds the id that failed to resolve, so navigating elsewhere clears it.
@@ -49,6 +57,20 @@ export default function GroupWorkflow() {
     return () => { cancelled = true; };
   }, [routeGroupId, resolved, user?.id, enterGroup]);
 
+  const handleStepResult = useCallback((stepKey, nextResult) => {
+    setResult(nextResult);
+    setCompletedSteps((completed) => {
+      if (completed.includes(stepKey)) return completed;
+      const nextCompleted = [...completed, stepKey];
+      localStorage.setItem(`catalyst.${routeGroupId}.completedSteps`, JSON.stringify(nextCompleted));
+      return nextCompleted;
+    });
+  }, [routeGroupId]);
+
+  const handleResultComplete = useCallback(() => {
+    handleStepResult(step, true);
+  }, [handleStepResult, step]);
+
   if (missingFor === routeGroupId) {
     return (
       <NotFound
@@ -69,16 +91,24 @@ export default function GroupWorkflow() {
   return (
     <WorkflowLayout currentStep={step}>
       <div className="workflow-stepper" data-guide="workflow-stepper">
-        <WorkflowTracker currentStep={step} onStepChange={setStep} />
+        <WorkflowTracker
+          currentStep={step}
+          completedSteps={completedSteps}
+          onStepChange={setStep}
+        />
       </div>
 
       <div className="workflow-workbench">
         <section className="workflow-panel" data-guide="workflow-input" aria-label="Workflow input">
-          <InputPanel step={step} setResult={setResult} />
+          <InputPanel step={step} setResult={(nextResult) => handleStepResult(step, nextResult)} />
         </section>
 
         <section className="workflow-panel" data-guide="workflow-results" aria-label="Workflow results">
-          <ResultPanel step={step} result={result} />
+          <ResultPanel
+            step={step}
+            result={result}
+            onComplete={handleResultComplete}
+          />
         </section>
       </div>
     </WorkflowLayout>

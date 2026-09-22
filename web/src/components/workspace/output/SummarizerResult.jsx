@@ -3,7 +3,7 @@ import { useGroup } from "../../../context/GroupContext";
 import { getSummaryByGroupAPI } from "../../../api/workflow.summarizer";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 
-export default function SummarizerResult({ result }) {
+export default function SummarizerResult({ result, onComplete }) {
   const group_id = useGroup().groupId;
 
   const [activeTab, setActiveTab] = useState("papers");
@@ -25,6 +25,7 @@ export default function SummarizerResult({ result }) {
         );
 
         setPapers(sorted);
+        if (sorted.length > 0) onComplete?.();
 
         if (result) {
           setSelectedPaper(result);
@@ -43,7 +44,7 @@ export default function SummarizerResult({ result }) {
 
   return (
     <div
-      className="h-100 d-flex flex-column rounded-4 p-3"
+      className="h-100 d-flex flex-column rounded-4 p-3 workflow-result-card document-result-card"
       style={{
         backgroundColor: "#1e1e2f",
         border: "1px solid #3a3a55",
@@ -51,9 +52,9 @@ export default function SummarizerResult({ result }) {
       }}
     >
       {/* TABS */}
-      <div className="d-flex gap-3 mb-3">
+      <div className="d-flex gap-2 mb-3 workflow-result-tabs">
         <button
-          className="btn btn-sm"
+          className={`btn btn-sm workflow-result-tab${activeTab === "papers" ? " is-active" : ""}`}
           style={{
             color: activeTab === "papers" ? "#a5b4fc" : "#a1a1b5",
             borderBottom:
@@ -65,7 +66,7 @@ export default function SummarizerResult({ result }) {
         </button>
 
         <button
-          className="btn btn-sm"
+          className={`btn btn-sm workflow-result-tab${activeTab === "result" ? " is-active" : ""}`}
           style={{
             color: activeTab === "result" ? "#a5b4fc" : "#a1a1b5",
             borderBottom:
@@ -116,7 +117,7 @@ export default function SummarizerResult({ result }) {
                   setSelectedPaper(paper);
                   setActiveTab("result");
                 }}
-                className="text-start p-2 rounded-3"
+                className="text-start p-2 rounded-3 workflow-result-list-item"
                 style={{
                   backgroundColor:
                     selectedPaper?.id === paper.id
@@ -152,7 +153,7 @@ export default function SummarizerResult({ result }) {
             ].map((section) => (
               <div
                 key={section}
-                className="p-3 rounded-3"
+                className="p-3 rounded-3 workflow-document-section"
                 style={{
                   backgroundColor: "#25253a",
                   border: "1px solid #3a3a55"

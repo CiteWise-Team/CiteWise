@@ -119,6 +119,10 @@
   cursor: pointer;
 }
 
+.workspace-card-header {
+  border-radius: 13px 13px 0 0;
+}
+
 .workspace-card:focus-visible {
   outline: 2px solid #a5b4fc;
   outline-offset: 3px;
@@ -129,6 +133,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin-top: auto;
   padding-top: 16px;
   border-top: 1px solid #2d2d48;
   color: #a5b4fc;
@@ -352,6 +357,12 @@
 
 .groups-grid .card-body {
   padding: 20px !important;
+}
+
+.workspace-card-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  padding-bottom: 0 !important;
 }
 
 .groups-grid .card-body h5 {
