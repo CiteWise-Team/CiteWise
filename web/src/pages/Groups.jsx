@@ -19,11 +19,15 @@ import { useAuth } from "../context/AuthContext";
 import { IoIosAddCircle } from "react-icons/io";
 import { FaLink } from "react-icons/fa";
 
+const MIN_GROUPS_LOADING_MS = 450;
+const LOADING_COMPLETION_HOLD_MS = 140;
+
 export default function Groups() {
   const id = useAuth().user.id;
 
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(8);
   const [selectedGroup, setSelectedGroup] = useState(null);
 
   const { config, showFeedback, hideFeedback } = useFeedbackModal();
@@ -165,18 +169,40 @@ export default function Groups() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchGroups() {
+      const startedAt = performance.now();
+      const progressTimer = window.setInterval(() => {
+        if (!cancelled) {
+          setLoadingProgress((current) => Math.min(current + 10, 92));
+        }
+      }, 80);
+
       try {
         const groups = await getGroupsByUserIdAPI(id);
-        setGroups(groups.groups.data);
+        if (!cancelled) {
+          setGroups(groups.groups.data);
+          setLoadingProgress(100);
+        }
       } catch (err) {
         console.error("Failed to fetch groups:", err);
       } finally {
-        setLoading(false);
+        window.clearInterval(progressTimer);
+        const remainingTime = Math.max(0, MIN_GROUPS_LOADING_MS - (performance.now() - startedAt));
+        window.setTimeout(() => {
+          if (!cancelled) {
+            setLoadingProgress(100);
+            window.setTimeout(() => {
+              if (!cancelled) setLoading(false);
+            }, LOADING_COMPLETION_HOLD_MS);
+          }
+        }, remainingTime);
       }
     }
 
     fetchGroups();
+    return () => { cancelled = true; };
   }, [id]);
 
   const activeGroups = groups.filter((g) => g.is_active === true || g.is_active === 1);
@@ -206,9 +232,28 @@ export default function Groups() {
 
         <div className="row g-4 groups-grid">
           {loading ? (
-            <div className="groups-empty-state">
-              <div className="groups-loading-bar" />
-              <p>Loading workspaces...</p>
+            <div className="groups-loading-state" role="status" aria-live="polite">
+              <div className="groups-loading-orbit" aria-hidden="true">
+                <span className="groups-loading-orbit-ring" />
+                <span className="groups-loading-orbit-core"><IoIosAddCircle size={25} /></span>
+              </div>
+              <div className="groups-loading-copy">
+                <strong>Preparing your workspaces</strong>
+                <span>Gathering your research spaces...</span>
+              </div>
+              <div className="groups-loading-track" aria-hidden="true">
+                <span style={{ width: `${loadingProgress}%` }} />
+              </div>
+              <div className="groups-loading-skeletons" aria-hidden="true">
+                {[1, 2, 3, 4].map((item) => (
+                  <div className="groups-loading-skeleton" key={item}>
+                    <div className="groups-skeleton-cover" />
+                    <div className="groups-skeleton-line groups-skeleton-title" />
+                    <div className="groups-skeleton-line" />
+                    <div className="groups-skeleton-line groups-skeleton-short" />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : activeGroups.length === 0 ? (
             <div className="groups-empty-state">
