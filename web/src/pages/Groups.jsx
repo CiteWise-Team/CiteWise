@@ -186,7 +186,7 @@ export default function Groups() {
       <div className="groups-page">
         <header className="groups-header">
           <div>
-            <p className="groups-eyebrow">CiteWise workspace</p>
+            <p className="groups-eyebrow">CATalyst workspace</p>
             <h1>Your research spaces</h1>
             <p className="groups-description">
               Organize your research and move from ideas to evidence in one focused workspace.
@@ -221,7 +221,7 @@ export default function Groups() {
             </div>
           ) : (
             activeGroups.map((group) => (
-              <div className="col-xl-4 col-md-6" key={group.id}>
+              <div className="col-xl-3 col-md-6" key={group.id}>
                 <GroupCard
                   name={group.name}
                   members={group.members}

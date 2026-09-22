@@ -11,10 +11,11 @@ export default function Navbar() {
   const [open, setOpen] = useState(false); // dropdown state
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // The product is CiteWise throughout; "CATalyst" names the gap-discovery
-  // module inside it, not the app, so the shell no longer switches brand.
   const isCiteWise = location.pathname.startsWith("/citewise");
-  const appName = "CiteWise";
+  const isCatalyst = location.pathname === "/groups"
+    || location.pathname.startsWith("/workspace/")
+    || location.pathname === "/upload";
+  const appName = isCatalyst ? "CATalyst" : "CiteWise";
 
   const handleLogout = () => {
     logout();
@@ -64,7 +65,7 @@ export default function Navbar() {
           >
             <img
               src={citeWiseLogo}
-              alt="CiteWise"
+              alt={appName}
               style={{ width: "22px", height: "22px", objectFit: "contain" }}
             />
           </span>

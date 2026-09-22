@@ -67,17 +67,17 @@ export default function GroupWorkflow() {
   }
 
   return (
-    <WorkflowLayout>
-      <div className="workflow-stepper">
+    <WorkflowLayout currentStep={step}>
+      <div className="workflow-stepper" data-guide="workflow-stepper">
         <WorkflowTracker currentStep={step} onStepChange={setStep} />
       </div>
 
       <div className="workflow-workbench">
-        <section className="workflow-panel" aria-label="Workflow input">
+        <section className="workflow-panel" data-guide="workflow-input" aria-label="Workflow input">
           <InputPanel step={step} setResult={setResult} />
         </section>
 
-        <section className="workflow-panel" aria-label="Workflow results">
+        <section className="workflow-panel" data-guide="workflow-results" aria-label="Workflow results">
           <ResultPanel step={step} result={result} />
         </section>
       </div>
