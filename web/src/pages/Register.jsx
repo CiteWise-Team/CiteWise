@@ -66,15 +66,15 @@ export default function Register() {
 
         {/* Header with Brand Logo & Back to Home */}
         <div className="auth-showcase-header">
-          <Link to="/" className="auth-brand-badge" title="Back to CiteWise Home">
+          <Link to="/" className="auth-brand-badge" title="Back to CATalyst Home">
             <div className="auth-brand-icon-box">
               <img
                 src={citeWiseLogo}
-                alt="CiteWise Logo"
+                alt="CATalyst Logo"
                 style={{ width: "26px", height: "26px", objectFit: "contain" }}
               />
             </div>
-            <span className="auth-brand-title">CiteWise</span>
+            <span className="auth-brand-title">CATalyst</span>
           </Link>
 
           <Link to="/" className="auth-back-link">
@@ -109,7 +109,7 @@ export default function Register() {
             </div>
 
             <div className="auth-preview-paper-title">
-              <FileText size={16} color="#8b85f0" />
+              <FileText size={16} color="#ea580c" />
               <span>Multi-Source Literature Correlation</span>
             </div>
 
@@ -123,7 +123,7 @@ export default function Register() {
               <div className="auth-preview-progress-bar">
                 <div className="auth-preview-progress-fill" style={{ width: "96%" }} />
               </div>
-              <span style={{ color: "#a5b4fc", fontWeight: 600 }}>99.2%</span>
+              <span style={{ color: "#ea580c", fontWeight: 700 }}>99.2%</span>
             </div>
           </div>
 
@@ -147,7 +147,7 @@ export default function Register() {
         {/* Showcase Footer */}
         <div className="auth-showcase-footer">
           <span>AI Pipeline: Extract • Summarize • Gap Discovery • Topic Formulation</span>
-          <span>CiteWise Research Assistant</span>
+          <span>CATalyst Research Assistant</span>
         </div>
       </div>
 
@@ -172,11 +172,11 @@ export default function Register() {
               <div className="auth-brand-icon-box">
                 <img
                   src={citeWiseLogo}
-                  alt="CiteWise Logo"
+                  alt="CATalyst Logo"
                   style={{ width: "24px", height: "24px", objectFit: "contain" }}
                 />
               </div>
-              <span className="auth-brand-title">CiteWise</span>
+              <span className="auth-brand-title">CATalyst</span>
             </Link>
           </div>
 
@@ -266,15 +266,15 @@ export default function Register() {
             {/* Terms notice */}
             <p className="auth-terms-text">
               By creating an account, you agree to our{" "}
-              <a href="#terms" onClick={(e) => e.preventDefault()}>Terms of Service</a> and{" "}
-              <a href="#privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a>.
+              <Link to="/terms">Terms of Service</Link> and{" "}
+              <Link to="/privacy">Privacy Policy</Link>.
             </p>
           </form>
         </div>
 
         {/* Form Footer System Description */}
         <div className="auth-form-footer">
-          <Sparkles size={14} color="#8b85f0" style={{ flexShrink: 0 }} />
+          <Sparkles size={14} color="#ea580c" style={{ flexShrink: 0 }} />
           <span>Analyze research papers, discover literature gaps, and draft thesis introductions</span>
         </div>
       </div>

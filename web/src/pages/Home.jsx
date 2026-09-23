@@ -239,7 +239,15 @@ export default function Home() {
 
         {/* CTA */}
         <section className="container my-5">
-          <div className="text-center p-5 glass-card reveal" style={{ borderRadius: "1.5rem" }}>
+          <div
+            className="text-center p-5 glass-card reveal"
+            style={{
+              borderRadius: "1.5rem",
+              background: "linear-gradient(180deg, #ffffff 0%, #fff7ed 100%)",
+              borderColor: "rgba(234, 88, 12, 0.2)",
+              boxShadow: "0 20px 50px -15px rgba(234, 88, 12, 0.12)",
+            }}
+          >
             <h2 className="section-title fw-bold mb-3">Ready to find your thesis topic?</h2>
             <p className="mb-4" style={{ color: "var(--text-body)" }}>
               Use CATalyst to analyze literature and discover research gaps faster.
@@ -268,9 +276,9 @@ export default function Home() {
 
               <div className="col-md-3">
                 <h6 className="footer-heading">Company</h6>
-                <a href="#" className="footer-link">About</a>
-                <a href="#" className="footer-link">Privacy</a>
-                <a href="#" className="footer-link">Terms</a>
+                <a href="#about" onClick={(e) => e.preventDefault()} className="footer-link">About</a>
+                <Link to="/privacy" className="footer-link">Privacy</Link>
+                <Link to="/terms" className="footer-link">Terms</Link>
               </div>
 
               <div className="col-md-3">

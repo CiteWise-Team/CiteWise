@@ -95,10 +95,10 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
                   color: isActive
                     ? "#e4e4f0"
                     : isPast
-                    ? "rgba(228,228,240,0.7)"
-                    : isClickable
-                    ? "rgba(228,228,240,0.4)"
-                    : "rgba(228,228,240,0.22)",
+                      ? "rgba(228,228,240,0.7)"
+                      : isClickable
+                        ? "rgba(228,228,240,0.4)"
+                        : "rgba(228,228,240,0.22)",
                   padding: "0 1.5rem",
                   display: "flex",
                   alignItems: "center",
@@ -131,8 +131,8 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
                     background: isActive
                       ? "#5b5bd6"
                       : isPast
-                      ? "rgba(91,91,214,0.25)"
-                      : "rgba(228,228,240,0.08)",
+                        ? "rgba(91,91,214,0.25)"
+                        : "rgba(228,228,240,0.08)",
                     color: isActive ? "#fff" : isPast ? "#5b5bd6" : "rgba(228,228,240,0.35)",
                     transition: "background 0.2s ease, color 0.2s ease",
                   }}
