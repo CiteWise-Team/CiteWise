@@ -41,34 +41,17 @@ export default function ExtractorOutput({ result, onComplete }) {
 
 
   return (
-    <div
-      className="h-100 d-flex flex-column rounded-4 p-3 workflow-result-card document-result-card"
-      style={{
-        backgroundColor: "#1e1e2f",
-        border: "1px solid #3a3a55",
-        color: "#e4e4f0"
-      }}
-    >
-      <div className="d-flex gap-2 mb-3 workflow-result-tabs">
+    <div className="h-100 d-flex flex-column rounded-4 workflow-result-card document-result-card" style={{ minHeight: 0 }}>
+      <div className="d-flex gap-2 mb-3 workflow-result-tabs flex-shrink-0">
         <button
-          className={`btn btn-sm workflow-result-tab${activeTab === "papers" ? " is-active" : ""}`}
-          style={{
-            color: activeTab === "papers" ? "#a5b4fc" : "#a1a1b5",
-            borderBottom:
-              activeTab === "papers" ? "2px solid #5b5bd6" : "none"
-          }}
+          className={`workflow-result-tab${activeTab === "papers" ? " is-active" : ""}`}
           onClick={() => setActiveTab("papers")}
         >
           Papers
         </button>
 
         <button
-          className={`btn btn-sm workflow-result-tab${activeTab === "result" ? " is-active" : ""}`}
-          style={{
-            color: activeTab === "result" ? "#a5b4fc" : "#a1a1b5",
-            borderBottom:
-              activeTab === "result" ? "2px solid #5b5bd6" : "none"
-          }}
+          className={`workflow-result-tab${activeTab === "result" ? " is-active" : ""}`}
           disabled={!selectedPaper}
           onClick={() => setActiveTab("result")}
         >
@@ -78,56 +61,63 @@ export default function ExtractorOutput({ result, onComplete }) {
 
       <div
         className="flex-grow-1 d-flex flex-column"
-        style={{ minHeight: 0 }}
+        style={{ minHeight: 0, overflow: "hidden" }}
       >
         {loading ? (
           <div className="text-center mt-5">
-            <RiLoader4Line className="fs-1 mb-2 spin-loader" />
-            <p style={{ color: "#a1a1b5" }}>
+            <RiLoader4Line className="fs-1 mb-2 spin-loader" style={{ color: "#ea580c" }} />
+            <p style={{ color: "#4b5563" }}>
               Loading extracted papers...
             </p>
           </div>
         ) : papers.length === 0 ? (
           <div className="text-center mt-5">
-            <RiQuestionLine className="fs-1 mb-2" />
-            <p style={{ color: "#a1a1b5" }}>
+            <RiQuestionLine className="fs-1 mb-2" style={{ color: "#9ca3af" }} />
+            <p style={{ color: "#4b5563" }}>
               No extracted papers found.
             </p>
           </div>
         ) : activeTab === "papers" ? (
           <div
-            className="d-flex flex-column gap-2"
-            style={{
-              overflowY: "auto",
-              flex: 1
-            }}
-          >
-            {papers.map((paper) => (
-              <button
-                key={paper.id}
-                onClick={() => {
-                  setSelectedPaper(paper);
-                  setActiveTab("result");
-                }}
-                className="text-start p-2 rounded-3 workflow-result-list-item"
-                style={{
-                  backgroundColor:
-                    selectedPaper?.id === paper.id ? "#5b5bd6" : "#25253a",
-                  color: "#fff",
-                  border: "1px solid #3a3a55"
-                }}
-              >
-                {paper.title || "Untitled Paper"}
-              </button>
-            ))}
-          </div>
-        ) : selectedPaper && (
-          <div
-            className="d-flex flex-column gap-3"
+            className="workflow-result-list d-flex flex-column gap-2"
             style={{
               overflowY: "auto",
               flex: 1,
-              paddingRight: "4px"
+              minHeight: 0,
+              paddingRight: "6px",
+            }}
+          >
+            {papers.map((paper) => {
+              const isSelected = selectedPaper?.id === paper.id;
+              return (
+                <button
+                  key={paper.id}
+                  onClick={() => {
+                    setSelectedPaper(paper);
+                    setActiveTab("result");
+                  }}
+                  className="text-start p-2 rounded-3 workflow-result-list-item"
+                  style={{
+                    backgroundColor: isSelected ? "#fff7ed" : "#ffffff",
+                    color: isSelected ? "#ea580c" : "#0f0e17",
+                    border: isSelected ? "1px solid #ea580c" : "1px solid #e5e7eb",
+                    fontWeight: isSelected ? 600 : 500,
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  {paper.title || "Untitled Paper"}
+                </button>
+              );
+            })}
+          </div>
+        ) : selectedPaper && (
+          <div
+            className="workflow-result-list d-flex flex-column gap-3"
+            style={{
+              overflowY: "auto",
+              flex: 1,
+              minHeight: 0,
+              paddingRight: "6px",
             }}
           >
             {selectedPaper.file_url && (
@@ -135,8 +125,7 @@ export default function ExtractorOutput({ result, onComplete }) {
                 href={selectedPaper.file_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-sm align-self-start"
-                style={{ backgroundColor: "#5b5bd6", color: "#fff", border: "none" }}
+                className="workflow-action-button align-self-start text-decoration-none"
               >
                 View Original PDF
               </a>
@@ -156,14 +145,14 @@ export default function ExtractorOutput({ result, onComplete }) {
                 key={section}
                 className="p-3 rounded-3 workflow-document-section"
                 style={{
-                  backgroundColor: "#25253a",
-                  border: "1px solid #3a3a55"
+                  backgroundColor: "#f9fafb",
+                  border: "1px solid #e5e7eb"
                 }}
               >
-                <h6 className="fw-bold text-capitalize text-white">
+                <h6 className="fw-bold text-capitalize" style={{ color: "#0f0e17" }}>
                   {section.replace("_", " ")}
                 </h6>
-                <p style={{ color: "#a1a1b5" }}>
+                <p style={{ color: "#4b5563" }}>
                   {selectedPaper[section] || "No content available."}
                 </p>
               </div>

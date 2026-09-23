@@ -614,3 +614,385 @@ footer {
     max-width: 100%;
   }
 }
+
+/* ==========================================================================
+   Landing Page Header Navigation (Matching Reference Layout)
+   ========================================================================== */
+
+.landing-nav-cluster {
+  display: flex;
+  align-items: center;
+  gap: clamp(1.4rem, 2.5vw, 2.8rem);
+}
+
+.landing-nav-clean-link {
+  background: transparent;
+  border: none;
+  color: #1f2937;
+  font-family: 'Poppins', 'Be Vietnam Pro', sans-serif;
+  font-size: 0.94rem;
+  font-weight: 500;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: color 180ms ease, opacity 180ms ease;
+  line-height: 1;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.landing-nav-clean-link:hover {
+  color: #ea580c !important;
+}
+
+.landing-nav-clean-link.is-active {
+  color: #ea580c !important;
+  font-weight: 600;
+}
+
+/* Reference image: [ Sign up ] clean outlined button */
+.landing-nav-clean-signup-btn {
+  color: #1f2937 !important;
+  font-family: 'Poppins', 'Be Vietnam Pro', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 500;
+  padding: 7px 20px;
+  border-radius: 6px;
+  border: 1px solid #1f2937;
+  background: transparent;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.landing-nav-clean-signup-btn:hover {
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.22);
+  transform: translateY(-1px);
+}
+
+.landing-nav-workspace-pill {
+  color: #ea580c !important;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: rgba(234, 88, 12, 0.08);
+  border: 1px solid rgba(234, 88, 12, 0.25);
+  transition: all 180ms ease;
+}
+
+.landing-nav-workspace-pill:hover {
+  background: rgba(234, 88, 12, 0.16);
+  color: #c2410c !important;
+}
+
+.landing-mobile-toggle-btn {
+  background: transparent;
+  border: none;
+  color: #0f0e17;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.landing-mobile-menu {
+  position: absolute;
+  top: 68px;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+  z-index: 1040;
+}
+
+.landing-mobile-link {
+  background: transparent;
+  border: none;
+  color: #1f2937;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 10px 14px;
+  text-align: left;
+  border-radius: 8px;
+  transition: all 180ms ease;
+}
+
+.landing-mobile-link:hover,
+.landing-mobile-link.is-active {
+  color: #ea580c;
+  background: rgba(234, 88, 12, 0.08);
+  font-weight: 600;
+}
+
+.landing-mobile-divider {
+  border-color: #e5e7eb;
+  margin: 6px 0;
+}
+
+/* ==========================================================================
+   Features Section - Modern Dual Engine Showcase
+   ========================================================================== */
+
+.features-master-section {
+  position: relative;
+  background: #ffffff;
+  border-top: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.engine-pillar-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 32px 28px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  transition: all 260ms ease;
+  position: relative;
+}
+
+.engine-pillar-card:hover {
+  border-color: rgba(234, 88, 12, 0.35);
+  box-shadow: 0 16px 36px -10px rgba(234, 88, 12, 0.12);
+  transform: translateY(-3px);
+}
+
+.engine-pillar-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.engine-pill-badge {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #ea580c;
+  background: #fff7ed;
+  border: 1px solid rgba(234, 88, 12, 0.2);
+  border-radius: 999px;
+  padding: 3px 12px;
+  margin-bottom: 8px;
+}
+
+.engine-pillar-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f0e17;
+  margin: 0;
+}
+
+.engine-pillar-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid rgba(234, 88, 12, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.engine-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.engine-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fafafc;
+  border: 1px solid #f3f4f6;
+  transition: all 200ms ease;
+}
+
+.engine-feature-item:hover {
+  background: #ffffff;
+  border-color: rgba(234, 88, 12, 0.25);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.06);
+}
+
+.engine-feature-icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.engine-feature-text {
+  flex-grow: 1;
+}
+
+.engine-feature-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: #0f0e17;
+  margin-bottom: 4px;
+}
+
+.engine-feature-desc {
+  font-size: 0.83rem;
+  line-height: 1.5;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* The Bridge Highlight Banner */
+.engine-bridge-banner {
+  background: linear-gradient(135deg, #fffaf5 0%, #ffffff 100%);
+  border: 1px solid rgba(234, 88, 12, 0.22);
+  border-radius: 18px;
+  padding: 24px 30px;
+  box-shadow: 0 6px 24px rgba(234, 88, 12, 0.06);
+}
+
+.bridge-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #ea580c;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.28);
+}
+
+.bridge-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f0e17;
+}
+
+.bridge-desc {
+  font-size: 0.88rem;
+  color: #4b5563;
+  max-width: 600px;
+}
+
+/* ==========================================================================
+   Overview Section - 4 Clean Connected Steps
+   ========================================================================== */
+
+.overview-master-section {
+  position: relative;
+  background: #fafafc;
+  border-top: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.overview-step-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: all 240ms ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.overview-step-card:hover {
+  border-color: rgba(234, 88, 12, 0.35);
+  box-shadow: 0 10px 24px -6px rgba(234, 88, 12, 0.12);
+  transform: translateY(-3px);
+}
+
+.overview-step-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ea580c;
+  letter-spacing: -0.02em;
+}
+
+.overview-step-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: #fff7ed;
+  border: 1px solid rgba(234, 88, 12, 0.15);
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overview-step-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #0f0e17;
+  margin-bottom: 6px;
+}
+
+.overview-step-desc {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #6b7280;
+  margin: 0;
+}
+
+.overview-trust-strip {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 24px;
+}
+
+.overview-trust-item {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overview-trust-item .text-orange {
+  color: #ea580c;
+}

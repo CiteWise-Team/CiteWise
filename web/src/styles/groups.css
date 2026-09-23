@@ -453,13 +453,18 @@
 }
 
 .groups-guide-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 16px;
   border: 1px solid #d1d5db;
   background: transparent;
   color: #4b5563;
-  border-radius: 9px;
-  padding: 7px 15px;
+  border-radius: 8px;
   font-family: "Poppins", sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 140ms ease;
@@ -472,16 +477,21 @@
 }
 
 .groups-guide-next-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 18px;
   border: 1px solid #ea580c;
   background: #ea580c;
   color: #ffffff;
-  border-radius: 9px;
-  padding: 7px 18px;
+  border-radius: 8px;
   font-family: "Poppins", sans-serif;
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
   transition: all 140ms ease;
 }
 
@@ -489,7 +499,7 @@
   background: #c2410c;
   border-color: #c2410c;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(234, 88, 12, 0.4);
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
 }
 
 /* Search bar dynamically matched to the exact width of one workspace card */
@@ -1099,17 +1109,19 @@
 .groups-primary-action {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  min-height: 42px;
+  height: 38px;
+  min-height: 38px;
   border: 1px solid #ea580c;
-  border-radius: 12px;
-  padding: 0.65rem 1.5rem;
+  border-radius: 8px;
+  padding: 0 18px;
   background: #ea580c;
   color: #ffffff;
   font-family: "Poppins", sans-serif;
-  font-size: 0.9rem;
-  font-weight: 700;
-  box-shadow: 0 4px 16px rgba(234, 88, 12, 0.3);
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
   cursor: pointer;
   transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
@@ -1118,9 +1130,9 @@
 .groups-primary-action:focus-visible {
   border-color: #c2410c;
   background: #c2410c;
-  box-shadow: 0 8px 24px rgba(234, 88, 12, 0.45);
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
   color: #ffffff;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================
@@ -1288,11 +1300,15 @@
 }
 
 .workspace-modal-button {
-  min-height: 42px !important;
-  border-radius: 12px !important;
-  padding: 0.65rem 1.5rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  border-radius: 8px !important;
+  padding: 0 18px !important;
   font-family: "Poppins", sans-serif;
-  font-size: 0.9rem !important;
+  font-size: 0.85rem !important;
   font-weight: 600;
   transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
@@ -1309,15 +1325,15 @@
   background: rgba(234, 88, 12, 0.08) !important;
   color: #0f0e17 !important;
   box-shadow: none !important;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .workspace-modal-submit {
   border: 1px solid #ea580c !important;
   background: #ea580c !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
-  box-shadow: 0 4px 16px rgba(234, 88, 12, 0.3);
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
 }
 
 .workspace-modal-submit:hover,
@@ -1325,16 +1341,16 @@
   border-color: #c2410c !important;
   background: #c2410c !important;
   color: #ffffff !important;
-  box-shadow: 0 8px 24px rgba(234, 88, 12, 0.45) !important;
-  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35) !important;
+  transform: translateY(-1px);
 }
 
 .workspace-modal-danger {
   border: 1px solid #dc2626 !important;
   background: #dc2626 !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
-  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.35);
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
 
 .workspace-modal-danger:hover,
@@ -1342,8 +1358,8 @@
   border-color: #b91c1c !important;
   background: #b91c1c !important;
   color: #ffffff !important;
-  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.5) !important;
-  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35) !important;
+  transform: translateY(-1px);
 }
 
 .groups-loading-state {

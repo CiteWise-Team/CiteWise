@@ -158,92 +158,86 @@ export default function TopicSuggesterInput({ setResult }) {
 
   return (
     <>
-      <div
-        className="h-100 rounded-4 p-3 workflow-input-card"
-        style={{
-          backgroundColor: "#1e1e2f",
-          border: "1px solid #3a3a55",
-          color: "#e4e4f0",
-        }}
-      >
-        <div className="d-flex justify-content-between align-items-start mb-3">
-          <div>
-            <small style={{ color: "#a1a1b5" }}>
-              Select gaps to generate focused research directions.
-            </small>
-          </div>
+      <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
+        <div className="workflow-input-header">
+          <small style={{ color: "#4b5563" }}>
+            Select gaps to generate focused research directions.
+          </small>
         </div>
 
-        <div className="d-flex flex-column gap-4">
-          <div>
-            <small style={{ color: "#a1a1b5" }}>Choose one or more gaps</small>
+        <div className="workflow-input-body">
+          <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
+            <small style={{ color: "#4b5563", fontWeight: 600 }}>Choose one or more gaps</small>
 
             <div
               className="topic-gaps-list mt-2 d-flex flex-column gap-2"
+              style={{
+                flex: "1 1 auto",
+                minHeight: "140px",
+                maxHeight: "clamp(200px, 35vh, 340px)",
+                overflowY: "auto",
+                paddingRight: "6px",
+              }}
             >
               {loading && (
-                <div style={{ color: "#a1a1b5" }}>Loading gaps...</div>
+                <div style={{ color: "#6b7280" }}>Loading gaps...</div>
               )}
 
               {!loading && gaps.length === 0 && (
-                <div style={{ color: "#a1a1b5" }}>
+                <div style={{ color: "#6b7280" }}>
                   No gaps found for this group.
                 </div>
               )}
 
               {!loading &&
-                gaps.map((gap) => (
-                  <div
-                    key={gap.id}
-                    className="topic-gap-row p-2 rounded-3 d-flex align-items-start gap-2"
-                    style={{
-                      backgroundColor: "#25253a",
-                      border: "1px solid #3a3a55",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => toggleGap(gap.id)}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedGaps.includes(gap.id)}
-                      readOnly
-                      style={{ marginTop: "4px" }}
-                    />
-                    <div>
-                      <div className="small text-white fw-semibold">
-                        {gap.title || "Untitled Gap"}
-                      </div>
-                      <div style={{ fontSize: "12px", color: "#a1a1b5" }}>
-                        {gap.gap}
+                gaps.map((gap) => {
+                  const isSelected = selectedGaps.includes(gap.id);
+                  return (
+                    <div
+                      key={gap.id}
+                      className="topic-gap-row p-2 rounded-3 d-flex align-items-start gap-2"
+                      style={{
+                        backgroundColor: isSelected ? "#fff7ed" : "#f9fafb",
+                        border: isSelected ? "1px solid #ea580c" : "1px solid #e5e7eb",
+                        cursor: "pointer",
+                        transition: "all 0.18s ease",
+                      }}
+                      onClick={() => toggleGap(gap.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        readOnly
+                        style={{ marginTop: "4px", accentColor: "#ea580c" }}
+                      />
+                      <div>
+                        <div className="small fw-semibold" style={{ color: isSelected ? "#ea580c" : "#0f0e17" }}>
+                          {gap.title || "Untitled Gap"}
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                          {gap.gap}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </div>
+        </div>
 
-          <div className="text-end">
-            <button
-              onClick={handleRunWorkflow}
-              disabled={running}
-              className="btn workflow-action-button"
-              style={{
-                backgroundColor: "#5b5bd6",
-                color: "#fff",
-                border: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              {running ? (
-                <RiLoader4Line className="spinner-border spinner-border-sm spin-loader" style={{ animation: "spin 1s linear infinite" }} />
-              ) : (
-                <FaPlay className="me-1" />
-              )}
-              {running ? runningText : "Run Workflow"}
-            </button>
-          </div>
+        <div className="workflow-input-actions">
+          <button
+            onClick={handleRunWorkflow}
+            disabled={running}
+            className="workflow-action-button"
+          >
+            {running ? (
+              <RiLoader4Line className="spinner-border spinner-border-sm spin-loader" style={{ animation: "spin 1s linear infinite" }} />
+            ) : (
+              <FaPlay size={12} className="me-1" />
+            )}
+            {running ? runningText : "Run Workflow"}
+          </button>
         </div>
       </div>
 

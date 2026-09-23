@@ -153,56 +153,42 @@ export default function InputPanel({ setResult }) {
 
   return (
     <>
-      <div
-        className="h-100 rounded-4 p-3 workflow-input-card"
-        style={{
-          backgroundColor: "#1e1e2f",
-          border: "1px solid #3a3a55",
-          color: "#e4e4f0"
-        }}
-      >
+      <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
         {/* Header */}
-        <div className="d-flex justify-content-between mb-3">
-          <div>
-            <small style={{ color: "#a1a1b5" }}>
-              Add a PDF to extract its sections and research-ready content.
-            </small>
-          </div>
+        <div className="workflow-input-header">
+          <small style={{ color: "#4b5563" }}>
+            Add a PDF to extract its sections and research-ready content.
+          </small>
         </div>
 
-        {/* Body */}
-        <div className="d-flex flex-column gap-4">
-
+        {/* Scrollable Body */}
+        <div className="workflow-input-body">
           {/* Upload Area */}
           <div
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             onClick={openFilePicker}
-            className="rounded-4 text-center p-4"
+            className="rounded-4 text-center p-3"
             style={{
-              border: "2px dashed #5b5bd6",
+              border: "2px dashed #ea580c",
               cursor: "pointer",
-              backgroundColor: "#25253a"
+              backgroundColor: "#fffaf5",
+              transition: "all 0.2s ease",
             }}
           >
-            <FaCloudUploadAlt size={28} color="#a5b4fc" />
+            <FaCloudUploadAlt size={28} color="#ea580c" />
 
-            <h6 className="fw-bold mt-3 text-white">
+            <h6 className="fw-bold mt-2 mb-1" style={{ color: "#0f0e17", fontSize: "0.95rem" }}>
               Ready to extract?
             </h6>
 
-            <p style={{ color: "#a1a1b5" }}>
+            <p style={{ color: "#4b5563", fontSize: "0.8rem", marginBottom: "8px" }}>
               Drop files or click to browse
             </p>
 
             <button
               type="button"
-              className="btn workflow-action-button mt-2"
-              style={{
-                backgroundColor: "#5b5bd6",
-                color: "#fff",
-                border: "none"
-              }}
+              className="workflow-action-button"
               onClick={(e) => {
                 e.stopPropagation();
                 openFilePicker();
@@ -224,27 +210,22 @@ export default function InputPanel({ setResult }) {
           {/* Selected File */}
           {file && (
             <div>
-              <small style={{ color: "#a1a1b5" }}>File ready:</small>
+              <small style={{ color: "#4b5563", fontWeight: 600 }}>File ready:</small>
 
               <div
                 className="mt-2 p-2 rounded-3 d-flex justify-content-between align-items-center"
                 style={{
-                  backgroundColor: "#25253a",
-                  border: "1px solid #3a3a55"
+                  backgroundColor: "#f9fafb",
+                  border: "1px solid #e5e7eb"
                 }}
               >
-                <span className="small text-white">{file.name}</span>
+                <span className="small fw-semibold text-truncate me-2" style={{ color: "#0f0e17" }}>{file.name}</span>
 
                 <button
                   type="button"
-                  className="btn btn-sm workflow-icon-action"
+                  className="workflow-icon-action flex-shrink-0"
                   aria-label="Remove selected file"
                   title="Remove selected file"
-                  style={{
-                    border: "1px solid #ff6b6b",
-                    color: "#ff6b6b",
-                    background: "transparent"
-                  }}
                   onClick={() => {
                     setFile(null);
                     if (fileInputRef.current) {
@@ -252,36 +233,27 @@ export default function InputPanel({ setResult }) {
                     }
                   }}
                 >
-                  <FaTrashAlt aria-hidden="true" />
+                  <FaTrashAlt aria-hidden="true" size={13} />
                 </button>
               </div>
             </div>
           )}
+        </div>
 
-          {/* Run Button */}
-          <div className="text-end">
-            <button
-              onClick={handleRunWorkflow}
-              disabled={loading}
-              className="btn workflow-action-button"
-              style={{
-                backgroundColor: "#5b5bd6",
-                color: "#fff",
-                border: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              {loading ? (
-                <RiLoader4Line className="spinner-border spinner-border-sm spin-loader" style={{ animation: "spin 1s linear infinite" }} />
-              ) : (
-                <FaPlay className="me-1" />
-              )}
-              {loading ? loadingText : "Run Workflow"}
-            </button>
-          </div>
-
+        {/* Pinned Action Row */}
+        <div className="workflow-input-actions">
+          <button
+            onClick={handleRunWorkflow}
+            disabled={loading}
+            className="workflow-action-button"
+          >
+            {loading ? (
+              <RiLoader4Line className="spinner-border spinner-border-sm spin-loader" style={{ animation: "spin 1s linear infinite" }} />
+            ) : (
+              <FaPlay size={12} className="me-1" />
+            )}
+            {loading ? loadingText : "Run Workflow"}
+          </button>
         </div>
       </div>
 

@@ -59,14 +59,23 @@ export default function FeedbackModal({ isOpen, type, title, message, onClose })
 
           {/* OK Button */}
           <button
-            className="btn px-5"
+            className="btn"
             style={{
+              height: "38px",
+              minHeight: "38px",
+              padding: "0 28px",
               backgroundColor: "#ea580c",
               border: "1px solid #ea580c",
-              borderRadius: "10px",
+              borderRadius: "8px",
               color: "#ffffff",
               fontFamily: "'Poppins', sans-serif",
-              fontWeight: 700,
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(234, 88, 12, 0.25)",
+              transition: "all 0.18s ease",
             }}
             onClick={onClose}
           >

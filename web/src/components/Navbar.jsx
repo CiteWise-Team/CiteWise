@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import citeWiseLogo from "../assets/citewise-logo.png";
 import "../App.css";
 
@@ -11,9 +11,12 @@ export default function Navbar() {
   const location = useLocation();
   const [open, setOpen] = useState(false); // dropdown state
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("home");
 
+  const isLanding = location.pathname === "/";
   const isCiteWise = location.pathname.startsWith("/citewise");
-  const isCatalyst = location.pathname === "/"
+  const isCatalyst = isLanding
     || location.pathname === "/groups"
     || location.pathname.startsWith("/workspace/")
     || location.pathname === "/upload";
@@ -24,31 +27,91 @@ export default function Navbar() {
     navigate("/login");
   };
 
+  const scrollToSection = (id) => {
+    setMobileMenuOpen(false);
+    if (location.pathname !== "/") {
+      navigate(`/#${id}`);
+      return;
+    }
+    setActiveSection(id);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    if (!isLanding) return;
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 140;
+      const overviewElem = document.getElementById("overview");
+      const featuresElem = document.getElementById("features");
+
+      if (overviewElem && scrollPos >= overviewElem.offsetTop) {
+        setActiveSection("overview");
+      } else if (featuresElem && scrollPos >= featuresElem.offsetTop) {
+        setActiveSection("features");
+      } else {
+        setActiveSection("home");
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isLanding]);
+
   return (
     <nav
-      className="navbar navbar-dark sticky-top"
-      style={{
-        backgroundColor: "#1e1e2f",
-        borderBottom: "1px solid #3a3a55",
-        height: "65px",
-        padding: 0,
-        boxSizing: "border-box",
-      }}
+      className={`navbar sticky-top ${isLanding ? "landing-navbar-top" : "navbar-dark"}`}
+      style={
+        isLanding
+          ? {
+              backgroundColor: "rgba(255, 255, 255, 0.94)",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
+              borderBottom: "1px solid rgba(229, 231, 235, 0.85)",
+              height: "68px",
+              padding: 0,
+              boxSizing: "border-box",
+              position: "sticky",
+              top: 0,
+              zIndex: 1030,
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
+            }
+          : {
+              backgroundColor: "#1e1e2f",
+              borderBottom: "1px solid #3a3a55",
+              height: "65px",
+              padding: 0,
+              boxSizing: "border-box",
+              position: "sticky",
+              top: 0,
+              zIndex: 1030,
+            }
+      }
     >
       <div
         className="container-fluid"
         style={{
           width: "100%",
-          padding: "0 clamp(1rem, 2vw, 2rem)",
-          height: "64px",
+          padding: "0 clamp(1.2rem, 2.5vw, 3rem)",
+          height: isLanding ? "67px" : "64px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: "1rem",
         }}
       >
+        {/* Brand */}
         <Link
-          to={isAuthenticated ? "/groups" : "/login"}
+          to={isLanding ? "/" : (isAuthenticated ? "/groups" : "/login")}
+          onClick={(e) => {
+            if (isLanding) {
+              e.preventDefault();
+              scrollToSection("home");
+            }
+          }}
           className="navbar-brand text-decoration-none d-flex align-items-center gap-2"
           style={{ margin: 0, flexShrink: 0 }}
         >
@@ -56,8 +119,8 @@ export default function Navbar() {
             className="navbar-brand-icon-box"
             aria-hidden="true"
             style={{
-              width: "34px",
-              height: "34px",
+              width: "36px",
+              height: "36px",
               borderRadius: "9px",
               background: "#ffffff",
               border: "1px solid #e5e7eb",
@@ -76,10 +139,10 @@ export default function Navbar() {
           <span
             className="brand-text"
             style={{
-              color: "#e4e4f0",
+              color: isLanding ? "#0f0e17" : "#e4e4f0",
               fontFamily: "'Sora', sans-serif",
               fontWeight: 700,
-              fontSize: "1.2rem",
+              fontSize: "1.25rem",
               letterSpacing: "-0.02em",
               lineHeight: 1,
             }}
@@ -88,7 +151,72 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {isAuthenticated && user && (
+        {/* LANDING PAGE NAVBAR: ALL ITEMS GROUPED ON RIGHT (Home, Features, Overview, Login, [Sign up]) */}
+        {isLanding && (
+          <div className="d-none d-md-flex align-items-center ms-auto landing-nav-cluster">
+            <button
+              type="button"
+              className={`landing-nav-clean-link${activeSection === "home" ? " is-active" : ""}`}
+              onClick={() => scrollToSection("home")}
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              className={`landing-nav-clean-link${activeSection === "features" ? " is-active" : ""}`}
+              onClick={() => scrollToSection("features")}
+            >
+              Features
+            </button>
+            <button
+              type="button"
+              className={`landing-nav-clean-link${activeSection === "overview" ? " is-active" : ""}`}
+              onClick={() => scrollToSection("overview")}
+            >
+              Overview
+            </button>
+
+            <Link
+              to="/login"
+              className="landing-nav-clean-link text-decoration-none ms-md-2"
+            >
+              Login
+            </Link>
+
+            <Link
+              to="/register"
+              className="landing-nav-clean-signup-btn text-decoration-none ms-md-2"
+            >
+              Sign up
+            </Link>
+
+            {isAuthenticated && (
+              <Link
+                to="/groups"
+                className="landing-nav-workspace-pill text-decoration-none ms-md-2"
+                title="Go to Workspaces"
+              >
+                Workspaces
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* LANDING PAGE MOBILE HAMBURGER BUTTON */}
+        {isLanding && (
+          <button
+            type="button"
+            className="d-md-none landing-mobile-toggle-btn"
+            style={{ color: "#0f0e17" }}
+            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            onClick={() => setMobileMenuOpen(prev => !prev)}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        )}
+
+        {/* NON-LANDING APP DROPDOWN */}
+        {!isLanding && isAuthenticated && user && (
           <div className="dropdown ms-auto" style={{ position: "relative" }}>
             <button
               className="btn btn-dark dropdown-toggle"
@@ -319,6 +447,59 @@ export default function Navbar() {
                 Log out
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE DRAWER MENU ON LANDING */}
+      {isLanding && mobileMenuOpen && (
+        <div className="landing-mobile-menu">
+          <button
+            type="button"
+            className={`landing-mobile-link${activeSection === "home" ? " is-active" : ""}`}
+            onClick={() => scrollToSection("home")}
+          >
+            Home
+          </button>
+          <button
+            type="button"
+            className={`landing-mobile-link${activeSection === "features" ? " is-active" : ""}`}
+            onClick={() => scrollToSection("features")}
+          >
+            Features
+          </button>
+          <button
+            type="button"
+            className={`landing-mobile-link${activeSection === "overview" ? " is-active" : ""}`}
+            onClick={() => scrollToSection("overview")}
+          >
+            Overview
+          </button>
+          <hr className="landing-mobile-divider" />
+          <div className="d-flex flex-column gap-2 pt-1">
+            <Link
+              to="/login"
+              className="landing-mobile-link text-center text-decoration-none py-1"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Login
+            </Link>
+            <Link
+              to="/register"
+              className="landing-nav-clean-signup-btn w-100 text-center text-decoration-none"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Sign up
+            </Link>
+            {isAuthenticated && (
+              <Link
+                to="/groups"
+                className="landing-nav-workspace-pill w-100 text-center text-decoration-none"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Workspaces
+              </Link>
+            )}
           </div>
         </div>
       )}

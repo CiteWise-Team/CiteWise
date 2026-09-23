@@ -13,6 +13,7 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
   const [items, setItems] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     async function fetchTopics() {
@@ -39,8 +40,6 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
 
     fetchTopics();
   }, [group_id, result]);
-
-  const [importing, setImporting] = useState(false);
 
   const handleDraftIntroduction = async () => {
     if (!activeItem) return;
@@ -83,116 +82,122 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
   const activeItem = items.find((p) => p.id === activeId);
 
   return (
-    <div
-      className="h-100 d-flex flex-column rounded-4 p-3 workflow-result-card topic-result-card"
-      style={{
-        backgroundColor: "#1e1e2f",
-        border: "1px solid #3a3a55",
-        color: "#e4e4f0",
-        minHeight: 0,
-      }}
-    >
-      <div className="d-flex gap-3 h-100" style={{ minHeight: 0 }}>
+    <div className="h-100 d-flex flex-column rounded-4 workflow-result-card topic-result-card" style={{ minHeight: 0 }}>
+      <div className="workflow-split-result-body d-flex h-100" style={{ minHeight: 0, overflow: "visible", gap: 0 }}>
+        {/* LEFT SIDEBAR — Titles only */}
         <div
           className="d-flex flex-column workflow-result-sidebar"
           style={{
-            width: "200px",
-            maxWidth: "35%",
-            borderRight: "1px solid #3a3a55",
-            paddingRight: "0.75rem",
+            width: "240px",
+            flex: "0 0 240px",
+            borderRight: "1px solid #e5e7eb",
+            paddingRight: "20px",
             minHeight: 0,
           }}
         >
           <div className="mb-2">
             <p
               className="small fw-bold text-uppercase mb-0"
-              style={{ color: "#a1a1b5" }}
+              style={{ color: "#ea580c" }}
             >
               Suggested Topics ({items.length})
             </p>
           </div>
 
-          <div className="flex-grow-1" style={{ overflowY: "auto", minHeight: 0 }}>
+          <div className="workflow-result-sidebar-list flex-grow-1" style={{ overflowY: "auto", minHeight: 0, paddingRight: "4px" }}>
             {loading ? (
               <div className="text-center mt-5">
-                <RiLoader4Line className="fs-1 mb-2 spin-loader" />
-                <p style={{ color: "#a1a1b5" }}>Loading topics...</p>
+                <RiLoader4Line className="fs-1 mb-2 spin-loader" style={{ color: "#ea580c" }} />
+                <p style={{ color: "#4b5563" }}>Loading topics...</p>
               </div>
             ) : items.length === 0 ? (
               <div className="text-center mt-5">
-                <RiQuestionLine className="fs-1 mb-2" />
-                <p style={{ color: "#a1a1b5" }}>
+                <RiQuestionLine className="fs-1 mb-2" style={{ color: "#9ca3af" }} />
+                <p style={{ color: "#4b5563" }}>
                   No topics generated yet.
                 </p>
               </div>
             ) : (
-              items.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => setActiveId(item.id)}
-                  className={`p-3 mb-2 rounded-3 workflow-result-list-item${activeId === item.id ? " is-selected" : ""}`}
-                  style={{
-                    cursor: "pointer",
-                    backgroundColor: activeId === item.id ? "#5b5bd6" : "#25253a",
-                    border: "1px solid #3a3a55",
-                    overflow: "hidden",
-                  }}
-                >
-                  <h6
-                    className="fw-bold mb-0 text-truncate"
-                    style={{ color: "#fff" }}
-                    title={item.title}
+              items.map((item) => {
+                const isSelected = activeId === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setActiveId(item.id)}
+                    className={`p-3 mb-2 rounded-3 workflow-result-list-item${isSelected ? " is-selected" : ""}`}
+                    style={{
+                      cursor: "pointer",
+                      backgroundColor: isSelected ? "#fff7ed" : "#ffffff",
+                      border: isSelected ? "1px solid #ea580c" : "1px solid #e5e7eb",
+                      overflow: "hidden",
+                      transition: "all 0.18s ease",
+                    }}
                   >
-                    {item.title}
-                  </h6>
-                </div>
-              ))
+                    <h6
+                      className="fw-bold mb-0 text-truncate"
+                      style={{ color: isSelected ? "#ea580c" : "#0f0e17" }}
+                      title={item.title}
+                    >
+                      {item.title}
+                    </h6>
+                  </div>
+                );
+              })
             )}
           </div>
-
-          <button
-            type="button"
-            className="topic-citewise-link topic-citewise-link-large"
-            aria-label="Open CiteWise to draft your introduction"
-            onClick={handleDraftIntroduction}
-            disabled={importing}
-          >
-            <span className="topic-citewise-tooltip" role="tooltip">
-              Ready to draft your introduction? Open CiteWise.
-            </span>
-            <span>{importing ? "Loading..." : "Draft your introduction in CiteWise"}</span>
-            <FaArrowRight size={13} aria-hidden="true" />
-          </button>
         </div>
 
+        {/* RIGHT DETAIL */}
         <div
           className="flex-grow-1 d-flex flex-column workflow-result-detail"
           style={{
-            paddingLeft: "1rem",
             minHeight: 0,
-            maxWidth: "calc(100% - 200px)",
-            overflowY: "auto",
+            overflow: "visible",
+            paddingLeft: "20px",
+            paddingRight: 0,
           }}
         >
           {activeItem ? (
             <>
-              <div className="workflow-result-heading">
-                <span className="workflow-result-kicker">Selected suggestion</span>
-                <h4 className="fw-bold mb-0" style={{ color: "#fff" }}>{activeItem.title}</h4>
+              <div className="workflow-result-heading flex-shrink-0">
+                <span className="workflow-result-kicker">Selected topic</span>
+                <h4 className="fw-bold mb-0" style={{ color: "#0f0e17" }}>{activeItem.title}</h4>
               </div>
               <div
-                className="p-4 rounded-3 workflow-result-reading-card"
+                className="p-4 rounded-3 workflow-result-reading-card flex-grow-1"
                 style={{
-                  backgroundColor: "#25253a",
-                  border: "1px solid #3a3a55",
-                  color: "#a1a1b5",
+                  backgroundColor: "#f9fafb",
+                  border: "1px solid #e5e7eb",
+                  color: "#4b5563",
+                  minHeight: 0,
+                  overflowY: "auto",
                 }}
               >
-                <p className="mb-0">{activeItem.rationale}</p>
+                <p className="mb-0" style={{ lineHeight: 1.7 }}>
+                  {activeItem.rationale}
+                </p>
+              </div>
+              <div className="topic-detail-actions d-flex justify-content-end align-items-center mt-3 pt-1 flex-shrink-0">
+                <div className="topic-action-btn-wrap">
+                  <span className="topic-citewise-tooltip" role="tooltip">
+                    Open CiteWise to start drafting your introduction.
+                  </span>
+                  <button
+                    type="button"
+                    className="workflow-action-button topic-draft-btn"
+                    data-guide="workflow-draft-citewise"
+                    aria-label="Draft in CiteWise"
+                    onClick={handleDraftIntroduction}
+                    disabled={importing}
+                  >
+                    <span>{importing ? "Opening..." : "Draft in CiteWise"}</span>
+                    <FaArrowRight size={13} aria-hidden="true" />
+                  </button>
+                </div>
               </div>
             </>
           ) : (
-            <p style={{ color: "#a1a1b5" }}>
+            <p style={{ color: "#4b5563" }}>
               Select a topic to view details.
             </p>
           )}
