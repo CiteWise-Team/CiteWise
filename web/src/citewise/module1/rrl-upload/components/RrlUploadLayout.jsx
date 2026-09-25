@@ -451,21 +451,21 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           top: "24px",
           right: "24px",
           zIndex: 10000,
-          background: "rgba(30, 28, 25, 0.9)",
+          background: "#ffffff",
           backdropFilter: "blur(8px)",
-          border: "1px solid rgba(91, 91, 214, 0.4)",
+          border: "1px solid rgba(249, 115, 22, 0.4)",
           borderRadius: "12px",
           padding: "1rem 1.5rem",
           display: "flex",
           alignItems: "center",
           gap: "12px",
-          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(91, 91, 214, 0.1)",
+          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.1), 0 0 15px rgba(249, 115, 22, 0.08)",
           animation: "slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
           maxWidth: "400px",
         }}>
           <div style={{
-            background: "rgba(91, 91, 214, 0.15)",
-            border: "1px solid #5b5bd6",
+            background: "rgba(249, 115, 22, 0.1)",
+            border: "1px solid #f97316",
             borderRadius: "50%",
             width: "36px",
             height: "36px",
@@ -474,7 +474,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
             justifyContent: "center",
             flexShrink: 0,
           }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
               <line x1="12" y1="9" x2="12" y2="13"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -485,14 +485,14 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "0.9rem",
-              color: "#5b5bd6",
+              color: "#f97316",
             }}>
               Duplicate File Detected
             </span>
             <span style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.8rem",
-              color: "rgba(240, 236, 230, 0.8)",
+              color: "#374151",
               lineHeight: "1.4",
             }}>
               {duplicateToast.message}
@@ -511,26 +511,26 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           }}
         >
           <div>
-            <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#6f6fe0", margin: 0 }}>
+            <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#f97316", margin: 0 }}>
               RRL Document Upload
             </h2>
-            <p style={{ fontSize: "0.8rem", color: "#a1a1b5", margin: "0.25rem 0 0" }}>
+            <p style={{ fontSize: "0.8rem", color: "#6b7280", margin: "0.25rem 0 0" }}>
               Upload candidate Review of Related Literature PDFs for parsing.
             </p>
             {uploadedCount > 0 && (
-              <p style={{ fontSize: "0.85rem", color: "#22c55e", margin: "0.5rem 0 0", fontWeight: 600 }}>
+              <p style={{ fontSize: "0.85rem", color: "#16a34a", margin: "0.5rem 0 0", fontWeight: 600 }}>
                 {uploadedCount} document{uploadedCount !== 1 && "s"} already imported into CiteWise session
               </p>
             )}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-            <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#a1a1b5" }}>Session ID</span>
+            <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#6b7280" }}>Session ID</span>
             <div
               style={{
-                background: "#2a2724",
-                border: "1px solid #3a3a55",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
                 borderRadius: "8px",
-                color: "#e4e4f0",
+                color: "#111827",
                 padding: "0.5rem 0.875rem",
                 fontSize: "0.875rem",
                 width: "260px",
@@ -548,8 +548,8 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
         <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
         <div
           style={{
-            background: "#25253a",
-            border: "1px solid #3a3a55",
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
             borderRadius: "8px",
             display: "flex",
             flexDirection: "column",
@@ -560,7 +560,8 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           <div
             style={{
               padding: "0.625rem 0.875rem",
-              borderBottom: "1px solid #3a3a55",
+              borderBottom: "1px solid #e5e7eb",
+              background: "#f3f4f6",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
@@ -573,12 +574,12 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
                   fontSize: "0.7rem",
                   fontWeight: 700,
                   textTransform: "uppercase",
-                  color: "#6f6fe0",
+                  color: "#f97316",
                 }}
               >
                 Selected files
               </span>
-              <span style={{ fontSize: "0.75rem", color: "#a1a1b5" }}>{totalCount} in queue</span>
+              <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>{totalCount} in queue</span>
             </div>
             {totalCount > 0 && (
               <button
@@ -587,7 +588,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#a1a1b5",
+                  color: "#9ca3af",
                   fontSize: "0.72rem",
                   cursor: "pointer",
                   fontFamily: "'Poppins', sans-serif",
@@ -595,8 +596,8 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
                   borderRadius: "4px",
                   transition: "color 0.15s ease",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#e05555")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#a1a1b5")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#dc2626")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#9ca3af")}
               >
                 Clear All
               </button>

@@ -9,8 +9,8 @@ export default function ValidationSummaryFooter({
     return (
         <footer
             style={{
-                background: "#1e1e2f",
-                borderTop: "1px solid #3a3a55",
+                background: "linear-gradient(180deg, #fffaf5 0%, #fff5ec 100%)",
+                borderTop: "1px solid rgba(249, 115, 22, 0.18)",
                 height: "72px",
                 display: "flex",
                 alignItems: "center",
@@ -18,6 +18,7 @@ export default function ValidationSummaryFooter({
                 bottom: 0,
                 zIndex: 100,
                 width: "100%",
+                boxShadow: "0 -2px 12px rgba(249, 115, 22, 0.06)",
             }}
         >
             <div
@@ -38,7 +39,7 @@ export default function ValidationSummaryFooter({
                     <div
                         style={{
                             paddingRight: "32px",
-                            borderRight: "1px solid #3a3a55",
+                            borderRight: "1px solid rgba(249, 115, 22, 0.2)",
                         }}
                     >
                         <div
@@ -46,7 +47,7 @@ export default function ValidationSummaryFooter({
                                 fontFamily: "'Poppins', sans-serif",
                                 fontSize: "24px",
                                 fontWeight: "700",
-                                color: "#e4e4f0",
+                                color: "#111827",
                                 lineHeight: 1.1,
                             }}
                         >
@@ -54,12 +55,13 @@ export default function ValidationSummaryFooter({
                         </div>
                         <div
                             style={{
-                                fontFamily: "'Geist Mono', monospace",
+                                fontFamily: "'Poppins', sans-serif",
                                 fontSize: "10px",
-                                color: "#5b5bd6",
+                                color: "#f97316",
                                 letterSpacing: "1px",
                                 textTransform: "uppercase",
                                 marginTop: "3px",
+                                fontWeight: 700,
                             }}
                         >
                             Approved Documents
@@ -73,7 +75,7 @@ export default function ValidationSummaryFooter({
                                 fontFamily: "'Poppins', sans-serif",
                                 fontSize: "24px",
                                 fontWeight: "700",
-                                color: "#e4e4f0",
+                                color: "#111827",
                                 lineHeight: 1.1,
                             }}
                         >
@@ -81,12 +83,13 @@ export default function ValidationSummaryFooter({
                         </div>
                         <div
                             style={{
-                                fontFamily: "'Geist Mono', monospace",
+                                fontFamily: "'Poppins', sans-serif",
                                 fontSize: "10px",
-                                color: "#5b5bd6",
+                                color: "#f97316",
                                 letterSpacing: "1px",
                                 textTransform: "uppercase",
                                 marginTop: "3px",
+                                fontWeight: 700,
                             }}
                         >
                             Average Score
@@ -101,19 +104,28 @@ export default function ValidationSummaryFooter({
                         display: "flex",
                         alignItems: "center",
                         gap: "10px",
-                        background: canProceed ? "#5b5bd6" : "#3a3a55",
+                        background: canProceed
+                            ? "linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+                            : "#f3f4f6",
                         border: "none",
                         borderRadius: "8px",
                         padding: "14px 28px",
                         cursor: canProceed ? "pointer" : "not-allowed",
-                        transition: "background 0.2s ease, transform 0.1s ease",
-                        opacity: canProceed ? 1 : 0.5,
+                        transition: "background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease",
+                        opacity: canProceed ? 1 : 0.6,
+                        boxShadow: canProceed ? "0 4px 12px rgba(249, 115, 22, 0.25)" : "none",
                     }}
                     onMouseEnter={(e) => {
-                        if (canProceed) e.currentTarget.style.background = "#6f6fe0";
+                        if (canProceed) {
+                            e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
+                            e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.4)";
+                        }
                     }}
                     onMouseLeave={(e) => {
-                        if (canProceed) e.currentTarget.style.background = "#5b5bd6";
+                        if (canProceed) {
+                            e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
+                            e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
+                        }
                     }}
                     onMouseDown={(e) => {
                         if (canProceed) e.currentTarget.style.transform = "scale(0.97)";
@@ -126,7 +138,7 @@ export default function ValidationSummaryFooter({
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                         <path
                             d="M3 9H15M15 9L10.5 4.5M15 9L10.5 13.5"
-                            stroke="#e4e4f0"
+                            stroke={canProceed ? "#ffffff" : "#9ca3af"}
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -137,7 +149,7 @@ export default function ValidationSummaryFooter({
                             fontFamily: "'Poppins', sans-serif",
                             fontSize: "14px",
                             fontWeight: "700",
-                            color: "#e4e4f0",
+                            color: canProceed ? "#ffffff" : "#9ca3af",
                             whiteSpace: "nowrap",
                             letterSpacing: "0.2px",
                         }}

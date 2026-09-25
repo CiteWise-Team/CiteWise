@@ -17,23 +17,28 @@ export default function DraftIntroductionButton({
           style={{
             ...styles.button,
             background: (generationStatus === "generating" || !hasApprovedDocuments) 
-              ? "rgba(0, 0, 0, 0.15)" 
-              : "#5b5bd6",
+              ? "#f3f4f6" 
+              : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
             color: (generationStatus === "generating" || !hasApprovedDocuments) 
-              ? "#a1a1b5" 
-              : "#e4e4f0",
+              ? "#9ca3af" 
+              : "#ffffff",
             cursor: (generationStatus === "generating" || !hasApprovedDocuments) 
               ? "not-allowed" 
               : "pointer",
+            boxShadow: (generationStatus === "generating" || !hasApprovedDocuments)
+              ? "none"
+              : "0 4px 12px rgba(249, 115, 22, 0.25)",
           }}
           onMouseEnter={(e) => {
             if (generationStatus !== "generating" && hasApprovedDocuments) {
-              e.currentTarget.style.background = "#6f6fe0";
+              e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
+              e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.4)";
             }
           }}
           onMouseLeave={(e) => {
             if (generationStatus !== "generating" && hasApprovedDocuments) {
-              e.currentTarget.style.background = "#5b5bd6";
+              e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
             }
           }}
         >
@@ -49,9 +54,20 @@ export default function DraftIntroductionButton({
       ) : (
         <button
           onClick={onRegenerate}
-          style={styles.button}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#6f6fe0")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#5b5bd6")}
+          style={{
+            ...styles.button,
+            background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+            color: "#ffffff",
+            boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
+            e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.4)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
+          }}
         >
           Clear Draft
         </button>
@@ -62,8 +78,8 @@ export default function DraftIntroductionButton({
 
 const styles = {
   button: {
-    background: "#5b5bd6",
-    color: "#e4e4f0",
+    background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+    color: "#ffffff",
     border: "none",
     borderRadius: "10px",
     padding: "14px",
@@ -71,7 +87,7 @@ const styles = {
     fontFamily: "'Poppins', sans-serif",
     fontSize: "0.875rem",
     fontWeight: "700",
-    transition: "background 0.2s ease, transform 0.1s ease",
+    transition: "background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease",
     textAlign: "center",
     width: "100%",
     display: "flex",
@@ -82,11 +98,9 @@ const styles = {
   spinnerIcon: {
     width: "16px",
     height: "16px",
-    border: "2px solid rgba(255,255,255,0.3)",
-    borderTop: "2px solid white",
+    border: "2px solid rgba(255,255,255,0.35)",
+    borderTop: "2px solid #ffffff",
     borderRadius: "50%",
-    // `progress-bar-stripes` is Bootstrap's keyframe: it animates
-    // background-position-x, so this ring sat perfectly still instead of spinning.
     animation: "citewise-spin 0.8s linear infinite",
   },
 };

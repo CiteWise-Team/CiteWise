@@ -5,13 +5,13 @@ function formatFileSize(bytes) {
 }
 
 const statusConfig = {
-  queued: { label: "Ready", color: "#5b5bd6", bg: "rgba(91, 91, 214, 0.12)" },
-  uploading: { label: "Uploading", color: "#5b5bd6", bg: "rgba(91, 91, 214, 0.18)" },
-  extracting: { label: "Extracting", color: "#5b5bd6", bg: "rgba(91, 91, 214, 0.18)" },
-  uploaded: { label: "Uploaded", color: "#4caf82", bg: "rgba(76,175,130,0.15)" },
-  failed: { label: "Failed", color: "#e05555", bg: "rgba(224,85,85,0.15)" },
-  invalid: { label: "Rejected", color: "#e05555", bg: "rgba(224,85,85,0.15)" },
-  duplicate: { label: "Duplicate", color: "#e0a835", bg: "rgba(224,168,53,0.15)" },
+  queued: { label: "Ready", color: "#f97316", bg: "rgba(249, 115, 22, 0.1)" },
+  uploading: { label: "Uploading", color: "#f97316", bg: "rgba(249, 115, 22, 0.15)" },
+  extracting: { label: "Extracting", color: "#f97316", bg: "rgba(249, 115, 22, 0.15)" },
+  uploaded: { label: "Uploaded", color: "#16a34a", bg: "rgba(22, 163, 74, 0.12)" },
+  failed: { label: "Failed", color: "#dc2626", bg: "rgba(220, 38, 38, 0.12)" },
+  invalid: { label: "Rejected", color: "#dc2626", bg: "rgba(220, 38, 38, 0.12)" },
+  duplicate: { label: "Duplicate", color: "#d97706", bg: "rgba(217, 119, 6, 0.12)" },
 };
 
 export default function SelectedFilesList({ files, onRemove, onRetry }) {
@@ -25,7 +25,7 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
           flex: 1,
           padding: "2rem",
           textAlign: "center",
-          color: "rgba(240, 236, 230, 0.4)",
+          color: "#9ca3af",
           fontSize: "0.85rem",
           fontFamily: "'Poppins', sans-serif",
         }}
@@ -60,20 +60,20 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                background: "rgba(0, 0, 0, 0.22)",
-                border: "1px solid rgba(58, 58, 85, 0.7)",
+                background: "#ffffff",
+                border: "1px solid #e5e7eb",
                 borderRadius: "8px",
                 padding: "0.45rem 0.65rem",
                 gap: "0.5rem",
                 transition: "border-color 0.15s ease, background 0.15s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#5b5bd6";
-                e.currentTarget.style.background = "rgba(91, 91, 214, 0.06)";
+                e.currentTarget.style.borderColor = "#f97316";
+                e.currentTarget.style.background = "rgba(249, 115, 22, 0.04)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "rgba(58, 58, 85, 0.7)";
-                e.currentTarget.style.background = "rgba(0, 0, 0, 0.22)";
+                e.currentTarget.style.borderColor = "#e5e7eb";
+                e.currentTarget.style.background = "#ffffff";
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -81,7 +81,7 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
                   style={{
                     fontSize: "0.82rem",
                     fontWeight: 600,
-                    color: "#e4e4f0",
+                    color: "#111827",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -93,7 +93,7 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
                 >
                   {item.name}
                 </p>
-                <p style={{ fontSize: "0.68rem", color: "rgba(240, 236, 230, 0.45)", margin: "2px 0 0 0", fontFamily: "'Poppins', sans-serif" }}>
+                <p style={{ fontSize: "0.68rem", color: "#6b7280", margin: "2px 0 0 0", fontFamily: "'Poppins', sans-serif" }}>
                   {formatFileSize(item.size)} · {item.message}
                 </p>
               </div>
@@ -119,9 +119,9 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
                     title="Retry upload"
                     onClick={() => onRetry(item.id)}
                     style={{
-                      background: "rgba(224, 85, 85, 0.18)",
-                      border: "1px solid rgba(224, 85, 85, 0.4)",
-                      color: "#fca5a5",
+                      background: "rgba(220, 38, 38, 0.1)",
+                      border: "1px solid rgba(220, 38, 38, 0.3)",
+                      color: "#dc2626",
                       fontSize: "0.65rem",
                       fontWeight: 600,
                       fontFamily: "'Poppins', sans-serif",
@@ -135,14 +135,14 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
                       outline: "none",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#e05555";
-                      e.currentTarget.style.borderColor = "#e05555";
+                      e.currentTarget.style.background = "#dc2626";
+                      e.currentTarget.style.borderColor = "#dc2626";
                       e.currentTarget.style.color = "#ffffff";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(224, 85, 85, 0.18)";
-                      e.currentTarget.style.borderColor = "rgba(224, 85, 85, 0.4)";
-                      e.currentTarget.style.color = "#fca5a5";
+                      e.currentTarget.style.background = "rgba(220, 38, 38, 0.1)";
+                      e.currentTarget.style.borderColor = "rgba(220, 38, 38, 0.3)";
+                      e.currentTarget.style.color = "#dc2626";
                     }}
                   >
                     <svg
@@ -167,7 +167,7 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
                     style={{
                       background: "none",
                       border: "none",
-                      color: "rgba(240, 236, 230, 0.35)",
+                      color: "#9ca3af",
                       fontSize: "0.72rem",
                       cursor: "pointer",
                       padding: "0.15rem",
@@ -179,8 +179,8 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
                       outline: "none",
                     }}
                     onClick={() => onRemove(item.id)}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#e05555")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(240, 236, 230, 0.35)")}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#dc2626")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "#9ca3af")}
                   >
                     ✕
                   </button>
@@ -195,15 +195,15 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
           width: 5px;
         }
         .citewise-queue-scroll::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.12);
+          background: #f3f4f6;
           border-radius: 4px;
         }
         .citewise-queue-scroll::-webkit-scrollbar-thumb {
-          background: rgba(91, 91, 214, 0.35);
+          background: rgba(249, 115, 22, 0.3);
           border-radius: 4px;
         }
         .citewise-queue-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(91, 91, 214, 0.65);
+          background: rgba(249, 115, 22, 0.6);
         }
       `}</style>
     </>

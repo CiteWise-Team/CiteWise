@@ -12,12 +12,10 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   const STORAGE_SESSION_KEY = groupId ? `citewise.${groupId}.sessionId` : "citewise.session_id";
   const LOW_RELEVANCE_APPROVAL_THRESHOLD = 60;
 
-  // Use sessionId from prop or generate/get from localStorage
   const [resolvedSessionId, setResolvedSessionId] = useState(() => {
     if (propSessionId) return propSessionId;
     const stored = localStorage.getItem(STORAGE_SESSION_KEY);
     if (stored) return stored;
-    // Generate new session ID if none exists
     const newSessionId = crypto.randomUUID ? crypto.randomUUID() : 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     localStorage.setItem(STORAGE_SESSION_KEY, newSessionId);
     return newSessionId;
@@ -47,13 +45,8 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     message: "",
   });
 
-  // State for modular Upload modal
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  // Only a *completed* assessment retires the weight-customization hero panel.
-  // Flipping on "processing" meant that assessing one document swapped the panel
-  // out on the very next poll, so a user assessing files one at a time with
-  // different weights lost the controls before they could set up the second file.
   const [hasEverAssessed, setHasEverAssessed] = useState(false);
   useEffect(() => {
     if (documents.some((doc) => doc.rawStatus === "complete")) {
@@ -63,7 +56,6 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
   const activeDoc = documents[currentIndex];
 
-  // Save sessionId to localStorage when it changes
   useEffect(() => {
     if (resolvedSessionId) {
       localStorage.setItem(STORAGE_SESSION_KEY, resolvedSessionId);
@@ -87,22 +79,18 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       const aPrevIndex = previousOrderById.get(a.id);
       const bPrevIndex = previousOrderById.get(b.id);
 
-      // Keep existing documents in their previous visible order.
       if (aPrevIndex !== undefined && bPrevIndex !== undefined) {
         return aPrevIndex - bPrevIndex;
       }
       if (aPrevIndex !== undefined) return -1;
       if (bPrevIndex !== undefined) return 1;
 
-      // Deterministic order for brand-new documents.
       return (a.id ?? Number.MAX_SAFE_INTEGER) - (b.id ?? Number.MAX_SAFE_INTEGER);
     });
 
     const previousById = new Map((previous || []).map((doc) => [doc.id, doc]));
     return normalizedItems.map((item) => {
       const prev = previousById.get(item.id);
-      // Prefer a backend-provided overallScore if present (ensures weighted score used),
-      // otherwise fall back to legacy relevancyScore field.
       const overallFromInsight = item.overallScore ?? (item.insight && item.insight.overallScore) ?? null;
       const rawStatus = (item.scoringStatus || item.status || "pending").toLowerCase();
       return {
@@ -147,10 +135,6 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     }
   }, [resolvedSessionId]);
 
-  // Adaptive polling. A flat 5s interval costs ~120 requests / 10 min per open
-  // tab even when nothing is happening, which on its own exhausted the API rate
-  // limit and surfaced as an opaque "Failed to fetch". Poll quickly only while a
-  // document is actually pending or being assessed, then back off.
   const documentsActiveRef = useRef(false);
   useEffect(() => {
     documentsActiveRef.current = documents.some(
@@ -198,8 +182,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
     const fetchInsightsData = async () => {
       if (cancelled) return;
-      
-      // If we already have this in cache, show it instantly
+
       if (insightsCacheRef.current.has(activeDoc.id)) {
         setActiveInsights(insightsCacheRef.current.get(activeDoc.id));
         setIsInsightsLoading(false);
@@ -207,7 +190,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       } else {
         setIsInsightsLoading(true);
       }
-      
+
       try {
         const { res: response, data } = await apiFetch(`/api/v1/documents/${activeDoc.id}/insights`, {
           cache: "no-store",
@@ -218,7 +201,6 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         if (cancelled) return;
 
         if (response.status === 202) {
-          // Document is processing, continue polling
           pollAttemptsRef.current += 1;
           if (pollAttemptsRef.current >= 50) {
             setIsInsightsLoading(false);
@@ -240,11 +222,9 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         }
 
         if (response.status === 404) {
-          // If the document is explicitly pending, it might be about to start (race condition).
-          // Give it a few seconds (e.g., 3 polls) to transition to processing before giving up.
           if (activeDoc.rawStatus === 'pending' && pollAttemptsRef.current > 3) {
             setIsInsightsLoading(false);
-            setInsightsPollExhausted(true); // Treated as not assessed
+            setInsightsPollExhausted(true);
             return;
           }
 
@@ -412,13 +392,11 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     const updatedDocs = documents.filter((_, i) => i !== index);
     setDocuments(updatedDocs);
 
-    // Synchronize storage immediately so Step 3 never resurrects deleted doc
     const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
     const updatedApproved = updatedDocs.filter((d) => d.approved);
     localStorage.setItem(storageKey, JSON.stringify(updatedApproved));
     sessionStorage.setItem(storageKey, JSON.stringify(updatedApproved));
 
-    // Remove from rrlUsage in citewiseStore
     const currentUsage = store.getRrlUsage(resolvedSessionId) || {};
     if (currentUsage[docToDelete.id] || currentUsage[String(docToDelete.id)]) {
       const nextUsage = { ...currentUsage };
@@ -427,7 +405,6 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       store.setRrlUsage(resolvedSessionId, nextUsage);
     }
 
-    // Update batch stats
     const scoredDocs = updatedApproved.filter((d) => typeof d.relevancyScore === "number");
     const avgScore = scoredDocs.length
       ? scoredDocs.reduce((s, d) => s + d.relevancyScore, 0) / scoredDocs.length
@@ -464,33 +441,29 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     setShowUploadModal(true);
   };
 
-const handleProceed = () => {
-  // Get currently approved documents from current session
-  const currentlyApproved = documents.filter(doc => doc.approved === true);
-  const currentDocKeys = new Set(
-    documents.map((doc) => doc.id || doc.name || doc.fileName).filter(Boolean)
-  );
-  
-  console.log("=== PROCEED TO SYNTHESIS ===");
-  console.log("Currently approved in Module 2:", currentlyApproved.map(d => d.name));
-  
-  const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
-  
-  const mergedApproved = currentlyApproved.filter((doc) => currentDocKeys.has(doc.id || doc.name || doc.fileName));
-  console.log("FINAL approved documents for current session:", mergedApproved.map(d => d.name || d.fileName));
-  console.log("Total approved documents count:", mergedApproved.length);
-  
-  // Save merged list to localStorage
-  localStorage.setItem(storageKey, JSON.stringify(mergedApproved));
-  
-  // Also save to sessionStorage for redundancy
-  sessionStorage.setItem(storageKey, JSON.stringify(mergedApproved));
-  
-  setShowSuccessToast(true);
-  setTimeout(() => {
-    onStepChange(2, resolvedSessionId);
-  }, 2200);
-};
+  const handleProceed = () => {
+    const currentlyApproved = documents.filter(doc => doc.approved === true);
+    const currentDocKeys = new Set(
+      documents.map((doc) => doc.id || doc.name || doc.fileName).filter(Boolean)
+    );
+
+    console.log("=== PROCEED TO SYNTHESIS ===");
+    console.log("Currently approved in Module 2:", currentlyApproved.map(d => d.name));
+
+    const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
+
+    const mergedApproved = currentlyApproved.filter((doc) => currentDocKeys.has(doc.id || doc.name || doc.fileName));
+    console.log("FINAL approved documents for current session:", mergedApproved.map(d => d.name || d.fileName));
+    console.log("Total approved documents count:", mergedApproved.length);
+
+    localStorage.setItem(storageKey, JSON.stringify(mergedApproved));
+    sessionStorage.setItem(storageKey, JSON.stringify(mergedApproved));
+
+    setShowSuccessToast(true);
+    setTimeout(() => {
+      onStepChange(2, resolvedSessionId);
+    }, 2200);
+  };
 
   const styleInject = (
     <style>{`
@@ -503,8 +476,8 @@ const handleProceed = () => {
         to { transform: scale(1); opacity: 1; }
       }
       @keyframes pulseRing {
-        0%, 100% { box-shadow: 0 0 20px rgba(91, 91, 214, 0.2); }
-        50% { box-shadow: 0 0 40px rgba(91, 91, 214, 0.4); }
+        0%, 100% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.2); }
+        50% { box-shadow: 0 0 40px rgba(249, 115, 22, 0.4); }
       }
       @keyframes drawCheckmark {
         to { stroke-dashoffset: 0; }
@@ -530,12 +503,11 @@ const handleProceed = () => {
     >
       {styleInject}
 
-      {/* (Approval Modal and Upload Modal remain the same) */}
       {approvalWarningModal.show && (
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(14, 12, 10, 0.75)",
+          background: "rgba(17, 24, 39, 0.6)",
           backdropFilter: "blur(12px)",
           display: "flex",
           alignItems: "center",
@@ -543,16 +515,15 @@ const handleProceed = () => {
           zIndex: 10000,
           animation: "fadeInToast 0.3s ease-out forwards",
         }}>
-          {/* ... modal content ... */}
           <div style={{
-            background: "#1e1e2f",
-            border: "1px solid rgba(91, 91, 214, 0.25)",
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
             borderRadius: "24px",
             padding: "clamp(1rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3rem)",
             width: "max-content",
             maxWidth: "96vw",
             textAlign: "center",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(91, 91, 214, 0.15)",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.15), 0 0 40px rgba(249, 115, 22, 0.1)",
             animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
             overflowX: "auto",
             overflowY: "hidden",
@@ -562,16 +533,16 @@ const handleProceed = () => {
               width: "80px",
               height: "80px",
               borderRadius: "50%",
-              background: "rgba(91, 91, 214, 0.1)",
-              border: "2px solid #5b5bd6",
+              background: "#fff7ef",
+              border: "2px solid #f97316",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 1.5rem",
-              boxShadow: "0 0 20px rgba(91, 91, 214, 0.2)",
+              boxShadow: "0 0 20px rgba(249, 115, 22, 0.2)",
               animation: "pulseRing 2s infinite",
             }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
                 <line x1="12" y1="9" x2="12" y2="13"/>
                 <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -581,7 +552,7 @@ const handleProceed = () => {
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 800,
               fontSize: "1.2rem",
-              color: "#e4e4f0",
+              color: "#111827",
               margin: "0 0 0.75rem 0",
               letterSpacing: "0.01em",
               maxWidth: "600px",
@@ -592,7 +563,7 @@ const handleProceed = () => {
             <p style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.95rem",
-              color: "rgba(240, 236, 230, 0.7)",
+              color: "#6b7280",
               lineHeight: "1.6",
               margin: "0 0 1.75rem 0",
             }}>
@@ -607,28 +578,28 @@ const handleProceed = () => {
                 type="button"
                 onClick={handleConfirmApprovalWarning}
                 style={{
-                  background: "#5b5bd6",
+                  background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
                   border: "none",
                   borderRadius: "10px",
                   padding: "0.85rem 1rem",
-                  color: "#e4e4f0",
+                  color: "#ffffff",
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: 700,
                   fontSize: "0.9rem",
                   cursor: "pointer",
                   transform: "scale(1)",
-                  boxShadow: "0 0 0 rgba(91, 91, 214, 0)",
+                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
                   transition: "transform 0.18s ease, box-shadow 0.22s ease, background 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "scale(1.04)";
-                  e.currentTarget.style.background = "#6f6fe0";
-                  e.currentTarget.style.boxShadow = "0 0 24px rgba(91, 91, 214, 0.45), 0 0 42px rgba(91, 91, 214, 0.28)";
+                  e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
+                  e.currentTarget.style.boxShadow = "0 0 24px rgba(249, 115, 22, 0.45), 0 0 42px rgba(249, 115, 22, 0.28)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.background = "#5b5bd6";
-                  e.currentTarget.style.boxShadow = "0 0 0 rgba(91, 91, 214, 0)";
+                  e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
                 }}
               >
                 Yes
@@ -638,10 +609,10 @@ const handleProceed = () => {
                 onClick={handleCancelApprovalWarning}
                 style={{
                   background: "transparent",
-                  border: "1px solid #3a3a55",
+                  border: "1px solid #e5e7eb",
                   borderRadius: "10px",
                   padding: "0.85rem 1rem",
-                  color: "#e4e4f0",
+                  color: "#6b7280",
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: 700,
                   fontSize: "0.9rem",
@@ -651,13 +622,15 @@ const handleProceed = () => {
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "scale(1.04)";
-                  e.currentTarget.style.borderColor = "#a1a1b5";
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                  e.currentTarget.style.background = "#f9fafb";
+                  e.currentTarget.style.color = "#374151";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.borderColor = "#3a3a55";
+                  e.currentTarget.style.borderColor = "#e5e7eb";
                   e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "#6b7280";
                 }}
               >
                 NO
@@ -671,7 +644,7 @@ const handleProceed = () => {
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(14, 12, 10, 0.8)",
+          background: "rgba(17, 24, 39, 0.7)",
           backdropFilter: "blur(12px)",
           display: "flex",
           alignItems: "center",
@@ -681,13 +654,13 @@ const handleProceed = () => {
           fontFamily: "'Poppins', sans-serif",
         }}>
           <div style={{
-            background: "#1e1e2f",
-            border: "1px solid #3a3a55",
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
             borderRadius: "24px",
             padding: "2rem",
             maxWidth: "900px",
             width: "95%",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6)",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.15)",
             animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
             display: "flex",
             flexDirection: "column",
@@ -696,10 +669,10 @@ const handleProceed = () => {
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: "1.25rem", fontWeight: 700, color: "#6f6fe0", margin: 0 }}>
+                <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: "1.25rem", fontWeight: 700, color: "#f97316", margin: 0 }}>
                   Upload New RRL Documents
                 </h3>
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "#a1a1b5", margin: "0.25rem 0 0" }}>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "#6b7280", margin: "0.25rem 0 0" }}>
                   Add candidates to the current assessment batch. Duplicates are auto-removed.
                 </p>
               </div>
@@ -708,19 +681,21 @@ const handleProceed = () => {
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: "#a1a1b5",
+                  color: "#9ca3af",
                   fontSize: "1.5rem",
                   cursor: "pointer",
                   transition: "color 0.2s ease",
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#374151")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#9ca3af")}
               >
                 ✕
               </button>
             </div>
 
             <div style={{ overflow: "hidden" }}>
-              <RrlUploadLayout 
-                sessionId={resolvedSessionId} 
+              <RrlUploadLayout
+                sessionId={resolvedSessionId}
                 hideHeader={true}
                 onUploadComplete={async () => {
                   await fetchDocuments();
@@ -734,92 +709,92 @@ const handleProceed = () => {
         </div>
       )}
 
-      {showSuccessToast && (
+    {showSuccessToast && (
+  <div style={{
+    position: "fixed",
+    inset: 0,
+    background: "rgba(255, 255, 255, 0.9)",
+    backdropFilter: "blur(12px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999,
+    animation: "fadeInToast 0.3s ease-out forwards",
+  }}>
+    <div style={{
+      background: "#ffffff",
+      border: "1px solid #e5e7eb",
+      borderRadius: "24px",
+      padding: "2.5rem 3rem",
+      maxWidth: "480px",
+      width: "90%",
+      textAlign: "center",
+      boxShadow: "0 24px 60px rgba(0, 0, 0, 0.12), 0 0 40px rgba(249, 115, 22, 0.1)",
+      animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+    }}>
+      <div style={{
+        width: "80px",
+        height: "80px",
+        borderRadius: "50%",
+        background: "rgba(249, 115, 22, 0.1)",
+        border: "2px solid #f97316",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        margin: "0 auto 1.5rem",
+        boxShadow: "0 0 20px rgba(249, 115, 22, 0.15)",
+        animation: "pulseRing 2s infinite",
+      }}>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" style={{
+            strokeDasharray: 50,
+            strokeDashoffset: 50,
+            animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
+          }} />
+        </svg>
+      </div>
+      <h3 style={{
+        fontFamily: "'Poppins', sans-serif",
+        fontWeight: 800,
+        fontSize: "1.5rem",
+        color: "#111827",
+        margin: "0 0 0.5rem 0",
+        letterSpacing: "0.01em",
+      }}>
+        Synthesis Starting
+      </h3>
+      <p style={{
+        fontFamily: "'Poppins', sans-serif",
+        fontSize: "0.95rem",
+        color: "#6b7280",
+        lineHeight: "1.6",
+        margin: "0 0 1.75rem 0",
+      }}>
+        Your validated documents are being synthesized. Preparing the synthesis dashboard.
+      </p>
+      <div style={{
+        width: "100%",
+        height: "4px",
+        background: "#e5e7eb",
+        borderRadius: "2px",
+        overflow: "hidden",
+      }}>
         <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(14, 12, 10, 0.75)",
-          backdropFilter: "blur(12px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 9999,
-          animation: "fadeInToast 0.3s ease-out forwards",
-        }}>
-          <div style={{
-            background: "#1e1e2f",
-            border: "1px solid rgba(91, 91, 214, 0.25)",
-            borderRadius: "24px",
-            padding: "2.5rem 3rem",
-            maxWidth: "480px",
-            width: "90%",
-            textAlign: "center",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(91, 91, 214, 0.15)",
-            animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
-          }}>
-            <div style={{
-              width: "80px",
-              height: "80px",
-              borderRadius: "50%",
-              background: "rgba(91, 91, 214, 0.1)",
-              border: "2px solid #5b5bd6",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 1.5rem",
-              boxShadow: "0 0 20px rgba(91, 91, 214, 0.2)",
-              animation: "pulseRing 2s infinite",
-            }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" style={{
-                  strokeDasharray: 50,
-                  strokeDashoffset: 50,
-                  animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
-                }} />
-              </svg>
-            </div>
-            <h3 style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: 800,
-              fontSize: "1.5rem",
-              color: "#e4e4f0",
-              margin: "0 0 0.5rem 0",
-              letterSpacing: "0.01em",
-            }}>
-              Synthesis Starting
-            </h3>
-            <p style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "0.95rem",
-              color: "rgba(240, 236, 230, 0.7)",
-              lineHeight: "1.6",
-              margin: "0 0 1.75rem 0",
-            }}>
-              Your validated documents are being synthesized. Preparing the synthesis dashboard.
-            </p>
-            <div style={{
-              width: "100%",
-              height: "4px",
-              background: "rgba(255, 255, 255, 0.08)",
-              borderRadius: "2px",
-              overflow: "hidden",
-            }}>
-              <div style={{
-                height: "100%",
-                background: "linear-gradient(90deg, #5b5bd6, #5b5bd6)",
-                width: "0%",
-                borderRadius: "2px",
-                animation: "fillProgress 2.2s linear forwards",
-              }} />
-            </div>
-          </div>
-        </div>
-      )}
+          height: "100%",
+          background: "linear-gradient(90deg, #f97316, #fb8c3a)",
+          width: "0%",
+          borderRadius: "2px",
+          animation: "fillProgress 2.2s linear forwards",
+        }} />
+      </div>
+    </div>
+  </div>
+)}
 
       <div
         style={{
           width: "100%",
-          padding: "2rem clamp(1rem, 2vw, 2rem) 3rem",
+          padding: "2rem clamp(2rem, 4vw, 4rem) 3rem",
           boxSizing: "border-box",
           flex: 1,
           display: "grid",
@@ -827,6 +802,7 @@ const handleProceed = () => {
           gap: "24px",
           minHeight: 0,
           alignItems: "start",
+          background: "#f8f9fb",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "20px", minHeight: 0 }}>
@@ -843,8 +819,8 @@ const handleProceed = () => {
             onDelete={handleDeleteDocument}
           />
           {hasAssessedDocs && (
-            <MetricWeightCustomization 
-              sessionId={resolvedSessionId} 
+            <MetricWeightCustomization
+              sessionId={resolvedSessionId}
               documents={documents}
               onAssessmentTriggered={(assessedDocIds) => {
                 setHasEverAssessed(true);
@@ -865,8 +841,8 @@ const handleProceed = () => {
         </div>
 
         {!hasAssessedDocs ? (
-          <MetricWeightCustomization 
-            sessionId={resolvedSessionId} 
+          <MetricWeightCustomization
+            sessionId={resolvedSessionId}
             documents={documents}
             onAssessmentTriggered={(assessedDocIds) => {
               setHasEverAssessed(true);

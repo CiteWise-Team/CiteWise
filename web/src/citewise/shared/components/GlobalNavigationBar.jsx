@@ -6,18 +6,21 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
   return (
     <nav
       style={{
-        background: "#1e1e2f",
-        borderBottom: "1px solid #3a3a55",
+        // ✨ Warm cream background that blends with the page gradient
+        background: "linear-gradient(180deg, #fffaf5 0%, #fff5ec 100%)",
+        borderBottom: "1px solid rgba(249, 115, 22, 0.15)",
         position: "sticky",
         top: 0,
         zIndex: 100,
         width: "100%",
+        backdropFilter: "blur(10px)",
+        boxShadow: "0 1px 3px rgba(249, 115, 22, 0.04), 0 4px 20px rgba(249, 115, 22, 0.05)",
       }}
     >
       <div
         style={{
           width: "100%",
-          padding: "0 clamp(1rem, 2vw, 2rem)",
+          padding: "0 clamp(1rem, 4vw, 4rem)",
           height: "64px",
           display: "flex",
           alignItems: "center",
@@ -41,16 +44,18 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06)",
-              transition: "transform 0.25s ease, box-shadow 0.25s ease",
+              boxShadow: "0 2px 6px rgba(249, 115, 22, 0.08)",
+              transition: "transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "scale(1.08) rotate(5deg)";
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.2)";
+              e.currentTarget.style.borderColor = "#f97316";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "none";
-              e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.06)";
+              e.currentTarget.style.boxShadow = "0 2px 6px rgba(249, 115, 22, 0.08)";
+              e.currentTarget.style.borderColor = "#e5e7eb";
             }}
           >
             <img
@@ -64,12 +69,12 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "1.1rem",
-              color: "#e4e4f0",
+              color: "#111827",
               letterSpacing: "-0.01em",
               userSelect: "none",
             }}
           >
-            CiteWise
+            Cite<span style={{ color: "#f97316" }}>Wise</span>
           </span>
         </div>
 
@@ -84,6 +89,7 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
                 key={label}
                 onClick={() => isClickable && onNavigate?.(index)}
                 disabled={!isClickable}
+                title={!isClickable ? "Complete the previous step to unlock" : undefined}
                 style={{
                   position: "relative",
                   background: "none",
@@ -93,27 +99,30 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
                   fontSize: "0.875rem",
                   fontWeight: isActive ? 700 : 500,
                   color: isActive
-                    ? "#e4e4f0"
+                    ? "#111827"
                     : isPast
-                      ? "rgba(228,228,240,0.7)"
+                      ? "#6b7280"
                       : isClickable
-                        ? "rgba(228,228,240,0.4)"
-                        : "rgba(228,228,240,0.22)",
+                        ? "#9ca3af"
+                        : "#d1d5db",
                   padding: "0 1.5rem",
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
                   whiteSpace: "nowrap",
-                  transition: "color 0.2s ease",
+                  transition: "color 0.2s ease, transform 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive && isClickable) e.currentTarget.style.color = "#e4e4f0";
+                  if (!isActive && isClickable) {
+                    e.currentTarget.style.color = "#f97316";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive && isClickable)
-                    e.currentTarget.style.color = isPast
-                      ? "rgba(228,228,240,0.7)"
-                      : "rgba(228,228,240,0.4)";
+                  if (!isActive && isClickable) {
+                    e.currentTarget.style.color = isPast ? "#6b7280" : "#9ca3af";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }
                 }}
               >
                 {/* Step number badge */}
@@ -128,32 +137,40 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
                     fontSize: "0.65rem",
                     fontWeight: 800,
                     flexShrink: 0,
+                    opacity: isClickable ? 1 : 0.6,
                     background: isActive
-                      ? "#5b5bd6"
+                      ? "#f97316"
                       : isPast
-                        ? "rgba(91,91,214,0.25)"
-                        : "rgba(228,228,240,0.08)",
-                    color: isActive ? "#fff" : isPast ? "#5b5bd6" : "rgba(228,228,240,0.35)",
-                    transition: "background 0.2s ease, color 0.2s ease",
+                        ? "rgba(249, 115, 22, 0.15)"
+                        : "rgba(107, 114, 128, 0.1)",
+                    color: isActive
+                      ? "#fff"
+                      : isPast
+                        ? "#f97316"
+                        : "#9ca3af",
+                    transition: "background 0.2s ease, color 0.2s ease, opacity 0.2s ease",
+                    boxShadow: isActive ? "0 2px 6px rgba(249, 115, 22, 0.3)" : "none",
                   }}
                 >
                   {isPast ? "✓" : index + 1}
                 </span>
                 {label}
                 {/* Active underline */}
-                {isActive && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: "1.5rem",
-                      right: "1.5rem",
-                      height: "2px",
-                      borderRadius: "2px 2px 0 0",
-                      background: "#5b5bd6",
-                    }}
-                  />
-                )}
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: "1.5rem",
+                    right: "1.5rem",
+                    height: "2px",
+                    borderRadius: "2px 2px 0 0",
+                    background: "linear-gradient(90deg, #f97316, #fb8c3a)",
+                    opacity: isActive ? 1 : 0,
+                    transform: isActive ? "scaleX(1)" : "scaleX(0.6)",
+                    transformOrigin: "center",
+                    transition: "opacity 0.25s ease, transform 0.25s ease",
+                  }}
+                />
               </button>
             );
           })}
@@ -169,10 +186,10 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
             style={{
               flexShrink: 0,
               background: "transparent",
-              border: "1px solid rgba(91,91,214,0.55)",
+              border: "1px solid rgba(249, 115, 22, 0.45)",
               borderRadius: "8px",
               padding: "6px 14px",
-              color: "#5b5bd6",
+              color: "#f97316",
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.8rem",
               fontWeight: 600,
@@ -183,17 +200,19 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
               gap: "6px",
               minHeight: "34px",
               whiteSpace: "nowrap",
-              transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
+              transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(91,91,214,0.12)";
-              e.currentTarget.style.borderColor = "#5b5bd6";
-              e.currentTarget.style.color = "#a5b4fc";
+              e.currentTarget.style.background = "rgba(249, 115, 22, 0.1)";
+              e.currentTarget.style.borderColor = "#f97316";
+              e.currentTarget.style.color = "#ea580c";
+              e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.borderColor = "rgba(91,91,214,0.55)";
-              e.currentTarget.style.color = "#5b5bd6";
+              e.currentTarget.style.borderColor = "rgba(249, 115, 22, 0.45)";
+              e.currentTarget.style.color = "#f97316";
+              e.currentTarget.style.transform = "translateY(0)";
             }}
           >
             <span aria-hidden="true">←</span>

@@ -11,13 +11,10 @@ export default function MetricWeightCustomization({
   isHero = false 
 }) {
   const [prefs, setPrefs] = useState(() => store.getScorePrefs(sessionId));
-  const [open, setOpen] = useState(isHero); // always open if in hero position
+  const [open, setOpen] = useState(isHero);
   const [selectedDocs, setSelectedDocs] = useState(new Set());
   const [showSelectModal, setShowSelectModal] = useState(false);
 
-  // Documents still waiting to be assessed. Assessing files one at a time with
-  // different weights means coming back to this panel, so surface it (and say how
-  // many are left) rather than leaving it collapsed and easy to miss.
   const pendingDocs = documents.filter((d) => d.rawStatus === "pending");
   const autoOpenedRef = useRef(false);
   useEffect(() => {
@@ -77,7 +74,6 @@ export default function MetricWeightCustomization({
     if (!docIds.length) return;
     setIsProcessing(true);
     try {
-      // Always pass the current panel weights
       const panelWeights = {
         gap: prefs.enabled.gapAlignment ? prefs.weights.gapAlignment : 0,
         methodology: prefs.enabled.methodology ? prefs.weights.methodology : 0,
@@ -121,30 +117,66 @@ export default function MetricWeightCustomization({
     0
   );
 
-  const cardStyle = isHero 
-    ? { ...ui.card, padding: "2rem", maxWidth: "800px", margin: "0 auto", width: "100%" }
-    : ui.card;
+  // ✨ Local light-theme style overrides
+  const cardStyle = isHero
+    ? {
+        background: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "16px",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
+        padding: "2rem",
+        maxWidth: "800px",
+        margin: "0 auto",
+        width: "100%",
+      }
+    : {
+        background: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "16px",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
+        overflow: "hidden",
+      };
 
   return (
     <div style={cardStyle}>
       {!isHero && (
         <button
           onClick={() => setOpen((o) => !o)}
-          style={{ 
-            ...ui.cardHeader, 
-            width: "100%", 
-            background: theme.surfaceAlt, 
-            border: "none", 
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "100%",
+            background: "linear-gradient(180deg, #fff2e0 0%, #ffe9d1 100%)",
+            border: "none",
+            borderBottom: open ? "1px solid rgba(249, 115, 22, 0.18)" : "none",
             cursor: "pointer",
             textAlign: "left",
-            padding: "0.8rem 1rem",
-            gap: "10px"
+            padding: "1.125rem 1.5rem",
+            gap: "10px",
           }}
         >
-          <span style={{ ...ui.cardTitle, fontSize: "0.9rem", lineHeight: 1.3 }}>
+          <span
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 700,
+              fontSize: "1.05rem",
+              color: "#f97316",
+              letterSpacing: "0.01em",
+              lineHeight: 1.3,
+            }}
+          >
             Metric Weight Customization
           </span>
-          <span style={{ color: pendingDocs.length ? theme.accent : theme.textMuted, fontFamily: theme.font, fontSize: "0.78rem", whiteSpace: "nowrap" }}>
+          <span
+            style={{
+              color: pendingDocs.length ? "#f97316" : "#6b7280",
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
             {pendingDocs.length > 0 && !open
               ? `${pendingDocs.length} pending ▼`
               : (open ? "Hide ▲" : "Customize ▼")}
@@ -156,31 +188,44 @@ export default function MetricWeightCustomization({
         <div style={{ padding: isHero ? "0" : "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "20px" }}>
           {isHero && (
             <div>
-              <h2 style={{ margin: "0 0 8px 0", color: theme.accent, fontFamily: theme.font }}>Metric Weight Customization</h2>
+              <h2 style={{ margin: "0 0 8px 0", color: "#f97316", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
+                Metric Weight Customization
+              </h2>
               {documents.length > 0 && (
-                <div style={{ marginBottom: "16px", padding: "12px", background: "rgba(255, 165, 0, 0.1)", border: "1px solid rgba(255, 165, 0, 0.3)", borderRadius: "8px", color: "#ffb74d", fontFamily: theme.font, fontSize: "0.85rem" }}>
+                <div
+                  style={{
+                    marginBottom: "16px",
+                    padding: "12px",
+                    background: "#fff7ef",
+                    border: "1px solid #fed7aa",
+                    borderRadius: "8px",
+                    color: "#9a3412",
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: "0.85rem",
+                  }}
+                >
                   <strong>Not Yet Assessed:</strong> You have uploaded documents that are pending assessment. Customize your weights below and click "Assess All" to begin.
                 </div>
               )}
-              <p style={{ margin: 0, fontSize: "0.85rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
                 Before AI assessment begins, customize how much each component counts toward the overall relevance score. 
                 You can apply these weights to all documents, or only to selected documents. Documents that are not customized will use base weights.
               </p>
             </div>
           )}
           {!isHero && (
-             <p style={{ margin: 0, fontSize: "0.76rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
-               Customize metric weights for assessment scoring.
-               {pendingDocs.length > 0 && (
-                 <>
-                   {" "}
-                   <span style={{ color: theme.accent, fontWeight: 600 }}>
-                     {pendingDocs.length} document{pendingDocs.length !== 1 ? "s" : ""} not assessed yet
-                   </span>
-                   {" — set the weights you want, then use “Assess Selected” to apply them to just those files."}
-                 </>
-               )}
-             </p>
+            <p style={{ margin: 0, fontSize: "0.76rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
+              Customize metric weights for assessment scoring.
+              {pendingDocs.length > 0 && (
+                <>
+                  {" "}
+                  <span style={{ color: "#f97316", fontWeight: 600 }}>
+                    {pendingDocs.length} document{pendingDocs.length !== 1 ? "s" : ""} not assessed yet
+                  </span>
+                  {" — set the weights you want, then use \"Assess Selected\" to apply them to just those files."}
+                </>
+              )}
+            </p>
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -191,16 +236,27 @@ export default function MetricWeightCustomization({
               return (
                 <div key={key} style={{ opacity: enabled ? 1 : 0.5 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontFamily: theme.font, fontSize: "0.85rem", color: theme.text }}>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        cursor: "pointer",
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: "0.85rem",
+                        color: "#111827",
+                        fontWeight: 500,
+                      }}
+                    >
                       <input
                         type="checkbox"
                         checked={enabled}
                         onChange={() => toggleEnabled(key)}
-                        style={{ width: 16, height: 16, accentColor: theme.accent, cursor: "pointer" }}
+                        style={{ width: 16, height: 16, accentColor: "#f97316", cursor: "pointer" }}
                       />
                       {label}
                     </label>
-                    <span style={{ fontFamily: theme.font, fontSize: "0.8rem", color: theme.accent, fontWeight: 700 }}>
+                    <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "#f97316", fontWeight: 700 }}>
                       {enabled ? `${share}%` : "off"}
                     </span>
                   </div>
@@ -211,7 +267,7 @@ export default function MetricWeightCustomization({
                     value={pct}
                     disabled={!enabled}
                     onChange={(e) => setWeight(key, e.target.value)}
-                    style={{ width: "100%", accentColor: theme.accent, marginTop: 8 }}
+                    style={{ width: "100%", accentColor: "#f97316", marginTop: 8 }}
                   />
                 </div>
               );
@@ -219,11 +275,10 @@ export default function MetricWeightCustomization({
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" }}>
-            <button 
+            <button
               onClick={handleApplyToAll}
               disabled={isProcessing || documents.length === 0}
               style={{
-                ...ui.primaryBtn,
                 fontSize: "0.85rem",
                 padding: "11px 16px",
                 width: "100%",
@@ -233,11 +288,16 @@ export default function MetricWeightCustomization({
                 gap: "8px",
                 cursor: isProcessing ? "wait" : (documents.length === 0 ? "not-allowed" : "pointer"),
                 background: isProcessing
-                  ? "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)"
-                  : ui.primaryBtn.background,
+                  ? "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)"
+                  : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "10px",
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: 700,
                 boxShadow: isProcessing
-                  ? "0 0 16px rgba(91, 91, 214, 0.55)"
-                  : "0 2px 6px rgba(0, 0, 0, 0.2)",
+                  ? "0 0 16px rgba(249, 115, 22, 0.55)"
+                  : "0 4px 12px rgba(249, 115, 22, 0.25)",
                 opacity: documents.length === 0 ? 0.5 : 1,
                 transition: "all 0.2s ease",
               }}
@@ -268,19 +328,34 @@ export default function MetricWeightCustomization({
               )}
             </button>
             <div style={{ display: "flex", gap: "10px", width: "100%" }}>
-              <button 
-                onClick={() => { 
-                  setSelectedDocs(new Set()); 
-                  setShowSelectModal(true); 
+              <button
+                onClick={() => {
+                  setSelectedDocs(new Set());
+                  setShowSelectModal(true);
                 }}
                 disabled={isProcessing || documents.length === 0}
                 style={{
-                  ...ui.ghostBtn,
-                  border: `1px solid ${theme.border}`,
+                  background: "transparent",
+                  color: "#f97316",
+                  border: "1px solid rgba(249, 115, 22, 0.45)",
+                  borderRadius: "8px",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 600,
                   fontSize: "0.75rem",
                   padding: "8px",
                   flex: 1,
                   cursor: isProcessing ? "wait" : (documents.length === 0 ? "not-allowed" : "pointer"),
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isProcessing && documents.length > 0) {
+                    e.currentTarget.style.background = "rgba(249, 115, 22, 0.1)";
+                    e.currentTarget.style.borderColor = "#f97316";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.borderColor = "rgba(249, 115, 22, 0.45)";
                 }}
               >
                 Assess Selected
@@ -289,11 +364,29 @@ export default function MetricWeightCustomization({
                 onClick={reset}
                 disabled={isProcessing}
                 style={{
-                  ...ui.ghostBtn,
+                  background: "transparent",
+                  color: "#6b7280",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 600,
                   fontSize: "0.75rem",
                   padding: "8px",
                   flex: 1,
                   cursor: isProcessing ? "wait" : "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isProcessing) {
+                    e.currentTarget.style.background = "#f9fafb";
+                    e.currentTarget.style.borderColor = "#d1d5db";
+                    e.currentTarget.style.color = "#374151";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.color = "#6b7280";
                 }}
               >
                 Reset Default
@@ -303,8 +396,8 @@ export default function MetricWeightCustomization({
               <div
                 style={{
                   padding: "10px 14px",
-                  background: "rgba(91, 91, 214, 0.12)",
-                  border: "1px solid rgba(91, 91, 214, 0.35)",
+                  background: "#fff7ef",
+                  border: "1px solid #fed7aa",
                   borderRadius: "8px",
                   display: "flex",
                   alignItems: "center",
@@ -316,13 +409,13 @@ export default function MetricWeightCustomization({
                     width: "8px",
                     height: "8px",
                     borderRadius: "50%",
-                    background: "#5b5bd6",
-                    boxShadow: "0 0 8px #5b5bd6",
+                    background: "#f97316",
+                    boxShadow: "0 0 8px #f97316",
                     animation: "citewise-pulse-dot 1s infinite alternate",
                     flexShrink: 0,
                   }}
                 />
-                <span style={{ fontSize: "0.75rem", color: "#e4e4f0", fontFamily: theme.font }}>
+                <span style={{ fontSize: "0.75rem", color: "#9a3412", fontFamily: "'Poppins', sans-serif" }}>
                   Sending {documents.length} document{documents.length !== 1 ? "s" : ""} to AI evaluation models...
                 </span>
               </div>
@@ -333,72 +426,136 @@ export default function MetricWeightCustomization({
 
       {/* Select Documents Modal */}
       {showSelectModal && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000,
-          display: "flex", alignItems: "center", justifyContent: "center"
-        }}>
-          <div style={{
-            background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: "12px",
-            padding: "24px", width: "90%", maxWidth: "500px", display: "flex", flexDirection: "column", gap: "16px"
-          }}>
-            <h3 style={{ margin: 0, color: theme.text, fontFamily: theme.font }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(17, 24, 39, 0.6)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "16px",
+              padding: "24px",
+              width: "90%",
+              maxWidth: "500px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.15)",
+            }}
+          >
+            <h3 style={{ margin: 0, color: "#111827", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
               Select Documents to Assess
             </h3>
-            <p style={{ margin: 0, color: theme.textMuted, fontSize: "0.85rem", fontFamily: theme.font }}>
+            <p style={{ margin: 0, color: "#6b7280", fontSize: "0.85rem", fontFamily: "'Poppins', sans-serif" }}>
               Select which documents to run through the AI assessment.
             </p>
-            <div style={{ maxHeight: "300px", overflowY: "auto", border: `1px solid ${theme.surfaceAlt}`, borderRadius: "8px", padding: "8px" }}>
+            <div style={{ maxHeight: "300px", overflowY: "auto", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "8px", background: "#f9fafb" }}>
               {documents.map(doc => (
-                <label key={doc.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px", cursor: "pointer", borderBottom: `1px solid ${theme.surfaceAlt}` }}>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedDocs.has(doc.id)} 
+                <label
+                  key={doc.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    padding: "8px",
+                    cursor: "pointer",
+                    borderBottom: "1px solid #e5e7eb",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedDocs.has(doc.id)}
                     onChange={() => toggleDocSelection(doc.id)}
-                    style={{ width: "16px", height: "16px" }}
+                    style={{ width: "16px", height: "16px", accentColor: "#f97316", cursor: "pointer" }}
                   />
-                  <span style={{ color: theme.text, fontFamily: theme.font, fontSize: "0.85rem", wordWrap: "break-word" }}>
+                  <span style={{ color: "#111827", fontFamily: "'Poppins', sans-serif", fontSize: "0.85rem", wordWrap: "break-word" }}>
                     {doc.name || doc.fileName || doc.title || doc.file_name}
                   </span>
                 </label>
               ))}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
-              <button onClick={() => setShowSelectModal(false)} style={ui.ghostBtn}>Cancel</button>
+              <button
+                onClick={() => setShowSelectModal(false)}
+                style={{
+                  background: "transparent",
+                  color: "#6b7280",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#f9fafb";
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                  e.currentTarget.style.color = "#374151";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.color = "#6b7280";
+                }}
+              >
+                Cancel
+              </button>
               <div style={{ display: "flex", gap: "10px" }}>
-                  <button 
-                    onClick={handleAssessSelected}
-                    disabled={selectedDocs.size === 0 || isProcessing}
-                    style={{
-                      ...ui.primaryBtn,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      cursor: isProcessing ? "wait" : (selectedDocs.size === 0 ? "not-allowed" : "pointer"),
-                      opacity: selectedDocs.size === 0 ? 0.5 : 1,
-                      boxShadow: isProcessing ? "0 0 14px rgba(91, 91, 214, 0.5)" : "none",
-                    }}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          style={{ animation: "citewise-spin 0.8s linear infinite" }}
-                        >
-                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                        </svg>
-                        <span>Starting Assessment ({selectedDocs.size})...</span>
-                      </>
-                    ) : (
-                      `Assess Selected (${selectedDocs.size})`
-                    )}
-                  </button>
+                <button
+                  onClick={handleAssessSelected}
+                  disabled={selectedDocs.size === 0 || isProcessing}
+                  style={{
+                    background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: 700,
+                    fontSize: "0.85rem",
+                    padding: "8px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    cursor: isProcessing ? "wait" : (selectedDocs.size === 0 ? "not-allowed" : "pointer"),
+                    opacity: selectedDocs.size === 0 ? 0.5 : 1,
+                    boxShadow: isProcessing
+                      ? "0 0 14px rgba(249, 115, 22, 0.5)"
+                      : "0 4px 12px rgba(249, 115, 22, 0.25)",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {isProcessing ? (
+                    <>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ animation: "citewise-spin 0.8s linear infinite" }}
+                      >
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                      <span>Starting Assessment ({selectedDocs.size})...</span>
+                    </>
+                  ) : (
+                    `Assess Selected (${selectedDocs.size})`
+                  )}
+                </button>
               </div>
             </div>
           </div>

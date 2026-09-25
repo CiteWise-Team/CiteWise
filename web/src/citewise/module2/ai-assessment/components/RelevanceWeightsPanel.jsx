@@ -6,7 +6,6 @@
 // session and drive the recomputed overall score + synthesis tiering.
 
 import { useEffect, useState } from "react";
-import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
 
 export default function RelevanceWeightsPanel({ sessionId }) {
@@ -39,20 +38,49 @@ export default function RelevanceWeightsPanel({ sessionId }) {
   );
 
   return (
-    <div style={ui.card}>
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "16px",
+        overflow: "hidden",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
+      }}
+    >
       <button
         onClick={() => setOpen((o) => !o)}
-        style={{ ...ui.cardHeader, width: "100%", background: theme.surfaceAlt, border: "none", cursor: "pointer" }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          background: "linear-gradient(180deg, #fff2e0 0%, #ffe9d1 100%)",
+          border: "none",
+          borderBottom: open ? "1px solid rgba(249, 115, 22, 0.18)" : "none",
+          cursor: "pointer",
+          padding: "1.125rem 1.5rem",
+          gap: "10px",
+        }}
       >
-        <span style={ui.cardTitle}>Relevance Scoring</span>
-        <span style={{ color: theme.textMuted, fontFamily: theme.font, fontSize: "0.78rem" }}>
+        <span
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: 700,
+            fontSize: "1.05rem",
+            color: "#f97316",
+            letterSpacing: "0.01em",
+          }}
+        >
+          Relevance Scoring
+        </span>
+        <span style={{ color: "#6b7280", fontFamily: "'Poppins', sans-serif", fontSize: "0.78rem", fontWeight: 600 }}>
           {open ? "Hide ▲" : "Customize ▼"}
         </span>
       </button>
 
       {open && (
         <div style={{ padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "14px" }}>
-          <p style={{ margin: 0, fontSize: "0.76rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: "0.76rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
             Choose which components count and how much. A source is never auto-discarded for a low overall score if you weight a section you care about.
           </p>
 
@@ -63,16 +91,27 @@ export default function RelevanceWeightsPanel({ sessionId }) {
             return (
               <div key={key} style={{ opacity: enabled ? 1 : 0.5 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontFamily: theme.font, fontSize: "0.82rem", color: theme.text }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      cursor: "pointer",
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.82rem",
+                      color: "#111827",
+                      fontWeight: 500,
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={enabled}
                       onChange={() => toggleEnabled(key)}
-                      style={{ width: 15, height: 15, accentColor: theme.accent, cursor: "pointer" }}
+                      style={{ width: 15, height: 15, accentColor: "#f97316", cursor: "pointer" }}
                     />
                     {label}
                   </label>
-                  <span style={{ fontFamily: theme.font, fontSize: "0.74rem", color: theme.accent, fontWeight: 700 }}>
+                  <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.74rem", color: "#f97316", fontWeight: 700 }}>
                     {enabled ? `${share}%` : "off"}
                   </span>
                 </div>
@@ -83,19 +122,43 @@ export default function RelevanceWeightsPanel({ sessionId }) {
                   value={pct}
                   disabled={!enabled}
                   onChange={(e) => setWeight(key, e.target.value)}
-                  style={{ width: "100%", accentColor: theme.accent, marginTop: 4 }}
+                  style={{ width: "100%", accentColor: "#f97316", marginTop: 4 }}
                 />
               </div>
             );
           })}
 
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={reset} style={{ ...ui.ghostBtn, padding: "5px 12px", fontSize: "0.74rem" }}>
+            <button
+              onClick={reset}
+              style={{
+                background: "transparent",
+                color: "#6b7280",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+                padding: "5px 12px",
+                fontSize: "0.74rem",
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#f9fafb";
+                e.currentTarget.style.borderColor = "#d1d5db";
+                e.currentTarget.style.color = "#374151";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.borderColor = "#e5e7eb";
+                e.currentTarget.style.color = "#6b7280";
+              }}
+            >
               Reset to defaults
             </button>
           </div>
-          <p style={{ margin: 0, fontSize: "0.7rem", color: theme.textFaint, fontFamily: theme.font }}>
-            Applies to the overall score, the synthesis tiering, and the “How your sources are used” view.
+          <p style={{ margin: 0, fontSize: "0.7rem", color: "#9ca3af", fontFamily: "'Poppins', sans-serif" }}>
+            Applies to the overall score, the synthesis tiering, and the "How your sources are used" view.
           </p>
         </div>
       )}

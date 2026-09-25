@@ -8,8 +8,8 @@ export default function UploadAllButton({ onClick, isUploading, disabled }) {
         alignItems: "center",
         justifyContent: "center",
         gap: "0.6rem",
-        background: "#5b5bd6",
-        color: "#e4e4f0",
+        background: "#f97316",
+        color: "#ffffff",
         border: "none",
         borderRadius: "8px",
         fontSize: "0.9rem",
@@ -19,19 +19,20 @@ export default function UploadAllButton({ onClick, isUploading, disabled }) {
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
         width: "100%",
         opacity: (disabled || isUploading) ? 0.5 : 1,
-        boxShadow: "0 4px 12px rgba(91, 91, 214, 0.25)",
+        boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
+        fontFamily: "'Poppins', sans-serif",
       }}
       onMouseEnter={(e) => {
         if (!disabled && !isUploading) {
-          e.currentTarget.style.background = "#6f6fe0";
-          e.currentTarget.style.boxShadow = "0 6px 16px rgba(91, 91, 214, 0.4)";
+          e.currentTarget.style.background = "#ea6a0f";
+          e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.4)";
           e.currentTarget.style.transform = "translateY(-1px)";
         }
       }}
       onMouseLeave={(e) => {
         if (!disabled && !isUploading) {
-          e.currentTarget.style.background = "#5b5bd6";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(91, 91, 214, 0.25)";
+          e.currentTarget.style.background = "#f97316";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
           e.currentTarget.style.transform = "translateY(0)";
         }
       }}
@@ -46,10 +47,6 @@ export default function UploadAllButton({ onClick, isUploading, disabled }) {
         }
       }}
     >
-      {/* The icon's motion previously used
-          transition: "transform 0.5s infinite alternate" — invalid CSS, since
-          `infinite` and `alternate` are animation keywords. The browser dropped the
-          whole declaration, so the icon never moved while uploading. */}
       <style>{`
         @keyframes citewise-upload-bob {
           from { transform: translateY(1px); }

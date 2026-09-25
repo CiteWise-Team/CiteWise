@@ -39,12 +39,10 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
         return next;
       });
 
-      // Purge storage
       const DOCS_STORAGE_KEY = `citewise_approved_docs_${sessionId}`;
       localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(updatedDocs));
       sessionStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(updatedDocs));
 
-      // Purge store
       const currentUsage = store.getRrlUsage(sessionId) || {};
       if (currentUsage[docToDelete.id] || currentUsage[String(docToDelete.id)]) {
         const nextUsage = { ...currentUsage };
@@ -97,7 +95,6 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
         headers: { 'X-Session-Id': sessionId }
       });
       if (res.ok && Array.isArray(data)) {
-        // Find docs that have been assessed (they have an insight, meaning relevancyScore is not null)
         const assessedDocs = data.filter(d => d.relevancyScore !== null || d.scoringStatus === "complete" || d.scoringStatus === "COMPLETE");
         setManageDocsList(assessedDocs);
         const currentIds = new Set(documents.map(d => String(d.id)));
@@ -133,7 +130,6 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
     if (onUpdateSources) onUpdateSources(updatedDocs);
     setShowManageModal(false);
 
-    // Sync approval state to database so Step 2 respects unselected documents
     for (const doc of manageDocsList) {
       const isSelected = draftSelectedIds.has(String(doc.id));
       try {
@@ -156,25 +152,26 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
   return (
     <div
       style={{
-        background: "#1e1e2f",
-        border: "1px solid #3a3a55",
+        background: "#ffffff",
+        border: "1px solid #e5e7eb",
         borderRadius: "16px",
         display: "flex",
         flexDirection: "column",
         position: "relative",
         overflow: "hidden",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
       }}
     >
-      <div 
-        style={{ 
-          padding: "16px 20px", 
-          background: "rgba(0, 0, 0, 0.15)",
-          borderBottom: isOpen ? "1px solid #3a3a55" : "none",
-          display: "flex", 
-          justifyContent: "space-between", 
+      <div
+        style={{
+          padding: "16px 20px",
+          background: "#f9fafb",
+          borderBottom: isOpen ? "1px solid #e5e7eb" : "none",
+          display: "flex",
+          justifyContent: "space-between",
           alignItems: "center",
           cursor: "pointer",
-          userSelect: "none"
+          userSelect: "none",
         }}
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -184,7 +181,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "1.05rem",
-              color: "#5b5bd6",
+              color: "#f97316",
               letterSpacing: "0.01em",
             }}
           >
@@ -192,17 +189,20 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); handleOpenManage(); }}
             style={{
-              background: "transparent", border: "none", color: "#a1a1b5",
+              background: "transparent", border: "none", color: "#6b7280",
               padding: "4px", fontSize: "0.8rem", fontFamily: "'Poppins', sans-serif",
-              cursor: "pointer", display: "flex", alignItems: "center", gap: "4px"
+              cursor: "pointer", display: "flex", alignItems: "center", gap: "4px",
+              transition: "color 0.15s ease",
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#f97316")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#6b7280")}
           >
             <Settings size={14} /> <span style={{ textDecoration: "underline" }}>Manage Sources</span>
           </button>
-          {isOpen ? <ChevronDown size={18} color="#5b5bd6" /> : <ChevronRight size={18} color="#a1a1b5" />}
+          {isOpen ? <ChevronDown size={18} color="#f97316" /> : <ChevronRight size={18} color="#9ca3af" />}
         </div>
       </div>
 
@@ -217,7 +217,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                 justifyContent: "center",
                 gap: "12px",
                 padding: "40px 20px",
-                background: "rgba(0, 0, 0, 0.15)",
+                background: "#f9fafb",
                 borderRadius: "8px",
               }}
             >
@@ -225,13 +225,13 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                 style={{
                   width: "32px",
                   height: "32px",
-                  border: "2px solid #3a3a55",
-                  borderTop: "2px solid #5b5bd6",
+                  border: "2px solid #e5e7eb",
+                  borderTop: "2px solid #f97316",
                   borderRadius: "50%",
                   animation: "spin 0.8s linear infinite",
                 }}
               />
-              <span style={{ fontSize: "0.85rem", color: "#a1a1b5" }}>
+              <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>
                 Loading source documents...
               </span>
             </div>
@@ -240,10 +240,11 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
               style={{
                 textAlign: "center",
                 padding: "32px 20px",
-                background: "rgba(0, 0, 0, 0.15)",
+                background: "#f9fafb",
                 borderRadius: "8px",
-                color: "#7d7d95",
+                color: "#9ca3af",
                 fontSize: "0.9rem",
+                fontStyle: "italic",
               }}
             >
               No documents available. Go to AI Assessment to approve documents.
@@ -258,8 +259,8 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                     alignItems: "center",
                     gap: "16px",
                     padding: "12px",
-                    background: "rgba(0, 0, 0, 0.2)",
-                    border: "1px solid #3a3a55",
+                    background: "#ffffff",
+                    border: "1px solid #e5e7eb",
                     borderRadius: "8px",
                   }}
                 >
@@ -268,12 +269,12 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                       width: "32px",
                       height: "32px",
                       borderRadius: "6px",
-                      background: "rgba(91, 91, 214, 0.1)",
-                      border: "1px solid rgba(91, 91, 214, 0.3)",
+                      background: "#fff7ef",
+                      border: "1px solid #fed7aa",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#5b5bd6",
+                      color: "#f97316",
                       fontSize: "0.8rem",
                       fontWeight: 700,
                       flexShrink: 0,
@@ -288,7 +289,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                         fontFamily: "'Poppins', sans-serif",
                         fontWeight: 600,
                         fontSize: "0.9rem",
-                        color: "#e4e4f0",
+                        color: "#111827",
                         textOverflow: "ellipsis",
                         overflow: "hidden",
                         whiteSpace: "nowrap",
@@ -303,7 +304,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                       <span
                         style={{
                           fontSize: "0.7rem",
-                          color: "#7d7d95",
+                          color: "#6b7280",
                           textOverflow: "ellipsis",
                           overflow: "hidden",
                           whiteSpace: "nowrap",
@@ -320,10 +321,13 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                         onClick={() => handleEditClick(doc)}
                         style={{
                           fontSize: "0.7rem",
-                          color: "#a1a1b5",
+                          color: "#6b7280",
                           cursor: "pointer",
                           textDecoration: "underline",
+                          transition: "color 0.15s ease",
                         }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#f97316")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "#6b7280")}
                       >
                         Override Citation
                       </span>
@@ -331,7 +335,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                         onClick={() => setDeleteDocConfirm({ show: true, doc })}
                         style={{
                           fontSize: "0.7rem",
-                          color: "#e5544b",
+                          color: "#dc2626",
                           cursor: "pointer",
                           textDecoration: "underline",
                         }}
@@ -347,7 +351,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                       width: "16px",
                       height: "16px",
                       borderRadius: "50%",
-                      background: "#5b5bd6",
+                      background: "#f97316",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -357,7 +361,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                       <path
                         d="M1 4L3.5 6.5L9 1"
-                        stroke="#e4e4f0"
+                        stroke="#ffffff"
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -375,42 +379,75 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
       {editingDoc && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.6)", zIndex: 1000,
+          background: "rgba(17, 24, 39, 0.6)", zIndex: 1000,
+          backdropFilter: "blur(8px)",
           display: "flex", alignItems: "center", justifyContent: "center"
         }}>
           <div style={{
-            background: "#1e1e2f", padding: "24px", borderRadius: "12px",
-            width: "400px", border: "1px solid #3a3a55",
-            display: "flex", flexDirection: "column", gap: "16px"
+            background: "#ffffff", padding: "24px", borderRadius: "16px",
+            width: "440px", maxWidth: "92vw", border: "1px solid #e5e7eb",
+            boxShadow: "0 20px 50px rgba(0, 0, 0, 0.15)",
+            display: "flex", flexDirection: "column", gap: "16px",
+            fontFamily: "'Poppins', sans-serif",
           }}>
-            <h3 style={{ margin: 0, color: "#e4e4f0", fontSize: "1.1rem" }}>Override Citation</h3>
-            <p style={{ margin: 0, color: "#a1a1b5", fontSize: "0.85rem", lineHeight: "1.5" }}>
-              Paste the correct APA citation for <strong>{editingDoc.fileName || editingDoc.name}</strong>. The system will automatically extract the in-text citation format and use it in your synthesis.
+            <h3 style={{ margin: 0, color: "#111827", fontSize: "1.1rem", fontWeight: 700 }}>Override Citation</h3>
+            <p style={{ margin: 0, color: "#6b7280", fontSize: "0.85rem", lineHeight: "1.5" }}>
+              Paste the correct APA citation for <strong style={{ color: "#f97316" }}>{editingDoc.fileName || editingDoc.name}</strong>. The system will automatically extract the in-text citation format and use it in your synthesis.
             </p>
             <textarea
               value={citationText}
               onChange={(e) => setCitationText(e.target.value)}
               placeholder="e.g. Gao, Y., Xiong, Y... (2023). Retrieval-Augmented Generation..."
               style={{
-                width: "100%", height: "120px", background: "#25253a",
-                color: "#e4e4f0", border: "1px solid #3a3a55", borderRadius: "8px",
-                padding: "12px", outline: "none", resize: "none", boxSizing: "border-box"
+                width: "100%", height: "120px", background: "#ffffff",
+                color: "#111827", border: "1px solid #e5e7eb", borderRadius: "10px",
+                padding: "12px", outline: "none", resize: "none", boxSizing: "border-box",
+                fontFamily: "'Poppins', sans-serif", fontSize: "0.85rem", lineHeight: 1.5,
+                transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#f97316";
+                e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#e5e7eb";
+                e.currentTarget.style.boxShadow = "none";
               }}
             />
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
-              <button 
+              <button
                 onClick={() => setEditingDoc(null)}
-                style={{ background: "transparent", color: "#a1a1b5", border: "none", cursor: "pointer" }}
+                style={{
+                  background: "transparent", color: "#6b7280", border: "1px solid #e5e7eb",
+                  borderRadius: "8px", padding: "8px 16px", cursor: "pointer",
+                  fontFamily: "'Poppins', sans-serif", fontSize: "0.85rem", fontWeight: 600,
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                  e.currentTarget.style.color = "#374151";
+                  e.currentTarget.style.background = "#f9fafb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.background = "transparent";
+                }}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleSave}
                 disabled={isSubmitting || !citationText.trim()}
-                style={{ 
-                  background: "#5b5bd6", color: "#fff", border: "none", 
-                  borderRadius: "6px", padding: "8px 16px", cursor: "pointer",
-                  opacity: (isSubmitting || !citationText.trim()) ? 0.5 : 1
+                style={{
+                  background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                  color: "#ffffff", border: "none",
+                  borderRadius: "8px", padding: "8px 16px",
+                  cursor: (isSubmitting || !citationText.trim()) ? "not-allowed" : "pointer",
+                  opacity: (isSubmitting || !citationText.trim()) ? 0.5 : 1,
+                  fontFamily: "'Poppins', sans-serif", fontSize: "0.85rem", fontWeight: 700,
+                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
+                  transition: "all 0.2s ease",
                 }}
               >
                 {isSubmitting ? "Saving..." : "Save Citation"}
@@ -424,27 +461,30 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
       {showManageModal && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.7)", zIndex: 1000,
+          background: "rgba(17, 24, 39, 0.6)", zIndex: 1000,
+          backdropFilter: "blur(8px)",
           display: "flex", alignItems: "center", justifyContent: "center"
         }}>
           <div style={{
-            background: "#1e1e2f", padding: "24px", borderRadius: "12px",
-            width: "700px", maxWidth: "95vw", border: "1px solid #3a3a55",
+            background: "#ffffff", padding: "24px", borderRadius: "16px",
+            width: "700px", maxWidth: "95vw", border: "1px solid #e5e7eb",
+            boxShadow: "0 20px 50px rgba(0, 0, 0, 0.15)",
             display: "flex", flexDirection: "column", gap: "16px",
-            maxHeight: "85vh", overflow: "hidden"
+            maxHeight: "85vh", overflow: "hidden",
+            fontFamily: "'Poppins', sans-serif",
           }}>
-            <h3 style={{ margin: 0, color: "#e4e4f0", fontSize: "1.2rem", fontFamily: "'Poppins', sans-serif" }}>Manage Source Documents</h3>
-            <p style={{ margin: 0, color: "#a1a1b5", fontSize: "0.9rem", fontFamily: "'Poppins', sans-serif" }}>
+            <h3 style={{ margin: 0, color: "#111827", fontSize: "1.2rem", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>Manage Source Documents</h3>
+            <p style={{ margin: 0, color: "#6b7280", fontSize: "0.9rem", fontFamily: "'Poppins', sans-serif" }}>
               Select documents from your AI Assessment to include in the synthesis draft.
             </p>
-            
+
             {manageLoading ? (
-              <div style={{ color: "#a1a1b5", textAlign: "center", padding: "32px", fontFamily: "'Poppins', sans-serif" }}>Loading assessed documents...</div>
+              <div style={{ color: "#6b7280", textAlign: "center", padding: "32px", fontFamily: "'Poppins', sans-serif" }}>Loading assessed documents...</div>
             ) : (
               <div style={{ overflowY: "auto", flex: 1, paddingRight: "8px" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", color: "#e4e4f0", fontFamily: "'Poppins', sans-serif" }}>
-                  <thead style={{ position: "sticky", top: 0, background: "#1e1e2f", zIndex: 10 }}>
-                    <tr style={{ borderBottom: "1px solid #3a3a55", color: "#a1a1b5", fontSize: "0.85rem", textAlign: "left" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", color: "#111827", fontFamily: "'Poppins', sans-serif" }}>
+                  <thead style={{ position: "sticky", top: 0, background: "#ffffff", zIndex: 10 }}>
+                    <tr style={{ borderBottom: "1px solid #e5e7eb", color: "#6b7280", fontSize: "0.85rem", textAlign: "left" }}>
                       <th style={{ padding: "12px 8px", fontWeight: 600 }}>Document</th>
                       <th style={{ padding: "12px 8px", width: "120px", textAlign: "center", fontWeight: 600 }}>AI Score</th>
                       <th style={{ padding: "12px 8px", width: "100px", textAlign: "center", fontWeight: 600 }}>Include</th>
@@ -453,32 +493,33 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                   </thead>
                   <tbody>
                     {manageDocsList.map(doc => (
-                      <tr key={doc.id} style={{ borderBottom: "1px solid rgba(58, 58, 85, 0.4)", cursor: "pointer", transition: "background 0.2s ease" }}
+                      <tr key={doc.id}
+                          style={{ borderBottom: "1px solid #f3f4f6", cursor: "pointer", transition: "background 0.2s ease" }}
                           onClick={() => toggleDraftSelection(doc.id)}
-                          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.15)"}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "#f9fafb"}
                           onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                       >
                         <td style={{ padding: "16px 8px" }}>
                           <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                            <span style={{ fontSize: "0.95rem", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "450px" }}>
+                            <span style={{ fontSize: "0.95rem", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "450px", color: "#111827" }}>
                               {doc.fileName || doc.name}
                             </span>
                             {doc.title && (
-                              <span style={{ fontSize: "0.75rem", color: "#a1a1b5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "450px", marginTop: "2px" }}>
+                              <span style={{ fontSize: "0.75rem", color: "#6b7280", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "450px", marginTop: "2px" }}>
                                 {doc.title}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td style={{ padding: "16px 8px", textAlign: "center", fontSize: "0.9rem", color: "#5b5bd6", fontWeight: 700 }}>
+                        <td style={{ padding: "16px 8px", textAlign: "center", fontSize: "0.9rem", color: "#f97316", fontWeight: 700 }}>
                           {doc.relevancyScore ? doc.relevancyScore.toFixed(1) : "N/A"}
                         </td>
                         <td style={{ padding: "16px 8px", textAlign: "center" }}>
-                          <input 
-                            type="checkbox" 
-                            checked={draftSelectedIds.has(String(doc.id))} 
+                          <input
+                            type="checkbox"
+                            checked={draftSelectedIds.has(String(doc.id))}
                             readOnly
-                            style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: "#5b5bd6", pointerEvents: "none" }}
+                            style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: "#f97316", pointerEvents: "none" }}
                           />
                         </td>
                         <td style={{ padding: "16px 8px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
@@ -489,7 +530,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                             style={{
                               background: "none",
                               border: "none",
-                              color: "rgba(240, 236, 230, 0.4)",
+                              color: "#9ca3af",
                               cursor: "pointer",
                               padding: "4px 8px",
                               borderRadius: "4px",
@@ -499,11 +540,11 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                               transition: "color 0.15s, transform 0.15s",
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.color = "#e5544b";
+                              e.currentTarget.style.color = "#dc2626";
                               e.currentTarget.style.transform = "scale(1.15)";
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.color = "rgba(240, 236, 230, 0.4)";
+                              e.currentTarget.style.color = "#9ca3af";
                               e.currentTarget.style.transform = "scale(1)";
                             }}
                           >
@@ -515,21 +556,36 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                   </tbody>
                 </table>
                 {manageDocsList.length === 0 && (
-                  <div style={{ color: "#7d7d95", textAlign: "center", padding: "32px", fontFamily: "'Poppins', sans-serif" }}>
+                  <div style={{ color: "#9ca3af", textAlign: "center", padding: "32px", fontFamily: "'Poppins', sans-serif", fontStyle: "italic" }}>
                     No fully assessed documents found in this session.
                   </div>
                 )}
               </div>
             )}
-            
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", paddingTop: "16px", borderTop: "1px solid #3a3a55" }}>
-              <button 
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", paddingTop: "16px", borderTop: "1px solid #e5e7eb" }}>
+              <button
                 onClick={() => setShowManageModal(false)}
-                style={{ background: "transparent", color: "#a1a1b5", border: "1px solid #3a3a55", borderRadius: "6px", cursor: "pointer", padding: "10px 20px", fontFamily: "'Poppins', sans-serif", fontSize: "0.9rem" }}
+                style={{
+                  background: "transparent", color: "#6b7280", border: "1px solid #e5e7eb",
+                  borderRadius: "8px", cursor: "pointer", padding: "10px 20px",
+                  fontFamily: "'Poppins', sans-serif", fontSize: "0.9rem", fontWeight: 600,
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                  e.currentTarget.style.color = "#374151";
+                  e.currentTarget.style.background = "#f9fafb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.background = "transparent";
+                }}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={() => {
                   const modalEl = document.getElementById("confirm-manage-sources");
                   if (modalEl) {
@@ -537,7 +593,14 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                     modal.show();
                   }
                 }}
-                style={{ background: "#5b5bd6", color: "#fff", border: "none", borderRadius: "6px", padding: "10px 20px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.9rem", fontWeight: 600 }}
+                style={{
+                  background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                  color: "#ffffff", border: "none", borderRadius: "8px",
+                  padding: "10px 20px", cursor: "pointer",
+                  fontFamily: "'Poppins', sans-serif", fontSize: "0.9rem", fontWeight: 700,
+                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
+                  transition: "all 0.2s ease",
+                }}
               >
                 Save Selection
               </button>
@@ -551,7 +614,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(14, 12, 10, 0.75)",
+          background: "rgba(17, 24, 39, 0.6)",
           backdropFilter: "blur(12px)",
           display: "flex",
           alignItems: "center",
@@ -560,14 +623,14 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
           animation: "fadeInToast 0.3s ease-out forwards",
         }}>
           <div style={{
-            background: "#1e1e2f",
-            border: "1px solid rgba(229, 84, 75, 0.3)",
+            background: "#ffffff",
+            border: "1px solid #fecaca",
             borderRadius: "20px",
             padding: "2rem",
             maxWidth: "460px",
             width: "90%",
             textAlign: "center",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(229, 84, 75, 0.1)",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.15), 0 0 40px rgba(220, 38, 38, 0.1)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -577,14 +640,14 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
               width: "64px",
               height: "64px",
               borderRadius: "50%",
-              background: "rgba(229, 84, 75, 0.1)",
-              border: "2px solid #e5544b",
+              background: "#fef2f2",
+              border: "2px solid #dc2626",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 20px rgba(229, 84, 75, 0.2)",
+              boxShadow: "0 0 20px rgba(220, 38, 38, 0.15)",
             }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e5544b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6h18"/>
                 <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
                 <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -595,7 +658,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                 fontFamily: "'Poppins', sans-serif",
                 fontWeight: 700,
                 fontSize: "1.2rem",
-                color: "#e4e4f0",
+                color: "#111827",
                 margin: "0 0 0.5rem 0",
               }}>
                 Remove Document?
@@ -603,11 +666,11 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
               <p style={{
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: "0.85rem",
-                color: "#a1a1b5",
+                color: "#6b7280",
                 lineHeight: "1.5",
                 margin: 0,
               }}>
-                Are you sure you want to permanently delete <strong style={{ color: "#e5544b" }}>"{deleteDocConfirm.doc?.fileName || deleteDocConfirm.doc?.name}"</strong>? This will permanently remove it from both AI Assessment and Draft Generation.
+                Are you sure you want to permanently delete <strong style={{ color: "#dc2626" }}>"{deleteDocConfirm.doc?.fileName || deleteDocConfirm.doc?.name}"</strong>? This will permanently remove it from both AI Assessment and Draft Generation.
               </p>
             </div>
             <div style={{
@@ -623,14 +686,25 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                 disabled={isDeleting}
                 style={{
                   background: "transparent",
-                  border: "1px solid #3a3a55",
+                  border: "1px solid #e5e7eb",
                   borderRadius: "10px",
-                  color: "#a1a1b5",
+                  color: "#6b7280",
                   padding: "0.75rem 1rem",
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: "0.85rem",
                   fontWeight: 600,
                   cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                  e.currentTarget.style.color = "#374151";
+                  e.currentTarget.style.background = "#f9fafb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.background = "transparent";
                 }}
               >
                 Cancel
@@ -640,17 +714,17 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
                 style={{
-                  background: "#e5544b",
+                  background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
                   border: "none",
                   borderRadius: "10px",
-                  color: "#fff",
+                  color: "#ffffff",
                   padding: "0.75rem 1rem",
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: "0.85rem",
                   fontWeight: 700,
                   cursor: isDeleting ? "not-allowed" : "pointer",
                   opacity: isDeleting ? 0.7 : 1,
-                  boxShadow: "0 4px 12px rgba(229, 84, 75, 0.3)",
+                  boxShadow: "0 4px 12px rgba(220, 38, 38, 0.25)",
                 }}
               >
                 {isDeleting ? "Deleting..." : "Remove File"}

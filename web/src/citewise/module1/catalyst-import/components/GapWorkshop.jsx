@@ -93,43 +93,44 @@ export default function GapWorkshop({ sessionId, catalystData }) {
   return (
     <div
       style={{
-        background: "#1e1e2f",
-        border: "1px solid #3a3a55",
+        background: "#ffffff",
+        border: "1px solid #e5e7eb",
         borderRadius: "16px",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         maxHeight: "calc(100vh - 120px)",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
       }}
     >
       {/* Header */}
       <div
         style={{
           padding: "1.25rem 1.5rem",
-          borderBottom: "1px solid #3a3a55",
-          background: "rgba(0,0,0,0.15)",
+          borderBottom: "1px solid #e5e7eb",
+          background: "#f9fafb",
           flexShrink: 0,
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <h2 style={{ margin: 0, fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1rem", color: "#5b5bd6" }}>
+            <h2 style={{ margin: 0, fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1rem", color: "#f97316" }}>
               Research Gap Workshop
             </h2>
-            <p style={{ margin: "3px 0 0", fontSize: "0.76rem", color: "#a1a1b5", fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>
+            <p style={{ margin: "3px 0 0", fontSize: "0.76rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>
               Select, edit, or create gaps. The title is derived from your selection.
             </p>
           </div>
           {selectedCount > 0 && (
             <span
               style={{
-                background: "rgba(91,91,214,0.15)",
-                border: "1px solid rgba(91,91,214,0.4)",
+                background: "rgba(249, 115, 22, 0.1)",
+                border: "1px solid rgba(249, 115, 22, 0.4)",
                 borderRadius: "999px",
                 padding: "2px 10px",
                 fontSize: "0.72rem",
                 fontWeight: 700,
-                color: "#5b5bd6",
+                color: "#f97316",
                 fontFamily: "'Poppins', sans-serif",
                 whiteSpace: "nowrap",
                 marginLeft: 8,
@@ -148,7 +149,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
         {/* Gap list */}
         {gaps.length === 0 ? (
           <div style={{ padding: "2rem 0", textAlign: "center" }}>
-            <p style={{ color: "#a1a1b5", fontFamily: "'Poppins', sans-serif", fontSize: "0.85rem", margin: 0, fontStyle: "italic" }}>
+            <p style={{ color: "#9ca3af", fontFamily: "'Poppins', sans-serif", fontSize: "0.85rem", margin: 0, fontStyle: "italic" }}>
               No gaps yet. Import a workspace or write your own below.
             </p>
           </div>
@@ -162,8 +163,8 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                 <div
                   key={gap.id}
                   style={{
-                    background: gap.selected ? "rgba(91,91,214,0.08)" : "rgba(0,0,0,0.15)",
-                    border: `1px solid ${gap.selected ? "#5b5bd6" : "#3a3a55"}`,
+                    background: gap.selected ? "rgba(249, 115, 22, 0.05)" : "#f9fafb",
+                    border: `1px solid ${gap.selected ? "#f97316" : "#e5e7eb"}`,
                     borderRadius: "12px",
                     padding: "1rem",
                     transition: "border-color 0.15s ease, background 0.15s ease",
@@ -175,7 +176,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                       type="checkbox"
                       checked={gap.selected}
                       onChange={() => store.toggleGapSelected(sessionId, gap.id)}
-                      style={{ width: 17, height: 17, accentColor: "#5b5bd6", cursor: "pointer", flexShrink: 0 }}
+                      style={{ width: 17, height: 17, accentColor: "#f97316", cursor: "pointer", flexShrink: 0 }}
                       title="Select as research focus"
                     />
                     <span
@@ -198,7 +199,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                         style={{
                           fontSize: "0.62rem",
                           fontWeight: 700,
-                          color: "#5b5bd6",
+                          color: "#f97316",
                           textTransform: "uppercase",
                           letterSpacing: "0.04em",
                           fontFamily: "'Poppins', sans-serif",
@@ -218,10 +219,10 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                       autoFocus
                       style={{
                         width: "100%",
-                        background: "#25253a",
-                        border: "1px solid #3a3a55",
+                        background: "#ffffff",
+                        border: "1px solid #f97316",
                         borderRadius: "8px",
-                        color: "#e4e4f0",
+                        color: "#111827",
                         padding: "0.6rem 0.75rem",
                         fontFamily: "'Poppins', sans-serif",
                         fontSize: "0.875rem",
@@ -229,6 +230,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                         resize: "vertical",
                         outline: "none",
                         boxSizing: "border-box",
+                        boxShadow: "0 0 0 2px rgba(249, 115, 22, 0.15)",
                       }}
                     />
                   ) : (
@@ -236,7 +238,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                       style={{
                         margin: 0,
                         fontSize: "0.875rem",
-                        color: "#e4e4f0",
+                        color: "#1f2937",
                         lineHeight: 1.65,
                         fontFamily: "'Poppins', sans-serif",
                       }}
@@ -258,9 +260,9 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                             style={{
                               width: "100%",
                               background: "transparent",
-                              border: "1px dashed #3a3a55",
+                              border: "1px dashed #d1d5db",
                               borderRadius: "8px",
-                              color: "#a1a1b5",
+                              color: "#6b7280",
                               padding: "0.5rem 0.75rem",
                               fontFamily: "'Poppins', sans-serif",
                               fontSize: "0.78rem",
@@ -272,7 +274,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                           />
                           <button
                             onClick={() => setExpandedNote(null)}
-                            style={{ background: "none", border: "none", color: "#a1a1b5", cursor: "pointer", fontSize: "0.72rem", padding: "2px 0", fontFamily: "'Poppins', sans-serif" }}
+                            style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: "0.72rem", padding: "2px 0", fontFamily: "'Poppins', sans-serif" }}
                           >
                             Hide note
                           </button>
@@ -280,7 +282,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                       ) : (
                         <button
                           onClick={() => setExpandedNote(gap.id)}
-                          style={{ background: "none", border: "none", color: gap.note ? "#5b5bd6" : "#a1a1b5", cursor: "pointer", fontSize: "0.72rem", padding: "2px 0", fontFamily: "'Poppins', sans-serif" }}
+                          style={{ background: "none", border: "none", color: gap.note ? "#f97316" : "#9ca3af", cursor: "pointer", fontSize: "0.72rem", padding: "2px 0", fontFamily: "'Poppins', sans-serif" }}
                         >
                           {gap.note ? `📝 Note — ${gap.note.slice(0, 40)}${gap.note.length > 40 ? "…" : ""}` : "+ Add note"}
                         </button>
@@ -294,13 +296,13 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                       <>
                         <button
                           onClick={saveEdit}
-                          style={{ background: "#5b5bd6", color: "#fff", border: "none", borderRadius: "7px", padding: "5px 14px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.76rem", fontWeight: 700 }}
+                          style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: "7px", padding: "5px 14px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.76rem", fontWeight: 700 }}
                         >
                           Save
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          style={{ background: "transparent", color: "#e4e4f0", border: "1px solid #3a3a55", borderRadius: "7px", padding: "5px 14px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.76rem", fontWeight: 600 }}
+                          style={{ background: "transparent", color: "#374151", border: "1px solid #e5e7eb", borderRadius: "7px", padding: "5px 14px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.76rem", fontWeight: 600 }}
                         >
                           Cancel
                         </button>
@@ -309,13 +311,13 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                       <>
                         <button
                           onClick={() => { setEditingId(gap.id); setEditingText(gap.text); }}
-                          style={{ background: "transparent", color: "#a1a1b5", border: "1px solid #3a3a55", borderRadius: "7px", padding: "4px 12px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.74rem", fontWeight: 600 }}
+                          style={{ background: "transparent", color: "#6b7280", border: "1px solid #e5e7eb", borderRadius: "7px", padding: "4px 12px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.74rem", fontWeight: 600 }}
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => store.removeGap(sessionId, gap.id)}
-                          style={{ background: "transparent", color: "#e5544b", border: "1px solid rgba(229,84,75,0.4)", borderRadius: "7px", padding: "4px 12px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.74rem", fontWeight: 600 }}
+                          style={{ background: "transparent", color: "#dc2626", border: "1px solid rgba(220,38,38,0.3)", borderRadius: "7px", padding: "4px 12px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.74rem", fontWeight: 600 }}
                         >
                           Delete
                         </button>
@@ -333,9 +335,9 @@ export default function GapWorkshop({ sessionId, catalystData }) {
           <button
             onClick={handleCombine}
             style={{
-              background: "rgba(91,91,214,0.1)",
-              color: "#5b5bd6",
-              border: "1px solid rgba(91,91,214,0.4)",
+              background: "rgba(249, 115, 22, 0.08)",
+              color: "#f97316",
+              border: "1px solid rgba(249, 115, 22, 0.4)",
               borderRadius: "9px",
               padding: "8px 16px",
               cursor: "pointer",
@@ -353,13 +355,13 @@ export default function GapWorkshop({ sessionId, catalystData }) {
         <div
           style={{
             paddingTop: "0.75rem",
-            borderTop: "1px solid #3a3a55",
+            borderTop: "1px solid #e5e7eb",
             display: "flex",
             flexDirection: "column",
             gap: "8px",
           }}
         >
-          <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#a1a1b5", fontFamily: "'Poppins', sans-serif" }}>
+          <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280", fontFamily: "'Poppins', sans-serif" }}>
             Add your own gap
           </span>
           <div style={{ display: "flex", gap: "8px" }}>
@@ -371,10 +373,10 @@ export default function GapWorkshop({ sessionId, catalystData }) {
               rows={2}
               style={{
                 flex: 1,
-                background: "#25253a",
-                border: "1px solid #3a3a55",
+                background: "#ffffff",
+                border: "1px solid #e5e7eb",
                 borderRadius: "10px",
-                color: "#e4e4f0",
+                color: "#111827",
                 padding: "0.6rem 0.75rem",
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: "0.85rem",
@@ -387,8 +389,8 @@ export default function GapWorkshop({ sessionId, catalystData }) {
               onClick={handleAdd}
               disabled={!newGapText.trim()}
               style={{
-                background: newGapText.trim() ? "#5b5bd6" : "#25253a",
-                color: newGapText.trim() ? "#fff" : "#a1a1b5",
+                background: newGapText.trim() ? "#f97316" : "#f3f4f6",
+                color: newGapText.trim() ? "#fff" : "#9ca3af",
                 border: "none",
                 borderRadius: "10px",
                 padding: "0 18px",
@@ -406,16 +408,16 @@ export default function GapWorkshop({ sessionId, catalystData }) {
         </div>
 
         {/* Title section */}
-        <div style={{ paddingTop: "0.75rem", borderTop: "1px solid #3a3a55", display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+        <div style={{ paddingTop: "0.75rem", borderTop: "1px solid #e5e7eb", display: "flex", flexDirection: "column", gap: "0.875rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#a1a1b5", fontFamily: "'Poppins', sans-serif" }}>
+            <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280", fontFamily: "'Poppins', sans-serif" }}>
               Title from gap(s)
             </span>
             <button
               onClick={handleSuggestTitles}
               disabled={titleLoading || gaps.length === 0}
               style={{
-                background: "#5b5bd6",
+                background: "#f97316",
                 color: "#fff",
                 border: "none",
                 borderRadius: "8px",
@@ -433,7 +435,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
           </div>
 
           {titleError && (
-            <p style={{ color: "#e5544b", fontSize: "0.78rem", margin: 0, fontFamily: "'Poppins', sans-serif" }}>{titleError}</p>
+            <p style={{ color: "#dc2626", fontSize: "0.78rem", margin: 0, fontFamily: "'Poppins', sans-serif" }}>{titleError}</p>
           )}
 
           {showTitlePanel && titleSuggestions.length > 0 && (
@@ -446,11 +448,11 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                     onClick={() => pickTitle(t)}
                     style={{
                       textAlign: "left",
-                      background: active ? "rgba(91,91,214,0.12)" : "rgba(0,0,0,0.15)",
-                      border: `1px solid ${active ? "#5b5bd6" : "#3a3a55"}`,
+                      background: active ? "rgba(249, 115, 22, 0.08)" : "#f9fafb",
+                      border: `1px solid ${active ? "#f97316" : "#e5e7eb"}`,
                       borderRadius: "10px",
                       padding: "0.7rem 0.9rem",
-                      color: "#e4e4f0",
+                      color: "#1f2937",
                       cursor: "pointer",
                       fontFamily: "'Poppins', sans-serif",
                       fontSize: "0.82rem",
@@ -459,7 +461,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                     }}
                   >
                     {active && (
-                      <span style={{ color: "#5b5bd6", fontWeight: 700, fontSize: "0.64rem", display: "block", marginBottom: 3, textTransform: "uppercase" }}>
+                      <span style={{ color: "#f97316", fontWeight: 700, fontSize: "0.64rem", display: "block", marginBottom: 3, textTransform: "uppercase" }}>
                         ✓ Chosen
                       </span>
                     )}
@@ -471,7 +473,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
           )}
 
           <div>
-            <label style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#a1a1b5", fontFamily: "'Poppins', sans-serif", display: "block", marginBottom: 6 }}>
+            <label style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6b7280", fontFamily: "'Poppins', sans-serif", display: "block", marginBottom: 6 }}>
               Working title
             </label>
             <input
@@ -480,19 +482,27 @@ export default function GapWorkshop({ sessionId, catalystData }) {
               placeholder={catalystData?.title || "Derive a title from your gaps above…"}
               style={{
                 width: "100%",
-                background: "#25253a",
-                border: "1px solid #3a3a55",
+                background: "#ffffff",
+                border: "1px solid #e5e7eb",
                 borderRadius: "10px",
-                color: "#e4e4f0",
+                color: "#111827",
                 padding: "0.6rem 0.75rem",
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: "0.85rem",
                 outline: "none",
                 boxSizing: "border-box",
               }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#f97316";
+                e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#e5e7eb";
+                e.currentTarget.style.boxShadow = "none";
+              }}
             />
             {catalystData?.title && (
-              <p style={{ margin: "5px 0 0", fontSize: "0.7rem", color: "#a1a1b5", fontFamily: "'Poppins', sans-serif", lineHeight: 1.45 }}>
+              <p style={{ margin: "5px 0 0", fontSize: "0.7rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.45 }}>
                 Original: "{catalystData.title.slice(0, 80)}{catalystData.title.length > 80 ? "…" : ""}"
               </p>
             )}

@@ -1,10 +1,10 @@
 import React from 'react';
 
-// Map relevance level to the exact string expected by the design
+// Map relevance level to theme colors
 const RELEVANCE_COLORS = {
-  High: "#5b5bd6",
-  Medium: "#5b5bd6",
-  Low: "#a1a1b5",
+  High: "#f97316",    // orange — strongest signal
+  Medium: "#d97706",  // amber
+  Low: "#6b7280",     // gray
 };
 
 const getRelevanceDisplay = (level) => {
@@ -17,7 +17,7 @@ const getRelevanceDisplay = (level) => {
 
 const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType }) => {
   const relevanceDisplay = getRelevanceDisplay(relevance);
-  const color = RELEVANCE_COLORS[relevanceDisplay] || "#a1a1b5";
+  const color = RELEVANCE_COLORS[relevanceDisplay] || "#6b7280";
 
   return (
     <div
@@ -25,7 +25,7 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
         display: "flex",
         gap: "14px",
         padding: "18px 16px",
-        borderBottom: "1px solid #3a3a55",
+        borderBottom: "1px solid #f3f4f6",
       }}
     >
       {/* Index number box */}
@@ -33,7 +33,8 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
         style={{
           width: "32px",
           height: "32px",
-          border: "1px solid #3a3a55",
+          background: "#fff7ef",
+          border: "1px solid #fed7aa",
           borderRadius: "6px",
           display: "flex",
           alignItems: "center",
@@ -44,10 +45,10 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
       >
         <span
           style={{
-            fontFamily: "'Geist Mono', monospace",
+            fontFamily: "'Poppins', sans-serif",
             fontSize: "12px",
-            color: "#a1a1b5",
-            fontWeight: "600",
+            color: "#f97316",
+            fontWeight: "700",
           }}
         >
           {index}
@@ -57,9 +58,9 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {criterion && (
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#a1a1b5', marginBottom: 6 }}>
+          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '11px', color: '#6b7280', marginBottom: 6, fontWeight: 600, letterSpacing: '0.02em' }}>
             {criterion}
-            {evidenceType ? <span style={{ marginLeft: 8, color: '#a1a1b5' }}>· {evidenceType}</span> : null}
+            {evidenceType ? <span style={{ marginLeft: 8, color: '#9ca3af', fontWeight: 500 }}>· {evidenceType}</span> : null}
           </div>
         )}
 
@@ -67,7 +68,7 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
           style={{
             fontFamily: "'Poppins', sans-serif",
             fontSize: "13px",
-            color: "#e4e4f0",
+            color: "#1f2937",
             lineHeight: "1.65",
             margin: "0 0 8px 0",
             fontStyle: "italic",
@@ -84,26 +85,26 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
         >
           <span
             style={{
-              fontFamily: "'Geist Mono', monospace",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: "11px",
-              color: "#a1a1b5",
+              color: "#9ca3af",
             }}
           >
             Page {page}
           </span>
-          <span style={{ color: "#a1a1b5", fontSize: "11px" }}>·</span>
+          <span style={{ color: "#d1d5db", fontSize: "11px" }}>·</span>
           <span
             style={{
-              fontFamily: "'Geist Mono', monospace",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: "11px",
-              color: "#a1a1b5",
+              color: "#9ca3af",
             }}
           >
             Relevance: {" "}
             <span
               style={{
                 color: color,
-                fontWeight: "600",
+                fontWeight: "700",
               }}
             >
               {relevanceDisplay}
@@ -116,20 +117,20 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
 };
 
 const EvidenceExcerptList = ({ excerpts }) => {
-  // Same empty check as first file
+  // Empty state
   if (!excerpts || excerpts.length === 0) {
     return (
       <div style={{ display: "flex", flexDirection: "column" }}>
         {/* Header always visible */}
         <div
           style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "8px",
-              }}
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "8px",
+          }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.89a.5.5 0 0 0 .22.96h11.34a.5.5 0 0 0 .22-.96l-1.78-.89a2 2 0 0 1-1.11-1.79V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5.76z" />
           </svg>
           <span
@@ -137,32 +138,33 @@ const EvidenceExcerptList = ({ excerpts }) => {
               fontFamily: "'Poppins', sans-serif",
               fontSize: "16px",
               fontWeight: "700",
-              color: "#5b5bd6",
+              color: "#f97316",
             }}
           >
             Highlighted Evidence Excerpts
           </span>
         </div>
-        {/* Scrollable container with empty message */}
+        {/* Empty message container */}
         <div
           style={{
-            background: "rgba(0, 0, 0, 0.15)",
-            border: "1px solid #3a3a55",
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
             borderRadius: "10px",
             padding: "0 20px",
             maxHeight: "320px",
             overflowY: "auto",
             scrollbarWidth: "thin",
-            scrollbarColor: "#3a3a55 rgba(0, 0, 0, 0.15)",
+            scrollbarColor: "#e5e7eb #f9fafb",
           }}
         >
           <div
             style={{
               padding: "32px 0",
               textAlign: "center",
-              fontFamily: "'Geist Mono', monospace",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: "12px",
-              color: "#a1a1b5",
+              color: "#9ca3af",
+              fontStyle: "italic",
             }}
           >
             No evidence excerpts available.
@@ -172,7 +174,7 @@ const EvidenceExcerptList = ({ excerpts }) => {
     );
   }
 
-  // Map from first file's shape to the display format
+  // Map excerpts to display format
   const items = excerpts.map((excerpt, idx) => ({
     id: idx,
     quote: excerpt.quoteText || excerpt.quote || "",
@@ -184,7 +186,7 @@ const EvidenceExcerptList = ({ excerpts }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      {/* Section Header (same as file 2) */}
+      {/* Section Header */}
       <div
         style={{
           display: "flex",
@@ -193,7 +195,7 @@ const EvidenceExcerptList = ({ excerpts }) => {
           marginBottom: "8px",
         }}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b5bd6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
           <path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.89a.5.5 0 0 0 .22.96h11.34a.5.5 0 0 0 .22-.96l-1.78-.89a2 2 0 0 1-1.11-1.79V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5.76z" />
         </svg>
         <span
@@ -201,7 +203,7 @@ const EvidenceExcerptList = ({ excerpts }) => {
             fontFamily: "'Poppins', sans-serif",
             fontSize: "16px",
             fontWeight: "700",
-            color: "#5b5bd6",
+            color: "#f97316",
           }}
         >
           Highlighted Evidence Excerpts
@@ -211,14 +213,14 @@ const EvidenceExcerptList = ({ excerpts }) => {
       {/* Scrollable list */}
       <div
         style={{
-          background: "rgba(0, 0, 0, 0.15)",
-          border: "1px solid #3a3a55",
+          background: "#f9fafb",
+          border: "1px solid #e5e7eb",
           borderRadius: "10px",
           padding: "0 20px",
           maxHeight: "320px",
           overflowY: "auto",
           scrollbarWidth: "thin",
-          scrollbarColor: "#3a3a55 rgba(0, 0, 0, 0.15)",
+          scrollbarColor: "#e5e7eb #f9fafb",
         }}
       >
         {items.map((item, i) => (

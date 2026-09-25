@@ -12,6 +12,27 @@ const PANEL_CONTENT_PADDING = '24px';
 // Global cache to prevent re-fetching when switching tabs
 const insightsCache = new Map();
 
+// ── Shared style tokens ─────────────────────────────────────────
+const panelStyle = {
+  background: '#ffffff',
+  border: '1px solid #e5e7eb',
+  borderRadius: '16px',
+  padding: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '32px',
+  flex: 1,
+  minWidth: 0,
+  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.05)',
+  overflow: 'hidden',
+};
+
+const panelHeaderStyle = {
+  padding: PANEL_HEADER_PADDING,
+  background: 'linear-gradient(180deg, #fff2e0 0%, #ffe9d1 100%)',
+  borderBottom: '1px solid rgba(249, 115, 22, 0.18)',
+};
+
 const AIAssessmentPanel = ({
   documentId,
   sessionId,
@@ -33,7 +54,7 @@ const AIAssessmentPanel = ({
     if (documentId && insightsCache.has(documentId)) return insightsCache.get(documentId);
     return null;
   });
-  
+
   const [loading, setLoading] = useState(() => {
     if (useExternal) return externalLoading;
     if (documentId && insightsCache.has(documentId)) return false;
@@ -66,7 +87,7 @@ const AIAssessmentPanel = ({
     }
   }, [useExternal, externalInsights, externalLoading, externalError]);
 
-  // Polling / fetch logic (identical to first file)
+  // Polling / fetch logic
   useEffect(() => {
     if (!documentId || useExternal) return;
 
@@ -83,7 +104,6 @@ const AIAssessmentPanel = ({
     let isMounted = true;
 
     const fetchInsights = async () => {
-      // Don't show loading if we already have it in cache for this exact document
       if (isMounted && !pollTimeout && !insightsCache.has(documentId)) setLoading(true);
       try {
         const { res: response, data } = await apiFetch(`/api/v1/documents/${documentId}/insights`);
@@ -188,9 +208,7 @@ const AIAssessmentPanel = ({
 
   const mappedData = getMappedData();
 
-  // Req 8: recompute the overall score from the user's weight preferences so
-  // the dashboard reflects their chosen components/weights. (prefsVersion forces
-  // a re-render when the weights change.)
+  // Recompute overall from user weight prefs
   void prefsVersion;
   if (mappedData) {
     const prefs = store.getScorePrefs(sessionId);
@@ -216,7 +234,7 @@ const AIAssessmentPanel = ({
           fontFamily: "'Poppins', sans-serif",
           fontSize: '22px',
           fontWeight: '700',
-          color: '#5b5bd6',
+          color: '#f97316',
           margin: 0,
         }}
       >
@@ -230,20 +248,20 @@ const AIAssessmentPanel = ({
             style={{
               padding: '8px 16px',
               background: 'transparent',
-              color: '#5b5bd6',
-              border: '1px solid #5b5bd6',
+              color: '#f97316',
+              border: '1px solid #f97316',
               borderRadius: '8px',
               fontFamily: "'Poppins', sans-serif",
               fontSize: '14px',
               fontWeight: '600',
               cursor: isAssessing ? 'wait' : 'pointer',
               opacity: isAssessing ? 0.75 : 1,
-              boxShadow: isAssessing ? '0 0 12px rgba(91, 91, 214, 0.35)' : 'none',
+              boxShadow: isAssessing ? '0 0 12px rgba(249, 115, 22, 0.35)' : 'none',
               transition: 'all 0.2s ease',
             }}
             onMouseOver={(e) => {
               if (!isAssessing) {
-                e.currentTarget.style.background = 'rgba(91, 91, 214, 0.1)';
+                e.currentTarget.style.background = 'rgba(249, 115, 22, 0.1)';
               }
             }}
             onMouseOut={(e) => {
@@ -278,22 +296,8 @@ const AIAssessmentPanel = ({
   // --- Empty state (no document selected) ---
   if (!documentId && !useExternal) {
     return (
-      <div
-        style={{
-          background: '#1e1e2f',
-          border: '1px solid #3a3a55',
-          borderRadius: '16px',
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '32px',
-          flex: 1,
-          minWidth: 0,
-          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
+      <div style={panelStyle}>
+        <div style={panelHeaderStyle}>
           <PanelHeader />
         </div>
         <div style={{ padding: PANEL_CONTENT_PADDING }}>
@@ -303,7 +307,7 @@ const AIAssessmentPanel = ({
               height="48"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#a1a1b5"
+              stroke="#9ca3af"
               strokeWidth="1"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -312,9 +316,9 @@ const AIAssessmentPanel = ({
             </svg>
             <p
               style={{
-                fontFamily: "'Geist Mono', monospace",
+                fontFamily: "'Poppins', sans-serif",
                 fontSize: '13px',
-                color: '#a1a1b5',
+                color: '#6b7280',
                 margin: 0,
               }}
             >
@@ -326,25 +330,11 @@ const AIAssessmentPanel = ({
     );
   }
 
-  // --- Loading state (initial fetch or refetch after assess) ---
+  // --- Loading state ---
   if (resolvedLoading || isAssessing) {
     return (
-      <div
-        style={{
-          background: '#1e1e2f',
-          border: '1px solid #3a3a55',
-          borderRadius: '16px',
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '32px',
-          flex: 1,
-          minWidth: 0,
-          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
+      <div style={panelStyle}>
+        <div style={panelHeaderStyle}>
           <PanelHeader />
         </div>
         <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
@@ -354,13 +344,13 @@ const AIAssessmentPanel = ({
               flexDirection: 'column',
               alignItems: 'center',
               gap: '12px',
-              fontFamily: "'Geist Mono', monospace",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: '13px',
-              color: '#a1a1b5',
+              color: '#6b7280',
               letterSpacing: '0.5px',
             }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', color: '#5b5bd6' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', color: '#f97316' }}>
               <line x1="12" y1="2" x2="12" y2="6"></line>
               <line x1="12" y1="18" x2="12" y2="22"></line>
               <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
@@ -380,29 +370,15 @@ const AIAssessmentPanel = ({
   // --- Error state ---
   if (resolvedError) {
     return (
-      <div
-        style={{
-          background: '#1e1e2f',
-          border: '1px solid #3a3a55',
-          borderRadius: '16px',
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '32px',
-          flex: 1,
-          minWidth: 0,
-          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
+      <div style={panelStyle}>
+        <div style={panelHeaderStyle}>
           <PanelHeader />
         </div>
         <div style={{ padding: PANEL_CONTENT_PADDING }}>
           <div
             style={{
-              background: 'rgba(0, 0, 0, 0.15)',
-              border: '1px solid #5a2a2a',
+              background: 'rgba(220, 38, 38, 0.06)',
+              border: '1px solid rgba(220, 38, 38, 0.25)',
               borderRadius: '8px',
               padding: '16px',
               textAlign: 'center',
@@ -412,7 +388,7 @@ const AIAssessmentPanel = ({
               style={{
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: '16px',
-                color: '#5b5bd6',
+                color: '#dc2626',
                 margin: '0 0 8px 0',
               }}
             >
@@ -420,9 +396,9 @@ const AIAssessmentPanel = ({
             </h3>
             <p
               style={{
-                fontFamily: "'Geist Mono', monospace",
+                fontFamily: "'Poppins', sans-serif",
                 fontSize: '13px',
-                color: '#e4e4f0',
+                color: '#374151',
                 margin: 0,
               }}
             >
@@ -434,7 +410,7 @@ const AIAssessmentPanel = ({
     );
   }
 
-  // --- No insights available (e.g., still processing or assessment failed) ---
+  // --- No insights available ---
   if (!resolvedInsights || !mappedData) {
     let waitingMessage = 'No insights available yet. Click "Assess Selected" to start the AI assessment.';
     if (docStatus === 'pending') {
@@ -443,30 +419,16 @@ const AIAssessmentPanel = ({
       waitingMessage = 'Assessment did not return results. Check backend logs and your n8n Code node (it may be returning empty {}). Click Assess Selected to try again.';
     }
     return (
-      <div
-        style={{
-          background: '#1e1e2f',
-          border: '1px solid #3a3a55',
-          borderRadius: '16px',
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '32px',
-          flex: 1,
-          minWidth: 0,
-          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
+      <div style={panelStyle}>
+        <div style={panelHeaderStyle}>
           <PanelHeader />
         </div>
         <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
           <p
             style={{
-              fontFamily: "'Geist Mono', monospace",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: '13px',
-              color: '#a1a1b5',
+              color: '#6b7280',
             }}
           >
             {waitingMessage}
@@ -476,24 +438,10 @@ const AIAssessmentPanel = ({
     );
   }
 
-  // --- Success state: show excerpts and scores using layout from file 2 ---
+  // --- Success state ---
   return (
-    <div
-      style={{
-        background: '#1e1e2f',
-        border: '1px solid #3a3a55',
-        borderRadius: '16px',
-        padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '32px',
-        flex: 1,
-        minWidth: 0,
-        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
-        overflow: 'hidden',
-      }}
-    >
-      <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
+    <div style={panelStyle}>
+      <div style={panelHeaderStyle}>
         <PanelHeader />
       </div>
       <div style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>

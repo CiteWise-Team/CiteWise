@@ -13,12 +13,13 @@ function CloudUploadIcon() {
       {/* Cloud body */}
       <path
         d="M40 12.5C40 5.6 34.4 0 27.5 0C22.1 0 17.5 3.4 15.7 8.3C6.9 9.3 0 16.8 0 25.8C0 33.6 6.4 40 14.2 40H38.7C48.3 40 56 32.3 56 22.7C56 14.1 48.9 12.7 40 12.5Z"
-        fill="#a1a1b5"
+        fill="#f97316"
+        fillOpacity="0.15"
       />
       {/* Upward pointing arrow inside the cloud */}
       <path
         d="M28 13L19 22H24V32H32V22H37L28 13Z"
-        fill="#e4e4f0"
+        fill="#f97316"
       />
     </svg>
   );
@@ -44,7 +45,7 @@ export default function DragDropZone({ onFilesAdded }) {
   return (
     <div
       style={{
-        border: `1.5px dashed ${isDragging ? "#5b5bd6" : "#3a3a55"}`,
+        border: `1.5px dashed ${isDragging ? "#f97316" : "#e5e7eb"}`,
         borderRadius: "12px",
         display: "flex",
         flexDirection: "column",
@@ -58,7 +59,7 @@ export default function DragDropZone({ onFilesAdded }) {
         minHeight: "200px",
         boxSizing: "border-box",
         textAlign: "center",
-        background: isDragging ? "rgba(91, 91, 214, 0.05)" : "rgba(0, 0, 0, 0.15)",
+        background: isDragging ? "rgba(249, 115, 22, 0.06)" : "#f9fafb",
       }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -66,14 +67,16 @@ export default function DragDropZone({ onFilesAdded }) {
       onClick={handleBrowse}
       onMouseEnter={(e) => {
         if (!isDragging) {
-          e.currentTarget.style.borderColor = "#5b5bd6";
+          e.currentTarget.style.borderColor = "#f97316";
+          e.currentTarget.style.background = "rgba(249, 115, 22, 0.04)";
           const icon = e.currentTarget.querySelector(".cloud-icon");
           if (icon) icon.style.transform = "translateY(-3px)";
         }
       }}
       onMouseLeave={(e) => {
         if (!isDragging) {
-          e.currentTarget.style.borderColor = "#3a3a55";
+          e.currentTarget.style.borderColor = "#e5e7eb";
+          e.currentTarget.style.background = "#f9fafb";
           const icon = e.currentTarget.querySelector(".cloud-icon");
           if (icon) icon.style.transform = "translateY(0)";
         }
@@ -92,7 +95,7 @@ export default function DragDropZone({ onFilesAdded }) {
         style={{
           fontSize: "0.95rem",
           fontWeight: 600,
-          color: "#e4e4f0",
+          color: "#111827",
           margin: 0,
           fontFamily: "'Poppins', sans-serif",
         }}
@@ -102,7 +105,7 @@ export default function DragDropZone({ onFilesAdded }) {
       <small
         style={{
           fontSize: "0.75rem",
-          color: "rgba(240, 236, 230, 0.4)",
+          color: "#6b7280",
           margin: 0,
           fontFamily: "'Poppins', sans-serif",
         }}

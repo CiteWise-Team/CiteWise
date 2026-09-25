@@ -23,24 +23,36 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: "4rem 2rem", textAlign: "center", color: "#e4e4f0", maxWidth: 600, margin: "0 auto" }}>
-          <h2 style={{ color: "#5b5bd6", fontFamily: "'Poppins', sans-serif", fontSize: "1.5rem", marginBottom: "1rem" }}>
+        <div style={{ padding: "4rem 2rem", textAlign: "center", color: "#111827", maxWidth: 600, margin: "0 auto" }}>
+          <h2 style={{ color: "#f97316", fontFamily: "'Poppins', sans-serif", fontSize: "1.5rem", marginBottom: "1rem" }}>
             Something went wrong loading this section.
           </h2>
-          <p style={{ color: "rgba(228,228,240,0.7)", fontFamily: "'Geist Mono', monospace", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+          <p style={{ color: "#6b7280", fontFamily: "'Poppins', sans-serif", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
             {this.state.error?.message || "An unexpected error occurred."}
           </p>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
             style={{
-              background: "#5b5bd6",
-              color: "#fff",
+              background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+              color: "#ffffff",
               border: "none",
               borderRadius: "8px",
               padding: "0.75rem 1.5rem",
               fontFamily: "'Poppins', sans-serif",
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
+              e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.4)";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
+              e.currentTarget.style.transform = "translateY(0)";
             }}
           >
             Reload Module
@@ -137,8 +149,16 @@ export default function CiteWiseApp() {
   }
 
   return (
-    <div className="citewise-app-shell" style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#16162a", textAlign: "left" }}>
-
+    <div
+      className="citewise-app-shell"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        background: "#f8f9fb",
+        textAlign: "left",
+      }}
+    >
       <GlobalNavigationBar
         currentStep={step}
         maxUnlockedStep={maxUnlockedStep}
