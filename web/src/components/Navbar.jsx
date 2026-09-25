@@ -96,7 +96,7 @@ export default function Navbar() {
         className="container-fluid"
         style={{
           width: "100%",
-          padding: "0 clamp(1.2rem, 2.5vw, 3rem)",
+          padding: "0 clamp(1.2rem, 4vw, 4rem)",
           height: isLanding ? "67px" : "64px",
           display: "flex",
           alignItems: "center",
