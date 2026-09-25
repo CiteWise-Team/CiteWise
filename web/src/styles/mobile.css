@@ -2,9 +2,10 @@
    !important to win over inline values; layout-level changes live in the
    components via useIsMobile. Keep the breakpoint in sync with MOBILE_QUERY. */
 @media (max-width: 768px) {
-  html,
+  /* clip, not hidden: overflow-x hidden on html/body makes iOS Safari scroll
+     the body instead of the viewport, which drags position: fixed bars along. */
   body {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   img,

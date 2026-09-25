@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import citeWiseLogo from "../../../assets/citewise-logo.png";
 import useIsMobile, { MOBILE_TABBAR_HEIGHT } from "../../../hooks/useIsMobile";
 
@@ -91,6 +92,7 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
         </div>
       </nav>
 
+      {createPortal(
       <nav
         aria-label="CiteWise steps"
         style={{
@@ -103,6 +105,7 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
           borderTop: "1px solid #3a3a55",
           paddingBottom: "env(safe-area-inset-bottom)",
           boxShadow: "0 -8px 24px rgba(0,0,0,0.35)",
+          transform: "translateZ(0)",
         }}
       >
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${STEPS.length}, 1fr)`, height: MOBILE_TABBAR_HEIGHT }}>
@@ -168,7 +171,9 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
             );
           })}
         </div>
-      </nav>
+      </nav>,
+      document.body
+      )}
     </>
   );
 }
