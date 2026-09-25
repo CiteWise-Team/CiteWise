@@ -91,7 +91,7 @@ export default function TopicSuggesterOutput({ result }) {
         minHeight: 0,
       }}
     >
-      <div className="d-flex gap-3 h-100" style={{ minHeight: 0 }}>
+      <div className="d-flex gap-3 h-100 cw-m-split" style={{ minHeight: 0 }}>
         <div
           className="d-flex flex-column"
           style={{

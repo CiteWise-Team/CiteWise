@@ -59,6 +59,7 @@ export default function QuickNavigationList({
 
   return (
     <div
+      className="cw-quicknav"
       style={{
         background: "#1e1e2f",
         border: "1px solid #3a3a55",
@@ -256,6 +257,7 @@ export default function QuickNavigationList({
         ) : (
           filteredDocs.map(({ doc, originalIndex }) => {
             const isActive = originalIndex === currentIndex;
+            const restBorder = doc.approved ? "rgba(62, 207, 142, 0.4)" : "rgba(58, 58, 85, 0.6)";
             return (
               <div
                 key={doc.id || doc.name || originalIndex}
@@ -263,8 +265,8 @@ export default function QuickNavigationList({
                 onClick={() => onSelect && onSelect(originalIndex)}
                 style={{
                   background: isActive ? "rgba(91, 91, 214, 0.18)" : "rgba(0, 0, 0, 0.2)",
-                  border: `1px solid ${isActive ? "#5b5bd6" : "rgba(58, 58, 85, 0.6)"}`,
-                  borderLeft: isActive ? "3px solid #6f6fe0" : "1px solid rgba(58, 58, 85, 0.6)",
+                  border: `1px solid ${isActive ? "#5b5bd6" : restBorder}`,
+                  borderLeft: isActive ? "3px solid #6f6fe0" : doc.approved ? "3px solid #3ecf8e" : `1px solid ${restBorder}`,
                   borderRadius: "8px",
                   padding: "7px 10px",
                   display: "flex",
@@ -284,7 +286,8 @@ export default function QuickNavigationList({
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.borderColor = "rgba(58, 58, 85, 0.6)";
+                    e.currentTarget.style.borderColor = restBorder;
+                    if (doc.approved) e.currentTarget.style.borderLeftColor = "#3ecf8e";
                     e.currentTarget.style.background = "rgba(0, 0, 0, 0.2)";
                   }
                 }}
@@ -320,11 +323,6 @@ export default function QuickNavigationList({
                     ) : (
                       <span style={{ fontSize: "10px", color: "rgba(240, 236, 230, 0.35)", fontFamily: "'Poppins', sans-serif" }}>
                         {doc.rawStatus === "complete" ? "Analyzed" : "Pending"}
-                      </span>
-                    )}
-                    {doc.approved && (
-                      <span style={{ fontSize: "9px", color: "#4caf82", fontWeight: 700, textTransform: "uppercase", fontFamily: "'Poppins', sans-serif" }}>
-                        ✓ Approved
                       </span>
                     )}
                   </div>
@@ -367,19 +365,22 @@ export default function QuickNavigationList({
                   </span>
                 )}
 
-                {/* Status indicator circle */}
                 <span className="quick-nav-tooltip-anchor">
                   <span className="quick-nav-tooltip" role="tooltip">
-                    {doc.approved ? "Click to unapprove this document" : "Click to approve this document"}
+                    {doc.approved ? "Approved for synthesis. Click to unapprove." : "Click to approve this document for synthesis"}
                   </span>
-                  <input
-                    type="checkbox"
-                    className="quick-nav-approval-checkbox"
-                    checked={!!doc.approved}
+                  <button
+                    type="button"
+                    className={`quick-nav-approve-btn${doc.approved ? " is-approved" : ""}`}
+                    aria-pressed={!!doc.approved}
                     aria-label={`${doc.approved ? "Unapprove" : "Approve"} ${doc.name}`}
-                    onChange={() => onApprovalToggle && onApprovalToggle(originalIndex)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onApprovalToggle && onApprovalToggle(originalIndex);
+                    }}
+                  >
+                    {doc.approved ? "✓ Approved" : "Approve"}
+                  </button>
                 </span>
               </div>
             );

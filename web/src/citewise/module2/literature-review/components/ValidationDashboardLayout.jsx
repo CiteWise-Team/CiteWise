@@ -6,6 +6,7 @@ import ValidationSummaryFooter from "./ValidationSummaryFooter";
 import RrlUploadLayout from "../../../module1/rrl-upload/components/RrlUploadLayout";
 import MetricWeightCustomization from "../../ai-assessment/components/MetricWeightCustomization";
 import { apiFetch } from "../../../../api/http";
+import useIsMobile from "../../../../hooks/useIsMobile";
 import * as store from "../../../lib/citewiseStore";
 
 export default function ValidationDashboardLayout({ groupId, sessionId: propSessionId, onStepChange }) {
@@ -23,6 +24,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     return newSessionId;
   });
 
+  const isMobile = useIsMobile();
   const [documents, setDocuments] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showRrlUpload, setShowRrlUpload] = useState(false);
@@ -680,7 +682,7 @@ const handleProceed = () => {
           animation: "fadeInToast 0.3s ease-out forwards",
           fontFamily: "'Poppins', sans-serif",
         }}>
-          <div style={{
+          <div className="cw-m-modal" style={{
             background: "#1e1e2f",
             border: "1px solid #3a3a55",
             borderRadius: "24px",
@@ -750,7 +752,7 @@ const handleProceed = () => {
             background: "#1e1e2f",
             border: "1px solid rgba(91, 91, 214, 0.25)",
             borderRadius: "24px",
-            padding: "2.5rem 3rem",
+            padding: isMobile ? "2rem 1.25rem" : "2.5rem 3rem",
             maxWidth: "480px",
             width: "90%",
             textAlign: "center",
@@ -821,22 +823,28 @@ const handleProceed = () => {
           maxWidth: 1400,
           width: "100%",
           margin: "0 auto",
-          padding: "2rem 2.5rem 3rem",
+          padding: isMobile ? "1rem 1rem 1.5rem" : "2rem 2.5rem 3rem",
           boxSizing: "border-box",
           flex: 1,
-          display: "grid",
-          gridTemplateColumns: "320px 1fr",
-          gap: "24px",
+          display: isMobile ? "flex" : "grid",
+          flexDirection: "column",
+          gridTemplateColumns: "320px minmax(0, 1fr)",
+          gap: isMobile ? "16px" : "24px",
           minHeight: 0,
-          alignItems: "start",
+          alignItems: isMobile ? "stretch" : "start",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px", minHeight: 0 }}>
-          <DocumentActiveCard
-            documents={documents}
-            currentIndex={currentIndex}
-            onNavigate={(idx) => setCurrentIndex(Math.max(0, Math.min(documents.length - 1, idx)))}
-          />
+        {/* On phones the sidebar dissolves so the active document and its
+            assessment come first, with the document list below them. */}
+        <div style={isMobile ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: "20px", minHeight: 0 }}>
+          <div style={{ order: 0, minWidth: 0 }}>
+            <DocumentActiveCard
+              documents={documents}
+              currentIndex={currentIndex}
+              onNavigate={(idx) => setCurrentIndex(Math.max(0, Math.min(documents.length - 1, idx)))}
+            />
+          </div>
+          <div style={{ order: 2, minWidth: 0 }}>
           <QuickNavigationList
             documents={documents}
             currentIndex={currentIndex}
@@ -844,7 +852,9 @@ const handleProceed = () => {
             onApprovalToggle={handleApprovalToggle}
             onDelete={handleDeleteDocument}
           />
+          </div>
           {hasAssessedDocs && (
+            <div style={{ order: 3, minWidth: 0 }}>
             <MetricWeightCustomization 
               sessionId={resolvedSessionId} 
               documents={documents}
@@ -863,9 +873,11 @@ const handleProceed = () => {
                 }
               }}
             />
+            </div>
           )}
         </div>
 
+        <div style={{ order: 1, minWidth: 0 }}>
         {!hasAssessedDocs ? (
           <MetricWeightCustomization 
             sessionId={resolvedSessionId} 
@@ -900,6 +912,7 @@ const handleProceed = () => {
             metricWeights={activeDoc?.metricWeights}
           />
         )}
+        </div>
       </div>
 
       <ValidationSummaryFooter

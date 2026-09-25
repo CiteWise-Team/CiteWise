@@ -2,6 +2,7 @@ import React, { useState, useEffect, Component } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../api/http";
 import GlobalNavigationBar from "./shared/components/GlobalNavigationBar";
+import useIsMobile, { MOBILE_TABBAR_HEIGHT } from "../hooks/useIsMobile";
 import WorkspaceImportLayout from "./module1/catalyst-import/components/WorkspaceImportLayout";
 import ValidationDashboardLayout from "./module2/literature-review/components/ValidationDashboardLayout";
 import SynthesisDraftModule from "./module3/synthesis-draft/components/SynthesisDraftModule";
@@ -62,6 +63,7 @@ function scopedKey(groupId, name) {
 export default function CiteWiseApp() {
   const navigate = useNavigate();
   const { groupId } = useParams();
+  const isMobile = useIsMobile();
 
   const [sessionId, setSessionId] = useState(
     () => localStorage.getItem(scopedKey(groupId, "sessionId")) || ""
@@ -147,7 +149,16 @@ export default function CiteWiseApp() {
         onBack={handleBackToGroups}
       />
 
-      <main style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
+      <main
+        style={{
+          flex: 1,
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          paddingBottom: isMobile ? `calc(${MOBILE_TABBAR_HEIGHT}px + env(safe-area-inset-bottom))` : 0,
+        }}
+      >
         <ErrorBoundary key={step}>
           {step === 0 && (
             <WorkspaceImportLayout

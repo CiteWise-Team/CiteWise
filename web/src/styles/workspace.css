@@ -302,7 +302,7 @@
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 768px) {
   .workflow-shell {
     padding: 1.5rem 1rem 2.5rem;
   }
@@ -340,44 +340,52 @@
   line-height: 1.3;
 }
 
-.quick-nav-approval-checkbox {
-  appearance: none;
-  display: grid;
-  width: 18px;
-  height: 18px;
+.quick-nav-approve-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
   margin: 0;
-  place-content: center;
-  border: 1px solid #3a3a55;
-  border-radius: 50%;
+  padding: 4px 10px;
+  border: 1px solid rgba(62, 207, 142, 0.55);
+  border-radius: 999px;
   background: transparent;
+  color: #3ecf8e;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.quick-nav-approval-checkbox::before {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #fff;
-  content: "";
-  transform: scale(0);
-  transition: transform 0.15s ease;
+.quick-nav-approve-btn:hover {
+  border-color: #3ecf8e;
+  background: rgba(62, 207, 142, 0.12);
 }
 
-.quick-nav-approval-checkbox:checked {
-  border-color: #5b5bd6;
-  background: #5b5bd6;
-  box-shadow: 0 0 0 3px rgba(91, 91, 214, 0.12);
+.quick-nav-approve-btn.is-approved {
+  border-color: #3ecf8e;
+  background: #3ecf8e;
+  color: #10261c;
 }
 
-.quick-nav-approval-checkbox:checked::before {
-  transform: scale(1);
+.quick-nav-approve-btn.is-approved:hover {
+  border-color: #5fdca4;
+  background: #5fdca4;
 }
 
-.quick-nav-approval-checkbox:focus-visible {
+.quick-nav-approve-btn:focus-visible {
   outline: 3px solid rgba(165, 180, 252, 0.7);
   outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .quick-nav-approve-btn {
+    padding: 7px 12px;
+    font-size: 0.75rem;
+  }
 }
 
 .quick-nav-tooltip-anchor {

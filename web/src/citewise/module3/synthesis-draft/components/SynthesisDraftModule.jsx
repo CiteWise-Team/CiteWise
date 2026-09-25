@@ -8,6 +8,7 @@
   import DraftVersionHistory from "./DraftVersionHistory";
   import * as store from "../../../lib/citewiseStore";
   import { apiFetch } from "../../../../api/http";
+  import useIsMobile from "../../../../hooks/useIsMobile";
 
   const crcTable = Array.from({ length: 256 }, (_, index) => {
     let c = index;
@@ -156,6 +157,8 @@
   };
 
   export default function SynthesisDraftModule({ sessionId, onStepChange }) {
+    const isMobile = useIsMobile();
+    const styles = getStyles(isMobile);
     const [approvedDocuments, setApprovedDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [generationStatus, setGenerationStatus] = useState("idle");
@@ -656,6 +659,7 @@
 
         <div style={styles.gridContainer}>
           <div style={styles.leftColumn}>
+            <div style={{ order: 0, minWidth: 0 }}>
             <SynthesisControlPanel
               generationStatus={generationStatus}
               generationProgress={generationProgress}
@@ -665,6 +669,8 @@
               hasApprovedDocuments={approvedDocuments.length > 0}
               approvedCount={approvedDocuments.length}
             />
+            </div>
+            <div style={styles.leftColumnRest}>
             <InstructionsPanel sessionId={sessionId} />
             <SourceUsageTransparency
               sessionId={sessionId}
@@ -694,6 +700,7 @@
                 }
               }}
             />
+            </div>
           </div>
 
           <div style={styles.rightColumn}>
@@ -725,7 +732,7 @@
     );
   }
 
-  const styles = {
+  const getStyles = (isMobile) => ({
     container: {
       display: "flex",
       flexDirection: "column",
@@ -738,21 +745,35 @@
       maxWidth: 1400,
       width: "100%",
       margin: "0 auto",
-      padding: "2rem 2.5rem 3rem",
+      padding: isMobile ? "1rem 1rem 1.5rem" : "2rem 2.5rem 3rem",
       boxSizing: "border-box",
       flex: 1,
-      display: "grid",
-      gridTemplateColumns: "320px 1fr",
-      gap: "24px",
+      display: isMobile ? "flex" : "grid",
+      flexDirection: "column",
+      gridTemplateColumns: "320px minmax(0, 1fr)",
+      gap: isMobile ? "16px" : "24px",
       minHeight: 0,
     },
-    leftColumn: {
+    // On phones the left column dissolves so the generate controls and the
+    // draft come first, with the supporting panels below.
+    leftColumn: isMobile
+      ? { display: "contents" }
+      : {
+          display: "flex",
+          flexDirection: "column",
+          gap: "20px",
+        },
+    leftColumnRest: {
+      order: 2,
       display: "flex",
       flexDirection: "column",
-      gap: "20px",
+      gap: isMobile ? "16px" : "20px",
+      minWidth: 0,
     },
     rightColumn: {
       minHeight: 0,
+      minWidth: 0,
+      order: 1,
     },
     rightPanel: {
       background: "#1e1e2f",
@@ -762,10 +783,11 @@
       flexDirection: "column",
       overflow: "hidden",
       height: "100%",
-      minHeight: "500px",
+      minHeight: isMobile ? "320px" : "500px",
     },
     rightPanelHeader: {
-      padding: "16px 24px",
+      padding: isMobile ? "12px 14px" : "16px 24px",
+      gap: "12px",
       borderBottom: "1px solid #3a3a55",
       display: "flex",
       justifyContent: "space-between",
@@ -781,7 +803,7 @@
     },
     rightPanelContent: {
       flex: 1,
-      padding: "24px",
+      padding: isMobile ? "14px" : "24px",
       background: "#1e1e2f",
       overflowY: "auto",
     },
@@ -800,7 +822,7 @@
       background: "#1e1e2f",
       border: "1px solid rgba(91, 91, 214, 0.25)",
       borderRadius: "24px",
-      padding: "2.5rem 3rem",
+      padding: isMobile ? "2rem 1.25rem" : "2.5rem 3rem",
       maxWidth: "480px",
       width: "90%",
       textAlign: "center",
@@ -848,4 +870,4 @@
       lineHeight: "1.6",
       margin: 0,
     },
-  };
+  });

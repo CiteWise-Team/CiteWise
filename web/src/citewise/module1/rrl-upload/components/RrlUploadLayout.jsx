@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import useIsMobile from "../../../../hooks/useIsMobile";
 import DragDropZone from "./DragDropZone";
 import SelectedFilesList from "./SelectedFilesList";
 import UploadAllButton from "./UploadAllButton";
@@ -21,6 +22,7 @@ function generateSessionId() {
 }
 
 export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComplete, hideHeader }) {
+  const isMobile = useIsMobile();
   const [sessionId, setSessionId] = useState(() => {
     if (propSessionId) return propSessionId;
     const stored = localStorage.getItem(STORAGE_SESSION_KEY);
@@ -533,7 +535,8 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
                 color: "#e4e4f0",
                 padding: "0.5rem 0.875rem",
                 fontSize: "0.875rem",
-                width: "260px",
+                width: isMobile ? "100%" : "260px",
+                boxSizing: "border-box",
                 fontFamily: "monospace",
                 wordBreak: "break-all",
               }}
@@ -544,7 +547,13 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", height: "360px" }}>
+      <div
+        style={
+          isMobile
+            ? { display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gridTemplateRows: "200px minmax(180px, auto)", gap: "1rem" }
+            : { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", height: "360px" }
+        }
+      >
         <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
         <div
           style={{
@@ -553,7 +562,8 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
             borderRadius: "8px",
             display: "flex",
             flexDirection: "column",
-            height: "100%",
+            height: isMobile ? "auto" : "100%",
+            maxHeight: isMobile ? "280px" : undefined,
             overflow: "hidden",
           }}
         >
@@ -611,8 +621,8 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "1rem",
+          gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "1fr 1fr",
+          gap: isMobile ? "0.75rem" : "1rem",
           alignItems: "center",
         }}
       >

@@ -52,7 +52,7 @@ export default function DocumentActiveCard({
             border: "1px solid rgba(91, 91, 214, 0.2)",
             display: "flex",
             alignItems: "center",
-            justifyContent: "flex-start",
+            justifyContent: "center",
             color: "#5b5bd6"
           }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

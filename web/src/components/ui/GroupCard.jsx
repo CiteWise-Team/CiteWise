@@ -59,6 +59,11 @@ export default function GroupCard({
         return;
       }
 
+      if (topics.length === 1) {
+        await importAndNavigate(topics[0].title, topics[0].rationale);
+        return;
+      }
+
       setPickerTopics(topics);
       setPickerGaps(gaps);
       setShowTopicPicker(true);

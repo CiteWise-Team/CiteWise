@@ -10,7 +10,7 @@ export default function WorkflowLayout({ children }) {
     <div className="workflow-page">
       <Navbar />
       <main className="workflow-shell">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
           <div className="workflow-breadcrumb" style={{ margin: 0 }}>
             <Link to="/groups" style={{ color: "inherit", textDecoration: "none", cursor: "pointer" }}>Workspaces</Link>
             <span aria-hidden="true">/</span>

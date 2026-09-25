@@ -126,7 +126,7 @@ export default function MetricWeightCustomization({
     : ui.card;
 
   return (
-    <div style={cardStyle}>
+    <div className={isHero ? "cw-m-pad" : undefined} style={cardStyle}>
       {!isHero && (
         <button
           onClick={() => setOpen((o) => !o)}

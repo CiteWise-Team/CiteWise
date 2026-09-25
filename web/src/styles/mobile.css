@@ -1,0 +1,222 @@
+/* Phone layout. Most components are styled inline, so these helpers use
+   !important to win over inline values; layout-level changes live in the
+   components via useIsMobile. Keep the breakpoint in sync with MOBILE_QUERY. */
+@media (max-width: 768px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  img,
+  svg,
+  video {
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* stops iOS zooming into focused fields */
+  }
+
+  .cw-m-full {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .cw-m-stack {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .cw-m-wrap {
+    flex-wrap: wrap !important;
+  }
+
+  .cw-m-one-col {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .cw-m-auto-height {
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .cw-m-pad {
+    padding: 1rem !important;
+  }
+
+  .cw-m-modal {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px) !important;
+    overflow-y: auto !important;
+    padding: 1.25rem !important;
+    box-sizing: border-box !important;
+  }
+
+  .cw-m-scroll-x {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cw-m-scroll-y {
+    overflow-y: auto !important;
+  }
+
+  .cw-m-hide {
+    display: none !important;
+  }
+
+  /* AI Assessment panel */
+  .cw-panel-header {
+    padding: 0.9rem 1rem !important;
+  }
+
+  .cw-panel-header h2 {
+    font-size: 18px !important;
+  }
+
+  .cw-panel-content {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  .cw-score-top {
+    gap: 24px !important;
+  }
+
+  .cw-score-ring {
+    margin: 0 auto !important;
+  }
+
+  .cw-scorebar {
+    grid-template-columns: minmax(0, 1fr) 44px !important;
+    row-gap: 6px !important;
+  }
+
+  .cw-scorebar > :first-child {
+    grid-column: 1 / -1;
+    white-space: normal !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Topic picker opens as a bottom sheet on phones */
+  .cw-topic-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .cw-topic-modal {
+    max-height: 92dvh !important;
+    border-radius: 18px 18px 0 0 !important;
+    border-bottom: none !important;
+  }
+
+  .cw-topic-header {
+    padding: 18px 16px 14px !important;
+  }
+
+  .cw-topic-header h2 {
+    font-size: 1.15rem !important;
+  }
+
+  .cw-topic-body {
+    flex-direction: column !important;
+    padding: 14px 16px !important;
+  }
+
+  .cw-topic-gaps {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .cw-topic-footer {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .cw-topic-footer > button {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none !important;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cw-nav-inner {
+    padding: 0 1rem !important;
+  }
+
+  .cw-nav-user {
+    max-width: 46vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* List/detail panes stack: the list becomes a short scrollable strip on top */
+  .cw-m-split {
+    flex-direction: column !important;
+  }
+
+  .cw-m-split > :first-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 200px;
+    overflow-y: auto;
+    border-right: none !important;
+    border-bottom: 1px solid #3a3a55;
+    padding-right: 0 !important;
+    padding-bottom: 0.75rem;
+  }
+
+  .cw-m-split > :last-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+    padding-left: 0 !important;
+    padding-top: 0.75rem;
+  }
+
+  .cw-m-split h4 {
+    font-size: 1.1rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .cw-m-split .p-4 {
+    padding: 1rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .cw-auth-side {
+    padding: 1.25rem 1rem !important;
+    align-items: flex-start !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .cw-home-container {
+    padding: 0 1rem !important;
+  }
+
+  .cw-footer-brand {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Size the document list to its content instead of a fixed 500px box */
+  .cw-quicknav {
+    height: auto !important;
+    max-height: 420px !important;
+  }
+}

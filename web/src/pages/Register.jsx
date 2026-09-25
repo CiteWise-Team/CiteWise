@@ -239,11 +239,11 @@ export default function Register() {
           </div>
 
           {/* RIGHT SIDE (REGISTER FORM) */}
-          <div className="col-lg-6 d-flex align-items-center justify-content-center" style={{ 
+          <div className="col-lg-6 d-flex align-items-center justify-content-center cw-auth-side" style={{ 
             backgroundColor: "#0a0a14",
             padding: "2.5rem"
           }}>
-            <div className="p-5 rounded-4" style={{ 
+            <div className="p-4 p-sm-5 rounded-4" style={{ 
               maxWidth: "460px", 
               width: "100%", 
               background: "rgba(30,30,47,0.5)",

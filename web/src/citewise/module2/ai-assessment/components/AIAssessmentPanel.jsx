@@ -222,7 +222,7 @@ const AIAssessmentPanel = ({
       >
         AI Assessment Panel
       </h2>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
         {documentId && (
           <button
             onClick={handleAssess}
@@ -293,10 +293,10 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
+        <div className="cw-panel-header" style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
           <PanelHeader />
         </div>
-        <div style={{ padding: PANEL_CONTENT_PADDING }}>
+        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', flexDirection: 'column', gap: '12px' }}>
             <svg
               width="48"
@@ -344,10 +344,10 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
+        <div className="cw-panel-header" style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
           <PanelHeader />
         </div>
-        <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
           <div
             style={{
               display: 'flex',
@@ -395,10 +395,10 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
+        <div className="cw-panel-header" style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
           <PanelHeader />
         </div>
-        <div style={{ padding: PANEL_CONTENT_PADDING }}>
+        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
           <div
             style={{
               background: 'rgba(0, 0, 0, 0.15)',
@@ -458,10 +458,10 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
+        <div className="cw-panel-header" style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
           <PanelHeader />
         </div>
-        <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
+        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
           <p
             style={{
               fontFamily: "'Geist Mono', monospace",
@@ -493,10 +493,10 @@ const AIAssessmentPanel = ({
         overflow: 'hidden',
       }}
     >
-      <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
+      <div className="cw-panel-header" style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3a3a55' }}>
         <PanelHeader />
       </div>
-      <div style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
+      <div className="cw-panel-content" style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
         <EvidenceExcerptList excerpts={mappedData.excerpts} />
         <div style={{ height: '35px' }} />
         <SemanticScoreDashboard

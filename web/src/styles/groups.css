@@ -253,7 +253,23 @@
 
 @media (max-width: 768px) {
   .groups-page {
-    padding-top: 16px;
+    padding: 16px 1rem 96px;
+  }
+
+  .groups-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .groups-grid .card .position-relative {
+    height: 84px !important;
+  }
+
+  .groups-grid .card .btn {
+    min-height: 44px;
+  }
+
+  .fab-tooltip {
+    display: none;
   }
 
   .groups-header {

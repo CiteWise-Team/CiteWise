@@ -137,7 +137,7 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
           onClick={() => setCompare(null)}
           style={{
             position: "fixed", inset: 0, background: "rgba(10,10,20,0.75)", backdropFilter: "blur(6px)",
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: 24,
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: "min(24px, 3vw)",
           }}
         >
           <div
@@ -151,7 +151,7 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
               <span style={ui.cardTitle}>Compare versions</span>
               <button onClick={() => setCompare(null)} style={{ ...ui.ghostBtn, padding: "2px 10px" }}>✕</button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, overflow: "hidden", flex: 1 }}>
+            <div className="cw-m-one-col cw-m-scroll-y" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, overflow: "hidden", flex: 1 }}>
               {[compare.a, compare.b].map((v, i) => (
                 <div key={i} style={{ padding: 16, overflowY: "auto", borderLeft: i === 1 ? `1px solid ${theme.border}` : "none" }}>
                   <div style={{ fontSize: "0.74rem", fontWeight: 700, color: theme.accent, fontFamily: theme.font, marginBottom: 8 }}>

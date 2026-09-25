@@ -72,6 +72,7 @@ const ScoreBar = ({ label, value }) => {
   const percent = getPercentage(value);
   return (
     <div
+      className="cw-scorebar"
       style={{
         display: "grid",
         gridTemplateColumns: "200px 1fr 44px",
@@ -234,6 +235,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
 
       {/* Top Section: Circular Score + Metric Bars */}
       <div
+        className="cw-m-stack cw-score-top"
         style={{
           display: "flex",
           gap: "60px",
@@ -242,6 +244,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
       >
         {/* Circular Score */}
         <div
+          className="cw-score-ring"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -307,6 +310,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
 
       {/* Bottom Section: 2x2 Grid */}
       <div
+        className="cw-m-one-col"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",

@@ -126,7 +126,7 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
   return (
     <div data-citewise-draft="true" style={{ lineHeight: "1.7", fontSize: "0.95rem", color: "#e4e4f0", maxWidth: "100%", margin: "0 auto", width: "100%", fontFamily: "'Poppins', sans-serif" }}>
       {(hasLowConfidence || hasOmittedDocuments) && (
-        <div style={{ display: 'grid', gridTemplateColumns: (hasLowConfidence && hasOmittedDocuments) ? '1fr 1fr' : '1fr', gap: '16px', marginBottom: '24px' }}>
+        <div className="cw-m-one-col" style={{ display: 'grid', gridTemplateColumns: (hasLowConfidence && hasOmittedDocuments) ? '1fr 1fr' : '1fr', gap: '16px', marginBottom: '24px' }}>
           {hasLowConfidence && (
             <div style={{ background: 'rgba(255,153,0,0.05)', border: '1px solid rgba(255,153,0,0.25)', borderRadius: '10px', padding: '16px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
               <div style={{ marginTop: '2px', color: '#ffb74d' }}>
@@ -219,7 +219,7 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
 
       {paraphrasedDraft ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div style={{ 
+          <div className="cw-m-one-col cw-m-pad" style={{ 
             display: "grid", 
             gridTemplateColumns: "1fr 1fr", 
             gap: "24px",

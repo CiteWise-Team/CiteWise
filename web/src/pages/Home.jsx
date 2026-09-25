@@ -91,7 +91,7 @@ export default function Home() {
             Literature Review
           </div>
 
-          <div className="container" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 2rem" }}>
+          <div className="container cw-home-container" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 2rem" }}>
             <div className="hero-copy-wrap text-center reveal">
               <h1 className="hero-title-v2">
                 Discover research gaps
@@ -252,7 +252,7 @@ export default function Home() {
         <footer style={{ borderTop: "1px solid var(--border)" }} className="mt-5 py-5">
           <div className="container">
             <div className="row g-4">
-              <div className="col-md-3" style={{ flex: "0 0 20.833%", maxWidth: "20.833%" }}>
+              <div className="col-md-3 cw-footer-brand" style={{ flex: "0 0 20.833%", maxWidth: "20.833%" }}>
                 <div className="footer-brand-name">CiteWise</div>
                 <p className="footer-description">
                   AI-powered research gap discovery for thesis and research writing.

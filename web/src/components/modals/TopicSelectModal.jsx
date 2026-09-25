@@ -53,17 +53,18 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
   }, [onClose]);
 
   return createPortal(
-    <div style={styles.overlay}>
+    <div className="cw-topic-overlay" style={styles.overlay}>
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-label="Select a research topic"
+        className="cw-topic-modal"
         style={styles.modal}
       >
 
         {/* Header */}
-        <div style={styles.header}>
+        <div className="cw-topic-header" style={styles.header}>
           <div>
             <p style={styles.subtitle}>{groupName}</p>
             <h2 style={styles.title}>Select a Research Topic</h2>
@@ -73,7 +74,7 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
         </div>
 
         {/* Topic cards */}
-        <div style={styles.body}>
+        <div className="cw-topic-body" style={styles.body}>
           <div style={styles.topicList} role="radiogroup" aria-label="Suggested topics">
             {topics.map((topic, i) => {
               const isSelected = selected?.id === topic.id;
@@ -113,7 +114,7 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
           </div>
 
           {/* Gap panel — updates to show context alongside whichever topic is hovered/selected */}
-          <div style={styles.gapPanel}>
+          <div className="cw-topic-gaps" style={styles.gapPanel}>
             <p style={styles.gapPanelLabel}>Research Gaps</p>
             <p style={styles.gapPanelHint}>
               These gaps apply to all topics in this workspace.
@@ -134,7 +135,7 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
         </div>
 
         {/* Footer */}
-        <div style={styles.footer}>
+        <div className="cw-topic-footer" style={styles.footer}>
           <button onClick={onClose} style={styles.cancelBtn}>Cancel</button>
           <button
             onClick={handleConfirm}
