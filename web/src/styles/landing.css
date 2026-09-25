@@ -43,13 +43,18 @@ body{
   overflow-x: hidden;
 }
 
-.cat-landing{ 
-  position:relative; 
+.cat-landing{
+  position:relative;
   overflow:hidden;
   background: var(--bg-deep);
   color: var(--text-body);
 }
-.cat-landing > *{ position:relative; z-index:1; }
+
+/* ============================================================
+   FIX 1: Removed `.cat-landing > * { z-index: 1 }` blanket rule
+   so decorative layers can sit at z-index 0 and text at z-index 2.
+   ============================================================ */
+.cat-landing > *{ position:relative; }
 
 /* Landing sections use the full viewport instead of Bootstrap's centered container caps. */
 .cat-landing .container {
@@ -62,6 +67,8 @@ body{
 .cat-landing .landing-full-width-content {
   padding-left: clamp(1rem, 2vw, 2rem);
   padding-right: clamp(1rem, 2vw, 2rem);
+  position: relative;
+  z-index: 2;
 }
 
 /* ---------- Typography ---------- */
@@ -81,6 +88,8 @@ body{
   letter-spacing:-0.02em;
   color:var(--text-heading);
   text-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 2;
 }
 
 .hero-highlight{
@@ -112,7 +121,7 @@ body{
 /* ---------- Buttons ---------- */
 .btn-glow{
   background:linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color:#fff !important; 
+  color:#fff !important;
   border:none;
   padding: 0.75rem 2rem;
   font-family: 'Be Vietnam Pro', sans-serif;
@@ -144,10 +153,10 @@ body{
   0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
   100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
 }
-.btn-glow:hover{ 
-  transform:translateY(-2px) scale(1.02); 
-  box-shadow:0 12px 30px -4px var(--accent-glow), 0 0 30px -10px var(--accent-light); 
-  color:#fff !important; 
+.btn-glow:hover{
+  transform:translateY(-2px) scale(1.02);
+  box-shadow:0 12px 30px -4px var(--accent-glow), 0 0 30px -10px var(--accent-light);
+  color:#fff !important;
   background:linear-gradient(135deg, var(--accent-light), var(--accent));
 }
 .btn-glow:active {
@@ -172,11 +181,11 @@ body{
   text-decoration: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
-.btn-ghost:hover{ 
-  border-color:var(--accent); 
-  background:rgba(234, 88, 12, 0.06); 
-  color:var(--accent); 
-  transform:translateY(-2px); 
+.btn-ghost:hover{
+  border-color:var(--accent);
+  background:rgba(234, 88, 12, 0.06);
+  color:var(--accent);
+  transform:translateY(-2px);
   box-shadow:0 8px 20px -8px var(--accent-glow);
 }
 .btn-ghost:active {
@@ -190,21 +199,17 @@ body{
   width: 100%;
   background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(234, 88, 12, 0.08) 0%, transparent 70%), #ffffff;
   overflow: hidden;
+  isolation: isolate; /* FIX: new stacking context so z-indexes are scoped here */
 }
 
 /* Full width background with subtle warm dots */
 .hero-section-v2::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
   z-index: 0;
-  background-image: 
-    radial-gradient(circle, rgba(15, 14, 23, 0.08) 1px, transparent 1.3px);
+  background-image: radial-gradient(circle, rgba(15, 14, 23, 0.08) 1px, transparent 1.3px);
   background-size: 34px 34px;
   background-position: 0 0;
   background-repeat: repeat;
@@ -222,12 +227,8 @@ body{
 .hero-section-v2::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
   z-index: 0;
   background: radial-gradient(circle at 50% 20%, rgba(234, 88, 12, 0.06), transparent 60%);
   pointer-events: none;
@@ -238,12 +239,176 @@ body{
   100% { opacity: 1; transform: scale(1.1); }
 }
 
-.hero-section-v2 > * {
-  position: relative;
-  z-index: 1;
+/* ============================================================
+   FIX 2: Removed blanket `.hero-section-v2 > * { z-index: 1 }`
+   Instead, we now scope z-index to the text wrapper only.
+   Decorative visuals explicitly keep z-index: 0.
+   ============================================================ */
+
+/* ✨ Hero Floating Papers Visual — sits BEHIND text */
+.hero-papers-visual {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;            /* FIX: keep behind text */
+  overflow: hidden;
 }
 
-/* Orbit mask */
+.hero-papers-visual img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(300px, 60vw);
+  height: auto;
+  opacity: 0.75;
+  -webkit-filter: blur(2px);
+  filter: blur(2px);
+  /* NEW: floating animation added */
+  will-change: transform;
+  animation: papersFloat 7s ease-in-out infinite alternate;
+}
+
+/* Desktop: papers tuck behind the right side of the headline */
+@media (min-width: 992px) {
+  .hero-papers-visual img {
+    left: 78%;
+    top: 42%;
+    width: min(440px, 32vw);
+    opacity: 0.75;
+    transform: translate(-50%, -50%) rotate(-6deg);
+    -webkit-filter: blur(2px);
+    filter: blur(2px);
+    /* NEW: floating animation added (desktop variant) */
+    animation: papersFloatDesktop 8s ease-in-out infinite alternate;
+  }
+}
+
+/* Very large screens */
+@media (min-width: 1400px) {
+  .hero-papers-visual img {
+    left: 79%;
+    width: min(520px, 27vw);
+    -webkit-filter: blur(2px);
+    filter: blur(2px);
+    /* NEW: floating animation added */
+    animation: papersFloatDesktop 9s ease-in-out infinite alternate;
+  }
+}
+
+/* Hide on mobile */
+@media (max-width: 767px) {
+  .hero-papers-visual { display: none; }
+}
+
+/* ✈️ Hero Paper Airplane Visual — sits BEHIND text */
+.hero-airplane-visual {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;            /* FIX: keep behind text */
+  overflow: hidden;
+}
+
+.hero-airplane-visual img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(180px, 40vw);
+  height: auto;
+  opacity: 0.75;
+  -webkit-filter: blur(2px);
+  filter: blur(2px);
+  /* NEW: floating animation added */
+  will-change: transform;
+  animation: airplaneFloat 6s ease-in-out infinite alternate;
+}
+
+/* Desktop: airplane on the left, tilted more, smaller, flying toward the papers */
+@media (min-width: 992px) {
+  .hero-airplane-visual img {
+    left: 25%;
+    top: 42%;
+    width: min(320px, 26vw);      /* smaller */
+    opacity: 0.75;                 /* matched to papers */
+    transform: translate(-50%, -50%) rotate(-5deg); /* more tilt */
+    -webkit-filter: blur(2px);     /* matched to papers */
+    filter: blur(2px);
+    /* NEW: floating animation added (desktop variant) */
+    animation: airplaneFloatDesktop 7s ease-in-out infinite alternate;
+  }
+}
+
+/* Large screens */
+@media (min-width: 1400px) {
+  .hero-airplane-visual img {
+    left: 20%;
+    width: min(520px, 20vw);
+    transform: translate(-50%, -50%) rotate(-5deg);
+    -webkit-filter: blur(2px);
+    filter: blur(2px);
+    /* NEW: floating animation added */
+    animation: airplaneFloatDesktop 8s ease-in-out infinite alternate;
+  }
+}
+
+/* Hide on mobile */
+@media (max-width: 767px) {
+  .hero-airplane-visual { display: none; }
+}
+
+/* ---------- NEW: Floating keyframes ---------- */
+
+/* Papers — mobile/tablet float */
+@keyframes papersFloat {
+  0%   { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+  100% { transform: translate(-52%, -55%) rotate(-4deg) scale(1.03); }
+}
+
+/* Papers — desktop float (keeps base -6deg tilt, sways ±3deg, bobs up/down) */
+@keyframes papersFloatDesktop {
+  0% {
+    transform: translate(-50%, -50%) rotate(-6deg) scale(1);
+  }
+  50% {
+    transform: translate(-52%, -53%) rotate(-9deg) scale(1.025);
+  }
+  100% {
+    transform: translate(-49%, -47%) rotate(-3deg) scale(1.01);
+  }
+}
+
+/* Airplane — mobile/tablet float */
+@keyframes airplaneFloat {
+  0%   { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-52%, -56%) rotate(-4deg); }
+}
+
+/* Airplane — desktop float (keeps base -5deg tilt, drifts up & right like it's cruising) */
+@keyframes airplaneFloatDesktop {
+  0% {
+    transform: translate(-50%, -50%) rotate(-5deg);
+  }
+  50% {
+    transform: translate(-46%, -54%) rotate(-7deg);
+  }
+  100% {
+    transform: translate(-54%, -46%) rotate(-3deg);
+  }
+}
+
+/* ---------- Existing keyframes (kept) ---------- */
+@keyframes papersFloatIn {
+  from { opacity: 0; transform: translate(-50%, -40%) scale(0.95); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Orbit mask — decorative, sits behind text */
 .hero-orbit-mask{
   position:absolute;
   left:50%; top:10px;
@@ -253,7 +418,7 @@ body{
   -webkit-mask-image: radial-gradient(ellipse 55% 95% at 50% 0%, black 0%, black 20%, transparent 78%);
   mask-image: radial-gradient(ellipse 55% 95% at 50% 0%, black 0%, black 20%, transparent 78%);
   pointer-events:none;
-  z-index: 0;
+  z-index: 0;   /* FIX: keep behind text */
 }
 .hero-orbit-mask span{
   position:absolute;
@@ -264,21 +429,22 @@ body{
   animation: ringPulse 4s ease-in-out infinite alternate;
 }
 @keyframes ringPulse {
-  0% { opacity: 0.3; transform: translate(-50%,0) scale(1); }
+  0%   { opacity: 0.3; transform: translate(-50%,0) scale(1); }
   100% { opacity: 0.8; transform: translate(-50%,0) scale(1.05); }
 }
 .ring-1{ width:460px; height:460px; animation-delay: 0s; }
 .ring-2{ width:760px; height:760px; top:-150px; animation-delay: 1.5s; }
 
-.hero-copy-wrap{ 
-  position:relative; 
-  max-width:760px; 
-  margin:0 auto; 
+/* Hero text wrapper — explicitly above decorations */
+.hero-copy-wrap{
+  position:relative;
+  max-width:760px;
+  margin:0 auto;
   padding-top:1rem;
-  z-index: 2;
+  z-index: 2;   /* FIX: clearly above decorations */
 }
 
-/* Floating badges */
+/* Floating badges — above everything in hero */
 .float-badge{
   position:absolute;
   display:inline-flex;
@@ -295,7 +461,7 @@ body{
   box-shadow:0 10px 25px -10px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
   animation:floatY 5s ease-in-out infinite;
   white-space:nowrap;
-  z-index: 5;
+  z-index: 5;   /* above hero decorations & text */
   transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
 }
 .float-badge:hover {
@@ -310,7 +476,7 @@ body{
   animation: avatarPulse 3s ease-in-out infinite alternate;
 }
 @keyframes avatarPulse {
-  0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4); }
+  0%   { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4); }
   100% { box-shadow: 0 0 14px 4px rgba(234, 88, 12, 0.2); }
 }
 .badge-1{ top:13%; left:15%; animation-delay:0s; }
@@ -320,7 +486,7 @@ body{
 
 @keyframes floatY{
   0%,100%{ transform:translateY(0); }
-  50%{ transform:translateY(-8px); }
+  50%    { transform:translateY(-8px); }
 }
 
 /* ---------- Workflow card ---------- */
@@ -475,23 +641,19 @@ body{
 }
 
 /* ---------- Two-column intro - PROPERLY ALIGNED ---------- */
-.intro-split{ 
-  display: flex; 
+.intro-split{
+  display: flex;
   align-items: center;
-  gap: 4rem; 
+  gap: 4rem;
   flex-wrap: wrap;
 }
-.intro-split .intro-heading{ 
-  flex: 1 1 300px; 
-}
+.intro-split .intro-heading{ flex: 1 1 300px; }
 .intro-split .intro-heading h2 {
   margin: 0;
   line-height: 1.3;
   text-align: left;
 }
-.intro-split .intro-copy{ 
-  flex: 1 1 320px;
-}
+.intro-split .intro-copy{ flex: 1 1 320px; }
 .intro-split .intro-copy p {
   margin: 0;
   font-size: 1.05rem;
@@ -516,12 +678,9 @@ body{
   box-shadow: 0 16px 36px -12px rgba(234, 88, 12, 0.2);
 }
 .feature-icon{
-  width: 50px;
-  height: 50px;
+  width: 50px; height: 50px;
   border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   background: rgba(234, 88, 12, 0.1);
   border: 1px solid rgba(234, 88, 12, 0.2);
   color: var(--accent);
@@ -551,9 +710,7 @@ footer {
   margin: 0 0 0.5rem 0;
   transition: color 0.3s ease;
 }
-.footer-brand-name:hover {
-  color: var(--accent);
-}
+.footer-brand-name:hover { color: var(--accent); }
 
 .footer-description {
   color: var(--text-muted);
@@ -572,9 +729,7 @@ footer {
   letter-spacing: -0.01em;
   transition: color 0.3s ease;
 }
-.footer-heading:hover {
-  color: var(--accent);
-}
+.footer-heading:hover { color: var(--accent); }
 
 .footer-link {
   color: var(--text-body);
@@ -610,9 +765,7 @@ footer {
 @media (max-width: 575px){
   .hero-section-v2{ padding:4.5rem 0 2.5rem; }
   .workflow-header-row{ flex-direction:column; }
-  .footer-description {
-    max-width: 100%;
-  }
+  .footer-description { max-width: 100%; }
 }
 
 /* ==========================================================================
@@ -651,7 +804,6 @@ footer {
   font-weight: 600;
 }
 
-/* Reference image: [ Sign up ] clean outlined button */
 .landing-nav-clean-signup-btn {
   color: #1f2937 !important;
   font-family: 'Poppins', 'Be Vietnam Pro', sans-serif;
@@ -858,9 +1010,7 @@ footer {
   margin-top: 2px;
 }
 
-.engine-feature-text {
-  flex-grow: 1;
-}
+.engine-feature-text { flex-grow: 1; }
 
 .engine-feature-title {
   font-family: 'Sora', sans-serif;

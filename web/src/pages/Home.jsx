@@ -3,20 +3,22 @@ import { Link } from "react-router-dom";
 import PublicLayout from "../layouts/PublicLayout";
 import "../styles/landing.css";
 import { useAuth } from "../context/AuthContext";
-import { 
-  FileText, 
-  Sparkles, 
-  ArrowRight, 
-  CheckCircle2, 
-  Layers, 
-  Search, 
-  BookOpen, 
-  PenTool, 
-  Quote, 
-  RefreshCw, 
-  Lightbulb, 
-  BarChart2, 
-  Compass, 
+import papersHero from "../assets/Photoroom.png";
+import airplaneHero from "../assets/left.png";
+import {
+  FileText,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
+  Layers,
+  Search,
+  BookOpen,
+  PenTool,
+  Quote,
+  RefreshCw,
+  Lightbulb,
+  BarChart2,
+  Compass,
   ShieldCheck,
   Zap,
   SplitSquareVertical,
@@ -147,6 +149,16 @@ export default function Home() {
             <span className="ring-2" />
           </div>
 
+          {/* ✈️ Paper airplane flying in from the left */}
+          <div className="hero-airplane-visual" aria-hidden="true">
+            <img src={airplaneHero} alt="" />
+          </div>
+
+          {/* ✨ Floating paper pages behind the headline */}
+          <div className="hero-papers-visual" aria-hidden="true">
+            <img src={papersHero} alt="" />
+          </div>
+
           <div className="float-badge badge-1">
             <span className="avatar">C</span>
             CATalyst
@@ -178,7 +190,7 @@ export default function Home() {
               </h1>
 
               <p className="lead mt-3 mx-auto" style={{ maxWidth: "640px", color: "var(--text-body)", fontSize: "1.1rem" }}>
-                <strong>CATalyst</strong> extracts, summarizes, and discovers genuine literature gaps to formulate thesis topics. 
+                <strong>CATalyst</strong> extracts, summarizes, and discovers genuine literature gaps to formulate thesis topics.
                 <strong> CiteWise</strong> seamlessly imports your findings to draft scaffolded, publication-ready introductions with automated citations.
               </p>
 
@@ -186,8 +198,8 @@ export default function Home() {
                 <Link to={isAuthenticated ? "/groups" : "/register"} className="btn btn-glow">
                   {isAuthenticated ? "Open Workspaces" : "Get Started Free"}
                 </Link>
-                <a 
-                  href="#features" 
+                <a
+                  href="#features"
                   className="btn btn-ghost"
                   onClick={(e) => {
                     e.preventDefault();
@@ -501,8 +513,8 @@ export default function Home() {
 
               <div className="col-md-3">
                 <h6 className="footer-heading">Navigation</h6>
-                <a 
-                  href="#home" 
+                <a
+                  href="#home"
                   className="footer-link"
                   onClick={(e) => {
                     e.preventDefault();
@@ -511,8 +523,8 @@ export default function Home() {
                 >
                   Home
                 </a>
-                <a 
-                  href="#features" 
+                <a
+                  href="#features"
                   className="footer-link"
                   onClick={(e) => {
                     e.preventDefault();
@@ -521,8 +533,8 @@ export default function Home() {
                 >
                   Features
                 </a>
-                <a 
-                  href="#overview" 
+                <a
+                  href="#overview"
                   className="footer-link"
                   onClick={(e) => {
                     e.preventDefault();
@@ -560,4 +572,3 @@ export default function Home() {
     </PublicLayout>
   );
 }
-
