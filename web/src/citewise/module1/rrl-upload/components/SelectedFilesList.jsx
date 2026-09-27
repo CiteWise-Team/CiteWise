@@ -56,12 +56,13 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
           return (
             <li
               key={item.id}
+              className="citewise-queue-file-item"
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                background: "#ffffff",
-                border: "1px solid #e5e7eb",
+                background: "var(--cw-bg-surface, #ffffff)",
+                border: "1px solid var(--cw-border, #e5e7eb)",
                 borderRadius: "8px",
                 padding: "0.45rem 0.65rem",
                 gap: "0.5rem",
@@ -69,11 +70,11 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = "#f97316";
-                e.currentTarget.style.background = "rgba(249, 115, 22, 0.04)";
+                e.currentTarget.style.background = "rgba(249, 115, 22, 0.08)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#e5e7eb";
-                e.currentTarget.style.background = "#ffffff";
+                e.currentTarget.style.borderColor = "var(--cw-border, #e5e7eb)";
+                e.currentTarget.style.background = "var(--cw-bg-surface, #ffffff)";
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -81,7 +82,7 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
                   style={{
                     fontSize: "0.82rem",
                     fontWeight: 600,
-                    color: "#111827",
+                    color: "var(--cw-text-primary, #111827)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -93,7 +94,7 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
                 >
                   {item.name}
                 </p>
-                <p style={{ fontSize: "0.68rem", color: "#6b7280", margin: "2px 0 0 0", fontFamily: "'Poppins', sans-serif" }}>
+                <p style={{ fontSize: "0.68rem", color: "var(--cw-text-muted, #6b7280)", margin: "2px 0 0 0", fontFamily: "'Poppins', sans-serif" }}>
                   {formatFileSize(item.size)} · {item.message}
                 </p>
               </div>
@@ -195,7 +196,7 @@ export default function SelectedFilesList({ files, onRemove, onRetry }) {
           width: 5px;
         }
         .citewise-queue-scroll::-webkit-scrollbar-track {
-          background: #f3f4f6;
+          background: var(--cw-bg-base, #f3f4f6);
           border-radius: 4px;
         }
         .citewise-queue-scroll::-webkit-scrollbar-thumb {

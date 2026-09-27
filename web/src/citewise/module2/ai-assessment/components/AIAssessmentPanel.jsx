@@ -14,8 +14,8 @@ const insightsCache = new Map();
 
 // ── Shared style tokens ─────────────────────────────────────────
 const panelStyle = {
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: 'var(--cw-bg-surface, #ffffff)',
+  border: '1px solid var(--cw-border, #e5e7eb)',
   borderRadius: '16px',
   padding: 0,
   display: 'flex',
@@ -29,8 +29,8 @@ const panelStyle = {
 
 const panelHeaderStyle = {
   padding: PANEL_HEADER_PADDING,
-  background: '#f9fafb',
-  borderBottom: '1px solid #e5e7eb',
+  background: 'var(--cw-bg-surface-elevated, #f9fafb)',
+  borderBottom: '1px solid var(--cw-border, #e5e7eb)',
 };
 
 const AIAssessmentPanel = ({
@@ -227,19 +227,27 @@ const AIAssessmentPanel = ({
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '12px',
+        width: '100%',
       }}
     >
-      <h2
-        style={{
-          fontFamily: "'Poppins', sans-serif",
-          fontSize: '22px',
-          fontWeight: '700',
-          color: '#f97316',
-          margin: 0,
-        }}
-      >
-        AI Assessment Panel
-      </h2>
+      <div>
+        <h2
+          className="workflow-card-header-title cw-panel-title"
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontSize: '1.05rem',
+            fontWeight: '700',
+            color: 'var(--cw-text-primary, #0f0e17)',
+            margin: 0,
+            letterSpacing: '0.01em',
+          }}
+        >
+          AI Assessment Panel
+        </h2>
+        <p className="workflow-card-header-subtitle cw-panel-subtitle" style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--cw-text-muted, #6b7280)', fontFamily: "'Poppins', sans-serif" }}>
+          Analyze literature relevance, methodology, and theoretical frameworks.
+        </p>
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
         {documentId && (
           <button
@@ -296,8 +304,8 @@ const AIAssessmentPanel = ({
   // --- Empty state (no document selected) ---
   if (!documentId && !useExternal) {
     return (
-      <div style={panelStyle}>
-        <div className="cw-panel-header" style={panelHeaderStyle}>
+      <div style={panelStyle} className="citewise-card">
+        <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
           <PanelHeader />
         </div>
         <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
@@ -333,8 +341,8 @@ const AIAssessmentPanel = ({
   // --- Loading state ---
   if (resolvedLoading || isAssessing) {
     return (
-      <div style={panelStyle}>
-        <div className="cw-panel-header" style={panelHeaderStyle}>
+      <div style={panelStyle} className="citewise-card">
+        <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
           <PanelHeader />
         </div>
         <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
@@ -419,8 +427,8 @@ const AIAssessmentPanel = ({
       waitingMessage = 'Assessment did not return results. Check backend logs and your n8n Code node (it may be returning empty {}). Click Assess Selected to try again.';
     }
     return (
-      <div style={panelStyle}>
-        <div className="cw-panel-header" style={panelHeaderStyle}>
+      <div style={panelStyle} className="citewise-card">
+        <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
           <PanelHeader />
         </div>
         <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
@@ -440,8 +448,8 @@ const AIAssessmentPanel = ({
 
   // --- Success state ---
   return (
-    <div style={panelStyle}>
-      <div className="cw-panel-header" style={panelHeaderStyle}>
+    <div style={panelStyle} className="citewise-card">
+      <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
         <PanelHeader />
       </div>
       <div className="cw-panel-content" style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>

@@ -8,6 +8,7 @@ import { summarizerAPI, getSummarizerJobStatusAPI } from "../../../api/workflow.
 
 import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
+import WorkflowCardHeader from "../WorkflowCardHeader";
 
 export default function SummarizerInput({ setResult }) {
   const group_id = useGroup().groupId;
@@ -166,11 +167,10 @@ export default function SummarizerInput({ setResult }) {
     <>
       <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
         {/* HEADER */}
-        <div className="workflow-input-header">
-          <small style={{ color: "#4b5563" }}>
-            Choose one extracted document to create a focused summary.
-          </small>
-        </div>
+        <WorkflowCardHeader
+          title="Choose a document to summarize"
+          subtitle="Select an extracted paper and provide the details needed to create a concise summary."
+        />
 
         {/* BODY */}
         <div className="workflow-input-body">

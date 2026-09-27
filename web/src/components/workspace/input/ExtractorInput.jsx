@@ -7,6 +7,7 @@ import { useGroup } from "../../../context/GroupContext.jsx";
 
 import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
+import WorkflowCardHeader from "../WorkflowCardHeader";
 
 export default function InputPanel({ setResult }) {
   const group_id = useGroup().groupId;
@@ -155,11 +156,14 @@ export default function InputPanel({ setResult }) {
     <>
       <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
         {/* Header */}
-        <div className="workflow-input-header">
-          <small style={{ color: "#4b5563" }}>
-            Add a PDF to extract its sections and research-ready content.
-          </small>
-        </div>
+        <WorkflowCardHeader
+          title="Upload your papers"
+          subtitle={
+            <span>
+              Add research papers here so <span style={{ color: "#ea580c", fontWeight: 600 }}>CAT</span>alyst can extract and organize their content.
+            </span>
+          }
+        />
 
         {/* Scrollable Body */}
         <div className="workflow-input-body">

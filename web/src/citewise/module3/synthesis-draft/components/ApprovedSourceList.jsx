@@ -152,8 +152,8 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
   return (
     <div
       style={{
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        background: "var(--cw-bg-surface, #ffffff)",
+        border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "16px",
         display: "flex",
         flexDirection: "column",
@@ -163,10 +163,11 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
       }}
     >
       <div
+        className="workflow-card-header"
         style={{
           padding: "16px 20px",
-          background: "#f9fafb",
-          borderBottom: isOpen ? "1px solid #e5e7eb" : "none",
+          background: "var(--cw-bg-surface-elevated, #f9fafb)",
+          borderBottom: isOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -181,12 +182,15 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "1.05rem",
-              color: "#f97316",
+              color: "var(--cw-text-primary, #0f0e17)",
               letterSpacing: "0.01em",
             }}
           >
             Source Documents ({documents.length})
           </span>
+          <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
+            Selected papers used as citations for the synthesis.
+          </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <button

@@ -675,3 +675,180 @@
     margin-bottom: 1.5rem;
   }
 }
+
+/* ==========================================================================
+   Dark Mode Support for Auth Split-Screen Pages (/login, /register)
+   Base: #0f0e17 (blackish)
+   Surfaces: #12111b / #15141f
+   Inputs: #100f18
+   Titles / Black text: #ffffff
+   Subtitles / Grayish text: #cbd5e1 (soft silver-white, readable)
+   Orange buttons and highlights stay vibrant orange
+   ========================================================================== */
+
+[data-theme="dark"] .auth-split-wrapper {
+  background-color: #0f0e17 !important;
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .auth-showcase-panel {
+  background: 
+    radial-gradient(ellipse 90% 70% at 0% 0%, rgba(234, 88, 12, 0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(249, 115, 22, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, #0f0e17 0%, #15141f 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .auth-mesh-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px) !important;
+}
+
+[data-theme="dark"] .auth-brand-icon-box {
+  background: #171624 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .auth-brand-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .auth-back-link {
+  background: #171624 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="dark"] .auth-back-link:hover {
+  background: #1f1e2f !important;
+  border-color: #ea580c !important;
+  color: #ea580c !important;
+}
+
+[data-theme="dark"] .auth-showcase-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .auth-showcase-desc {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .auth-preview-card {
+  background: rgba(21, 20, 31, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35) !important;
+}
+
+[data-theme="dark"] .auth-preview-card:hover {
+  border-color: #ea580c !important;
+}
+
+[data-theme="dark"] .auth-preview-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .auth-preview-paper-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .auth-preview-gap-box {
+  background: #1c1822 !important;
+  border-left: 3px solid #ea580c !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .auth-preview-meta {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .auth-preview-progress-bar {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .auth-feature-pill {
+  background: #171624 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .auth-feature-pill:hover {
+  background: #1e1d2e !important;
+  border-color: rgba(234, 88, 12, 0.4) !important;
+  color: #ea580c !important;
+}
+
+[data-theme="dark"] .auth-showcase-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .auth-form-panel {
+  background-color: #12111b !important;
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .auth-form-topbar {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .auth-form-heading {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .auth-form-subheading {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .auth-input-label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .auth-input-container {
+  background-color: #100f18 !important;
+}
+
+[data-theme="dark"] .auth-input-field {
+  background-color: #100f18 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .auth-input-field::placeholder {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .auth-input-field:focus {
+  background-color: #15141f !important;
+  border-color: #ea580c !important;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.2) !important;
+}
+
+[data-theme="dark"] .auth-input-prefix-icon {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .auth-password-toggle-btn {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .auth-password-toggle-btn:hover {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .auth-password-hint {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .auth-form-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .auth-legal-link {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .auth-legal-link:hover {
+  color: #ea580c !important;
+}

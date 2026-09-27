@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
 import { apiFetch } from "../../../../api/http";
+import { useTheme } from "../../../../context/ThemeContext";
 
 export default function MetricWeightCustomization({ 
   sessionId, 
@@ -10,6 +11,7 @@ export default function MetricWeightCustomization({
   onAssessmentTriggered, 
   isHero = false 
 }) {
+  const { isDark } = useTheme();
   const [prefs, setPrefs] = useState(() => store.getScorePrefs(sessionId));
   const [open, setOpen] = useState(isHero);
   const [selectedDocs, setSelectedDocs] = useState(new Set());
@@ -120,8 +122,8 @@ export default function MetricWeightCustomization({
   // ✨ Local light-theme style overrides
   const cardStyle = isHero
     ? {
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        background: "var(--cw-bg-surface, #ffffff)",
+        border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "16px",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
         padding: "2rem",
@@ -130,8 +132,8 @@ export default function MetricWeightCustomization({
         width: "100%",
       }
     : {
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        background: "var(--cw-bg-surface, #ffffff)",
+        border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "16px",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
         overflow: "hidden",
@@ -141,15 +143,16 @@ export default function MetricWeightCustomization({
     <div className={isHero ? "cw-m-pad" : undefined} style={cardStyle}>
       {!isHero && (
         <button
+          className="workflow-card-header"
           onClick={() => setOpen((o) => !o)}
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             width: "100%",
-            background: "#f9fafb",
+            background: "var(--cw-bg-surface-elevated, #f9fafb)",
             border: "none",
-            borderBottom: open ? "1px solid #e5e7eb" : "none",
+            borderBottom: open ? "1px solid var(--cw-border, #e5e7eb)" : "none",
             cursor: "pointer",
             textAlign: "left",
             padding: "1.125rem 1.5rem",
@@ -161,7 +164,7 @@ export default function MetricWeightCustomization({
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "1.05rem",
-              color: "#f97316",
+              color: "var(--cw-text-primary, #0f0e17)",
               letterSpacing: "0.01em",
               lineHeight: 1.3,
             }}
@@ -188,7 +191,7 @@ export default function MetricWeightCustomization({
         <div style={{ padding: isHero ? "0" : "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "20px" }}>
           {isHero && (
             <div>
-              <h2 style={{ margin: "0 0 8px 0", color: "#f97316", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
+              <h2 style={{ margin: "0 0 8px 0", color: "var(--cw-text-primary, #0f0e17)", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
                 Metric Weight Customization
               </h2>
               {documents.length > 0 && (
@@ -244,7 +247,7 @@ export default function MetricWeightCustomization({
                         cursor: "pointer",
                         fontFamily: "'Poppins', sans-serif",
                         fontSize: "0.85rem",
-                        color: "#111827",
+                        color: isDark ? "#ffffff" : "#111827",
                         fontWeight: 500,
                       }}
                     >
@@ -365,8 +368,8 @@ export default function MetricWeightCustomization({
                 disabled={isProcessing}
                 style={{
                   background: "transparent",
-                  color: "#6b7280",
-                  border: "1px solid #e5e7eb",
+                  color: isDark ? "#cbd5e1" : "#6b7280",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e5e7eb",
                   borderRadius: "8px",
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: 600,
@@ -378,15 +381,15 @@ export default function MetricWeightCustomization({
                 }}
                 onMouseEnter={(e) => {
                   if (!isProcessing) {
-                    e.currentTarget.style.background = "#f9fafb";
-                    e.currentTarget.style.borderColor = "#d1d5db";
-                    e.currentTarget.style.color = "#374151";
+                    e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.05)" : "#f9fafb";
+                    e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.3)" : "#d1d5db";
+                    e.currentTarget.style.color = isDark ? "#ffffff" : "#374151";
                   }
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.borderColor = "#e5e7eb";
-                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb";
+                  e.currentTarget.style.color = isDark ? "#cbd5e1" : "#6b7280";
                 }}
               >
                 Reset Default
@@ -396,8 +399,8 @@ export default function MetricWeightCustomization({
               <div
                 style={{
                   padding: "10px 14px",
-                  background: "#fff7ef",
-                  border: "1px solid #fed7aa",
+                  background: isDark ? "rgba(249, 115, 22, 0.12)" : "#fff7ef",
+                  border: isDark ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid #fed7aa",
                   borderRadius: "8px",
                   display: "flex",
                   alignItems: "center",
@@ -415,7 +418,7 @@ export default function MetricWeightCustomization({
                     flexShrink: 0,
                   }}
                 />
-                <span style={{ fontSize: "0.75rem", color: "#9a3412", fontFamily: "'Poppins', sans-serif" }}>
+                <span style={{ fontSize: "0.75rem", color: isDark ? "#fed7aa" : "#9a3412", fontFamily: "'Poppins', sans-serif" }}>
                   Sending {documents.length} document{documents.length !== 1 ? "s" : ""} to AI evaluation models...
                 </span>
               </div>
@@ -440,8 +443,8 @@ export default function MetricWeightCustomization({
         >
           <div
             style={{
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
+              background: isDark ? "#171624" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e5e7eb",
               borderRadius: "16px",
               padding: "24px",
               width: "90%",
@@ -449,16 +452,16 @@ export default function MetricWeightCustomization({
               display: "flex",
               flexDirection: "column",
               gap: "16px",
-              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.15)",
+              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.25)",
             }}
           >
-            <h3 style={{ margin: 0, color: "#111827", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
+            <h3 style={{ margin: 0, color: isDark ? "#ffffff" : "#111827", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
               Select Documents to Assess
             </h3>
-            <p style={{ margin: 0, color: "#6b7280", fontSize: "0.85rem", fontFamily: "'Poppins', sans-serif" }}>
+            <p style={{ margin: 0, color: isDark ? "#94a3b8" : "#6b7280", fontSize: "0.85rem", fontFamily: "'Poppins', sans-serif" }}>
               Select which documents to run through the AI assessment.
             </p>
-            <div style={{ maxHeight: "300px", overflowY: "auto", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "8px", background: "#f9fafb" }}>
+            <div style={{ maxHeight: "300px", overflowY: "auto", border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e5e7eb", borderRadius: "8px", padding: "8px", background: isDark ? "#100f18" : "#f9fafb" }}>
               {documents.map(doc => (
                 <label
                   key={doc.id}
@@ -468,7 +471,7 @@ export default function MetricWeightCustomization({
                     gap: "12px",
                     padding: "8px",
                     cursor: "pointer",
-                    borderBottom: "1px solid #e5e7eb",
+                    borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
                   }}
                 >
                   <input
@@ -477,7 +480,7 @@ export default function MetricWeightCustomization({
                     onChange={() => toggleDocSelection(doc.id)}
                     style={{ width: "16px", height: "16px", accentColor: "#f97316", cursor: "pointer" }}
                   />
-                  <span style={{ color: "#111827", fontFamily: "'Poppins', sans-serif", fontSize: "0.85rem", wordWrap: "break-word" }}>
+                  <span style={{ color: isDark ? "#f3f4f6" : "#111827", fontFamily: "'Poppins', sans-serif", fontSize: "0.85rem", wordWrap: "break-word" }}>
                     {doc.name || doc.fileName || doc.title || doc.file_name}
                   </span>
                 </label>
@@ -488,8 +491,8 @@ export default function MetricWeightCustomization({
                 onClick={() => setShowSelectModal(false)}
                 style={{
                   background: "transparent",
-                  color: "#6b7280",
-                  border: "1px solid #e5e7eb",
+                  color: isDark ? "#cbd5e1" : "#6b7280",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e5e7eb",
                   borderRadius: "8px",
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: 600,
@@ -499,14 +502,14 @@ export default function MetricWeightCustomization({
                   transition: "all 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f9fafb";
-                  e.currentTarget.style.borderColor = "#d1d5db";
-                  e.currentTarget.style.color = "#374151";
+                  e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.05)" : "#f9fafb";
+                  e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.3)" : "#d1d5db";
+                  e.currentTarget.style.color = isDark ? "#ffffff" : "#374151";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.borderColor = "#e5e7eb";
-                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb";
+                  e.currentTarget.style.color = isDark ? "#cbd5e1" : "#6b7280";
                 }}
               >
                 Cancel

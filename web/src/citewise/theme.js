@@ -13,11 +13,11 @@ export const theme = {
   surfaceAlt: "rgba(0, 0, 0, 0.15)",
   border: "#3a3a55",
 
-  // Accents (CATalyst violet)
-  accent: "#5b5bd6",
-  accentHover: "#6f6fe0",
-  accentSoft: "rgba(91, 91, 214, 0.12)",
-  accentBorder: "rgba(91, 91, 214, 0.35)",
+  // Accents (CiteWise brand orange)
+  accent: "#ea580c",
+  accentHover: "#f97316",
+  accentSoft: "rgba(234, 88, 12, 0.12)",
+  accentBorder: "rgba(234, 88, 12, 0.35)",
 
   // Text
   text: "#e4e4f0",

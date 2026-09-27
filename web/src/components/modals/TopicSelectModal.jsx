@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTheme } from "../../context/ThemeContext";
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -9,6 +10,7 @@ const FOCUSABLE =
  * User picks one topic; we then import it into CiteWise.
  */
 export default function TopicSelectModal({ topics, gaps, groupName, onSelect, onClose }) {
+  const { isDark } = useTheme();
   const [selected, setSelected] = useState(topics?.length === 1 ? topics[0] : null);
   const [importing, setImporting] = useState(false);
   const modalRef = useRef(null);
@@ -60,17 +62,21 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
         aria-modal="true"
         aria-label="Select a research topic"
         className="cw-topic-modal"
-        style={styles.modal}
+        style={{
+          ...styles.modal,
+          background: isDark ? "#15141f" : "#ffffff",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+        }}
       >
 
         {/* Header */}
-        <div className="cw-topic-header" style={styles.header}>
+        <div className="cw-topic-header" style={{ ...styles.header, borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb" }}>
           <div>
             <p style={styles.subtitle}>{groupName}</p>
-            <h2 style={styles.title}>Select a Research Topic</h2>
-            <p style={styles.hint}>Choose the topic you want CiteWise to focus on.</p>
+            <h2 style={{ ...styles.title, color: isDark ? "#ffffff" : "#0f0e17" }}>Select a Research Topic</h2>
+            <p style={{ ...styles.hint, color: isDark ? "#cbd5e1" : "#4b5563" }}>Choose the topic you want CiteWise to focus on.</p>
           </div>
-          <button onClick={onClose} style={styles.closeBtn}>✕</button>
+          <button onClick={onClose} style={{ ...styles.closeBtn, color: isDark ? "#cbd5e1" : "#4b5563" }}>✕</button>
         </div>
 
         {/* Topic cards */}
@@ -81,10 +87,6 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
               return (
                 <div
                   key={topic.id}
-                  // A plain div with onClick could not be reached by keyboard at
-                  // all, which left the whole CiteWise flow unusable without a
-                  // mouse, since the confirm button stays disabled until a topic
-                  // is chosen.
                   role="radio"
                   aria-checked={isSelected}
                   tabIndex={0}
@@ -92,19 +94,19 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setSelected(topic);
+                       setSelected(topic);
                     }
                   }}
                   style={{
                     ...styles.topicCard,
-                    borderColor: isSelected ? "#ea580c" : "#e5e7eb",
-                    background:  isSelected ? "rgba(234, 88, 12, 0.08)" : "#ffffff",
+                    borderColor: isSelected ? "#ea580c" : isDark ? "rgba(255, 255, 255, 0.1)" : "#e5e7eb",
+                    background: isSelected ? "rgba(234, 88, 12, 0.14)" : isDark ? "#1b1a29" : "#ffffff",
                     cursor: "pointer",
                   }}
                 >
                   <div style={styles.topicIndex}>Topic {i + 1}</div>
-                  <h4 style={styles.topicTitle}>{topic.title}</h4>
-                  <p style={styles.topicRationale}>{topic.rationale}</p>
+                  <h4 style={{ ...styles.topicTitle, color: isDark ? "#ffffff" : "#0f0e17" }}>{topic.title}</h4>
+                  <p style={{ ...styles.topicRationale, color: isDark ? "#cbd5e1" : "#4b5563" }}>{topic.rationale}</p>
                   {isSelected && (
                     <div style={styles.selectedBadge}>✓ Selected</div>
                   )}
@@ -114,19 +116,19 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
           </div>
 
           {/* Gap panel — updates to show context alongside whichever topic is hovered/selected */}
-          <div className="cw-topic-gaps" style={styles.gapPanel}>
+          <div className="cw-topic-gaps" style={{ ...styles.gapPanel, background: isDark ? "#12111b" : "#f9fafb", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb" }}>
             <p style={styles.gapPanelLabel}>Research Gaps</p>
-            <p style={styles.gapPanelHint}>
+            <p style={{ ...styles.gapPanelHint, color: isDark ? "#cbd5e1" : "#4b5563" }}>
               These gaps apply to all topics in this workspace.
             </p>
             <div style={styles.gapList}>
               {gaps.length === 0 ? (
-                <p style={styles.noGaps}>No gaps recorded yet.</p>
+                <p style={{ ...styles.noGaps, color: isDark ? "#cbd5e1" : "#4b5563" }}>No gaps recorded yet.</p>
               ) : (
                 gaps.map((gap, i) => (
                   <div key={i} style={styles.gapItem}>
                     <span style={styles.gapBullet}>{i + 1}</span>
-                    <span style={styles.gapText}>{gap}</span>
+                    <span style={{ ...styles.gapText, color: isDark ? "#cbd5e1" : "#4b5563" }}>{gap}</span>
                   </div>
                 ))
               )}
@@ -135,8 +137,8 @@ export default function TopicSelectModal({ topics, gaps, groupName, onSelect, on
         </div>
 
         {/* Footer */}
-        <div className="cw-topic-footer" style={styles.footer}>
-          <button onClick={onClose} style={styles.cancelBtn}>Cancel</button>
+        <div className="cw-topic-footer" style={{ ...styles.footer, borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb" }}>
+          <button onClick={onClose} style={{ ...styles.cancelBtn, color: isDark ? "#cbd5e1" : "#4b5563", border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #d1d5db" }}>Cancel</button>
           <button
             onClick={handleConfirm}
             disabled={!selected || importing}

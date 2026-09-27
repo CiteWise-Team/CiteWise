@@ -68,6 +68,22 @@ function getGuideSteps(currentStep) {
   return steps;
 }
 
+function renderGuideText(text) {
+  if (typeof text !== "string") return text;
+  if (!text.includes("CATalyst")) return text;
+  const parts = text.split("CATalyst");
+  return parts.flatMap((part, i) =>
+    i === 0
+      ? [part]
+      : [
+          <span key={i}>
+            <span style={{ color: "#ea580c" }}>CAT</span>alyst
+          </span>,
+          part,
+        ]
+  );
+}
+
 export default function WorkflowLayout({ children, currentStep = "extractor" }) {
   const { groupId, groupName } = useGroup();
   const [guideStep, setGuideStep] = useState(() => (
@@ -95,41 +111,77 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
     }
 
     const currentGuideSteps = getGuideSteps(currentStep);
-    const target = document.querySelector(`[data-guide="${currentGuideSteps[guideStep]?.target}"]`);
+    const targetKey = currentGuideSteps[guideStep]?.target;
+    const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 768;
+
+    let target = document.querySelector(`[data-guide="${targetKey}"]`);
+    if (isMobileViewport && targetKey === "workflow-stepper") {
+      const mobileTarget = document.querySelector('[data-guide="workflow-stepper-mobile"]');
+      if (mobileTarget) target = mobileTarget;
+    }
     if (!target) return undefined;
 
-    const targetName = currentGuideSteps[guideStep]?.target;
-    if (targetName === "workflow-guide-button" || targetName === "workspace-header") {
+    // For input and results panels, refine target to the actual card element for crisp rounded highlights
+    if (targetKey === "workflow-input") {
+      const card = target.querySelector(".workflow-input-card");
+      if (card) target = card;
+    } else if (targetKey === "workflow-results") {
+      const card = target.querySelector(".workflow-result-card");
+      if (card) target = card;
+    }
+
+    if (targetKey === "workflow-guide-button" || targetKey === "workspace-header" || (targetKey === "workflow-stepper" && !isMobileViewport)) {
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } else if (targetKey === "workflow-draft-citewise") {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else if (targetKey !== "workflow-stepper") {
+      // workflow-input or workflow-results: on mobile scroll to start so the card header is at top
+      target.scrollIntoView({ behavior: "smooth", block: isMobileViewport ? "start" : "nearest" });
     }
 
     const updateSpotlight = () => {
       const rect = target.getBoundingClientRect();
-      const padding = 10;
+      const padding = isMobileViewport ? 8 : 10;
       const computedStyle = window.getComputedStyle(target);
       const elemRadius = parseInt(computedStyle.borderRadius, 10) || 16;
+      const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+
+      const left = Math.max(4, rect.left - padding);
+      const width = Math.min(vw - left - 4, rect.width + padding * 2);
+
       setSpotlight({
         top: Math.max(0, rect.top - padding),
-        left: Math.max(0, rect.left - padding),
-        width: rect.width + padding * 2,
+        left,
+        width,
         height: rect.height + padding * 2,
-        borderRadius: Math.max(elemRadius + 4, 18),
+        borderRadius: Math.max(elemRadius + 4, 16),
       });
     };
 
     updateSpotlight();
-    const timer1 = setTimeout(updateSpotlight, 120);
-    const timer2 = setTimeout(updateSpotlight, 320);
-    const timer3 = setTimeout(updateSpotlight, 550);
+    const timer1 = setTimeout(updateSpotlight, 100);
+    const timer2 = setTimeout(updateSpotlight, 250);
+    const timer3 = setTimeout(updateSpotlight, 450);
+    const timer4 = setTimeout(updateSpotlight, 700);
+
+    let frameId;
+    const startTime = performance.now();
+    const trackAnimation = (currentTime) => {
+      updateSpotlight();
+      if (currentTime - startTime < 650) {
+        frameId = requestAnimationFrame(trackAnimation);
+      }
+    };
+    frameId = requestAnimationFrame(trackAnimation);
 
     window.addEventListener("resize", updateSpotlight);
     window.addEventListener("scroll", updateSpotlight, true);
     return () => {
+      cancelAnimationFrame(frameId);
       clearTimeout(timer1);
       clearTimeout(timer2);
       clearTimeout(timer3);
+      clearTimeout(timer4);
       window.removeEventListener("resize", updateSpotlight);
       window.removeEventListener("scroll", updateSpotlight, true);
     };
@@ -156,9 +208,10 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
 
   const currentGuideSteps = getGuideSteps(currentStep);
   const currentTarget = currentGuideSteps[guideStep]?.target;
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
   const isNearGuideBtn = currentTarget === "workflow-guide-button";
   const isNearDraftBtn = currentTarget === "workflow-draft-citewise";
-  const isDockedLeft = !isNearGuideBtn && !isNearDraftBtn && (
+  const isDockedLeft = !isMobile && !isNearGuideBtn && !isNearDraftBtn && (
     currentTarget === "workflow-results"
     || (spotlight && spotlight.left > (typeof window !== "undefined" ? window.innerWidth * 0.45 : 600))
   );
@@ -217,7 +270,11 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
           <section
             className={`workflow-guide-card${isDockedLeft ? " is-dock-left" : ""}${isNearGuideBtn ? " is-near-guide-button" : ""}${isNearDraftBtn ? " is-near-draft-btn" : ""}`}
             style={
-              isNearGuideBtn && spotlight
+              isMobile
+                ? (isNearDraftBtn || currentTarget === "workflow-stepper")
+                  ? { top: "16px", bottom: "auto", left: "16px", right: "16px", width: "auto" }
+                  : { bottom: "80px", top: "auto", left: "16px", right: "16px", width: "auto" }
+                : isNearGuideBtn && spotlight
                 ? {
                     top: Math.max(150, Math.round(spotlight.top + spotlight.height + 16)),
                     bottom: "auto",
@@ -250,8 +307,8 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
                 <X size={16} />
               </button>
             </div>
-            <h2 id="workflow-guide-title">{guideSteps[guideStep]?.title}</h2>
-            <p>{guideSteps[guideStep]?.description}</p>
+            <h2 id="workflow-guide-title">{renderGuideText(guideSteps[guideStep]?.title)}</h2>
+            <p>{renderGuideText(guideSteps[guideStep]?.description)}</p>
             <div className="workflow-guide-actions">
               <button
                 type="button"

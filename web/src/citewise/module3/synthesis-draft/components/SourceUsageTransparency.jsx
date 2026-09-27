@@ -58,18 +58,19 @@ export default function SourceUsageTransparency({ sessionId, documents }) {
   return (
     <div
       style={{
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        background: "var(--cw-bg-surface, #ffffff)",
+        border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "16px",
         overflow: "hidden",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
       }}
     >
       <div
+        className="workflow-card-header"
         style={{
           padding: "1.125rem 1.5rem",
-          borderBottom: isOpen ? "1px solid #e5e7eb" : "none",
-          background: "#f9fafb",
+          borderBottom: isOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+          background: "var(--cw-bg-surface-elevated, #f9fafb)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -79,10 +80,10 @@ export default function SourceUsageTransparency({ sessionId, documents }) {
         onClick={() => setIsOpen(!isOpen)}
       >
         <div>
-          <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.05rem", color: "#f97316", letterSpacing: "0.01em" }}>
+          <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.05rem", color: "var(--cw-text-primary, #0f0e17)", letterSpacing: "0.01em" }}>
             How your sources are used
           </span>
-          <p style={{ margin: "4px 0 0", fontSize: "0.76rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
+          <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>
             Each approved RRL is ranked by your relevance weights. Tiers decide how strongly the AI leans on each source.
           </p>
         </div>

@@ -18,9 +18,9 @@ export default function Upload() {
         <div className="mb-4">
           <p
             className="text-uppercase fw-bold mb-1"
-            style={{ color: "#ea580c", fontSize: "0.75rem", letterSpacing: "0.08em" }}
+            style={{ color: "#0f0e17", fontSize: "0.75rem", letterSpacing: "0.08em" }}
           >
-            CATalyst Upload
+            <span style={{ color: "#ea580c" }}>CAT</span>alyst Upload
           </p>
           <h2 className="fw-bold mb-2" style={{ color: "#0f0e17", fontSize: "1.75rem" }}>
             Upload Research Paper

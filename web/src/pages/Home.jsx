@@ -161,7 +161,7 @@ export default function Home() {
 
           <div className="float-badge badge-1">
             <span className="avatar">C</span>
-            CATalyst
+            <span style={{ color: "#ea580c" }}>CAT</span>alyst
           </div>
           <div className="float-badge badge-2">
             <span className="avatar">AI</span>
@@ -190,7 +190,7 @@ export default function Home() {
               </h1>
 
               <p className="lead mt-3 mx-auto" style={{ maxWidth: "640px", color: "var(--text-body)", fontSize: "1.1rem" }}>
-                <strong>CATalyst</strong> extracts, summarizes, and discovers genuine literature gaps to formulate thesis topics.
+                <strong><span style={{ color: "#ea580c" }}>CAT</span>alyst</strong> extracts, summarizes, and discovers genuine literature gaps to formulate thesis topics.
                 <strong> CiteWise</strong> seamlessly imports your findings to draft scaffolded, publication-ready introductions with automated citations.
               </p>
 
@@ -333,7 +333,7 @@ export default function Home() {
                 <div className="engine-pillar-card">
                   <div className="engine-pillar-header">
                     <div>
-                      <span className="engine-pill-badge">CATalyst · Discovery</span>
+                      <span className="engine-pill-badge"><span style={{ color: "#ea580c" }}>CAT</span>alyst · Discovery</span>
                       <h3 className="engine-pillar-title">Literature Intelligence</h3>
                     </div>
                     <span className="engine-pillar-icon-box">
@@ -471,15 +471,7 @@ export default function Home() {
             4. CALL TO ACTION SECTION
             ========================================================================== */}
         <section className="container my-5">
-          <div
-            className="text-center p-5 glass-card reveal"
-            style={{
-              borderRadius: "1.5rem",
-              background: "linear-gradient(180deg, #ffffff 0%, #fff7ed 100%)",
-              borderColor: "rgba(234, 88, 12, 0.25)",
-              boxShadow: "0 20px 50px -15px rgba(234, 88, 12, 0.15)",
-            }}
-          >
+          <div className="text-center p-5 glass-card landing-cta-box reveal">
             <span className="eyebrow-label mb-2 d-inline-block">Start Your Research Journey</span>
             <h2 className="section-title fw-bold mb-3" style={{ fontSize: "clamp(1.8rem, 3vw, 2.4rem)" }}>
               Ready to Discover Your Research Gaps & Draft with CiteWise?
@@ -501,11 +493,11 @@ export default function Home() {
         {/* ==========================================================================
             5. FOOTER
             ========================================================================== */}
-        <footer style={{ borderTop: "1px solid var(--border)", background: "#ffffff" }} className="mt-5 py-5">
+        <footer className="landing-footer mt-5 py-5">
           <div className="container">
             <div className="row g-4">
               <div className="col-md-4">
-                <div className="footer-brand-name">CATalyst + CiteWise</div>
+                <div className="footer-brand-name"><span style={{ color: "#ea580c" }}>CAT</span>alyst + CiteWise</div>
                 <p className="footer-description">
                   The unified academic research ecosystem: discovering genuine research gaps and drafting citations with scholarly precision.
                 </p>
@@ -562,7 +554,7 @@ export default function Home() {
             <hr className="my-4" style={{ borderColor: "var(--border)" }} />
 
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 small" style={{ color: "var(--text-muted)" }}>
-              <div>© 2026 CATalyst & CiteWise. All rights reserved.</div>
+              <div>© 2026 <span style={{ color: "#ea580c" }}>CAT</span>alyst & CiteWise. All rights reserved.</div>
               <div>Designed for modern scientific and academic research workflows.</div>
             </div>
           </div>

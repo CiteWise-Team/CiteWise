@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Modal } from "bootstrap";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function ConfirmModal({
   id = "confirmModal",
@@ -11,6 +12,7 @@ export default function ConfirmModal({
   type = "primary",
   onConfirm,
 }) {
+  const { isDark } = useTheme();
   useEffect(() => {
     const modalEl = document.getElementById(id);
     if (!modalEl) return;
@@ -50,17 +52,17 @@ export default function ConfirmModal({
 
           {/* Body */}
           <div className="workspace-create-body">
-            <p style={{ color: "#4b5563", fontSize: "0.92rem", lineHeight: 1.6, margin: isDanger ? "0 0 14px" : "0" }}>
+            <p style={{ color: isDark ? "#cbd5e1" : "#4b5563", fontSize: "0.92rem", lineHeight: 1.6, margin: isDanger ? "0 0 14px" : "0" }}>
               {message}
             </p>
             {isDanger && (
               <div
                 style={{
-                  backgroundColor: "#fef2f2",
-                  border: "1px solid #fee2e2",
+                  backgroundColor: isDark ? "rgba(220, 38, 38, 0.15)" : "#fef2f2",
+                  border: isDark ? "1px solid rgba(220, 38, 38, 0.3)" : "1px solid #fee2e2",
                   borderRadius: "10px",
                   padding: "10px 14px",
-                  color: "#b91c1c",
+                  color: isDark ? "#fca5a5" : "#b91c1c",
                   fontSize: "0.8rem",
                   lineHeight: 1.5,
                 }}
@@ -71,7 +73,7 @@ export default function ConfirmModal({
           </div>
 
           {/* Actions */}
-          <div className="d-flex justify-content-end gap-2 p-4 pt-0" style={{ backgroundColor: "#ffffff" }}>
+          <div className="d-flex justify-content-end gap-2 p-4 pt-0" style={{ backgroundColor: isDark ? "#15141f" : "#ffffff" }}>
             <button
               type="button"
               className="workspace-modal-button workspace-modal-cancel"

@@ -9,6 +9,7 @@ import { Modal } from "bootstrap";
 import ConfirmModal from "../modals/ConfirmModal";
 import TopicSelectModal from "../modals/TopicSelectModal";
 import { apiFetch } from "../../api/http.js";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function GroupCard({
   name,
@@ -18,6 +19,7 @@ export default function GroupCard({
   onEdit,
   onDelete,
 }) {
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const { enterGroup } = useGroup();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -299,7 +301,7 @@ export default function GroupCard({
         aria-label={`Open ${name} workspace tools`}
         onClick={openWorkspaceLauncher}
         onKeyDown={handleCardKeyDown}
-        style={{ backgroundColor: "#ffffff", padding: 0 }}
+        style={{ backgroundColor: isDark ? "#15141f" : "#ffffff", padding: 0 }}
       >
         {/* Header: Fills the entire top part with the workspace color and layered organic waves */}
         <div
@@ -313,7 +315,7 @@ export default function GroupCard({
               <path d="M 0,28 C 120,14 230,42 340,20 C 410,8 470,26 500,32 L 500,56 L 0,56 Z" fill="rgba(251, 191, 36, 0.4)" />
               <path d="M 0,36 C 115,50 220,22 325,38 C 395,48 455,32 500,26 L 500,56 L 0,56 Z" fill="rgba(192, 132, 252, 0.35)" />
               <path d="M 0,30 C 130,44 240,16 350,32 C 420,42 480,28 500,24 L 500,56 L 0,56 Z" fill="rgba(251, 146, 60, 0.3)" />
-              <path d="M 0,38 C 120,52 230,26 340,42 C 410,52 470,38 500,34 L 500,56 L 0,56 Z" fill="#ffffff" />
+              <path d="M 0,38 C 120,52 230,26 340,42 C 410,52 470,38 500,34 L 500,56 L 0,56 Z" fill={isDark ? "#15141f" : "#ffffff"} />
             </svg>
           </div>
 

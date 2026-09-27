@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from "../../../../context/ThemeContext";
 
 // Map relevance level to theme colors
 const RELEVANCE_COLORS = {
@@ -16,6 +17,7 @@ const getRelevanceDisplay = (level) => {
 };
 
 const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType }) => {
+  const { isDark } = useTheme();
   const relevanceDisplay = getRelevanceDisplay(relevance);
   const color = RELEVANCE_COLORS[relevanceDisplay] || "#6b7280";
 
@@ -25,7 +27,7 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
         display: "flex",
         gap: "14px",
         padding: "18px 16px",
-        borderBottom: "1px solid #f3f4f6",
+        borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f3f4f6",
       }}
     >
       {/* Index number box */}
@@ -33,8 +35,8 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
         style={{
           width: "32px",
           height: "32px",
-          background: "#fff7ef",
-          border: "1px solid #fed7aa",
+          background: isDark ? "rgba(249, 115, 22, 0.15)" : "#fff7ef",
+          border: isDark ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid #fed7aa",
           borderRadius: "6px",
           display: "flex",
           alignItems: "center",
@@ -58,9 +60,9 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {criterion && (
-          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '11px', color: '#6b7280', marginBottom: 6, fontWeight: 600, letterSpacing: '0.02em' }}>
+          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '11px', color: isDark ? '#94a3b8' : '#6b7280', marginBottom: 6, fontWeight: 600, letterSpacing: '0.02em' }}>
             {criterion}
-            {evidenceType ? <span style={{ marginLeft: 8, color: '#9ca3af', fontWeight: 500 }}>· {evidenceType}</span> : null}
+            {evidenceType ? <span style={{ marginLeft: 8, color: isDark ? '#6b7280' : '#9ca3af', fontWeight: 500 }}>· {evidenceType}</span> : null}
           </div>
         )}
 
@@ -68,7 +70,7 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
           style={{
             fontFamily: "'Poppins', sans-serif",
             fontSize: "13px",
-            color: "#1f2937",
+            color: isDark ? "#e2e8f0" : "#1f2937",
             lineHeight: "1.65",
             margin: "0 0 8px 0",
             fontStyle: "italic",
@@ -87,17 +89,17 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
             style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: "11px",
-              color: "#9ca3af",
+              color: isDark ? "#94a3b8" : "#9ca3af",
             }}
           >
             Page {page}
           </span>
-          <span style={{ color: "#d1d5db", fontSize: "11px" }}>·</span>
+          <span style={{ color: isDark ? "rgba(255, 255, 255, 0.2)" : "#d1d5db", fontSize: "11px" }}>·</span>
           <span
             style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: "11px",
-              color: "#9ca3af",
+              color: isDark ? "#94a3b8" : "#9ca3af",
             }}
           >
             Relevance: {" "}
@@ -117,6 +119,8 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
 };
 
 const EvidenceExcerptList = ({ excerpts }) => {
+  const { isDark } = useTheme();
+
   // Empty state
   if (!excerpts || excerpts.length === 0) {
     return (
@@ -147,14 +151,14 @@ const EvidenceExcerptList = ({ excerpts }) => {
         {/* Empty message container */}
         <div
           style={{
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
+            background: isDark ? "#171624" : "#f9fafb",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
             borderRadius: "10px",
             padding: "0 20px",
             maxHeight: "320px",
             overflowY: "auto",
             scrollbarWidth: "thin",
-            scrollbarColor: "#e5e7eb #f9fafb",
+            scrollbarColor: isDark ? "rgba(255, 255, 255, 0.15) #171624" : "#e5e7eb #f9fafb",
           }}
         >
           <div
@@ -163,7 +167,7 @@ const EvidenceExcerptList = ({ excerpts }) => {
               textAlign: "center",
               fontFamily: "'Poppins', sans-serif",
               fontSize: "12px",
-              color: "#9ca3af",
+              color: isDark ? "#94a3b8" : "#9ca3af",
               fontStyle: "italic",
             }}
           >
@@ -213,14 +217,14 @@ const EvidenceExcerptList = ({ excerpts }) => {
       {/* Scrollable list */}
       <div
         style={{
-          background: "#f9fafb",
-          border: "1px solid #e5e7eb",
+          background: isDark ? "#171624" : "#f9fafb",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
           borderRadius: "10px",
           padding: "0 20px",
           maxHeight: "320px",
           overflowY: "auto",
           scrollbarWidth: "thin",
-          scrollbarColor: "#e5e7eb #f9fafb",
+          scrollbarColor: isDark ? "rgba(255, 255, 255, 0.15) #171624" : "#e5e7eb #f9fafb",
         }}
       >
         {items.map((item, i) => (

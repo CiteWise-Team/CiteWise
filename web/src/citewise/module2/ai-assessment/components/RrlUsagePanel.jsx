@@ -7,8 +7,10 @@
 
 import { useEffect, useState } from "react";
 import * as store from "../../../lib/citewiseStore";
+import { useTheme } from "../../../../context/ThemeContext";
 
 export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) {
+  const { isDark } = useTheme();
   const [usage, setUsage] = useState(() => store.getRrlUsageFor(sessionId, documentId));
   const [customHighlightText, setCustomHighlightText] = useState("");
 
@@ -39,8 +41,8 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
     <div
       style={{
         marginTop: "24px",
-        background: "#f9fafb",
-        border: "1px solid #e5e7eb",
+        background: isDark ? "#171624" : "#f9fafb",
+        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
         borderRadius: "12px",
         padding: "18px 20px",
       }}
@@ -51,7 +53,7 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
         </span>
       </div>
 
-      <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
+      <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: isDark ? "#cbd5e1" : "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
         Override the AI's relevance tier and tell the synthesizer how to weigh this RRL.
       </p>
 
@@ -64,9 +66,9 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
               key={opt.key}
               onClick={() => setUsageChoice(opt.key)}
               style={{
-                background: active ? "#f97316" : "#ffffff",
-                color: active ? "#ffffff" : "#374151",
-                border: `1px solid ${active ? "#f97316" : "#e5e7eb"}`,
+                background: active ? "#f97316" : (isDark ? "#1f1d2e" : "#ffffff"),
+                color: active ? "#ffffff" : (isDark ? "#cbd5e1" : "#374151"),
+                border: `1px solid ${active ? "#f97316" : (isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb")}`,
                 borderRadius: "999px",
                 padding: "5px 12px",
                 cursor: "pointer",
@@ -92,7 +94,7 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
-              color: "#6b7280",
+              color: isDark ? "#94a3b8" : "#6b7280",
               fontFamily: "'Poppins', sans-serif",
               marginBottom: 8,
             }}
@@ -110,8 +112,10 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
                     display: "flex",
                     gap: 8,
                     alignItems: "flex-start",
-                    background: on ? "#fff7ef" : "#ffffff",
-                    border: `1px solid ${on ? "#f97316" : "#e5e7eb"}`,
+                    background: on
+                      ? (isDark ? "rgba(249, 115, 22, 0.18)" : "#fff7ef")
+                      : (isDark ? "#1a1928" : "#ffffff"),
+                    border: `1px solid ${on ? "#f97316" : (isDark ? "rgba(255, 255, 255, 0.1)" : "#e5e7eb")}`,
                     borderRadius: "8px",
                     padding: "8px 10px",
                     cursor: "pointer",
@@ -124,7 +128,7 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
                     onChange={() => toggleExcerpt(idx)}
                     style={{ marginTop: 2, width: 15, height: 15, accentColor: "#f97316", cursor: "pointer" }}
                   />
-                  <span style={{ fontSize: "0.78rem", color: "#1f2937", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5, fontStyle: "italic" }}>
+                  <span style={{ fontSize: "0.78rem", color: isDark ? "#e2e8f0" : "#1f2937", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5, fontStyle: "italic" }}>
                     "{quote.length > 160 ? quote.slice(0, 160) + "…" : quote}"
                   </span>
                 </label>
@@ -142,14 +146,14 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
             fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: "0.06em",
-            color: "#6b7280",
+            color: isDark ? "#94a3b8" : "#6b7280",
             fontFamily: "'Poppins', sans-serif",
             marginBottom: 8,
           }}
         >
           Custom Highlights
         </div>
-        <p style={{ margin: "0 0 10px", fontSize: "0.74rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
+        <p style={{ margin: "0 0 10px", fontSize: "0.74rem", color: isDark ? "#94a3b8" : "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
           Paste or type any specific text from the PDF you want the AI to emphasize.
         </p>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
@@ -162,10 +166,10 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
               minHeight: 60,
               resize: "vertical",
               fontSize: "0.78rem",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
+              background: isDark ? "#100f18" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e5e7eb",
               borderRadius: "10px",
-              color: "#111827",
+              color: isDark ? "#f9fafb" : "#111827",
               padding: "0.6rem 0.75rem",
               fontFamily: "'Poppins', sans-serif",
               outline: "none",
@@ -176,7 +180,7 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
               e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
             }}
             onBlur={(e) => {
-              e.currentTarget.style.borderColor = "#e5e7eb";
+              e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb";
               e.currentTarget.style.boxShadow = "none";
             }}
           />
@@ -191,8 +195,12 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
             style={{
               padding: "6px 12px",
               fontSize: "0.76rem",
-              background: customHighlightText.trim() ? "#f97316" : "#f3f4f6",
-              color: customHighlightText.trim() ? "#ffffff" : "#9ca3af",
+              background: customHighlightText.trim()
+                ? "#f97316"
+                : (isDark ? "rgba(255, 255, 255, 0.06)" : "#f3f4f6"),
+              color: customHighlightText.trim()
+                ? "#ffffff"
+                : (isDark ? "#6b7280" : "#9ca3af"),
               border: "none",
               borderRadius: "8px",
               fontFamily: "'Poppins', sans-serif",
@@ -215,13 +223,13 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
                   display: "flex",
                   gap: 8,
                   alignItems: "flex-start",
-                  background: "#fff7ef",
-                  border: "1px solid #fed7aa",
+                  background: isDark ? "rgba(249, 115, 22, 0.12)" : "#fff7ef",
+                  border: isDark ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid #fed7aa",
                   borderRadius: "8px",
                   padding: "8px 10px",
                 }}
               >
-                <span style={{ flex: 1, fontSize: "0.78rem", color: "#1f2937", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5, fontStyle: "italic" }}>
+                <span style={{ flex: 1, fontSize: "0.78rem", color: isDark ? "#fed7aa" : "#1f2937", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5, fontStyle: "italic" }}>
                   "{text}"
                 </span>
                 <button

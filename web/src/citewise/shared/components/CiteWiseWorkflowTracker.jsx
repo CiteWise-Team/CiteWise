@@ -1,21 +1,15 @@
 import { createPortal } from "react-dom";
-import { Check, FileText, Sparkles, Search, Lightbulb } from "lucide-react";
-import { useTheme } from "../../context/ThemeContext";
+import { Check, FolderDown, Sparkles, PenTool } from "lucide-react";
+import { useTheme } from "../../../context/ThemeContext";
 
 const steps = [
-  { key: "extractor", label: "Extractor", stepNum: "Step 1", mobileLabel: "Extractor", icon: FileText },
-  { key: "summarizer", label: "Summarizer", stepNum: "Step 2", mobileLabel: "Summarizer", icon: Sparkles },
-  { key: "gap", label: "Gap Extractor", stepNum: "Step 3", mobileLabel: "Gaps", icon: Search },
-  { key: "topic", label: "Topic Suggester", stepNum: "Step 4", mobileLabel: "Topics", icon: Lightbulb },
+  { key: 0, label: "Data Import", stepNum: "Step 1", mobileLabel: "Import", icon: FolderDown },
+  { key: 1, label: "AI Assessment", stepNum: "Step 2", mobileLabel: "Assess", icon: Sparkles },
+  { key: 2, label: "Generate Introduction", stepNum: "Step 3", mobileLabel: "Draft", icon: PenTool },
 ];
 
-export default function WorkflowTracker({ currentStep, completedSteps = [], onStepChange }) {
+export default function CiteWiseWorkflowTracker({ currentStep = 0, maxUnlockedStep = 0, onStepChange }) {
   const { isDark } = useTheme();
-  // Find highest step finished so navigating backward never resets or shrinks the progression line
-  const completedIndices = completedSteps
-    .map((k) => steps.findIndex((s) => s.key === k))
-    .filter((i) => i !== -1);
-  const maxCompletedIndex = completedIndices.length > 0 ? Math.max(...completedIndices) : -1;
 
   return (
     <>
@@ -25,18 +19,10 @@ export default function WorkflowTracker({ currentStep, completedSteps = [], onSt
           <div className="workflow-progression-container">
             {steps.map((step, idx) => {
               const isCurrent = currentStep === step.key;
-              const isFinished = completedSteps.includes(step.key);
-
-              // A line segment leaving a finished step stays active
-              // even if the user navigates back to inspect earlier steps
-              const isLeftLineActive = idx > 0 && maxCompletedIndex >= idx - 1;
-              const isRightLineActive = idx < steps.length - 1 && maxCompletedIndex >= idx;
-
-              // Allow clicking on any step that is completed, or current, or the next step if current is completed
-              const isClickable =
-                isFinished ||
-                isCurrent ||
-                idx <= maxCompletedIndex + 1;
+              const isFinished = idx < maxUnlockedStep || (idx === 2 && maxUnlockedStep >= 3);
+              const isLeftLineActive = idx > 0 && maxUnlockedStep >= idx;
+              const isRightLineActive = idx < steps.length - 1 && maxUnlockedStep > idx;
+              const isClickable = idx <= maxUnlockedStep;
 
               return (
                 <div
@@ -106,7 +92,7 @@ export default function WorkflowTracker({ currentStep, completedSteps = [], onSt
           <nav
             className="workflow-mobile-bottom-nav"
             data-guide="workflow-stepper-mobile"
-            aria-label="CATalyst workflow navigation"
+            aria-label="CiteWise workflow navigation"
             style={{
               background: isDark ? "rgba(15, 14, 23, 0.94)" : "rgba(255, 255, 255, 0.95)",
               backdropFilter: "blur(20px)",
@@ -122,11 +108,8 @@ export default function WorkflowTracker({ currentStep, completedSteps = [], onSt
             <div className="workflow-mobile-bottom-nav-inner">
               {steps.map((step, idx) => {
                 const isCurrent = currentStep === step.key;
-                const isFinished = completedSteps.includes(step.key);
-                const isClickable =
-                  isFinished ||
-                  isCurrent ||
-                  idx <= maxCompletedIndex + 1;
+                const isFinished = idx < maxUnlockedStep || (idx === 2 && maxUnlockedStep >= 3);
+                const isClickable = idx <= maxUnlockedStep;
                 const IconComponent = step.icon;
 
                 return (

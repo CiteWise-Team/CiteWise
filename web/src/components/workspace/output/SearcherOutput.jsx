@@ -73,6 +73,7 @@
 
 
 import { useState, useEffect } from "react";
+import WorkflowCardHeader from "../WorkflowCardHeader";
 
 export default function SearcherOutput({ results: propResults }) {
   // ✅ TEMP MOCK RESULTS
@@ -110,12 +111,32 @@ export default function SearcherOutput({ results: propResults }) {
   const active = results.find((r) => r.id === activeId);
 
   return (
-    <div className="card h-100 shadow-sm">
-      <div className="card-header">
-        <h5 className="mb-0">Search Results</h5>
-      </div>
+    <div className="h-100 d-flex flex-column rounded-4 workflow-result-card" style={{ minHeight: 0 }}>
+      <WorkflowCardHeader
+        title="Search Results"
+        subtitle="Review discovered web literature and sources."
+        rightContent={
+          results.length > 0 ? (
+            <span
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                color: "#ea580c",
+                background: "#fff7ed",
+                border: "1px solid #fed7aa",
+                padding: "4px 10px",
+                borderRadius: "20px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {results.length} result{results.length !== 1 ? "s" : ""}
+            </span>
+          ) : null
+        }
+      />
 
-      <div className="card-body p-0 d-flex overflow-hidden cw-m-split">
+      <div className="workflow-result-content p-0 d-flex flex-grow-1 overflow-hidden cw-m-split">
         {/* Left list */}
         <div style={{ width: "320px" }} className="border-end overflow-auto">
           {results.map((r) => (

@@ -8,6 +8,10 @@ import NotFound from "./NotFound";
 import { useGroup } from "../context/GroupContext";
 import { useAuth } from "../context/AuthContext";
 import { getGroupsByUserIdAPI } from "../api/group.api";
+import { getExtractedFilesByGroupAPI } from "../api/workflow.extractor";
+import { getSummaryByGroupAPI } from "../api/workflow.summarizer";
+import { getGapsByGroupAPI } from "../api/workflow.gap";
+import { getTopicsByGroupIdAPI } from "../api/workflow.topic";
 
 export default function GroupWorkflow() {
   const [step, setStep] = useState("extractor"); // change to focus
@@ -57,6 +61,54 @@ export default function GroupWorkflow() {
     return () => { cancelled = true; };
   }, [routeGroupId, resolved, user?.id, enterGroup]);
 
+  // Hydrate completed steps from server data so navigation buttons know if steps are done
+  useEffect(() => {
+    if (!routeGroupId) return;
+    let cancelled = false;
+
+    async function checkServerCompleted() {
+      try {
+        const [extractorRes, summarizerRes, gapRes, topicRes] = await Promise.allSettled([
+          getExtractedFilesByGroupAPI(routeGroupId),
+          getSummaryByGroupAPI(routeGroupId),
+          getGapsByGroupAPI(routeGroupId),
+          getTopicsByGroupIdAPI(routeGroupId),
+        ]);
+
+        if (cancelled) return;
+
+        const serverCompleted = [];
+        if (extractorRes.status === "fulfilled" && (extractorRes.value?.data || []).length > 0) {
+          serverCompleted.push("extractor");
+        }
+        if (summarizerRes.status === "fulfilled" && (summarizerRes.value?.data || []).length > 0) {
+          serverCompleted.push("summarizer");
+        }
+        if (gapRes.status === "fulfilled" && (gapRes.value?.data || []).length > 0) {
+          serverCompleted.push("gap");
+        }
+        if (topicRes.status === "fulfilled" && (topicRes.value?.data || []).length > 0) {
+          serverCompleted.push("topic");
+        }
+
+        if (serverCompleted.length > 0) {
+          setCompletedSteps((prev) => {
+            const merged = Array.from(new Set([...prev, ...serverCompleted]));
+            try {
+              localStorage.setItem(`catalyst.${routeGroupId}.completedSteps`, JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.warn("Could not hydrate completed steps from server:", err);
+      }
+    }
+
+    checkServerCompleted();
+    return () => { cancelled = true; };
+  }, [routeGroupId]);
+
   const handleStepResult = useCallback((stepKey, nextResult) => {
     setResult(nextResult);
     setCompletedSteps((completed) => {
@@ -95,7 +147,7 @@ export default function GroupWorkflow() {
 
   return (
     <WorkflowLayout currentStep={step}>
-      <div className="workflow-stepper" data-guide="workflow-stepper">
+      <div className="workflow-stepper">
         <WorkflowTracker
           currentStep={step}
           completedSteps={completedSteps}

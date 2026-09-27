@@ -49,14 +49,15 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
   return (
     <div
       style={{
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        background: "var(--cw-bg-surface, #ffffff)",
+        border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "16px",
         overflow: "hidden",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
       }}
     >
       <div 
+        className="workflow-card-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -64,8 +65,8 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
           cursor: "pointer",
           userSelect: "none",
           padding: "1.125rem 1.5rem",
-          background: "#f9fafb",
-          borderBottom: isOpen ? "1px solid #e5e7eb" : "none",
+          background: "var(--cw-bg-surface-elevated, #f9fafb)",
+          borderBottom: isOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
         }}
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -75,12 +76,15 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "1.05rem",
-              color: "#f97316",
+              color: "var(--cw-text-primary, #0f0e17)",
               letterSpacing: "0.01em",
             }}
           >
             Version History
           </span>
+          <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
+            Saved draft revisions and comparisons.
+          </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{ fontSize: "0.72rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif" }}>{versions.length} saved</span>

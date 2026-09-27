@@ -172,9 +172,10 @@
     max-height: 200px;
     overflow-y: auto;
     border-right: none !important;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb !important;
     padding-right: 0 !important;
-    padding-bottom: 0.75rem;
+    padding-bottom: 14px !important;
+    margin-bottom: 6px !important;
   }
 
   .cw-m-split > :last-child {
@@ -182,7 +183,7 @@
     max-width: 100% !important;
     min-width: 0;
     padding-left: 0 !important;
-    padding-top: 0.75rem;
+    padding-top: 18px !important;
   }
 
   .cw-m-split h4 {

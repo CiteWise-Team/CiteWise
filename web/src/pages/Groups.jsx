@@ -336,7 +336,7 @@ export default function Groups() {
       <div className="groups-page">
         <header className="groups-header" data-guide="groups-header">
           <div>
-            <p className="groups-eyebrow">CATalyst workspace</p>
+            <p className="groups-eyebrow"><span style={{ color: "#ea580c" }}>CAT</span>alyst workspace</p>
             <h1>Your research spaces</h1>
             <p className="groups-description">
               Organize your research and move from ideas to evidence in one focused workspace.

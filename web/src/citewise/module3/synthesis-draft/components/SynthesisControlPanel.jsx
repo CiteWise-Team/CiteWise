@@ -12,8 +12,11 @@ export default function SynthesisControlPanel({
 }) {
   return (
     <div style={styles.card}>
-      <div style={styles.cardHeader}>
+      <div className="workflow-card-header" style={styles.cardHeader}>
         <span style={styles.cardTitle}>Synthesis Control</span>
+        <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
+          Generate an introduction draft with APA citations from approved literature.
+        </p>
       </div>
 
       <div style={styles.cardBody}>
@@ -62,8 +65,8 @@ export default function SynthesisControlPanel({
 
 const styles = {
   card: {
-    background: "#ffffff",
-    border: "1px solid #e5e7eb",
+    background: "var(--cw-bg-surface, #ffffff)",
+    border: "1px solid var(--cw-border, #e5e7eb)",
     borderRadius: "16px",
     overflow: "hidden",
     display: "flex",
@@ -71,15 +74,15 @@ const styles = {
     boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
   },
 cardHeader: {
-  background: "#f9fafb",
-  borderBottom: "1px solid #e5e7eb",
+  background: "var(--cw-bg-surface-elevated, #f9fafb)",
+  borderBottom: "1px solid var(--cw-border, #e5e7eb)",
   padding: "16px 20px",
 },
   cardTitle: {
     fontFamily: "'Poppins', sans-serif",
     fontWeight: 700,
     fontSize: "1.05rem",
-    color: "#f97316",
+    color: "var(--cw-text-primary, #0f0e17)",
     letterSpacing: "0.01em",
   },
   cardBody: {

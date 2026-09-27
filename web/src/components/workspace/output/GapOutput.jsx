@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useGroup } from "../../../context/GroupContext";
 import { getGapsByGroupAPI } from "../../../api/workflow.gap";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
+import WorkflowCardHeader from "../WorkflowCardHeader";
 
 export default function ExtractorOutput({ result, onComplete }) {
   const group_id = useGroup().groupId;
@@ -40,7 +41,31 @@ export default function ExtractorOutput({ result, onComplete }) {
 
   return (
     <div className="h-100 d-flex flex-column rounded-4 workflow-result-card gap-result-card" style={{ minHeight: 0 }}>
-      <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, gap: 0 }}>
+      <WorkflowCardHeader
+        title="Explore research gaps"
+        subtitle="Review the detected gaps and use them to understand where your research can contribute."
+        rightContent={
+          items.length > 0 ? (
+            <span
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                color: "#ea580c",
+                background: "#fff7ed",
+                border: "1px solid #fed7aa",
+                padding: "4px 10px",
+                borderRadius: "20px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {items.length} gap{items.length !== 1 ? "s" : ""} detected
+            </span>
+          ) : null
+        }
+      />
+      <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
+        <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, gap: 0 }}>
         {/* LEFT SIDEBAR — Titles only */}
         <div
           className="d-flex flex-column workflow-result-sidebar"
@@ -84,18 +109,26 @@ export default function ExtractorOutput({ result, onComplete }) {
                   <div
                     key={item.id}
                     onClick={() => setActiveId(item.id)}
-                    className={`p-3 mb-2 rounded-3 workflow-result-list-item${isSelected ? " is-selected" : ""}`}
+                    className={`mb-2 rounded-3 workflow-result-list-item${isSelected ? " is-selected" : ""}`}
                     style={{
                       cursor: "pointer",
                       backgroundColor: isSelected ? "#fff7ed" : "#ffffff",
                       border: isSelected ? "1px solid #ea580c" : "1px solid #e5e7eb",
                       overflow: "hidden",
                       transition: "all 0.18s ease",
+                      display: "flex",
+                      alignItems: "center",
+                      minHeight: "46px",
+                      padding: "10px 14px",
                     }}
                   >
                     <h6
-                      className="fw-bold mb-0 text-truncate"
-                      style={{ color: isSelected ? "#ea580c" : "#0f0e17" }}
+                      className="fw-bold mb-0 text-truncate w-100"
+                      style={{
+                        color: isSelected ? "#ea580c" : "#0f0e17",
+                        margin: 0,
+                        lineHeight: 1.35,
+                      }}
                       title={item.title}
                     >
                       {item.title}
@@ -111,7 +144,7 @@ export default function ExtractorOutput({ result, onComplete }) {
           className="flex-grow-1 d-flex flex-column workflow-result-detail"
           style={{
             minHeight: 0,
-            overflow: "hidden",
+            overflow: "visible",
             paddingLeft: "20px",
             paddingRight: 0,
           }}
@@ -143,6 +176,7 @@ export default function ExtractorOutput({ result, onComplete }) {
             </p>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

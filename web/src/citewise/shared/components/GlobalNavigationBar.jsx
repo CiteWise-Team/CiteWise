@@ -1,22 +1,27 @@
 import { createPortal } from "react-dom";
+import { Check, FolderDown, Sparkles, PenTool } from "lucide-react";
 import citeWiseLogo from "../../../assets/citewise-logo.png";
 import useIsMobile, { MOBILE_TABBAR_HEIGHT } from "../../../hooks/useIsMobile";
+import { useTheme } from "../../../context/ThemeContext";
 
 const STEPS = ["Data Import", "AI Assessment", "Generate Introduction"];
 const MOBILE_STEP_LABELS = ["Import", "Assess", "Introduction"];
+const STEP_ICONS = [FolderDown, Sparkles, PenTool];
 
 function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClick, onBack }) {
+  const { isDark } = useTheme();
+
   return (
     <>
       <nav
         style={{
-          background: "#ffffff",
-          borderBottom: "1px solid #e5e7eb",
+          background: isDark ? "#0f0e17" : "#ffffff",
+          borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
           position: "sticky",
           top: 0,
           zIndex: 100,
           width: "100%",
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
+          boxShadow: isDark ? "0 1px 3px rgba(0, 0, 0, 0.2)" : "0 1px 3px rgba(0, 0, 0, 0.02)",
         }}
       >
         <div
@@ -39,8 +44,8 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
                 width: "32px",
                 height: "32px",
                 borderRadius: "9px",
-                background: "#ffffff",
-                border: "1px solid #e5e7eb",
+                background: isDark ? "#171624" : "#ffffff",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e5e7eb",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -49,7 +54,7 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
             >
               <img src={citeWiseLogo} alt="" style={{ width: "20px", height: "20px", objectFit: "contain" }} />
             </span>
-            <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.05rem", color: "#111827", letterSpacing: "-0.01em" }}>
+            <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.05rem", color: isDark ? "#ffffff" : "#111827", letterSpacing: "-0.01em" }}>
               Cite<span style={{ color: "#f97316" }}>Wise</span>
             </span>
           </button>
@@ -59,7 +64,7 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.78rem",
               fontWeight: 600,
-              color: "#4b5563",
+              color: isDark ? "#9ca3af" : "#4b5563",
               whiteSpace: "nowrap",
             }}
           >
@@ -72,7 +77,7 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
               type="button"
               aria-label="Return to your workspaces"
               style={{
-                background: "#ffffff",
+                background: isDark ? "#171624" : "#ffffff",
                 border: "1px solid rgba(249, 115, 22, 0.45)",
                 borderRadius: "8px",
                 padding: "0 12px",
@@ -101,22 +106,29 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
         aria-label="CiteWise steps"
         style={{
           position: "fixed",
-          left: 0,
-          right: 0,
-          bottom: 0,
+          left: "50%",
+          transform: "translateX(-50%) translateZ(0)",
+          bottom: "max(14px, env(safe-area-inset-bottom, 14px))",
           zIndex: 1000,
-          background: "#ffffff",
-          borderTop: "1px solid #e5e7eb",
-          paddingBottom: "env(safe-area-inset-bottom)",
-          boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.06)",
-          transform: "translateZ(0)",
+          width: "calc(100% - 28px)",
+          maxWidth: "360px",
+          background: isDark ? "rgba(15, 14, 23, 0.94)" : "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(229, 231, 235, 0.9)",
+          borderRadius: "9999px",
+          boxShadow: isDark
+            ? "0 12px 36px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.18)"
+            : "0 10px 30px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.05)",
+          padding: "6px",
         }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${STEPS.length}, 1fr)`, height: MOBILE_TABBAR_HEIGHT }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: "4px" }}>
           {STEPS.map((label, index) => {
             const isActive = index === currentStep;
-            const isPast = index < currentStep;
+            const isDone = index < maxUnlockedStep || (index === 2 && maxUnlockedStep >= 3);
             const isClickable = index <= maxUnlockedStep;
+            const Icon = STEP_ICONS[index] || Sparkles;
             return (
               <button
                 key={label}
@@ -124,68 +136,82 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
                 onClick={() => isClickable && onNavigate?.(index)}
                 disabled={!isClickable}
                 aria-current={isActive ? "step" : undefined}
-                aria-label={label}
+                aria-label={`${label}${isDone ? " (Completed)" : ""}${isActive ? " (Active)" : ""}`}
                 style={{
                   position: "relative",
-                  background: "none",
+                  background: isActive
+                    ? "linear-gradient(135deg, #ea580c 0%, #f97316 100%)"
+                    : "transparent",
+                  color: isActive
+                    ? "#ffffff"
+                    : isDark
+                      ? "rgba(255, 255, 255, 0.65)"
+                      : "#4b5563",
                   border: "none",
-                  display: "flex",
-                  flexDirection: "column",
+                  borderRadius: "9999px",
+                  display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "4px",
+                  height: "44px",
+                  minWidth: "44px",
+                  padding: isActive ? "0 18px 0 14px" : "0 12px",
                   cursor: isClickable ? "pointer" : "not-allowed",
                   fontFamily: "'Poppins', sans-serif",
-                  fontSize: "0.72rem",
-                  fontWeight: isActive ? 700 : 500,
-                  color: isActive ? "#0f0e17" : isClickable ? "#4b5563" : "#9ca3af",
+                  fontSize: "0.82rem",
+                  fontWeight: isActive ? 600 : 500,
+                  opacity: !isClickable ? 0.35 : 1,
+                  boxShadow: isActive ? "0 4px 14px rgba(234, 88, 12, 0.45)" : "none",
+                  touchAction: "manipulation",
+                  userSelect: "none",
+                  transition: "all 0.28s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
-                {isActive && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: "20%",
-                      right: "20%",
-                      height: "3px",
-                      borderRadius: "0 0 3px 3px",
-                      background: "linear-gradient(90deg, #f97316, #fb8c3a)",
-                    }}
-                  />
-                )}
+                <span style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
+                  {isDone && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-4px",
+                        right: "-5px",
+                        width: "13px",
+                        height: "13px",
+                        borderRadius: "50%",
+                        background: "#10b981",
+                        color: "#ffffff",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.25)",
+                        border: isActive
+                          ? "1.5px solid #ea580c"
+                          : isDark
+                            ? "1.5px solid #0f0e17"
+                            : "1.5px solid #ffffff",
+                        zIndex: 2,
+                      }}
+                      title="Completed"
+                    >
+                      <Check size={8} strokeWidth={3.5} />
+                    </span>
+                  )}
+                </span>
                 <span
                   style={{
-                    width: "26px",
-                    height: "26px",
-                    borderRadius: "50%",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "0.75rem",
-                    fontWeight: 800,
-                    background: isActive
-                      ? "#f97316"
-                      : isPast
-                        ? "rgba(249, 115, 22, 0.15)"
-                        : "#f3f4f6",
-                    color: isActive
-                      ? "#ffffff"
-                      : isPast
-                        ? "#f97316"
-                        : "#9ca3af",
-                    border: isPast
-                      ? "1px solid rgba(249, 115, 22, 0.3)"
-                      : !isActive
-                        ? "1px solid #e5e7eb"
-                        : "none",
-                    boxShadow: isActive ? "0 2px 8px rgba(249, 115, 22, 0.32)" : "none",
-                    transition: "all 0.2s ease",
+                    display: "inline-block",
+                    overflow: "hidden",
+                    maxWidth: isActive ? "120px" : "0px",
+                    opacity: isActive ? 1 : 0,
+                    marginLeft: isActive ? "8px" : "0px",
+                    whiteSpace: "nowrap",
+                    lineHeight: 1,
+                    letterSpacing: "-0.01em",
+                    transition:
+                      "max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease, margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1)",
                   }}
                 >
-                  {isPast ? "✓" : index + 1}
+                  {MOBILE_STEP_LABELS[index]}
                 </span>
-                {MOBILE_STEP_LABELS[index]}
               </button>
             );
           })}
@@ -199,6 +225,7 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
 
 export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep = 0, onNavigate, onLogoClick, onBack }) {
   const isMobile = useIsMobile();
+  const { isDark } = useTheme();
 
   if (isMobile) {
     return (
@@ -215,13 +242,13 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
   return (
     <nav
       style={{
-        background: "#ffffff",
-        borderBottom: "1px solid #e5e7eb",
+        background: isDark ? "#0f0e17" : "#ffffff",
+        borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
         position: "sticky",
         top: 0,
         zIndex: 100,
         width: "100%",
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
+        boxShadow: isDark ? "0 1px 3px rgba(0, 0, 0, 0.2)" : "0 1px 3px rgba(0, 0, 0, 0.02)",
       }}
     >
       <div
@@ -246,8 +273,8 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
               width: "34px",
               height: "34px",
               borderRadius: "9px",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
+              background: isDark ? "#171624" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e5e7eb",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -262,7 +289,7 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "none";
               e.currentTarget.style.boxShadow = "0 2px 6px rgba(249, 115, 22, 0.08)";
-              e.currentTarget.style.borderColor = "#e5e7eb";
+              e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb";
             }}
           >
             <img
@@ -276,7 +303,7 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "1.1rem",
-              color: "#111827",
+              color: isDark ? "#ffffff" : "#111827",
               letterSpacing: "-0.01em",
               userSelect: "none",
             }}
@@ -289,7 +316,7 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
         <div style={{ display: "flex", alignItems: "stretch", height: "64px" }}>
           {STEPS.map((label, index) => {
             const isActive = index === currentStep;
-            const isPast = index < currentStep;
+            const isDone = index < maxUnlockedStep || (index === 2 && maxUnlockedStep >= 3);
             const isClickable = index <= maxUnlockedStep;
             return (
               <button
@@ -306,12 +333,12 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
                   fontSize: "0.875rem",
                   fontWeight: isActive ? 700 : 500,
                   color: isActive
-                    ? "#111827"
-                    : isPast
-                      ? "#6b7280"
+                    ? (isDark ? "#ffffff" : "#111827")
+                    : isDone
+                      ? (isDark ? "#9ca3af" : "#6b7280")
                       : isClickable
-                        ? "#9ca3af"
-                        : "#d1d5db",
+                        ? (isDark ? "#6b7280" : "#9ca3af")
+                        : (isDark ? "#3f3e4d" : "#d1d5db"),
                   padding: "0 1.5rem",
                   display: "flex",
                   alignItems: "center",
@@ -327,12 +354,14 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive && isClickable) {
-                    e.currentTarget.style.color = isPast ? "#6b7280" : "#9ca3af";
+                    e.currentTarget.style.color = isDone
+                      ? (isDark ? "#9ca3af" : "#6b7280")
+                      : (isDark ? "#6b7280" : "#9ca3af");
                     e.currentTarget.style.transform = "translateY(0)";
                   }
                 }}
               >
-                {/* Step number badge */}
+                {/* Step number / check badge */}
                 <span
                   style={{
                     width: "20px",
@@ -347,19 +376,19 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
                     opacity: isClickable ? 1 : 0.6,
                     background: isActive
                       ? "#f97316"
-                      : isPast
+                      : isDone
                         ? "rgba(249, 115, 22, 0.15)"
                         : "rgba(107, 114, 128, 0.1)",
                     color: isActive
                       ? "#fff"
-                      : isPast
+                      : isDone
                         ? "#f97316"
                         : "#9ca3af",
                     transition: "background 0.2s ease, color 0.2s ease, opacity 0.2s ease",
                     boxShadow: isActive ? "0 2px 6px rgba(249, 115, 22, 0.3)" : "none",
                   }}
                 >
-                  {isPast ? "✓" : index + 1}
+                  {isDone ? "✓" : index + 1}
                 </span>
                 {label}
                 {/* Active underline */}

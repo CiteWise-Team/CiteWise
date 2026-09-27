@@ -797,29 +797,30 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         style={{
           width: "100%",
           margin: "0 auto",
-          padding: isMobile ? "1rem 1rem 1.5rem" : "2rem clamp(2rem, 4vw, 4rem) 3rem",
+          padding: 0,
+          paddingBottom: isMobile ? "80px" : "100px",
           boxSizing: "border-box",
           flex: 1,
           display: isMobile ? "flex" : "grid",
           flexDirection: "column",
-          gridTemplateColumns: "320px minmax(0, 1fr)",
-          gap: isMobile ? "16px" : "24px",
+          gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "420px minmax(0, 1fr)",
+          gap: isMobile ? "16px" : "14px",
           minHeight: 0,
           alignItems: isMobile ? "stretch" : "start",
-          background: "#f8f9fb",
+          background: "transparent",
         }}
       >
         {/* On phones the sidebar dissolves so the active document and its
             assessment come first, with the document list below them. */}
-        <div style={isMobile ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: "20px", minHeight: 0 }}>
-          <div style={{ order: 0, minWidth: 0 }}>
+        <div style={isMobile ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "14px", minHeight: 0 }}>
+          <div style={{ order: 0, minWidth: 0 }} data-guide="citewise-active-doc">
             <DocumentActiveCard
               documents={documents}
               currentIndex={currentIndex}
               onNavigate={(idx) => setCurrentIndex(Math.max(0, Math.min(documents.length - 1, idx)))}
             />
           </div>
-          <div style={{ order: 2, minWidth: 0 }}>
+          <div style={{ order: 2, minWidth: 0 }} data-guide="citewise-quick-nav">
           <QuickNavigationList
             documents={documents}
             currentIndex={currentIndex}
@@ -852,7 +853,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
           )}
         </div>
 
-        <div style={{ order: 1, minWidth: 0 }}>
+        <div style={{ order: 1, minWidth: 0 }} data-guide="citewise-assessment-panel">
         {!hasAssessedDocs ? (
           <MetricWeightCustomization
             sessionId={resolvedSessionId}

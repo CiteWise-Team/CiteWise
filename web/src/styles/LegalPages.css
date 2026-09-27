@@ -186,3 +186,66 @@
   align-items: center;
   gap: 0.75rem;
 }
+
+/* ==========================================================================
+   Dark Mode Support for Legal Pages
+   ========================================================================== */
+[data-theme="dark"] .legal-page-shell {
+  background-color: #0f0e17 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .legal-tab-switcher {
+  background: #171624 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .legal-tab-btn {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .legal-tab-btn:hover {
+  color: #ea580c !important;
+  background: rgba(234, 88, 12, 0.12) !important;
+}
+
+[data-theme="dark"] .legal-card {
+  background: #15141f !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .legal-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .legal-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .legal-date {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .legal-callout-box {
+  background: #1c1822 !important;
+  border-left-color: #ea580c !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .legal-section-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .legal-section p,
+[data-theme="dark"] .legal-section ul {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .legal-section strong {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .legal-card-footer {
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+}

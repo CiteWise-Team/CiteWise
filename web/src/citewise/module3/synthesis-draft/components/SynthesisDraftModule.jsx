@@ -185,6 +185,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
           setReferences(draft.references || []);
           if (draft.content && draft.content.length > 0) {
             setGenerationStatus("complete");
+            onStepChange?.(3);
           }
           console.log("Loaded saved draft from localStorage");
         } catch (err) {
@@ -402,6 +403,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
       setGenerationProgress(100);
       setStatusText("Synthesis Complete!");
       setGenerationStatus("complete");
+      onStepChange?.(3);
       setGeneratedContent(mergedContent);
       setReferences(mergedReferences);
       setCitationsUsed(Array.isArray(payload.citationsUsed) ? payload.citationsUsed : []);
@@ -625,7 +627,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
 
       <div style={styles.gridContainer}>
         <div style={styles.leftColumn}>
-          <div style={{ order: 0, minWidth: 0 }}>
+          <div style={{ order: 0, minWidth: 0 }} data-guide="citewise-synthesis-controls">
           <SynthesisControlPanel
             generationStatus={generationStatus}
             generationProgress={generationProgress}
@@ -636,7 +638,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
             approvedCount={approvedDocuments.length}
           />
           </div>
-          <div style={styles.leftColumnRest}>
+          <div style={styles.leftColumnRest} data-guide="citewise-approved-sources">
           <InstructionsPanel sessionId={sessionId} />
           <SourceUsageTransparency
             sessionId={sessionId}
@@ -669,10 +671,15 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
           </div>
         </div>
 
-        <div style={styles.rightColumn}>
+        <div style={styles.rightColumn} data-guide="citewise-draft-editor">
           <div style={styles.rightPanel}>
-            <div style={styles.rightPanelHeader}>
-              <span style={styles.rightPanelTitle}>Generated Introduction</span>
+            <div className="workflow-card-header" style={styles.rightPanelHeader}>
+              <div>
+                <span style={styles.rightPanelTitle}>Generated Introduction</span>
+                <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
+                  Review, edit, and export your literature synthesis draft.
+                </p>
+              </div>
               <ExportDraftDropdown 
                 isOpen={exportDropdownOpen}
                 onToggle={setExportDropdownOpen}
@@ -710,7 +717,7 @@ const getStyles = (isMobile) => ({
   gridContainer: {
     width: "100%",
     margin: "0 auto",
-    padding: isMobile ? "1rem 1rem 1.5rem" : "2rem clamp(2rem, 4vw, 4rem) 3rem",
+    padding: 0,
     boxSizing: "border-box",
     flex: 1,
     display: isMobile ? "flex" : "grid",
@@ -718,14 +725,14 @@ const getStyles = (isMobile) => ({
     gridTemplateColumns: "320px minmax(0, 1fr)",
     gap: isMobile ? "16px" : "24px",
     minHeight: 0,
-    background: "#f8f9fb",
+    background: "transparent",
   },
   leftColumn: isMobile
     ? { display: "contents" }
     : {
         display: "flex",
         flexDirection: "column",
-        gap: "20px",
+        gap: "24px",
       },
   leftColumnRest: {
     order: 2,
@@ -753,17 +760,17 @@ const getStyles = (isMobile) => ({
   rightPanelHeader: {
     padding: isMobile ? "12px 14px" : "1.125rem 1.5rem",
     gap: "12px",
-    borderBottom: "1px solid #e5e7eb",
+    borderBottom: "1px solid var(--cw-border, #e5e7eb)",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    background: "#f9fafb",
+    background: "var(--cw-bg-surface-elevated, #f9fafb)",
   },
   rightPanelTitle: {
     fontFamily: "'Poppins', sans-serif",
     fontWeight: 700,
     fontSize: "1.05rem",
-    color: "#f97316",
+    color: "var(--cw-text-primary, #0f0e17)",
     letterSpacing: "0.01em",
   },
   rightPanelContent: {
