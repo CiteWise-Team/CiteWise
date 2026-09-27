@@ -88,6 +88,7 @@
 // }
 
 import { useState } from "react";
+import WorkflowCardHeader from "../WorkflowCardHeader";
 
 export default function SearcherInput({
   // ❗ TEMP: make props optional
@@ -128,9 +129,10 @@ export default function SearcherInput({
 
   return (
     <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
-      <div className="card-header d-flex justify-content-between align-items-center">
-        <span className="material-symbols-outlined">search</span>
-      </div>
+      <WorkflowCardHeader
+        title="Web Literature Search"
+        subtitle="Define keywords and guidelines for web literature search."
+      />
 
       <div className="card-body d-flex flex-column gap-3 overflow-hidden">
         <div className="input-group">

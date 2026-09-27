@@ -5,6 +5,7 @@ import { useGroup } from "../../../context/GroupContext";
 import { getTopicsByGroupIdAPI } from "../../../api/workflow.topic";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 import { apiFetch } from "../../../api/http";
+import WorkflowCardHeader from "../WorkflowCardHeader";
 
 export default function TopicSuggesterOutput({ result, onComplete }) {
   const group_id = useGroup().groupId;
@@ -88,7 +89,31 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
 
   return (
     <div className="h-100 d-flex flex-column rounded-4 workflow-result-card topic-result-card" style={{ minHeight: 0 }}>
-      <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, overflow: "visible", gap: 0 }}>
+      <WorkflowCardHeader
+        title="Compare suggested topics"
+        subtitle="Review the suggested topics and their supporting rationale before choosing your direction."
+        rightContent={
+          items.length > 0 ? (
+            <span
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                color: "#ea580c",
+                background: "#fff7ed",
+                border: "1px solid #fed7aa",
+                padding: "4px 10px",
+                borderRadius: "20px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {items.length} topic{items.length !== 1 ? "s" : ""} suggested
+            </span>
+          ) : null
+        }
+      />
+      <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
+        <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, overflow: "visible", gap: 0 }}>
         {/* LEFT SIDEBAR — Titles only */}
         <div
           className="d-flex flex-column workflow-result-sidebar"
@@ -207,6 +232,7 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
             </p>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

@@ -74,7 +74,9 @@ export default function Register() {
                 style={{ width: "26px", height: "26px", objectFit: "contain" }}
               />
             </div>
-            <span className="auth-brand-title">CATalyst</span>
+            <span className="auth-brand-title">
+              <span style={{ color: "#ea580c" }}>CAT</span>alyst
+            </span>
           </Link>
 
           <Link to="/" className="auth-back-link">
@@ -176,7 +178,9 @@ export default function Register() {
                   style={{ width: "24px", height: "24px", objectFit: "contain" }}
                 />
               </div>
-              <span className="auth-brand-title">CATalyst</span>
+              <span className="auth-brand-title">
+                <span style={{ color: "#ea580c" }}>CAT</span>alyst
+              </span>
             </Link>
           </div>
 

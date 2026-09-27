@@ -144,7 +144,7 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  padding: 20px !important;
+  padding: 0 !important;
   background: #ffffff !important;
   border: 1px solid #e5e7eb !important;
   border-radius: 14px !important;
@@ -152,12 +152,58 @@
   color: #0f0e17 !important;
 }
 
+/* Card Header based on CiteWise Header UI */
+.workflow-card-header {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.125rem 1.5rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 1rem;
+}
+
+.workflow-card-header-left {
+  min-width: 0;
+}
+
+.workflow-card-header-title {
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #0f0e17;
+  letter-spacing: 0.01em;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.workflow-card-header-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-family: "Poppins", sans-serif;
+  line-height: 1.4;
+}
+
+.workflow-card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .workflow-input-header,
 .workflow-input-card > .d-flex:first-child {
   position: relative;
   flex-shrink: 0;
-  padding: 0 0 14px 0;
-  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.125rem 1.5rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
   margin-bottom: 0;
 }
 
@@ -166,8 +212,8 @@
   display: block;
   max-width: 34rem;
   color: #6b7280 !important;
-  font-size: 0.8rem;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 
 .workflow-input-body,
@@ -179,7 +225,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 14px 0 0 0;
+  padding: 18px 20px;
   gap: 16px;
 }
 
@@ -190,8 +236,7 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding-top: 14px;
-  padding-bottom: 0;
+  padding: 14px 20px;
   margin-top: auto;
   border-top: 1px solid #f3f4f6;
   background: #ffffff;
@@ -1082,7 +1127,7 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  padding: 20px !important;
+  padding: 0 !important;
   background: #ffffff !important;
   border: 1px solid #e5e7eb !important;
   border-radius: 14px !important;
@@ -1090,9 +1135,25 @@
   color: #0f0e17 !important;
 }
 
+.workflow-result-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 20px;
+}
+
 .document-result-card {
   position: relative;
   overflow: hidden;
+}
+
+.workflow-card-header .workflow-result-tabs {
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
 }
 
 .workflow-result-tabs {

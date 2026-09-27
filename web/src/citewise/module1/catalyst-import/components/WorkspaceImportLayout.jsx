@@ -872,7 +872,9 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           <div style={card}>
             <div style={{ ...cardHeader, ...(isMobile && { flexWrap: "wrap", padding: "1rem" }) }}>
               <div>
-                <span style={cardTitle}>CATalyst Workspace</span>
+                <span style={cardTitle}>
+                  <span style={{ color: "#ea580c" }}>CAT</span>alyst Workspace
+                </span>
                 {catalystData && (
                   <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif" }}>
                     Loaded — title, rationale and gaps imported.
@@ -988,7 +990,7 @@ const cardTitle = {
   fontFamily: "'Poppins', sans-serif",
   fontWeight: 700,
   fontSize: "1.05rem",
-  color: "#f97316",
+  color: "#111827",
   letterSpacing: "0.01em",
   flexShrink: 0,
 };

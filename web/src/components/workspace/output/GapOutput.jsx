@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useGroup } from "../../../context/GroupContext";
 import { getGapsByGroupAPI } from "../../../api/workflow.gap";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
+import WorkflowCardHeader from "../WorkflowCardHeader";
 
 export default function ExtractorOutput({ result, onComplete }) {
   const group_id = useGroup().groupId;
@@ -40,7 +41,31 @@ export default function ExtractorOutput({ result, onComplete }) {
 
   return (
     <div className="h-100 d-flex flex-column rounded-4 workflow-result-card gap-result-card" style={{ minHeight: 0 }}>
-      <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, gap: 0 }}>
+      <WorkflowCardHeader
+        title="Explore research gaps"
+        subtitle="Review the detected gaps and use them to understand where your research can contribute."
+        rightContent={
+          items.length > 0 ? (
+            <span
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                color: "#ea580c",
+                background: "#fff7ed",
+                border: "1px solid #fed7aa",
+                padding: "4px 10px",
+                borderRadius: "20px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {items.length} gap{items.length !== 1 ? "s" : ""} detected
+            </span>
+          ) : null
+        }
+      />
+      <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
+        <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, gap: 0 }}>
         {/* LEFT SIDEBAR — Titles only */}
         <div
           className="d-flex flex-column workflow-result-sidebar"
@@ -143,6 +168,7 @@ export default function ExtractorOutput({ result, onComplete }) {
             </p>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

@@ -139,7 +139,7 @@ export default function Navbar() {
           <span
             className="brand-text"
             style={{
-              color: isLanding ? "#0f0e17" : "#e4e4f0",
+              color: "#0f0e17",
               fontFamily: "'Sora', sans-serif",
               fontWeight: 700,
               fontSize: "1.25rem",
@@ -147,7 +147,19 @@ export default function Navbar() {
               lineHeight: 1,
             }}
           >
-            {appName}
+            {appName === "CATalyst" ? (
+              <>
+                <span style={{ color: "#ea580c" }}>CAT</span>
+                <span style={{ color: "#0f0e17" }}>alyst</span>
+              </>
+            ) : appName === "CiteWise" ? (
+              <>
+                <span style={{ color: "#0f0e17" }}>Cite</span>
+                <span style={{ color: "#ea580c" }}>Wise</span>
+              </>
+            ) : (
+              appName
+            )}
           </span>
         </Link>
 

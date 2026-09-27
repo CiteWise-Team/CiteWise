@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useGroup } from "../../../context/GroupContext";
 import { getSummaryByGroupAPI } from "../../../api/workflow.summarizer";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
+import WorkflowCardHeader from "../WorkflowCardHeader";
 
 export default function SummarizerResult({ result, onComplete }) {
   const group_id = useGroup().groupId;
@@ -44,27 +45,32 @@ export default function SummarizerResult({ result, onComplete }) {
 
   return (
     <div className="h-100 d-flex flex-column rounded-4 workflow-result-card document-result-card" style={{ minHeight: 0 }}>
-      {/* TABS */}
-      <div className="d-flex gap-2 mb-3 workflow-result-tabs flex-shrink-0">
-        <button
-          className={`workflow-result-tab${activeTab === "papers" ? " is-active" : ""}`}
-          onClick={() => setActiveTab("papers")}
-        >
-          Papers
-        </button>
+      <WorkflowCardHeader
+        title="Read the summary"
+        subtitle="The generated summary appears here so you can review key ideas quickly."
+        rightContent={
+          <div className="d-flex gap-2 workflow-result-tabs flex-shrink-0">
+            <button
+              className={`workflow-result-tab${activeTab === "papers" ? " is-active" : ""}`}
+              onClick={() => setActiveTab("papers")}
+            >
+              Papers
+            </button>
 
-        <button
-          className={`workflow-result-tab${activeTab === "result" ? " is-active" : ""}`}
-          disabled={!selectedPaper}
-          onClick={() => setActiveTab("result")}
-        >
-          Result
-        </button>
-      </div>
+            <button
+              className={`workflow-result-tab${activeTab === "result" ? " is-active" : ""}`}
+              disabled={!selectedPaper}
+              onClick={() => setActiveTab("result")}
+            >
+              Result
+            </button>
+          </div>
+        }
+      />
 
       {/* CONTENT AREA */}
       <div
-        className="flex-grow-1 d-flex flex-column"
+        className="workflow-result-content flex-grow-1"
         style={{
           minHeight: 0,
           overflow: "hidden"

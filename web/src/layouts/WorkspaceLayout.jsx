@@ -68,6 +68,22 @@ function getGuideSteps(currentStep) {
   return steps;
 }
 
+function renderGuideText(text) {
+  if (typeof text !== "string") return text;
+  if (!text.includes("CATalyst")) return text;
+  const parts = text.split("CATalyst");
+  return parts.flatMap((part, i) =>
+    i === 0
+      ? [part]
+      : [
+          <span key={i}>
+            <span style={{ color: "#ea580c" }}>CAT</span>alyst
+          </span>,
+          part,
+        ]
+  );
+}
+
 export default function WorkflowLayout({ children, currentStep = "extractor" }) {
   const { groupId, groupName } = useGroup();
   const [guideStep, setGuideStep] = useState(() => (
@@ -250,8 +266,8 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
                 <X size={16} />
               </button>
             </div>
-            <h2 id="workflow-guide-title">{guideSteps[guideStep]?.title}</h2>
-            <p>{guideSteps[guideStep]?.description}</p>
+            <h2 id="workflow-guide-title">{renderGuideText(guideSteps[guideStep]?.title)}</h2>
+            <p>{renderGuideText(guideSteps[guideStep]?.description)}</p>
             <div className="workflow-guide-actions">
               <button
                 type="button"

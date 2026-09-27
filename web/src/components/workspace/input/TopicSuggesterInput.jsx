@@ -8,6 +8,7 @@ import { TopicSuggesterAPI, getTopicJobStatusAPI } from "../../../api/workflow.a
 
 import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
+import WorkflowCardHeader from "../WorkflowCardHeader";
 
 export default function TopicSuggesterInput({ setResult }) {
   const { groupId: group_id } = useGroup();
@@ -159,11 +160,14 @@ export default function TopicSuggesterInput({ setResult }) {
   return (
     <>
       <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
-        <div className="workflow-input-header">
-          <small style={{ color: "#4b5563" }}>
-            Select gaps to generate focused research directions.
-          </small>
-        </div>
+        <WorkflowCardHeader
+          title="Generate topic suggestions"
+          subtitle={
+            <span>
+              Provide your research context and let <span style={{ color: "#ea580c", fontWeight: 600 }}>CAT</span>alyst propose focused directions for your study.
+            </span>
+          }
+        />
 
         <div className="workflow-input-body">
           <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>

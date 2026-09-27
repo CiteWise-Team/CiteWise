@@ -8,6 +8,7 @@ import { GapAPI, getGapJobStatusAPI } from "../../../api/workflow.api.js";
 
 import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
+import WorkflowCardHeader from "../WorkflowCardHeader";
 
 export default function GapInput({ setResult }) {
   const group_id = useGroup().groupId;
@@ -172,11 +173,14 @@ export default function GapInput({ setResult }) {
   return (
     <>
       <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
-        <div className="workflow-input-header">
-          <small style={{ color: "#4b5563" }}>
-            Select summaries to identify meaningful research gaps.
-          </small>
-        </div>
+        <WorkflowCardHeader
+          title="Describe your research direction"
+          subtitle={
+            <span>
+              Use this area to provide the context <span style={{ color: "#ea580c", fontWeight: 600 }}>CAT</span>alyst should use for gap discovery.
+            </span>
+          }
+        />
 
         <div className="workflow-input-body">
           <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
