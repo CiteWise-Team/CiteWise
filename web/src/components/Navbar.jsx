@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { LogOut, Menu, X } from "lucide-react";
+import { LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import citeWiseLogo from "../assets/citewise-logo.png";
 import "../App.css";
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { theme, isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false); // dropdown state
@@ -68,21 +70,21 @@ export default function Navbar() {
       style={
         isLanding
           ? {
-              backgroundColor: "rgba(255, 255, 255, 0.94)",
+              backgroundColor: isDark ? "rgba(15, 14, 23, 0.94)" : "rgba(255, 255, 255, 0.94)",
               backdropFilter: "blur(14px)",
               WebkitBackdropFilter: "blur(14px)",
-              borderBottom: "1px solid rgba(229, 231, 235, 0.85)",
+              borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(229, 231, 235, 0.85)",
               height: "68px",
               padding: 0,
               boxSizing: "border-box",
               position: "sticky",
               top: 0,
               zIndex: 1030,
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
+              boxShadow: isDark ? "0 1px 3px rgba(0, 0, 0, 0.4)" : "0 1px 3px rgba(0, 0, 0, 0.02)",
             }
           : {
-              backgroundColor: "#1e1e2f",
-              borderBottom: "1px solid #3a3a55",
+              backgroundColor: isDark ? "#0f0e17" : "#1e1e2f",
+              borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #3a3a55",
               height: "65px",
               padding: 0,
               boxSizing: "border-box",
@@ -150,11 +152,11 @@ export default function Navbar() {
             {appName === "CATalyst" ? (
               <>
                 <span style={{ color: "#ea580c" }}>CAT</span>
-                <span style={{ color: "#0f0e17" }}>alyst</span>
+                <span style={{ color: isDark ? "#ffffff" : "#0f0e17" }}>alyst</span>
               </>
             ) : appName === "CiteWise" ? (
               <>
-                <span style={{ color: "#0f0e17" }}>Cite</span>
+                <span style={{ color: isDark ? "#ffffff" : "#0f0e17" }}>Cite</span>
                 <span style={{ color: "#ea580c" }}>Wise</span>
               </>
             ) : (
@@ -219,7 +221,7 @@ export default function Navbar() {
           <button
             type="button"
             className="d-md-none landing-mobile-toggle-btn"
-            style={{ color: "#0f0e17" }}
+            style={{ color: isDark ? "#ffffff" : "#0f0e17" }}
             aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
             onClick={() => setMobileMenuOpen(prev => !prev)}
           >
@@ -234,9 +236,9 @@ export default function Navbar() {
               className="btn btn-dark dropdown-toggle cw-nav-user"
               type="button"
               style={{
-                backgroundColor: "#25253a",
-                color: "#e4e4f0",
-                border: "1px solid #3a3a55",
+                backgroundColor: isDark ? "#161522" : "#f1f1f5",
+                color: isDark ? "#e4e4f0" : "#0f0e17",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #cbd5e1",
                 borderRadius: "8px",
                 padding: "6px 14px",
                 fontFamily: "'Poppins', sans-serif",
@@ -248,80 +250,100 @@ export default function Navbar() {
               {user.username || user.email}
             </button>
 
-            {open && (
-              <ul
-                className="dropdown-menu dropdown-menu-end show"
-                style={{
-                  display: "block",
-                  position: "absolute",
-                  right: 0,
-                  top: "calc(100% + 8px)",
-                  backgroundColor: "#25253a",
-                  border: "1px solid #3a3a55",
-                  borderRadius: "10px",
-                  padding: "6px",
-                  minWidth: "160px",
-                  boxShadow: "0 16px 32px rgba(0, 0, 0, 0.3)",
-                }}
-              >
-                <li>
-                  <button
-                    className="dropdown-item"
-                    style={{
-                      color: "#e4e4f0",
-                      borderRadius: "6px",
-                      padding: "8px 10px",
-                      fontFamily: "'Poppins', sans-serif",
-                      fontSize: "0.8rem",
-                      transition: "background 0.2s ease, color 0.2s ease",
-                    }}
-                    onMouseEnter={(event) => {
-                      event.currentTarget.style.background = "rgba(91, 91, 214, 0.14)";
-                      event.currentTarget.style.color = "#a5b4fc";
-                    }}
-                    onMouseLeave={(event) => {
-                      event.currentTarget.style.background = "transparent";
-                      event.currentTarget.style.color = "#e4e4f0";
-                    }}
-                    onClick={() => {
-                      navigate("/settings");
-                      setOpen(false);
-                    }}
-                  >
-                    Settings
-                  </button>
-                </li>
-                <li><hr className="dropdown-divider" style={{ borderColor: "#3a3a55", opacity: 1 }} /></li>
-                <li>
-                  <button
-                    className="dropdown-item"
-                    style={{
-                      color: "#e5544b",
-                      borderRadius: "6px",
-                      padding: "8px 10px",
-                      fontFamily: "'Poppins', sans-serif",
-                      fontSize: "0.8rem",
-                      transition: "background 0.2s ease, color 0.2s ease",
-                    }}
-                    onMouseEnter={(event) => {
-                      event.currentTarget.style.background = "rgba(229, 84, 75, 0.12)";
-                      event.currentTarget.style.color = "#ff8b84";
-                    }}
-                    onMouseLeave={(event) => {
-                      event.currentTarget.style.background = "transparent";
-                      event.currentTarget.style.color = "#e5544b";
-                    }}
-                    onClick={() => {
-                      setOpen(false);
-                      setShowLogoutConfirm(true);
-                    }}
-                  >
-                    Logout
-                  </button>
-                </li>
-              </ul>
-            )}
-          </div>
+              {open && (
+                <ul
+                  className="dropdown-menu dropdown-menu-end show"
+                  style={{
+                    display: "block",
+                    position: "absolute",
+                    right: 0,
+                    top: "calc(100% + 8px)",
+                    backgroundColor: isDark ? "#15141f" : "#ffffff",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+                    borderRadius: "10px",
+                    padding: "6px",
+                    minWidth: "165px",
+                    boxShadow: isDark ? "0 16px 32px rgba(0, 0, 0, 0.55)" : "0 16px 32px rgba(0, 0, 0, 0.12)",
+                  }}
+                >
+                  <li>
+                    <button
+                      className="dropdown-item d-flex align-items-center gap-2"
+                      style={{
+                        color: isDark ? "#e4e4f0" : "#1e293b",
+                        borderRadius: "6px",
+                        padding: "8px 10px",
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: "0.8rem",
+                        transition: "background 0.2s ease, color 0.2s ease",
+                        border: "none",
+                        background: "transparent",
+                        width: "100%",
+                        textAlign: "left",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(event) => {
+                        event.currentTarget.style.background = isDark ? "rgba(234, 88, 12, 0.16)" : "rgba(234, 88, 12, 0.08)";
+                        event.currentTarget.style.color = "#ea580c";
+                      }}
+                      onMouseLeave={(event) => {
+                        event.currentTarget.style.background = "transparent";
+                        event.currentTarget.style.color = isDark ? "#e4e4f0" : "#1e293b";
+                      }}
+                      onClick={() => {
+                        toggleTheme();
+                        setOpen(false);
+                      }}
+                    >
+                      {isDark ? <Sun size={15} color="#ea580c" /> : <Moon size={15} color="#ea580c" />}
+                      <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+                    </button>
+                  </li>
+                  <li>
+                    <hr
+                      className="dropdown-divider"
+                      style={{
+                        borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "#e2e8f0",
+                        opacity: 1,
+                        margin: "4px 0",
+                      }}
+                    />
+                  </li>
+                  <li>
+                    <button
+                      className="dropdown-item"
+                      style={{
+                        color: "#e5544b",
+                        borderRadius: "6px",
+                        padding: "8px 10px",
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: "0.8rem",
+                        transition: "background 0.2s ease, color 0.2s ease",
+                        border: "none",
+                        background: "transparent",
+                        width: "100%",
+                        textAlign: "left",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(event) => {
+                        event.currentTarget.style.background = "rgba(229, 84, 75, 0.12)";
+                        event.currentTarget.style.color = "#ff8b84";
+                      }}
+                      onMouseLeave={(event) => {
+                        event.currentTarget.style.background = "transparent";
+                        event.currentTarget.style.color = "#e5544b";
+                      }}
+                      onClick={() => {
+                        setOpen(false);
+                        setShowLogoutConfirm(true);
+                      }}
+                    >
+                      Logout
+                    </button>
+                  </li>
+                </ul>
+              )}
+            </div>
         )}
       </div>
 
@@ -348,11 +370,11 @@ export default function Navbar() {
             onClick={(event) => event.stopPropagation()}
             style={{
               width: "min(100%, 420px)",
-              background: "#ffffff",
+              background: isDark ? "#15141f" : "#ffffff",
               borderRadius: "18px",
               overflow: "hidden",
               boxShadow: "0 24px 60px rgba(0, 0, 0, 0.22)",
-              border: "none",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
               outline: "none",
               textAlign: "left",
             }}
@@ -418,11 +440,11 @@ export default function Navbar() {
             </div>
 
             {/* Modal Body - Matching Delete Modal font style and font color */}
-            <div className="workspace-create-body" style={{ padding: "26px 24px 24px", background: "#ffffff" }}>
+            <div className="workspace-create-body" style={{ padding: "26px 24px 24px", background: isDark ? "#15141f" : "#ffffff" }}>
               <p
                 style={{
                   margin: 0,
-                  color: "#4b5563",
+                  color: isDark ? "#cbd5e1" : "#4b5563",
                   fontSize: "0.92rem",
                   lineHeight: 1.6,
                   fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif',
@@ -441,13 +463,14 @@ export default function Navbar() {
                 alignItems: "center",
                 justifyContent: "flex-end",
                 gap: "10px",
-                background: "#ffffff",
+                background: isDark ? "#15141f" : "#ffffff",
               }}
             >
               <button
                 type="button"
                 className="workspace-modal-button workspace-modal-cancel"
                 onClick={() => setShowLogoutConfirm(false)}
+                style={isDark ? { border: "1px solid rgba(255, 255, 255, 0.15)", color: "#cbd5e1", background: "transparent" } : {}}
               >
                 Cancel
               </button>
@@ -486,6 +509,16 @@ export default function Navbar() {
             onClick={() => scrollToSection("overview")}
           >
             Overview
+          </button>
+          <button
+            type="button"
+            className="landing-mobile-link d-flex align-items-center justify-content-between"
+            onClick={toggleTheme}
+          >
+            <span>Theme Mode</span>
+            <span className="badge" style={{ background: isDark ? "#282738" : "#f1f5f9", color: isDark ? "#fbbf24" : "#475569" }}>
+              {isDark ? "Dark" : "Light"}
+            </span>
           </button>
           <hr className="landing-mobile-divider" />
           <div className="d-flex flex-column gap-2 pt-1">

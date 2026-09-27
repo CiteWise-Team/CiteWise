@@ -185,6 +185,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
           setReferences(draft.references || []);
           if (draft.content && draft.content.length > 0) {
             setGenerationStatus("complete");
+            onStepChange?.(3);
           }
           console.log("Loaded saved draft from localStorage");
         } catch (err) {
@@ -402,6 +403,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
       setGenerationProgress(100);
       setStatusText("Synthesis Complete!");
       setGenerationStatus("complete");
+      onStepChange?.(3);
       setGeneratedContent(mergedContent);
       setReferences(mergedReferences);
       setCitationsUsed(Array.isArray(payload.citationsUsed) ? payload.citationsUsed : []);

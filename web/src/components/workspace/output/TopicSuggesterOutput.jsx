@@ -154,18 +154,26 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
                   <div
                     key={item.id}
                     onClick={() => setActiveId(item.id)}
-                    className={`p-3 mb-2 rounded-3 workflow-result-list-item${isSelected ? " is-selected" : ""}`}
+                    className={`mb-2 rounded-3 workflow-result-list-item${isSelected ? " is-selected" : ""}`}
                     style={{
                       cursor: "pointer",
                       backgroundColor: isSelected ? "#fff7ed" : "#ffffff",
                       border: isSelected ? "1px solid #ea580c" : "1px solid #e5e7eb",
                       overflow: "hidden",
                       transition: "all 0.18s ease",
+                      display: "flex",
+                      alignItems: "center",
+                      minHeight: "46px",
+                      padding: "10px 14px",
                     }}
                   >
                     <h6
-                      className="fw-bold mb-0 text-truncate"
-                      style={{ color: isSelected ? "#ea580c" : "#0f0e17" }}
+                      className="fw-bold mb-0 text-truncate w-100"
+                      style={{
+                        color: isSelected ? "#ea580c" : "#0f0e17",
+                        margin: 0,
+                        lineHeight: 1.35,
+                      }}
                       title={item.title}
                     >
                       {item.title}

@@ -92,7 +92,11 @@ export default function CiteWiseApp() {
     const parsed = saved !== null ? parseInt(saved, 10) : NaN;
     const initialSession = localStorage.getItem(scopedKey(groupId, "sessionId"));
     const floor = initialSession ? Math.max(step, 1) : Math.max(step, 0);
-    return !Number.isNaN(parsed) ? Math.max(parsed, floor) : floor;
+    const resolved = !Number.isNaN(parsed) ? Math.max(parsed, floor) : floor;
+    if (initialSession && localStorage.getItem(`citewise_draft_${initialSession}`)) {
+      return Math.max(resolved, 3);
+    }
+    return resolved;
   });
 
   useEffect(() => {
@@ -139,7 +143,7 @@ export default function CiteWiseApp() {
     if (nextSessionId) setSessionId(nextSessionId);
     if (typeof nextStep !== "number") return;
     setMaxUnlockedStep((prev) => Math.max(prev, nextStep));
-    setStep(nextStep);
+    if (nextStep < 3) setStep(nextStep);
   };
 
   const handleNavbarNavigate = (nextStep) => {

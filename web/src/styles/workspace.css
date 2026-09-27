@@ -632,24 +632,35 @@
 
 @media (max-width: 768px) {
   .workflow-guide-card,
-  .workflow-guide-card.is-dock-left,
-  .workflow-guide-card.is-near-draft-btn {
-    right: 1rem !important;
-    left: 1rem !important;
+  .workflow-guide-card.is-dock-left {
+    right: 16px !important;
+    left: 16px !important;
     width: auto !important;
-    bottom: 1rem !important;
+    max-width: calc(100vw - 32px) !important;
+    bottom: 16px !important;
     top: auto !important;
+    padding: 16px 18px 14px !important;
+    border-radius: 14px !important;
   }
   .workflow-guide-card.is-near-guide-button {
-    top: 150px !important;
-    bottom: auto !important;
-    right: 1rem !important;
-    left: 1rem !important;
+    bottom: 16px !important;
+    top: auto !important;
+    right: 16px !important;
+    left: 16px !important;
     width: auto !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+  .workflow-guide-card.is-near-draft-btn {
+    top: 16px !important;
+    bottom: auto !important;
+    right: 16px !important;
+    left: 16px !important;
+    width: auto !important;
+    max-width: calc(100vw - 32px) !important;
   }
   .workflow-guide-card.is-near-guide-button::before,
   .workflow-guide-card.is-near-draft-btn::before {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -804,9 +815,22 @@
   border: 1px solid #e5e7eb !important;
   border-radius: 16px !important;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
-  padding: 12px 28px 10px;
+  padding: 14px 20px 12px;
   margin-bottom: 16px !important;
   flex-shrink: 0;
+}
+
+.workflow-progression-nav-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+}
+
+/* Hidden on desktop: mobile bottom navbar */
+.workflow-mobile-bottom-nav {
+  display: none;
 }
 
 .workflow-progression-container {
@@ -815,6 +839,9 @@
   justify-content: space-between;
   position: relative;
   width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 8px;
 }
 
 .workflow-progression-step {
@@ -1278,11 +1305,25 @@
 }
 
 .workflow-result-list-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  min-height: 46px !important;
+  padding: 10px 14px !important;
   border: 1px solid #e5e7eb !important;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   background: #ffffff !important;
   color: #0f0e17;
-  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  box-sizing: border-box !important;
+}
+
+.workflow-result-list-item h6 {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.35 !important;
+  font-size: 0.88rem !important;
+  width: 100% !important;
 }
 
 .workflow-result-list-item:hover,
@@ -1290,8 +1331,12 @@
 .workflow-result-list-item.is-selected {
   border-color: #ea580c !important;
   background: #fff7ed !important;
-  color: #ea580c;
-  transform: translateX(3px);
+  color: #ea580c !important;
+  transform: translateX(2px);
+}
+
+.workflow-result-list-item.is-selected {
+  box-shadow: 0 1px 4px rgba(234, 88, 12, 0.12) !important;
 }
 
 .workflow-result-detail {
@@ -1607,34 +1652,196 @@
     font-size: 0.78rem !important;
   }
 
+  /* ==========================================================================
+     CATalyst Workflow Mobile Progression:
+     Hide top desktop stepper card; use modern fixed mobile bottom navbar just like CiteWise
+     ========================================================================== */
   .workflow-progression-card {
-    padding: 10px 8px 8px !important;
-    border-radius: 14px !important;
+    display: none !important;
+  }
+
+  .workflow-mobile-bottom-nav {
+    display: block !important;
+    position: fixed !important;
+    left: 50% !important;
+    transform: translateX(-50%) translateZ(0) !important;
+    bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
+    z-index: 1000 !important;
+    width: calc(100% - 28px) !important;
+    max-width: 410px !important;
+    background: var(--cw-bottom-nav-bg, rgba(255, 255, 255, 0.95)) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid var(--cw-bottom-nav-border, rgba(229, 231, 235, 0.9)) !important;
+    border-radius: 9999px !important;
+    box-shadow: var(--cw-bottom-nav-shadow, 0 10px 30px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.05)) !important;
+    padding: 6px !important;
+  }
+
+  .workflow-mobile-bottom-nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 4px;
+  }
+
+  .workflow-mobile-tab-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    min-width: 44px;
+    padding: 0 12px;
+    border-radius: 9999px;
+    border: none;
+    background: transparent;
+    color: var(--cw-bottom-nav-inactive, #4b5563);
+    cursor: pointer;
+    font-family: "Poppins", sans-serif;
+    touch-action: manipulation;
+    user-select: none;
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .workflow-mobile-tab-btn:active:not(:disabled) {
+    transform: scale(0.92);
+  }
+
+  .workflow-mobile-tab-btn.is-active {
+    background: linear-gradient(135deg, #ea580c 0%, #f97316 100%) !important;
+    color: #ffffff !important;
+    padding: 0 18px 0 14px !important;
+    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.45) !important;
+  }
+
+  .workflow-mobile-tab-btn.is-locked,
+  .workflow-mobile-tab-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+  }
+
+  .workflow-mobile-tab-icon {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+
+  .workflow-mobile-tab-btn.is-active .workflow-mobile-tab-icon {
+    transform: scale(1.05);
+  }
+
+  .workflow-mobile-tab-check-dot {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  }
+
+  .workflow-mobile-tab-btn.is-active .workflow-mobile-tab-check-dot {
+    display: none;
+  }
+
+  .workflow-mobile-tab-label {
+    display: inline-block;
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    margin-left: 0;
+    white-space: nowrap;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    transition: max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.22s ease,
+                margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .workflow-mobile-tab-btn.is-active .workflow-mobile-tab-label {
+    max-width: 120px;
+    opacity: 1;
+    margin-left: 8px;
+  }
+
+  /* Ensure extra bottom padding on mobile shell so floating capsule dock never overlaps content */
+  .workflow-shell {
+    padding: 1rem 0.85rem calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Card Header responsiveness */
+  .workflow-card-header {
+    padding: 0.85rem 1rem !important;
+    gap: 0.75rem !important;
+    flex-wrap: wrap !important;
+  }
+
+  .workflow-card-header-title {
+    font-size: 0.95rem !important;
+  }
+
+  .workflow-card-header-subtitle {
+    font-size: 0.74rem !important;
+  }
+
+  .workflow-card-header-actions {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  /* ==========================================================================
+     Step 3 (Gap) & Step 4 (Topic) Mobile Split View - Spacing & Text Centering
+     ========================================================================== */
+  .cw-m-split > :first-child,
+  .workflow-result-sidebar {
+    border-bottom: 1px solid #e5e7eb !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 6px !important;
+  }
+
+  /* Generous breathing room between the divider line and SELECTED GAP / SELECTED TOPIC */
+  .cw-m-split > :last-child,
+  .workflow-result-detail {
+    padding-top: 20px !important;
+    padding-left: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .workflow-result-heading {
+    margin-top: 4px !important;
     margin-bottom: 14px !important;
   }
 
-  .workflow-progression-node {
-    width: 26px !important;
-    height: 26px !important;
-    min-width: 26px !important;
-    min-height: 26px !important;
-    border-radius: 7px !important;
+  .workflow-result-kicker {
+    margin-top: 0 !important;
+    margin-bottom: 8px !important;
+    padding-top: 2px !important;
+    display: inline-block !important;
   }
 
-  .workflow-progression-line {
-    top: 13px !important;
+  /* Center text vertically inside Extracted Gap Sources and Suggested Topics items */
+  .workflow-result-list-item {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    min-height: 48px !important;
+    padding: 10px 14px !important;
+    box-sizing: border-box !important;
   }
 
-  .workflow-progression-step-label {
-    font-size: 0.64rem !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-    line-height: 1.15 !important;
-    max-width: 76px;
-  }
-
-  .workflow-progression-step-num {
-    font-size: 0.68rem !important;
+  .workflow-result-list-item h6 {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.35 !important;
+    font-size: 0.88rem !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
   }
 }
 
