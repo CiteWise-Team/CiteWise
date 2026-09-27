@@ -138,7 +138,7 @@ export default function MetricWeightCustomization({
       };
 
   return (
-    <div style={cardStyle}>
+    <div className={isHero ? "cw-m-pad" : undefined} style={cardStyle}>
       {!isHero && (
         <button
           onClick={() => setOpen((o) => !o)}
@@ -147,9 +147,9 @@ export default function MetricWeightCustomization({
             alignItems: "center",
             justifyContent: "space-between",
             width: "100%",
-            background: "linear-gradient(180deg, #fff2e0 0%, #ffe9d1 100%)",
+            background: "#f9fafb",
             border: "none",
-            borderBottom: open ? "1px solid rgba(249, 115, 22, 0.18)" : "none",
+            borderBottom: open ? "1px solid #e5e7eb" : "none",
             cursor: "pointer",
             textAlign: "left",
             padding: "1.125rem 1.5rem",

@@ -92,6 +92,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
 
   return (
     <div
+      className="cw-m-auto-height"
       style={{
         background: "#ffffff",
         border: "1px solid #e5e7eb",

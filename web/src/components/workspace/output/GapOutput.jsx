@@ -40,7 +40,7 @@ export default function ExtractorOutput({ result, onComplete }) {
 
   return (
     <div className="h-100 d-flex flex-column rounded-4 workflow-result-card gap-result-card" style={{ minHeight: 0 }}>
-      <div className="workflow-split-result-body d-flex h-100" style={{ minHeight: 0, gap: 0 }}>
+      <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, gap: 0 }}>
         {/* LEFT SIDEBAR — Titles only */}
         <div
           className="d-flex flex-column workflow-result-sidebar"

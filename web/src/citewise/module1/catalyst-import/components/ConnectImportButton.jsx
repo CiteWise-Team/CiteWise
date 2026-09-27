@@ -3,9 +3,11 @@ export default function ConnectImportButton({ onClick, isLoading }) {
     <button
       onClick={onClick}
       disabled={isLoading}
+      className="cw-m-full"
       style={{
         display: "flex",
         alignItems: "center",
+        justifyContent: "center",
         gap: "0.5rem",
         background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
         color: "#fff",

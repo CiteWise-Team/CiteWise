@@ -383,7 +383,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
           backdropFilter: "blur(8px)",
           display: "flex", alignItems: "center", justifyContent: "center"
         }}>
-          <div style={{
+          <div className="cw-m-modal" style={{
             background: "#ffffff", padding: "24px", borderRadius: "16px",
             width: "440px", maxWidth: "92vw", border: "1px solid #e5e7eb",
             boxShadow: "0 20px 50px rgba(0, 0, 0, 0.15)",
@@ -467,7 +467,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
         }}>
           <div style={{
             background: "#ffffff", padding: "24px", borderRadius: "16px",
-            width: "700px", maxWidth: "95vw", border: "1px solid #e5e7eb",
+            width: "700px", maxWidth: "calc(100vw - 24px)", boxSizing: "border-box", border: "1px solid #e5e7eb",
             boxShadow: "0 20px 50px rgba(0, 0, 0, 0.15)",
             display: "flex", flexDirection: "column", gap: "16px",
             maxHeight: "85vh", overflow: "hidden",

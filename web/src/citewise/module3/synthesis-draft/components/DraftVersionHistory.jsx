@@ -221,7 +221,7 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
           onClick={() => setCompare(null)}
           style={{
             position: "fixed", inset: 0, background: "rgba(17, 24, 39, 0.6)", backdropFilter: "blur(6px)",
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: 24,
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: "min(24px, 3vw)",
           }}
         >
           <div
@@ -279,7 +279,7 @@ borderBottom: "1px solid #e5e7eb",
                 ✕
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, overflow: "hidden", flex: 1 }}>
+            <div className="cw-m-one-col cw-m-scroll-y" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, overflow: "hidden", flex: 1 }}>
               {[compare.a, compare.b].map((v, i) => (
                 <div key={i} style={{ padding: 16, overflowY: "auto", borderLeft: i === 1 ? "1px solid #e5e7eb" : "none" }}>
                   <div style={{ fontSize: "0.74rem", fontWeight: 700, color: "#f97316", fontFamily: "'Poppins', sans-serif", marginBottom: 8 }}>

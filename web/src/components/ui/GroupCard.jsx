@@ -68,26 +68,68 @@ export default function GroupCard({
     }
   }
 
-  function getProgressState() {
-    const hasCiteWiseSession = Boolean(localStorage.getItem(gk("sessionId")));
-    const savedStep = Number.parseInt(localStorage.getItem(gk("maxUnlockedStep")), 10);
-    const maxStep = Number.isNaN(savedStep) ? 0 : savedStep;
-
-    if (maxStep >= 2) return "smart";
-    if (hasCiteWiseSession || maxStep >= 1) return "introduction";
-    return localStorage.getItem(gk("gapVisited")) === "true" ? "gap" : "new";
-  }
-
-  function openWorkspaceLauncher() {
-    setDropdownOpen(false);
-    setShowLauncher(true);
-  }
-
   // Returns the scoped localStorage key for this group.
   const gk = (suffix) => `citewise.${group_id}.${suffix}`;
 
+  const checkStep1Completed = () => {
+    if (localStorage.getItem(gk("step1Completed")) === "true") return true;
+    if (localStorage.getItem(gk("sessionId"))) return true;
+    if (localStorage.getItem(gk("catalystData"))) return true;
+    try {
+      const completed = JSON.parse(localStorage.getItem(`catalyst.${group_id}.completedSteps`) || "[]");
+      if (completed.includes("topic") || completed.includes("gap") || completed.length >= 3) {
+        return true;
+      }
+    } catch {
+      // ignore parse error
+    }
+    return false;
+  };
+
+  const [step1Done, setStep1Done] = useState(checkStep1Completed);
+
+  useEffect(() => {
+    if (!step1Done && group_id) {
+      apiFetch(`/api/catalyst/${encodeURIComponent(group_id)}/topics`)
+        .then(({ res, data: payload }) => {
+          if (res.ok && payload?.success && payload.data?.topics?.length > 0) {
+            setStep1Done(true);
+            localStorage.setItem(gk("step1Completed"), "true");
+          }
+        })
+        .catch(() => {});
+    }
+  }, [group_id, step1Done]);
+
+  function openWorkspaceLauncher() {
+    setDropdownOpen(false);
+    if (!step1Done) {
+      if (checkStep1Completed()) {
+        setStep1Done(true);
+      } else if (group_id) {
+        apiFetch(`/api/catalyst/${encodeURIComponent(group_id)}/topics`)
+          .then(({ res, data: payload }) => {
+            if (res.ok && payload?.success && payload.data?.topics?.length > 0) {
+              setStep1Done(true);
+              localStorage.setItem(gk("step1Completed"), "true");
+            }
+          })
+          .catch(() => {});
+      }
+    }
+    setShowLauncher(true);
+  }
+
   // Fetch topics and open the topic selection modal so the user can choose which topic to use in CiteWise.
   async function handleOpenCiteWise() {
+    // If a CiteWise session already exists for this workspace, resume it directly
+    const existingSession = localStorage.getItem(gk("sessionId"));
+    if (existingSession) {
+      enterGroup({ id: group_id, name, color });
+      navigate(`/citewise/${group_id}`);
+      return;
+    }
+
     setImporting(true);
     try {
       const { res, data: payload } = await apiFetch(`/api/catalyst/${encodeURIComponent(group_id)}/topics`);
@@ -107,6 +149,11 @@ export default function GroupCard({
 
       if (!topics?.length) {
         alert("This group has no suggested topics yet. Run the Topic Suggester first.");
+        return;
+      }
+
+      if (topics.length === 1) {
+        await importAndNavigate(topics[0].title, topics[0].rationale);
         return;
       }
 
@@ -165,7 +212,6 @@ export default function GroupCard({
 
   const headerColor = color || "#ea580c";
   const headerGradient = `linear-gradient(135deg, ${headerColor}f2, ${headerColor}cc)`;
-  const progressState = getProgressState();
 
   return (
     <>
@@ -204,7 +250,8 @@ export default function GroupCard({
                   icon={FileSearch}
                   title="Gap Extractor"
                   description="Find research gaps and organize evidence with CATalyst."
-                  active={progressState === "gap"}
+                  active={!step1Done}
+                  statusText={step1Done ? "Review / Open →" : "Ready to start →"}
                   onClick={handleEnter}
                 />
                 <WorkspaceOption
@@ -212,8 +259,9 @@ export default function GroupCard({
                   icon={PenLine}
                   title="Introduction Drafting"
                   description="Turn your selected evidence into a focused introduction with CiteWise."
-                  active={progressState === "introduction"}
-                  disabled={progressState !== "introduction"}
+                  active={step1Done}
+                  disabled={!step1Done}
+                  statusText={!step1Done ? "Locked" : undefined}
                   loading={importing}
                   onClick={handleOpenCiteWise}
                 />
@@ -222,8 +270,9 @@ export default function GroupCard({
                   icon={Target}
                   title="SMART Goals Generation"
                   description="Translate your research direction into clear, measurable thesis goals."
-                  active={progressState === "smart"}
+                  active={false}
                   disabled
+                  statusText=""
                   onClick={() => {}}
                 />
               </div>
@@ -342,7 +391,7 @@ export default function GroupCard({
   );
 }
 
-function WorkspaceOption({ step, icon: Icon, title, description, active, disabled = false, loading = false, onClick }) {
+function WorkspaceOption({ step, icon: Icon, title, description, active, disabled = false, loading = false, onClick, statusText }) {
   return (
     <button
       type="button"
@@ -366,6 +415,8 @@ function WorkspaceOption({ step, icon: Icon, title, description, active, disable
           <span className="workspace-launcher-current-badge">
             Current Step • Launch →
           </span>
+        ) : statusText !== undefined ? (
+          statusText ? <span className="workspace-launcher-status-idle">{statusText}</span> : null
         ) : disabled ? (
           <span className="workspace-launcher-status-idle">Locked</span>
         ) : (

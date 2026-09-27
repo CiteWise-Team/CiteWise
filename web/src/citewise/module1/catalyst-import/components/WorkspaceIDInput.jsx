@@ -2,6 +2,7 @@ export default function WorkspaceIDInput({ value, onChange, placeholder = "Input
   return (
     <input
       type="text"
+      className="cw-m-full"
       placeholder={placeholder}
       value={value}
       onChange={(e) => onChange(e.target.value)}

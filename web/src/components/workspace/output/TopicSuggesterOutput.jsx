@@ -24,7 +24,12 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
         const res = await getTopicsByGroupIdAPI(group_id);
         const data = res.data || [];
         setItems(data);
-        if (data.length > 0) onComplete?.();
+        if (data.length > 0) {
+          onComplete?.();
+          try {
+            localStorage.setItem(`citewise.${group_id}.step1Completed`, "true");
+          } catch {}
+        }
 
         if (result?.id) {
           setActiveId(result.id);
@@ -83,7 +88,7 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
 
   return (
     <div className="h-100 d-flex flex-column rounded-4 workflow-result-card topic-result-card" style={{ minHeight: 0 }}>
-      <div className="workflow-split-result-body d-flex h-100" style={{ minHeight: 0, overflow: "visible", gap: 0 }}>
+      <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, overflow: "visible", gap: 0 }}>
         {/* LEFT SIDEBAR — Titles only */}
         <div
           className="d-flex flex-column workflow-result-sidebar"

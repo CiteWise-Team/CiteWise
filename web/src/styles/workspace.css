@@ -1449,69 +1449,131 @@
 }
 
 @media (max-width: 900px) {
-  .workflow-workbench {
-    grid-template-columns: 1fr;
-    min-height: 0;
-  }
-
-  .workflow-panel {
-    min-height: 430px;
-  }
-
-  .workflow-content,
-  .workflow-workbench {
-    overflow: visible;
-  }
-
   .workflow-page {
-    height: auto;
-    min-height: 100vh;
-    overflow: visible;
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: clip !important;
   }
 
   .workflow-shell {
-    height: auto;
-    min-height: calc(100vh - 65px);
-    overflow: visible;
+    height: auto !important;
+    min-height: calc(100dvh - 65px) !important;
+    overflow: visible !important;
+    padding: 1.25rem 1rem 2.5rem !important;
   }
 
-  .workflow-header {
-    align-items: flex-start;
-    flex-direction: column;
+  .workflow-content {
+    padding-top: 14px !important;
+    overflow: visible !important;
+    height: auto !important;
   }
 
-  .workflow-guide-button {
-    align-self: flex-end;
+  .workflow-workbench {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    gap: 16px !important;
+  }
+
+  .workflow-panel {
+    height: auto !important;
+    max-height: none !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .workflow-panel > * {
+    height: auto !important;
+    max-height: none !important;
+    min-height: auto !important;
+  }
+
+  .workflow-input-card,
+  .workflow-result-card {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .workflow-input-body {
+    max-height: 360px !important;
+    overflow-y: auto !important;
+  }
+
+  .workflow-result-list {
+    max-height: 480px !important;
+    overflow-y: auto !important;
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 768px) {
   .workflow-shell {
-    padding: 1rem 1rem 1.5rem;
+    padding: 1rem 0.85rem 2rem !important;
   }
 
   .workflow-header {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 14px;
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 4px 0 16px !important;
+  }
+
+  .workflow-header-left {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .workflow-header h1 {
+    font-size: 1.25rem !important;
+  }
+
+  .workflow-description {
+    font-size: 0.8rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .workflow-guide-button {
+    align-self: flex-start !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    min-width: 90px !important;
+    padding: 0 12px !important;
+    font-size: 0.78rem !important;
   }
 
   .workflow-progression-card {
-    padding: 16px 12px 12px !important;
+    padding: 10px 8px 8px !important;
     border-radius: 14px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .workflow-progression-node {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+    border-radius: 7px !important;
+  }
+
+  .workflow-progression-line {
+    top: 13px !important;
   }
 
   .workflow-progression-step-label {
-    font-size: 0.68rem;
+    font-size: 0.64rem !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.15 !important;
+    max-width: 76px;
   }
 
-  .workflow-panel {
-    min-height: 390px;
-  }
-
-  .workflow-workbench {
-    height: auto;
-    gap: 14px;
+  .workflow-progression-step-num {
+    font-size: 0.68rem !important;
   }
 }
 
@@ -1558,6 +1620,59 @@
 .quick-nav-approval-checkbox:focus-visible {
   outline: 3px solid rgba(234, 88, 12, 0.5);
   outline-offset: 2px;
+}
+
+.quick-nav-approve-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid rgba(62, 207, 142, 0.55);
+  border-radius: 999px;
+  background: transparent;
+  color: #3ecf8e;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.quick-nav-approve-btn:hover {
+  border-color: #3ecf8e;
+  background: rgba(62, 207, 142, 0.12);
+}
+
+.quick-nav-approve-btn.is-approved {
+  border-color: #3ecf8e;
+  background: #3ecf8e;
+  color: #10261c;
+}
+
+.quick-nav-approve-btn.is-approved:hover {
+  border-color: #5fdca4;
+  background: #5fdca4;
+}
+
+.quick-nav-approve-btn:focus-visible {
+  outline: 3px solid rgba(165, 180, 252, 0.7);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .quick-nav-approval-checkbox {
+    width: 22px;
+    height: 22px;
+  }
+
+  .quick-nav-approve-btn {
+    padding: 7px 12px;
+    font-size: 0.75rem;
+  }
 }
 
 .quick-nav-tooltip-anchor {

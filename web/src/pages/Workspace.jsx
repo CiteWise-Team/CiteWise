@@ -63,6 +63,11 @@ export default function GroupWorkflow() {
       if (completed.includes(stepKey)) return completed;
       const nextCompleted = [...completed, stepKey];
       localStorage.setItem(`catalyst.${routeGroupId}.completedSteps`, JSON.stringify(nextCompleted));
+      if (stepKey === "topic" || nextCompleted.includes("topic")) {
+        try {
+          localStorage.setItem(`citewise.${routeGroupId}.step1Completed`, "true");
+        } catch {}
+      }
       return nextCompleted;
     });
   }, [routeGroupId]);

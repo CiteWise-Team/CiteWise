@@ -1,20 +1,227 @@
+import { createPortal } from "react-dom";
 import citeWiseLogo from "../../../assets/citewise-logo.png";
+import useIsMobile, { MOBILE_TABBAR_HEIGHT } from "../../../hooks/useIsMobile";
 
 const STEPS = ["Data Import", "AI Assessment", "Generate Introduction"];
+const MOBILE_STEP_LABELS = ["Import", "Assess", "Introduction"];
+
+function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClick, onBack }) {
+  return (
+    <>
+      <nav
+        style={{
+          background: "#ffffff",
+          borderBottom: "1px solid #e5e7eb",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          width: "100%",
+          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
+        }}
+      >
+        <div
+          style={{
+            padding: "0 1rem",
+            height: "56px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "0.75rem",
+          }}
+        >
+          <button
+            type="button"
+            onClick={onLogoClick}
+            style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            <span
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "9px",
+                background: "#ffffff",
+                border: "1px solid #e5e7eb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 2px 6px rgba(249, 115, 22, 0.08)",
+              }}
+            >
+              <img src={citeWiseLogo} alt="" style={{ width: "20px", height: "20px", objectFit: "contain" }} />
+            </span>
+            <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.05rem", color: "#111827", letterSpacing: "-0.01em" }}>
+              Cite<span style={{ color: "#f97316" }}>Wise</span>
+            </span>
+          </button>
+
+          <span
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              color: "#4b5563",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Step <span style={{ color: "#f97316", fontWeight: 700 }}>{currentStep + 1}</span> of {STEPS.length}
+          </span>
+
+          {onBack && (
+            <button
+              onClick={onBack}
+              type="button"
+              aria-label="Return to your workspaces"
+              style={{
+                background: "#ffffff",
+                border: "1px solid rgba(249, 115, 22, 0.45)",
+                borderRadius: "8px",
+                padding: "0 12px",
+                color: "#f97316",
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                height: "36px",
+                boxShadow: "0 1px 3px rgba(249, 115, 22, 0.06)",
+                transition: "all 0.18s ease",
+              }}
+            >
+              <span aria-hidden="true">←</span>
+              <span>Groups</span>
+            </button>
+          )}
+        </div>
+      </nav>
+
+      {createPortal(
+      <nav
+        aria-label="CiteWise steps"
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1000,
+          background: "#ffffff",
+          borderTop: "1px solid #e5e7eb",
+          paddingBottom: "env(safe-area-inset-bottom)",
+          boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.06)",
+          transform: "translateZ(0)",
+        }}
+      >
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${STEPS.length}, 1fr)`, height: MOBILE_TABBAR_HEIGHT }}>
+          {STEPS.map((label, index) => {
+            const isActive = index === currentStep;
+            const isPast = index < currentStep;
+            const isClickable = index <= maxUnlockedStep;
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => isClickable && onNavigate?.(index)}
+                disabled={!isClickable}
+                aria-current={isActive ? "step" : undefined}
+                aria-label={label}
+                style={{
+                  position: "relative",
+                  background: "none",
+                  border: "none",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "4px",
+                  cursor: isClickable ? "pointer" : "not-allowed",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.72rem",
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? "#0f0e17" : isClickable ? "#4b5563" : "#9ca3af",
+                }}
+              >
+                {isActive && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: "20%",
+                      right: "20%",
+                      height: "3px",
+                      borderRadius: "0 0 3px 3px",
+                      background: "linear-gradient(90deg, #f97316, #fb8c3a)",
+                    }}
+                  />
+                )}
+                <span
+                  style={{
+                    width: "26px",
+                    height: "26px",
+                    borderRadius: "50%",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.75rem",
+                    fontWeight: 800,
+                    background: isActive
+                      ? "#f97316"
+                      : isPast
+                        ? "rgba(249, 115, 22, 0.15)"
+                        : "#f3f4f6",
+                    color: isActive
+                      ? "#ffffff"
+                      : isPast
+                        ? "#f97316"
+                        : "#9ca3af",
+                    border: isPast
+                      ? "1px solid rgba(249, 115, 22, 0.3)"
+                      : !isActive
+                        ? "1px solid #e5e7eb"
+                        : "none",
+                    boxShadow: isActive ? "0 2px 8px rgba(249, 115, 22, 0.32)" : "none",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {isPast ? "✓" : index + 1}
+                </span>
+                {MOBILE_STEP_LABELS[index]}
+              </button>
+            );
+          })}
+        </div>
+      </nav>,
+      document.body
+      )}
+    </>
+  );
+}
 
 export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep = 0, onNavigate, onLogoClick, onBack }) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <MobileNavigation
+        currentStep={currentStep}
+        maxUnlockedStep={maxUnlockedStep}
+        onNavigate={onNavigate}
+        onLogoClick={onLogoClick}
+        onBack={onBack}
+      />
+    );
+  }
+
   return (
     <nav
       style={{
-        // ✨ Warm cream background that blends with the page gradient
-        background: "linear-gradient(180deg, #fffaf5 0%, #fff5ec 100%)",
-        borderBottom: "1px solid rgba(249, 115, 22, 0.15)",
+        background: "#ffffff",
+        borderBottom: "1px solid #e5e7eb",
         position: "sticky",
         top: 0,
         zIndex: 100,
         width: "100%",
-        backdropFilter: "blur(10px)",
-        boxShadow: "0 1px 3px rgba(249, 115, 22, 0.04), 0 4px 20px rgba(249, 115, 22, 0.05)",
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
       }}
     >
       <div

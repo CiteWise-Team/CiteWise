@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import useIsMobile from "../../../../hooks/useIsMobile";
 import ImportHeaderBar from "./ImportHeaderBar";
 import DataDisplayGrid from "./DataDisplayGrid";
 import GapWorkshop from "./GapWorkshop";
@@ -38,6 +39,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   const [sessionId, setSessionId] = useState(
     () => localStorage.getItem(STORAGE_SESSION_KEY) || ""
   );
+  const isMobile = useIsMobile();
   const [fileQueue, setFileQueue] = useState([]);
   const [uploadState, setUploadState] = useState("ready");
   const [statusMessage, setStatusMessage] = useState("Ready to upload");
@@ -200,7 +202,8 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
   const MAX_FILES = 50;
 
-  const updateOverallStatus = useCallback((queue) => {
+  // ── RRL Upload ─────────────────────────────────────────────────
+  const updateOverallStatus = useCallback((queue, { proceedOnSuccess = false } = {}) => {
     const list = queue || fileQueueRef.current;
     const active = list.filter((i) => i.status !== "duplicate" && i.status !== "invalid");
     const failed = active.filter((i) => i.status === "failed").length;
@@ -229,7 +232,8 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
       setStatusMessage("Ready to upload");
     }
 
-    if (queuedOrUploading === 0 && (uploaded > 0 || extracting > 0)) {
+    // When queue has finished uploading and at least one document succeeded, proceed
+    if (proceedOnSuccess && queuedOrUploading === 0 && (uploaded > 0 || extracting > 0)) {
       setShowSuccessToast(true);
       setTimeout(() => {
         onProceed?.();
@@ -361,7 +365,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
       }
 
       if (activeUploadsRef.current.size === 0) {
-        updateOverallStatus();
+        updateOverallStatus(undefined, { proceedOnSuccess: true });
       }
     } finally {
       isProcessingQueueRef.current = false;
@@ -563,8 +567,8 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           justifyContent: "space-between",
           padding: "1.125rem 1.5rem",
           gap: "1rem",
-          background: "linear-gradient(180deg, #fff2e0 0%, #ffe9d1 100%)",
-          borderBottom: "1px solid rgba(249, 115, 22, 0.18)",
+          background: "#f9fafb",
+          borderBottom: "1px solid #e5e7eb",
         }}
       >
         <div>
@@ -707,14 +711,15 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   );
 
   return (
-    <div style={{ width: "100%", padding: "2rem clamp(2rem, 4vw, 4rem) 3rem", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "2rem", background: "#f8f9fb" }}>
+    <div style={{ width: "100%", margin: "0 auto", padding: isMobile ? "1rem 1rem 1.5rem" : "2rem clamp(2rem, 4vw, 4rem) 3rem", display: "flex", flexDirection: "column", gap: isMobile ? "1.25rem" : "2rem", boxSizing: "border-box", background: "#f8f9fb" }}>
       {styleInject}
 
       {duplicateToast.show && (
         <div style={{
           position: "fixed",
-          top: "24px",
-          right: "24px",
+          top: isMobile ? "12px" : "24px",
+          right: isMobile ? "12px" : "24px",
+          left: isMobile ? "12px" : "auto",
           zIndex: 10000,
           background: "#ffffff",
           backdropFilter: "blur(8px)",
@@ -772,7 +777,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
             background: "#ffffff",
             border: "1px solid #e5e7eb",
             borderRadius: "24px",
-            padding: "2.5rem 3rem",
+            padding: isMobile ? "2rem 1.25rem" : "2.5rem 3rem",
             maxWidth: "480px",
             width: "90%",
             textAlign: "center",
@@ -843,7 +848,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
       {/* ── Page header ─────────────────────────────────────────── */}
       <div>
-        <h1 style={{ margin: 0, fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.5rem", color: "#111827", letterSpacing: "-0.01em" }}>
+        <h1 style={{ margin: 0, fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: isMobile ? "1.3rem" : "1.5rem", color: "#111827", letterSpacing: "-0.01em" }}>
           Data Import
         </h1>
         <p style={{ margin: "4px 0 0", fontFamily: "'Poppins', sans-serif", fontSize: "0.875rem", color: "#6b7280" }}>
@@ -855,17 +860,17 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: catalystData ? "1fr 420px" : "1fr",
-          gap: "2rem",
+          gridTemplateColumns: catalystData && !isMobile ? "minmax(0, 1fr) 420px" : "minmax(0, 1fr)",
+          gap: isMobile ? "1.25rem" : "2rem",
           alignItems: "start",
         }}
       >
         {/* LEFT COLUMN — CATalyst Workspace + Gap Workshop */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "1.25rem" : "2rem", minWidth: 0 }}>
 
           {/* CATalyst Workspace card */}
           <div style={card}>
-            <div style={cardHeader}>
+            <div style={{ ...cardHeader, ...(isMobile && { flexWrap: "wrap", padding: "1rem" }) }}>
               <div>
                 <span style={cardTitle}>CATalyst Workspace</span>
                 {catalystData && (
@@ -885,7 +890,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
             </div>
 
             {!catalystData && (
-              <div style={{ padding: "2.5rem 2rem", textAlign: "center" }}>
+              <div style={{ padding: isMobile ? "1.75rem 1rem" : "2.5rem 2rem", textAlign: "center" }}>
                 <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(249, 115, 22, 0.08)", border: "1px solid rgba(249, 115, 22, 0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
@@ -914,7 +919,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
         {/* RIGHT COLUMN — RRL Upload (sticky) */}
         {catalystData && (
-          <div style={{ position: "sticky", top: "80px" }}>
+          <div style={isMobile ? { minWidth: 0 } : { position: "sticky", top: "80px" }}>
             {rrlUploadCard}
           </div>
         )}

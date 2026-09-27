@@ -18,7 +18,7 @@
 //         <span className="material-symbols-outlined">public</span>
 //       </div>
 
-//       <div className="card-body p-0 d-flex overflow-hidden">
+//       <div className="card-body p-0 d-flex overflow-hidden cw-m-split">
 //         {/* LEFT: results list */}
 //         <div
 //           className="border-end overflow-auto"
@@ -115,7 +115,7 @@ export default function SearcherOutput({ results: propResults }) {
         <h5 className="mb-0">Search Results</h5>
       </div>
 
-      <div className="card-body p-0 d-flex overflow-hidden">
+      <div className="card-body p-0 d-flex overflow-hidden cw-m-split">
         {/* Left list */}
         <div style={{ width: "320px" }} className="border-end overflow-auto">
           {results.map((r) => (

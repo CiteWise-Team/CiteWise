@@ -93,7 +93,7 @@ export default function Navbar() {
       }
     >
       <div
-        className="container-fluid"
+        className="container-fluid cw-nav-inner"
         style={{
           width: "100%",
           padding: "0 clamp(1.2rem, 4vw, 4rem)",
@@ -219,7 +219,7 @@ export default function Navbar() {
         {!isLanding && isAuthenticated && user && (
           <div className="dropdown ms-auto" style={{ position: "relative" }}>
             <button
-              className="btn btn-dark dropdown-toggle"
+              className="btn btn-dark dropdown-toggle cw-nav-user"
               type="button"
               style={{
                 backgroundColor: "#25253a",

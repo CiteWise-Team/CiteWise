@@ -27,8 +27,8 @@ export default function DocumentActiveCard({
             justifyContent: "space-between",
             marginBottom: 0,
             padding: "1.125rem 1.5rem",
-            background: "linear-gradient(180deg, #fff2e0 0%, #ffe9d1 100%)",
-            borderBottom: "1px solid rgba(249, 115, 22, 0.18)",
+            background: "#f9fafb",
+            borderBottom: "1px solid #e5e7eb",
           }}
         >
           <span

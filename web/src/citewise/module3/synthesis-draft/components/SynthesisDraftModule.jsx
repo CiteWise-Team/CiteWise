@@ -8,6 +8,7 @@ import SourceUsageTransparency from "./SourceUsageTransparency";
 import DraftVersionHistory from "./DraftVersionHistory";
 import * as store from "../../../lib/citewiseStore";
 import { apiFetch } from "../../../../api/http";
+import useIsMobile from "../../../../hooks/useIsMobile";
 
 const crcTable = Array.from({ length: 256 }, (_, index) => {
   let c = index;
@@ -156,6 +157,8 @@ const downloadBlob = (blob, filename) => {
 };
 
 export default function SynthesisDraftModule({ sessionId, onStepChange }) {
+  const isMobile = useIsMobile();
+  const styles = getStyles(isMobile);
   const [approvedDocuments, setApprovedDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generationStatus, setGenerationStatus] = useState("idle");
@@ -622,6 +625,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
 
       <div style={styles.gridContainer}>
         <div style={styles.leftColumn}>
+          <div style={{ order: 0, minWidth: 0 }}>
           <SynthesisControlPanel
             generationStatus={generationStatus}
             generationProgress={generationProgress}
@@ -631,6 +635,8 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
             hasApprovedDocuments={approvedDocuments.length > 0}
             approvedCount={approvedDocuments.length}
           />
+          </div>
+          <div style={styles.leftColumnRest}>
           <InstructionsPanel sessionId={sessionId} />
           <SourceUsageTransparency
             sessionId={sessionId}
@@ -660,6 +666,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
               }
             }}
           />
+          </div>
         </div>
 
         <div style={styles.rightColumn}>
@@ -691,7 +698,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
   );
 }
 
-const styles = {
+const getStyles = (isMobile) => ({
   container: {
     display: "flex",
     flexDirection: "column",
@@ -702,22 +709,35 @@ const styles = {
   },
   gridContainer: {
     width: "100%",
-    padding: "2rem clamp(2rem, 4vw, 4rem) 3rem",
+    margin: "0 auto",
+    padding: isMobile ? "1rem 1rem 1.5rem" : "2rem clamp(2rem, 4vw, 4rem) 3rem",
     boxSizing: "border-box",
     flex: 1,
-    display: "grid",
-    gridTemplateColumns: "320px 1fr",
-    gap: "24px",
+    display: isMobile ? "flex" : "grid",
+    flexDirection: "column",
+    gridTemplateColumns: "320px minmax(0, 1fr)",
+    gap: isMobile ? "16px" : "24px",
     minHeight: 0,
     background: "#f8f9fb",
   },
-  leftColumn: {
+  leftColumn: isMobile
+    ? { display: "contents" }
+    : {
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px",
+      },
+  leftColumnRest: {
+    order: 2,
     display: "flex",
     flexDirection: "column",
-    gap: "20px",
+    gap: isMobile ? "16px" : "20px",
+    minWidth: 0,
   },
   rightColumn: {
     minHeight: 0,
+    minWidth: 0,
+    order: 1,
   },
   rightPanel: {
     background: "#ffffff",
@@ -727,16 +747,17 @@ const styles = {
     flexDirection: "column",
     overflow: "hidden",
     height: "100%",
-    minHeight: "500px",
+    minHeight: isMobile ? "320px" : "500px",
     boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
   },
   rightPanelHeader: {
-    padding: "1.125rem 1.5rem",
-    borderBottom: "1px solid rgba(249, 115, 22, 0.18)",
+    padding: isMobile ? "12px 14px" : "1.125rem 1.5rem",
+    gap: "12px",
+    borderBottom: "1px solid #e5e7eb",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    background: "linear-gradient(180deg, #fff2e0 0%, #ffe9d1 100%)",
+    background: "#f9fafb",
   },
   rightPanelTitle: {
     fontFamily: "'Poppins', sans-serif",
@@ -747,7 +768,7 @@ const styles = {
   },
   rightPanelContent: {
     flex: 1,
-    padding: "24px",
+    padding: isMobile ? "14px" : "24px",
     background: "#ffffff",
     overflowY: "auto",
   },
@@ -766,7 +787,7 @@ const styles = {
     background: "#ffffff",
     border: "1px solid #e5e7eb",
     borderRadius: "24px",
-    padding: "2.5rem 3rem",
+    padding: isMobile ? "2rem 1.25rem" : "2.5rem 3rem",
     maxWidth: "480px",
     width: "90%",
     textAlign: "center",
@@ -814,4 +835,4 @@ const styles = {
     lineHeight: "1.6",
     margin: 0,
   },
-};
+});

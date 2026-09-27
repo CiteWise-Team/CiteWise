@@ -110,7 +110,7 @@ export default function DragDropZone({ onFilesAdded }) {
           fontFamily: "'Poppins', sans-serif",
         }}
       >
-        Up to 50 PDFs per batch (20MB each)
+        {/* Up to 50 PDFs per batch (20MB each) */}
       </small>
     </div>
   );

@@ -113,6 +113,7 @@ export default function QuickNavigationList({
 
   return (
     <div
+      className="cw-quicknav"
       style={{
         background: "#ffffff",
         border: "1px solid #e5e7eb",
@@ -311,7 +312,6 @@ export default function QuickNavigationList({
           filteredDocs.map(({ doc, originalIndex }) => {
             const isActive = originalIndex === currentIndex;
             const isSelectedForApproval = selectedForApproval.has(originalIndex);
-
             return (
               <div
                 key={doc.id || doc.name || originalIndex}

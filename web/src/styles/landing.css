@@ -55,13 +55,15 @@ body{
 .cat-landing .container {
   width: 100%;
   max-width: none;
-  padding-left: clamp(1rem, 2vw, 2rem);
-  padding-right: clamp(1rem, 2vw, 2rem);
+  padding-left: clamp(1.2rem, 4vw, 4rem);
+  padding-right: clamp(1.2rem, 4vw, 4rem);
+  box-sizing: border-box;
 }
 
 .cat-landing .landing-full-width-content {
-  padding-left: clamp(1rem, 2vw, 2rem);
-  padding-right: clamp(1rem, 2vw, 2rem);
+  padding-left: 0;
+  padding-right: 0;
+  box-sizing: border-box;
   position: relative;
   z-index: 2;
 }
@@ -802,15 +804,58 @@ footer {
   .workflow-panels{ grid-template-columns:1fr; }
 }
 @media (max-width: 767px){
-  .stepper{ justify-content:flex-start; }
-  .step-chevron{ display:none; }
-  .step{ flex:0 0 auto; min-width:70px; }
+  .stepper {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+    padding: 0.8rem 0.5rem !important;
+    margin-bottom: 1.2rem !important;
+  }
+  .step-chevron { display: none !important; }
+  .step {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    font-size: 0.68rem !important;
+    text-align: center !important;
+    gap: 0.35rem !important;
+  }
+  .step-icon {
+    width: 34px !important;
+    height: 34px !important;
+  }
+  .step-icon .material-symbols-outlined {
+    font-size: 1.1rem !important;
+  }
+  .workflow-topbar {
+    padding: 0.8rem 1rem !important;
+  }
+  .workflow-brand {
+    font-size: 0.92rem !important;
+  }
+  .workflow-user {
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.75rem !important;
+    max-width: 160px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
   .workflow-user span:not(.material-symbols-outlined){ display:none; }
+  .workflow-body {
+    padding: 1.1rem 1rem 1.4rem !important;
+  }
+  .workflow-header-row {
+    margin-bottom: 1rem !important;
+  }
+  .workflow-title {
+    font-size: 1.35rem !important;
+  }
 }
 @media (max-width: 575px){
-  .hero-section-v2{ padding:4.5rem 0 4.5rem; }
-  .workflow-header-row{ flex-direction:column; }
+  .hero-section-v2{ padding:4rem 0 3.5rem; }
+  .workflow-header-row{ flex-direction:column; gap: 0.6rem; }
   .footer-description { max-width: 100%; }
+  .panel { padding: 1rem !important; min-height: auto; }
 }
 
 /* ==========================================================================

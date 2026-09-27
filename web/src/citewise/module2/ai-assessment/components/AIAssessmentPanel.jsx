@@ -29,8 +29,8 @@ const panelStyle = {
 
 const panelHeaderStyle = {
   padding: PANEL_HEADER_PADDING,
-  background: 'linear-gradient(180deg, #fff2e0 0%, #ffe9d1 100%)',
-  borderBottom: '1px solid rgba(249, 115, 22, 0.18)',
+  background: '#f9fafb',
+  borderBottom: '1px solid #e5e7eb',
 };
 
 const AIAssessmentPanel = ({
@@ -240,7 +240,7 @@ const AIAssessmentPanel = ({
       >
         AI Assessment Panel
       </h2>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
         {documentId && (
           <button
             onClick={handleAssess}
@@ -297,10 +297,10 @@ const AIAssessmentPanel = ({
   if (!documentId && !useExternal) {
     return (
       <div style={panelStyle}>
-        <div style={panelHeaderStyle}>
+        <div className="cw-panel-header" style={panelHeaderStyle}>
           <PanelHeader />
         </div>
-        <div style={{ padding: PANEL_CONTENT_PADDING }}>
+        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', flexDirection: 'column', gap: '12px' }}>
             <svg
               width="48"
@@ -334,10 +334,10 @@ const AIAssessmentPanel = ({
   if (resolvedLoading || isAssessing) {
     return (
       <div style={panelStyle}>
-        <div style={panelHeaderStyle}>
+        <div className="cw-panel-header" style={panelHeaderStyle}>
           <PanelHeader />
         </div>
-        <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
           <div
             style={{
               display: 'flex',
@@ -371,10 +371,10 @@ const AIAssessmentPanel = ({
   if (resolvedError) {
     return (
       <div style={panelStyle}>
-        <div style={panelHeaderStyle}>
+        <div className="cw-panel-header" style={panelHeaderStyle}>
           <PanelHeader />
         </div>
-        <div style={{ padding: PANEL_CONTENT_PADDING }}>
+        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
           <div
             style={{
               background: 'rgba(220, 38, 38, 0.06)',
@@ -420,10 +420,10 @@ const AIAssessmentPanel = ({
     }
     return (
       <div style={panelStyle}>
-        <div style={panelHeaderStyle}>
+        <div className="cw-panel-header" style={panelHeaderStyle}>
           <PanelHeader />
         </div>
-        <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
+        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
           <p
             style={{
               fontFamily: "'Poppins', sans-serif",
@@ -441,10 +441,10 @@ const AIAssessmentPanel = ({
   // --- Success state ---
   return (
     <div style={panelStyle}>
-      <div style={panelHeaderStyle}>
+      <div className="cw-panel-header" style={panelHeaderStyle}>
         <PanelHeader />
       </div>
-      <div style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
+      <div className="cw-panel-content" style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
         <EvidenceExcerptList excerpts={mappedData.excerpts} />
         <div style={{ height: '35px' }} />
         <SemanticScoreDashboard
