@@ -36,18 +36,23 @@ h1 {
 }
 
 button {
-  border-radius: 8px;
+  min-height: 42px;
+  border-radius: 12px;
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
+  padding: 0.65rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background: linear-gradient(135deg, #5b5bd6, #4a4ac2);
+  color: #fff;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: #a5b4fc;
+  background: linear-gradient(135deg, #7777e8, #5b5bd6);
+  box-shadow: 0 10px 24px -8px rgba(91, 91, 214, 0.65);
+  transform: translateY(-1px);
 }
 button:focus,
 button:focus-visible {
@@ -59,6 +64,46 @@ button:focus-visible {
   padding: 0;
   min-height: 100vh;
   background-color: #0e0e18;
+}
+
+/* Shared text-action treatment for CATalyst and CiteWise. Compact icon controls
+   keep their own geometry through aria-label/title attributes. */
+.workflow-page button:not([aria-label]):not([title]),
+.workflow-page button.btn,
+.citewise-app-shell button:not([aria-label]):not([title]),
+.citewise-app-shell button.btn {
+  min-height: 42px !important;
+  border: 1px solid #7777e8 !important;
+  border-radius: 12px !important;
+  padding: 0.65rem 1.5rem !important;
+  background: linear-gradient(135deg, #5b5bd6, #4a4ac2) !important;
+  color: #fff !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  box-shadow: 0 0 24px -8px rgba(91, 91, 214, 0.45) !important;
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease !important;
+}
+
+.workflow-page button:not([aria-label]):not([title]):hover,
+.workflow-page button.btn:hover,
+.citewise-app-shell button:not([aria-label]):not([title]):hover,
+.citewise-app-shell button.btn:hover,
+.workflow-page button:not([aria-label]):not([title]):focus-visible,
+.workflow-page button.btn:focus-visible,
+.citewise-app-shell button:not([aria-label]):not([title]):focus-visible,
+.citewise-app-shell button.btn:focus-visible {
+  border-color: #a5b4fc !important;
+  background: linear-gradient(135deg, #7777e8, #5b5bd6) !important;
+  box-shadow: 0 14px 34px -8px rgba(91, 91, 214, 0.7), 0 0 34px -10px rgba(165, 180, 252, 0.75) !important;
+  color: #fff !important;
+  transform: translateY(-2px) !important;
+}
+
+.workflow-page button:disabled,
+.citewise-app-shell button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none !important;
 }
 
 @media (prefers-color-scheme: light) {

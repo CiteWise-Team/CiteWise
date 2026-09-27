@@ -16,7 +16,7 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
   const dropdownItemStyle = {
     background: "transparent",
     border: "none",
-    color: "#e4e4f0",
+    color: "#111827",
     padding: "10px 16px",
     textAlign: "left",
     width: "100%",
@@ -35,8 +35,10 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
         onClick={() => !isExportingPdf && onToggle(!isOpen)}
         disabled={isButtonDisabled}
         style={{
-          background: !isButtonDisabled ? "#5b5bd6" : "rgba(0, 0, 0, 0.15)",
-          color: !isButtonDisabled ? "#e4e4f0" : "#a1a1b5",
+          background: !isButtonDisabled
+            ? "linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+            : "#f3f4f6",
+          color: !isButtonDisabled ? "#ffffff" : "#9ca3af",
           border: "none",
           borderRadius: "8px",
           padding: "8px 16px",
@@ -47,19 +49,20 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
           fontFamily: "'Poppins', sans-serif",
           fontSize: "0.85rem",
           fontWeight: "700",
+          boxShadow: !isButtonDisabled ? "0 4px 12px rgba(249, 115, 22, 0.25)" : "none",
           transition: "background 0.18s ease, transform 0.18s ease, box-shadow 0.22s ease",
         }}
         onMouseEnter={(e) => {
           if (isButtonDisabled) return;
           e.currentTarget.style.transform = "scale(1.04)";
-          e.currentTarget.style.background = "#6f6fe0";
-          e.currentTarget.style.boxShadow = "0 10px 28px rgba(91, 91, 214,0.35), 0 0 40px rgba(91, 91, 214,0.22)";
+          e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
+          e.currentTarget.style.boxShadow = "0 10px 28px rgba(249, 115, 22, 0.35), 0 0 40px rgba(249, 115, 22, 0.22)";
         }}
         onMouseLeave={(e) => {
           if (isButtonDisabled) return;
           e.currentTarget.style.transform = "scale(1)";
-          e.currentTarget.style.background = "#5b5bd6";
-          e.currentTarget.style.boxShadow = "none";
+          e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
         }}
         onMouseDown={(e) => { if (!isButtonDisabled) e.currentTarget.style.transform = "scale(0.98)"; }}
         onMouseUp={(e) => { if (!isButtonDisabled) e.currentTarget.style.transform = "scale(1.04)"; }}
@@ -96,7 +99,7 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
             >
               <path
                 d="M1 1L5 5L9 1"
-                stroke={isEnabled ? "#e4e4f0" : "#a1a1b5"}
+                stroke={isEnabled ? "#ffffff" : "#9ca3af"}
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -112,10 +115,10 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
             position: "absolute",
             top: "calc(100% + 8px)",
             right: 0,
-            background: "#25253a",
-            border: "1px solid #3a3a55",
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
             borderRadius: "8px",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.6)",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
             zIndex: 200,
             width: "200px",
             overflow: "hidden",
@@ -125,7 +128,7 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
           <button
             onClick={() => onExport("PDF")}
             style={dropdownItemStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#302b27")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#fff7ef")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             Export as PDF (.pdf)
@@ -133,7 +136,7 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
           <button
             onClick={() => onExport("DOCX")}
             style={dropdownItemStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#302b27")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#fff7ef")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             Export as Word (.docx)
@@ -141,16 +144,16 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
           <button
             onClick={() => onExport("TXT")}
             style={dropdownItemStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#302b27")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#fff7ef")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             Export as Plain Text (.txt)
           </button>
-          <div style={{ height: "1px", background: "#3a3a55" }} />
+          <div style={{ height: "1px", background: "#e5e7eb" }} />
           <button
             onClick={onCopy}
-            style={{ ...dropdownItemStyle, color: "#6f6fe0" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#302b27")}
+            style={{ ...dropdownItemStyle, color: "#f97316", fontWeight: 600 }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#fff7ef")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             Copy to Clipboard

@@ -2,7 +2,7 @@ import Navbar from "../components/Navbar";
 
 export default function GroupsLayout({ children }) {
   return (
-    <>
+    <div className="groups-layout-wrapper">
       <Navbar />
 
       <div className="groups-shell">
@@ -10,6 +10,6 @@ export default function GroupsLayout({ children }) {
           {children}
         </main>
       </div>
-    </>
+    </div>
   );
 }

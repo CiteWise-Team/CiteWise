@@ -5,7 +5,7 @@ function FilledDocumentIcon() {
       height="18"
       viewBox="0 0 14 18"
       fill="none"
-      style={{ marginRight: "0.25rem", color: "#e4e4f0" }}
+      style={{ marginRight: "0.25rem", color: "#f97316" }}
     >
       <path
         d="M2 0C0.9 0 0.01 0.9 0.01 2L0 16C0 17.1 0.89 18 1.99 18H12C13.1 18 14 17.1 14 16V6L8 0H2ZM8 7V1.5L12.5 6H8Z"
@@ -17,13 +17,13 @@ function FilledDocumentIcon() {
 
 export default function UploadStatusBar({ readyCount, totalCount, statusMessage, uploadState }) {
   const statusColor = {
-    ready: "#5b5bd6",
-    success: "#5b5bd6",
-    uploading: "#5b5bd6",
-    extracting: "#5b5bd6",
-    error: "#e05555",
-    warning: "#e0a835",
-  }[uploadState] || "rgba(240, 236, 230, 0.4)";
+    ready: "#f97316",
+    success: "#16a34a",
+    uploading: "#f97316",
+    extracting: "#f97316",
+    error: "#dc2626",
+    warning: "#d97706",
+  }[uploadState] || "#6b7280";
 
   return (
     <div
@@ -31,8 +31,8 @@ export default function UploadStatusBar({ readyCount, totalCount, statusMessage,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "rgba(0, 0, 0, 0.15)",
-        border: "1px solid #3a3a55",
+        background: "#f9fafb",
+        border: "1px solid #e5e7eb",
         borderRadius: "8px",
         padding: "0.75rem 1.25rem",
         fontSize: "0.85rem",
@@ -41,7 +41,7 @@ export default function UploadStatusBar({ readyCount, totalCount, statusMessage,
         boxSizing: "border-box",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#e4e4f0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#111827" }}>
         <FilledDocumentIcon />
         <span style={{ fontWeight: 600 }}>Files: {totalCount ?? readyCount}</span>
       </div>

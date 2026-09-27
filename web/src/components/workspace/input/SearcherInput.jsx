@@ -127,9 +127,8 @@ export default function SearcherInput({
   };
 
   return (
-    <div className="card h-100 shadow-sm">
+    <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
       <div className="card-header d-flex justify-content-between align-items-center">
-        <h5 className="mb-0">Input</h5>
         <span className="material-symbols-outlined">search</span>
       </div>
 
@@ -142,7 +141,7 @@ export default function SearcherInput({
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
-          <button className="btn btn-primary" onClick={addKeyword}>
+          <button className="btn btn-primary workflow-action-button" onClick={addKeyword}>
             Add
           </button>
         </div>
@@ -171,7 +170,7 @@ export default function SearcherInput({
           onChange={(e) => setInstructions(e.target.value)}
         />
 
-        <button className="btn btn-primary w-100" onClick={onRun}>
+        <button className="btn btn-primary workflow-action-button w-100" onClick={onRun}>
           Run Workflow
         </button>
       </div>

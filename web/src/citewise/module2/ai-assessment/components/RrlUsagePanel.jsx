@@ -6,7 +6,6 @@
 // straight into the synthesis payload.
 
 import { useEffect, useState } from "react";
-import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
 
 export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) {
@@ -40,19 +39,19 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
     <div
       style={{
         marginTop: "24px",
-        background: theme.surfaceAlt,
-        border: `1px solid ${theme.border}`,
+        background: "#f9fafb",
+        border: "1px solid #e5e7eb",
         borderRadius: "12px",
         padding: "18px 20px",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <span style={{ fontFamily: theme.font, fontWeight: 700, fontSize: "15px", color: theme.accent }}>
+        <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "15px", color: "#f97316" }}>
           How this source should be used
         </span>
       </div>
 
-      <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
+      <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
         Override the AI's relevance tier and tell the synthesizer how to weigh this RRL.
       </p>
 
@@ -65,15 +64,17 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
               key={opt.key}
               onClick={() => setUsageChoice(opt.key)}
               style={{
-                background: active ? theme.accent : "transparent",
-                color: active ? "#fff" : theme.text,
-                border: `1px solid ${active ? theme.accent : theme.border}`,
+                background: active ? "#f97316" : "#ffffff",
+                color: active ? "#ffffff" : "#374151",
+                border: `1px solid ${active ? "#f97316" : "#e5e7eb"}`,
                 borderRadius: "999px",
                 padding: "5px 12px",
                 cursor: "pointer",
-                fontFamily: theme.font,
+                fontFamily: "'Poppins', sans-serif",
                 fontSize: "0.76rem",
                 fontWeight: 600,
+                transition: "all 0.2s ease",
+                boxShadow: active ? "0 2px 6px rgba(249, 115, 22, 0.25)" : "none",
               }}
             >
               {opt.label}
@@ -85,7 +86,19 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
       {/* Emphasize specific excerpts */}
       {excerpts.length > 0 && (
         <div>
-          <div style={{ ...ui.label, marginBottom: 8 }}>Mark eye-catching excerpts</div>
+          <div
+            style={{
+              fontSize: "0.72rem",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: "#6b7280",
+              fontFamily: "'Poppins', sans-serif",
+              marginBottom: 8,
+            }}
+          >
+            Mark eye-catching excerpts
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 200, overflowY: "auto" }}>
             {excerpts.map((ex, idx) => {
               const on = emphasized.has(idx);
@@ -97,21 +110,22 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
                     display: "flex",
                     gap: 8,
                     alignItems: "flex-start",
-                    background: on ? theme.accentSoft : "transparent",
-                    border: `1px solid ${on ? theme.accent : theme.border}`,
+                    background: on ? "#fff7ef" : "#ffffff",
+                    border: `1px solid ${on ? "#f97316" : "#e5e7eb"}`,
                     borderRadius: "8px",
                     padding: "8px 10px",
                     cursor: "pointer",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   <input
                     type="checkbox"
                     checked={on}
                     onChange={() => toggleExcerpt(idx)}
-                    style={{ marginTop: 2, width: 15, height: 15, accentColor: theme.accent, cursor: "pointer" }}
+                    style={{ marginTop: 2, width: 15, height: 15, accentColor: "#f97316", cursor: "pointer" }}
                   />
-                  <span style={{ fontSize: "0.78rem", color: theme.text, fontFamily: theme.font, lineHeight: 1.5, fontStyle: "italic" }}>
-                    “{quote.length > 160 ? quote.slice(0, 160) + "…" : quote}”
+                  <span style={{ fontSize: "0.78rem", color: "#1f2937", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5, fontStyle: "italic" }}>
+                    "{quote.length > 160 ? quote.slice(0, 160) + "…" : quote}"
                   </span>
                 </label>
               );
@@ -122,8 +136,20 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
 
       {/* Custom Highlights */}
       <div style={{ marginTop: 16 }}>
-        <div style={{ ...ui.label, marginBottom: 8 }}>Custom Highlights</div>
-        <p style={{ margin: "0 0 10px", fontSize: "0.74rem", color: theme.textMuted, fontFamily: theme.font, lineHeight: 1.5 }}>
+        <div
+          style={{
+            fontSize: "0.72rem",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            color: "#6b7280",
+            fontFamily: "'Poppins', sans-serif",
+            marginBottom: 8,
+          }}
+        >
+          Custom Highlights
+        </div>
+        <p style={{ margin: "0 0 10px", fontSize: "0.74rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
           Paste or type any specific text from the PDF you want the AI to emphasize.
         </p>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
@@ -131,7 +157,28 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
             value={customHighlightText}
             onChange={(e) => setCustomHighlightText(e.target.value)}
             placeholder="Paste highlight here..."
-            style={{ ...ui.input, flex: 1, minHeight: 60, resize: "vertical", fontSize: "0.78rem" }}
+            style={{
+              flex: 1,
+              minHeight: 60,
+              resize: "vertical",
+              fontSize: "0.78rem",
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "10px",
+              color: "#111827",
+              padding: "0.6rem 0.75rem",
+              fontFamily: "'Poppins', sans-serif",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "#f97316";
+              e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "#e5e7eb";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           />
           <button
             onClick={() => {
@@ -140,13 +187,25 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
                 setCustomHighlightText("");
               }
             }}
-            style={{ ...ui.primaryBtn, padding: "6px 12px", fontSize: "0.76rem" }}
             disabled={!customHighlightText.trim()}
+            style={{
+              padding: "6px 12px",
+              fontSize: "0.76rem",
+              background: customHighlightText.trim() ? "#f97316" : "#f3f4f6",
+              color: customHighlightText.trim() ? "#ffffff" : "#9ca3af",
+              border: "none",
+              borderRadius: "8px",
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 700,
+              cursor: customHighlightText.trim() ? "pointer" : "not-allowed",
+              transition: "all 0.2s ease",
+              boxShadow: customHighlightText.trim() ? "0 2px 6px rgba(249, 115, 22, 0.25)" : "none",
+            }}
           >
             Add
           </button>
         </div>
-        
+
         {usage.customExcerpts && usage.customExcerpts.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
             {usage.customExcerpts.map((text, idx) => (
@@ -156,21 +215,21 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
                   display: "flex",
                   gap: 8,
                   alignItems: "flex-start",
-                  background: theme.accentSoft,
-                  border: `1px solid ${theme.accent}`,
+                  background: "#fff7ef",
+                  border: "1px solid #fed7aa",
                   borderRadius: "8px",
                   padding: "8px 10px",
                 }}
               >
-                <span style={{ flex: 1, fontSize: "0.78rem", color: theme.text, fontFamily: theme.font, lineHeight: 1.5, fontStyle: "italic" }}>
-                  “{text}”
+                <span style={{ flex: 1, fontSize: "0.78rem", color: "#1f2937", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5, fontStyle: "italic" }}>
+                  "{text}"
                 </span>
                 <button
                   onClick={() => setUsage(store.removeCustomExcerpt(sessionId, documentId, idx))}
                   style={{
                     background: "none",
                     border: "none",
-                    color: theme.danger,
+                    color: "#dc2626",
                     cursor: "pointer",
                     fontSize: "0.78rem",
                     padding: "0 4px",

@@ -152,7 +152,7 @@
   }
 
   .cw-nav-user {
-    max-width: 46vw;
+    max-width: min(150px, 38vw);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -172,7 +172,7 @@
     max-height: 200px;
     overflow-y: auto;
     border-right: none !important;
-    border-bottom: 1px solid #3a3a55;
+    border-bottom: 1px solid #e5e7eb;
     padding-right: 0 !important;
     padding-bottom: 0.75rem;
   }
