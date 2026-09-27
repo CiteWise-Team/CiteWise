@@ -120,8 +120,8 @@ export default function MetricWeightCustomization({
   // ✨ Local light-theme style overrides
   const cardStyle = isHero
     ? {
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        background: "var(--cw-bg-surface, #ffffff)",
+        border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "16px",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
         padding: "2rem",
@@ -130,8 +130,8 @@ export default function MetricWeightCustomization({
         width: "100%",
       }
     : {
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        background: "var(--cw-bg-surface, #ffffff)",
+        border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "16px",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
         overflow: "hidden",
@@ -141,15 +141,16 @@ export default function MetricWeightCustomization({
     <div className={isHero ? "cw-m-pad" : undefined} style={cardStyle}>
       {!isHero && (
         <button
+          className="workflow-card-header"
           onClick={() => setOpen((o) => !o)}
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             width: "100%",
-            background: "#f9fafb",
+            background: "var(--cw-bg-surface-elevated, #f9fafb)",
             border: "none",
-            borderBottom: open ? "1px solid #e5e7eb" : "none",
+            borderBottom: open ? "1px solid var(--cw-border, #e5e7eb)" : "none",
             cursor: "pointer",
             textAlign: "left",
             padding: "1.125rem 1.5rem",
@@ -161,7 +162,7 @@ export default function MetricWeightCustomization({
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: "1.05rem",
-              color: "#f97316",
+              color: "var(--cw-text-primary, #0f0e17)",
               letterSpacing: "0.01em",
               lineHeight: 1.3,
             }}
@@ -188,7 +189,7 @@ export default function MetricWeightCustomization({
         <div style={{ padding: isHero ? "0" : "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "20px" }}>
           {isHero && (
             <div>
-              <h2 style={{ margin: "0 0 8px 0", color: "#f97316", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
+              <h2 style={{ margin: "0 0 8px 0", color: "var(--cw-text-primary, #0f0e17)", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
                 Metric Weight Customization
               </h2>
               {documents.length > 0 && (

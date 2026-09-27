@@ -42,7 +42,7 @@ const styles = {
   },
   eyebrow: {
     margin: "0 0 10px",
-    color: "#6366f1",
+    color: "#ea580c",
     fontSize: "12px",
     fontWeight: 700,
     letterSpacing: "1.5px",
@@ -51,7 +51,7 @@ const styles = {
   body: { margin: "0 0 28px", color: "#9ca3af", fontSize: "15px", lineHeight: 1.6 },
   actions: { display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" },
   primary: {
-    background: "#6366f1",
+    background: "#ea580c",
     color: "#fff",
     padding: "10px 20px",
     borderRadius: "8px",

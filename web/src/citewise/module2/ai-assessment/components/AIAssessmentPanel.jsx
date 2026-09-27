@@ -227,19 +227,26 @@ const AIAssessmentPanel = ({
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '12px',
+        width: '100%',
       }}
     >
-      <h2
-        style={{
-          fontFamily: "'Poppins', sans-serif",
-          fontSize: '22px',
-          fontWeight: '700',
-          color: '#f97316',
-          margin: 0,
-        }}
-      >
-        AI Assessment Panel
-      </h2>
+      <div>
+        <h2
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontSize: '1.05rem',
+            fontWeight: '700',
+            color: 'var(--cw-text-primary, #0f0e17)',
+            margin: 0,
+            letterSpacing: '0.01em',
+          }}
+        >
+          AI Assessment Panel
+        </h2>
+        <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--cw-text-muted, #6b7280)', fontFamily: "'Poppins', sans-serif" }}>
+          Analyze literature relevance, methodology, and theoretical frameworks.
+        </p>
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
         {documentId && (
           <button

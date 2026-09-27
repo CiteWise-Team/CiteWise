@@ -27,12 +27,13 @@ export default function UploadStatusBar({ readyCount, totalCount, statusMessage,
 
   return (
     <div
+      className="citewise-upload-status-bar"
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#f9fafb",
-        border: "1px solid #e5e7eb",
+        background: "var(--cw-bg-surface-elevated, #f9fafb)",
+        border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "8px",
         padding: "0.75rem 1.25rem",
         fontSize: "0.85rem",
@@ -41,7 +42,7 @@ export default function UploadStatusBar({ readyCount, totalCount, statusMessage,
         boxSizing: "border-box",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#111827" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "var(--cw-text-primary, #111827)" }}>
         <FilledDocumentIcon />
         <span style={{ fontWeight: 600 }}>Files: {totalCount ?? readyCount}</span>
       </div>

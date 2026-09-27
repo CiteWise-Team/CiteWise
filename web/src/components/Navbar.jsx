@@ -124,12 +124,12 @@ export default function Navbar() {
               width: "36px",
               height: "36px",
               borderRadius: "9px",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
+              background: isDark ? "#171624" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e5e7eb",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06)",
+              boxShadow: isDark ? "0 1px 3px rgba(0, 0, 0, 0.25)" : "0 1px 3px rgba(0, 0, 0, 0.06)",
             }}
           >
             <img
@@ -141,7 +141,7 @@ export default function Navbar() {
           <span
             className="brand-text"
             style={{
-              color: "#0f0e17",
+              color: isDark ? "#ffffff" : "#0f0e17",
               fontFamily: "'Sora', sans-serif",
               fontWeight: 700,
               fontSize: "1.25rem",
@@ -311,7 +311,7 @@ export default function Navbar() {
                   </li>
                   <li>
                     <button
-                      className="dropdown-item"
+                      className="dropdown-item d-flex align-items-center gap-2"
                       style={{
                         color: "#e5544b",
                         borderRadius: "6px",
@@ -338,7 +338,8 @@ export default function Navbar() {
                         setShowLogoutConfirm(true);
                       }}
                     >
-                      Logout
+                      <LogOut size={15} color="#ea580c" />
+                      <span>Logout</span>
                     </button>
                   </li>
                 </ul>

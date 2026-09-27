@@ -471,15 +471,7 @@ export default function Home() {
             4. CALL TO ACTION SECTION
             ========================================================================== */}
         <section className="container my-5">
-          <div
-            className="text-center p-5 glass-card reveal"
-            style={{
-              borderRadius: "1.5rem",
-              background: "linear-gradient(180deg, #ffffff 0%, #fff7ed 100%)",
-              borderColor: "rgba(234, 88, 12, 0.25)",
-              boxShadow: "0 20px 50px -15px rgba(234, 88, 12, 0.15)",
-            }}
-          >
+          <div className="text-center p-5 glass-card landing-cta-box reveal">
             <span className="eyebrow-label mb-2 d-inline-block">Start Your Research Journey</span>
             <h2 className="section-title fw-bold mb-3" style={{ fontSize: "clamp(1.8rem, 3vw, 2.4rem)" }}>
               Ready to Discover Your Research Gaps & Draft with CiteWise?
@@ -501,7 +493,7 @@ export default function Home() {
         {/* ==========================================================================
             5. FOOTER
             ========================================================================== */}
-        <footer style={{ borderTop: "1px solid var(--border)", background: "#ffffff" }} className="mt-5 py-5">
+        <footer className="landing-footer mt-5 py-5">
           <div className="container">
             <div className="row g-4">
               <div className="col-md-4">

@@ -115,8 +115,8 @@ export default function QuickNavigationList({
     <div
       className="cw-quicknav"
       style={{
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        background: "var(--cw-bg-surface, #ffffff)",
+        border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "16px",
         padding: "16px",
         display: "flex",
@@ -158,7 +158,7 @@ export default function QuickNavigationList({
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: "14px",
                 fontWeight: "700",
-                color: "#f97316",
+                color: "var(--cw-text-primary, #0f0e17)",
               }}
             >
               Quick Navigation

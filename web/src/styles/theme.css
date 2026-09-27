@@ -6,7 +6,7 @@
 :root {
   --cw-bg-base: #f8f9fb;
   --cw-bg-surface: #ffffff;
-  --cw-bg-surface-elevated: #ffffff;
+  --cw-bg-surface-elevated: #f9fafb;
   --cw-bg-header: #ffffff;
   --cw-bg-input: #ffffff;
   --cw-border: #e5e7eb;
@@ -27,9 +27,10 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --cw-bg-base: #0f0e17;
   --cw-bg-surface: #15141f;
-  --cw-bg-surface-elevated: #1b1a28;
+  --cw-bg-surface-elevated: #1e2638;
   --cw-bg-header: #12111b;
   --cw-bg-input: #100f18;
   --cw-border: rgba(255, 255, 255, 0.1);
@@ -47,6 +48,29 @@
   --cw-bottom-nav-inactive: rgba(255, 255, 255, 0.65);
   --cw-bottom-nav-inactive-hover: #ffffff;
   --cw-bottom-nav-hover-bg: rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   Smooth Theme Switching Transition
+   Prevents jarring brightness / darkness flashes when toggling modes
+   ========================================================================== */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition:
+    background-color 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    background 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 350ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 380ms cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 350ms cubic-bezier(0.4, 0, 0.2, 1),
+    fill 350ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-delay: 0s !important;
+}
+
+body {
+  transition: background-color 300ms ease, color 300ms ease;
 }
 
 /* ==========================================================================
@@ -190,18 +214,27 @@
 }
 
 [data-theme="dark"] .workflow-back-btn,
-[data-theme="dark"] .workflow-guide-button {
-  background-color: #15141f !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  color: #f3f4f6 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+[data-theme="dark"] .workflow-guide-button,
+[data-theme="dark"] .groups-guide-trigger-btn {
+  background-color: #ea580c !important;
+  border-color: #ea580c !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35) !important;
+}
+
+[data-theme="dark"] .workflow-back-btn svg,
+[data-theme="dark"] .workflow-guide-button svg,
+[data-theme="dark"] .groups-guide-trigger-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 [data-theme="dark"] .workflow-back-btn:hover,
-[data-theme="dark"] .workflow-guide-button:hover {
-  border-color: #ea580c !important;
-  color: #ea580c !important;
-  background-color: rgba(234, 88, 12, 0.1) !important;
+[data-theme="dark"] .workflow-guide-button:hover,
+[data-theme="dark"] .groups-guide-trigger-btn:hover {
+  border-color: #c2410c !important;
+  color: #ffffff !important;
+  background-color: #c2410c !important;
 }
 
 /* Desktop Progression Stepper Card */
@@ -217,18 +250,40 @@
   color: #9ca3af !important;
 }
 
+/* 1. Finished Steps: Vibrant Green (matching light mode) */
 [data-theme="dark"] .workflow-progression-node.is-finished:not(.is-current) {
-  background-color: rgba(234, 88, 12, 0.15) !important;
+  background-color: #16a34a !important;
+  border-color: #16a34a !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3) !important;
+}
+
+[data-theme="dark"] .workflow-progression-node.is-finished:not(.is-current):hover {
+  background-color: #15803d !important;
+  border-color: #15803d !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4) !important;
+}
+
+/* 2. Current Step: Vibrant Orange */
+[data-theme="dark"] .workflow-progression-node.is-current.is-finished {
+  background-color: #ea580c !important;
   border-color: #ea580c !important;
-  color: #ea580c !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.25), 0 2px 8px rgba(234, 88, 12, 0.35) !important;
+}
+
+[data-theme="dark"] .workflow-progression-node.is-finished .workflow-progression-check {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 [data-theme="dark"] .workflow-progression-line {
   background-color: #272638 !important;
 }
 
+/* Active connecting line: Green for completed workflow steps */
 [data-theme="dark"] .workflow-progression-line.is-active {
-  background-color: #ea580c !important;
+  background-color: #16a34a !important;
 }
 
 [data-theme="dark"] .workflow-progression-step-label {
@@ -250,11 +305,20 @@
 /* Workflow Cards (Input / Output Panels) */
 [data-theme="dark"] .workflow-card,
 [data-theme="dark"] .workflow-input-card,
-[data-theme="dark"] .workflow-result-card,
-[data-theme="dark"] .workflow-panel {
+[data-theme="dark"] .workflow-result-card {
   background-color: #15141f !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .workflow-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
 }
 
 [data-theme="dark"] .workflow-card-header {
@@ -349,10 +413,135 @@
 /* CiteWise App Shell */
 [data-theme="dark"] .citewise-app-shell {
   background-color: #0f0e17 !important;
+  color: #cbd5e1 !important;
 }
 
 [data-theme="dark"] .citewise-app-shell nav {
-  background-color: #12111b !important;
+  background-color: #0f0e17 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .citewise-app-shell main {
+  background-color: #0f0e17 !important;
+}
+
+/* Citewise layout container wrappers */
+[data-theme="dark"] .citewise-app-shell div[style*="background: #f8f9fb"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: rgb(248, 249, 251)"],
+[data-theme="dark"] .citewise-app-shell div[style*="background:#f8f9fb"] {
+  background: #0f0e17 !important;
+}
+
+/* White cards and panels -> #15141f */
+[data-theme="dark"] .citewise-app-shell div[style*="background: #ffffff"],
+[data-theme="dark"] .citewise-app-shell div[style*="background:#ffffff"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: rgb(255, 255, 255)"],
+[data-theme="dark"] .citewise-app-shell div[style*="backgroundColor: #ffffff"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: rgba(255, 255, 255"],
+[data-theme="dark"] .citewise-app-shell section[style*="background: #ffffff"],
+[data-theme="dark"] .citewise-app-shell article[style*="background: #ffffff"],
+[data-theme="dark"] .citewise-app-shell thead[style*="background: #ffffff"],
+[data-theme="dark"] .citewise-app-shell thead[style*="background: rgb(255, 255, 255)"] {
+  background: #15141f !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Elevated secondary panels / cards */
+[data-theme="dark"] .citewise-app-shell div[style*="background: #f9fafb"],
+[data-theme="dark"] .citewise-app-shell div[style*="background:#f9fafb"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: rgb(249, 250, 251)"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: #f3f4f6"],
+[data-theme="dark"] .citewise-app-shell div[style*="background:#f3f4f6"] {
+  background: #181726 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Inputs, textareas, selects inside CiteWise */
+[data-theme="dark"] .citewise-app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+[data-theme="dark"] .citewise-app-shell textarea,
+[data-theme="dark"] .citewise-app-shell select {
+  background: #100f18 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .citewise-app-shell input::placeholder,
+[data-theme="dark"] .citewise-app-shell textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Headings and bold titles inside CiteWise -> Crisp white #ffffff */
+[data-theme="dark"] .citewise-app-shell h1,
+[data-theme="dark"] .citewise-app-shell h2,
+[data-theme="dark"] .citewise-app-shell h3,
+[data-theme="dark"] .citewise-app-shell h4,
+[data-theme="dark"] .citewise-app-shell h5,
+[data-theme="dark"] .citewise-app-shell h6,
+[data-theme="dark"] .citewise-app-shell strong,
+[data-theme="dark"] .citewise-app-shell [style*="color: #0f0e17"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#0f0e17"],
+[data-theme="dark"] .citewise-app-shell [style*="color: rgb(15, 14, 23)"],
+[data-theme="dark"] .citewise-app-shell [style*="color: #111827"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#111827"],
+[data-theme="dark"] .citewise-app-shell [style*="color: rgb(17, 24, 39)"],
+[data-theme="dark"] .citewise-app-shell [style*="color: #1f2937"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#1f2937"],
+[data-theme="dark"] .citewise-app-shell [style*="color: #000000"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#000"] {
+  color: #ffffff !important;
+}
+
+/* Grayish / secondary fonts inside CiteWise -> Soft readable silver-white #cbd5e1 */
+[data-theme="dark"] .citewise-app-shell p,
+[data-theme="dark"] .citewise-app-shell label,
+[data-theme="dark"] .citewise-app-shell [style*="color: #4b5563"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#4b5563"],
+[data-theme="dark"] .citewise-app-shell [style*="color: rgb(75, 85, 99)"],
+[data-theme="dark"] .citewise-app-shell [style*="color: #6b7280"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#6b7280"],
+[data-theme="dark"] .citewise-app-shell [style*="color: rgb(107, 114, 128)"],
+[data-theme="dark"] .citewise-app-shell [style*="color: #374151"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#374151"] {
+  color: #cbd5e1 !important;
+}
+
+/* Orange text & accents remain vibrant orange */
+[data-theme="dark"] .citewise-app-shell [style*="color: #ea580c"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#ea580c"],
+[data-theme="dark"] .citewise-app-shell [style*="color: rgb(234, 88, 12)"],
+[data-theme="dark"] .citewise-app-shell [style*="color: #f97316"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#f97316"],
+[data-theme="dark"] .citewise-app-shell [style*="color: rgb(249, 115, 22)"],
+[data-theme="dark"] .citewise-app-shell [style*="color: #c2410c"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#c2410c"],
+[data-theme="dark"] .citewise-app-shell .text-orange {
+  color: #f97316 !important;
+}
+
+/* Table styles inside CiteWise */
+[data-theme="dark"] .citewise-app-shell table {
+  color: #cbd5e1 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .citewise-app-shell thead,
+[data-theme="dark"] .citewise-app-shell th {
+  background: #171624 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .citewise-app-shell tr {
+  background: #15141f !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .citewise-app-shell tr:hover {
+  background: #1b1a29 !important;
+}
+
+[data-theme="dark"] .citewise-app-shell td {
+  color: #cbd5e1 !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
@@ -369,17 +558,17 @@
 }
 
 [data-theme="dark"] .workflow-guide-card p {
-  color: #9ca3af !important;
+  color: #cbd5e1 !important;
 }
 
 [data-theme="dark"] .workflow-guide-skip {
-  color: #9ca3af !important;
+  color: #94a3b8 !important;
 }
 
 [data-theme="dark"] .workflow-guide-back {
   background: #11101a !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
-  color: #f3f4f6 !important;
+  color: #cbd5e1 !important;
 }
 
 /* Groups Page */
@@ -392,3 +581,357 @@
   border-color: rgba(255, 255, 255, 0.08) !important;
   color: #f3f4f6 !important;
 }
+
+/* Global Dark Mode Scrollbars */
+[data-theme="dark"] {
+  scrollbar-color: #373649 #12111b;
+}
+
+[data-theme="dark"] * {
+  scrollbar-color: #373649 #12111b;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar,
+[data-theme="dark"] *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track,
+[data-theme="dark"] *::-webkit-scrollbar-track {
+  background: #12111b !important;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb,
+[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background: #373649 !important;
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+  background: #fb923c !important;
+}
+
+/* Lighter Orange Font in Dark Mode for High Readability */
+[data-theme="dark"] .text-orange,
+[data-theme="dark"] .text-warning,
+[data-theme="dark"] .workflow-result-kicker,
+[data-theme="dark"] .groups-guide-progress,
+[data-theme="dark"] .workflow-guide-progress,
+[data-theme="dark"] .workflow-card-header-actions span {
+  color: #fb923c !important;
+}
+
+/* Start new workspace FAB Tooltip dark mode */
+[data-theme="dark"] .fab-tooltip {
+  background: #171624 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f9fafb !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* ==========================================================================
+   CiteWise Comprehensive Dark Mode Styling
+   ========================================================================== */
+[data-theme="dark"] .citewise-app-shell {
+  background: #0f0e17 !important;
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .citewise-app-shell main {
+  background: #0f0e17 !important;
+}
+
+/* Base Surfaces & Cards */
+[data-theme="dark"] .citewise-app-shell div[style*="background: #f8f9fb"],
+[data-theme="dark"] .citewise-app-shell div[style*="background:#f8f9fb"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: rgb(248, 249, 251)"] {
+  background: #0f0e17 !important;
+}
+
+[data-theme="dark"] .citewise-app-shell div[style*="background: #ffffff"],
+[data-theme="dark"] .citewise-app-shell div[style*="background:#ffffff"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: white"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: rgb(255, 255, 255)"],
+[data-theme="dark"] .citewise-app-shell section[style*="background: #ffffff"],
+[data-theme="dark"] .citewise-app-shell aside[style*="background: #ffffff"] {
+  background: #15141f !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #f9fafb !important;
+}
+
+/* Card Headers & Sub-panels */
+[data-theme="dark"] .citewise-app-shell div[style*="background: #f9fafb"],
+[data-theme="dark"] .citewise-app-shell div[style*="background:#f9fafb"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: #fafafc"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: #f3f4f6"],
+[data-theme="dark"] .citewise-app-shell header[style*="background: #f9fafb"],
+[data-theme="dark"] .citewise-app-shell li[style*="background: #f9fafb"],
+[data-theme="dark"] .citewise-app-shell button[style*="background: #f9fafb"] {
+  background: #1a1926 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #e2e8f0 !important;
+}
+
+/* Light Orange / Peach Tints to Dark Warm Tints */
+[data-theme="dark"] .citewise-app-shell div[style*="background: #fff7ef"],
+[data-theme="dark"] .citewise-app-shell div[style*="background: #fff7ed"],
+[data-theme="dark"] .citewise-app-shell span[style*="background: #fff7ef"],
+[data-theme="dark"] .citewise-app-shell span[style*="background: #fff7ed"] {
+  background: rgba(234, 88, 12, 0.14) !important;
+  border-color: rgba(234, 88, 12, 0.3) !important;
+  color: #fb923c !important;
+}
+
+/* Borders */
+[data-theme="dark"] .citewise-app-shell [style*="border: 1px solid #e5e7eb"],
+[data-theme="dark"] .citewise-app-shell [style*="border-bottom: 1px solid #e5e7eb"],
+[data-theme="dark"] .citewise-app-shell [style*="border-top: 1px solid #e5e7eb"],
+[data-theme="dark"] .citewise-app-shell [style*="border-left: 1px solid #e5e7eb"],
+[data-theme="dark"] .citewise-app-shell [style*="border-right: 1px solid #e5e7eb"],
+[data-theme="dark"] .citewise-app-shell [style*="border:1px solid #e5e7eb"],
+[data-theme="dark"] .citewise-app-shell [style*="border: 1px solid #fed7aa"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Typography in Dark Mode */
+[data-theme="dark"] .citewise-app-shell h1,
+[data-theme="dark"] .citewise-app-shell h2,
+[data-theme="dark"] .citewise-app-shell h3,
+[data-theme="dark"] .citewise-app-shell h4,
+[data-theme="dark"] .citewise-app-shell h5,
+[data-theme="dark"] .citewise-app-shell h6,
+[data-theme="dark"] .citewise-app-shell [style*="color: #111827"],
+[data-theme="dark"] .citewise-app-shell [style*="color:#111827"],
+[data-theme="dark"] .citewise-app-shell [style*="color: #0f0e17"],
+[data-theme="dark"] .citewise-app-shell [style*="color: #1f2937"] {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .citewise-app-shell p,
+[data-theme="dark"] .citewise-app-shell [style*="color: #4b5563"],
+[data-theme="dark"] .citewise-app-shell [style*="color: #374151"] {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .citewise-app-shell [style*="color: #6b7280"] {
+  color: #94a3b8 !important;
+}
+
+/* Input Fields & Textareas */
+[data-theme="dark"] .citewise-app-shell input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] .citewise-app-shell textarea,
+[data-theme="dark"] .citewise-app-shell select {
+  background: #100f18 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .citewise-app-shell input::placeholder,
+[data-theme="dark"] .citewise-app-shell textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Dropdown Menus & Modals inside CiteWise */
+[data-theme="dark"] .citewise-app-shell [role="dialog"],
+[data-theme="dark"] .citewise-app-shell [role="menu"] {
+  background: #15141f !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+/* Drag & Drop Upload Zone */
+[data-theme="dark"] .citewise-app-shell [style*="border: 2px dashed"],
+[data-theme="dark"] .citewise-app-shell [style*="border: 1.5px dashed"] {
+  background: rgba(234, 88, 12, 0.05) !important;
+  border-color: rgba(234, 88, 12, 0.4) !important;
+}
+
+/* Generated Draft Paper / Text Display */
+[data-theme="dark"] .citewise-app-shell [contenteditable="true"],
+[data-theme="dark"] .citewise-app-shell .draft-editor,
+[data-theme="dark"] .citewise-app-shell [style*="fontFamily: 'Times New Roman'"],
+[data-theme="dark"] .citewise-app-shell [style*="font-family: 'Times New Roman'"] {
+  background: #12111b !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ==========================================================================
+   CiteWise Header Layout & Divider (Matching CATalyst Bounds & Spacing)
+   ========================================================================== */
+.citewise-app-shell .workflow-header {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+[data-theme="dark"] .citewise-app-shell .workflow-header {
+  border-bottom: 1px solid #2d3748 !important;
+}
+
+/* ==========================================================================
+   CiteWise Panel Headers — Matching CATalyst Input & Output Panels
+   Light Mode: Grayish (#f9fafb) background, Bold Black (#0f0e17) title, #6b7280 description
+   Dark Mode: Darkish (#1e2638) background, Bold White (#ffffff) title, #94a3b8 description
+   ========================================================================== */
+.citewise-app-shell .workflow-card-header,
+.citewise-app-shell .citewise-rrl-card-header,
+.citewise-app-shell .cw-panel-header,
+.citewise-app-shell .card-header,
+.citewise-app-shell .citewise-panel-header {
+  background: #f9fafb !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+[data-theme="dark"] .citewise-app-shell .workflow-card-header,
+[data-theme="dark"] .citewise-app-shell .citewise-rrl-card-header,
+[data-theme="dark"] .citewise-app-shell .cw-panel-header,
+[data-theme="dark"] .citewise-app-shell .card-header,
+[data-theme="dark"] .citewise-app-shell .citewise-panel-header {
+  background: #1e2638 !important;
+  border-bottom: 1px solid #2d3748 !important;
+}
+
+.citewise-app-shell .workflow-card-header-title,
+.citewise-app-shell .card-header-title,
+.citewise-app-shell .cw-panel-title,
+.citewise-app-shell .workflow-panel-title {
+  color: #0f0e17;
+  font-weight: 700;
+}
+
+.citewise-app-shell .workflow-card-header-subtitle,
+.citewise-app-shell .card-header-subtitle,
+.citewise-app-shell .cw-panel-subtitle {
+  color: #6b7280;
+}
+
+[data-theme="dark"] .citewise-app-shell .workflow-card-header-title,
+[data-theme="dark"] .citewise-app-shell .card-header-title,
+[data-theme="dark"] .citewise-app-shell .cw-panel-title,
+[data-theme="dark"] .citewise-app-shell .workflow-panel-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .citewise-app-shell .workflow-card-header-subtitle,
+[data-theme="dark"] .citewise-app-shell .card-header-subtitle,
+[data-theme="dark"] .citewise-app-shell .cw-panel-subtitle {
+  color: #94a3b8 !important;
+}
+
+/* ==========================================================================
+   CiteWise RRL Upload Space — Matching CATalyst Broken Orange Line Design
+   ========================================================================== */
+.citewise-upload-dropzone,
+.workflow-upload-dropzone.citewise-upload-dropzone {
+  border: 2px dashed #ea580c !important;
+  background-color: #fffaf5 !important;
+  border-radius: 16px !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.citewise-upload-dropzone:hover,
+.workflow-upload-dropzone.citewise-upload-dropzone:hover {
+  background-color: #fff3e6 !important;
+  border-color: #c2410c !important;
+}
+
+[data-theme="dark"] .citewise-upload-dropzone,
+[data-theme="dark"] .workflow-upload-dropzone.citewise-upload-dropzone {
+  background: #171624 !important;
+  background-color: #171624 !important;
+  border: 2px dashed #ea580c !important;
+}
+
+[data-theme="dark"] .citewise-upload-dropzone:hover,
+[data-theme="dark"] .workflow-upload-dropzone.citewise-upload-dropzone:hover {
+  background-color: rgba(234, 88, 12, 0.12) !important;
+  border-color: #f97316 !important;
+}
+
+[data-theme="dark"] .citewise-upload-dropzone h6 {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .citewise-upload-dropzone p {
+  color: #cbd5e1 !important;
+}
+
+/* ==========================================================================
+   Checkboxes & Radios in Dark Mode (No White Squares)
+   ========================================================================== */
+[data-theme="dark"] input[type="checkbox"],
+[data-theme="dark"] input[type="radio"] {
+  color-scheme: dark !important;
+  accent-color: #f97316 !important;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   RRL Document Upload & Queue Elements (Dark Mode)
+   ========================================================================== */
+[data-theme="dark"] .citewise-rrl-upload-card,
+[data-theme="dark"] .citewise-rrl-card-header {
+  background: #15141f !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .citewise-queue-container {
+  background: #100f18 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .citewise-queue-header {
+  background: #181724 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .citewise-queue-file-item,
+[data-theme="dark"] .citewise-queue-scroll li {
+  background: #1a1928 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .citewise-queue-file-item p,
+[data-theme="dark"] .citewise-queue-scroll li p {
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .citewise-queue-file-item p:last-child,
+[data-theme="dark"] .citewise-queue-scroll li p:last-child {
+  color: #9ca3af !important;
+}
+
+[data-theme="dark"] .citewise-upload-status-bar {
+  background: #161522 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .citewise-upload-status-bar span {
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .citewise-queue-scroll::-webkit-scrollbar-track {
+  background: #100f18 !important;
+}
+
+/* ==========================================================================
+   Gap Workshop Separate Panels (Dark Mode)
+   ========================================================================== */
+[data-theme="dark"] .citewise-gap-workshop-panel,
+[data-theme="dark"] .citewise-add-gap-panel,
+[data-theme="dark"] .citewise-title-gap-panel {
+  background: #15141f !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .citewise-gap-workshop-panel > div:first-child,
+[data-theme="dark"] .citewise-add-gap-panel > div:first-child,
+[data-theme="dark"] .citewise-title-gap-panel > div:first-child {
+  background: #181724 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+

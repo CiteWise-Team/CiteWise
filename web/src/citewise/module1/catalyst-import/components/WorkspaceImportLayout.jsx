@@ -558,22 +558,23 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
   // ── RRL Upload Card (stacked layout, warm orange header)
   const rrlUploadCard = (
-    <div style={card}>
+    <div style={card} className="citewise-rrl-upload-card" data-guide="citewise-rrl-upload">
       {/* ✨ RRL card header with warm orange gradient */}
       <div
+        className="workflow-card-header citewise-rrl-card-header"
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "1.125rem 1.5rem",
           gap: "1rem",
-          background: "#f9fafb",
-          borderBottom: "1px solid #e5e7eb",
+          background: "var(--cw-bg-surface-elevated, #f9fafb)",
+          borderBottom: "1px solid var(--cw-border, #e5e7eb)",
         }}
       >
         <div>
           <span style={cardTitle}>RRL Document Upload</span>
-          <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif" }}>
+          <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
             Upload PDF research papers to assess against your research gap.
           </p>
         </div>
@@ -585,9 +586,10 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
 
           <div
+            className="citewise-queue-container"
             style={{
-              background: "#f9fafb",
-              border: "1px solid #e5e7eb",
+              background: "var(--cw-bg-base, #f9fafb)",
+              border: "1px solid var(--cw-border, #e5e7eb)",
               borderRadius: "12px",
               display: "flex",
               flexDirection: "column",
@@ -596,10 +598,11 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
             }}
           >
             <div
+              className="citewise-queue-header"
               style={{
                 padding: "0.85rem 1.15rem",
-                borderBottom: "1px solid #e5e7eb",
-                background: "#f3f4f6",
+                borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+                background: "var(--cw-bg-surface-elevated, #f3f4f6)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -656,13 +659,14 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <UploadAllButton onClick={handleUpload} isUploading={uploadState === "uploading"} />
           <div
+            className="citewise-upload-status-bar"
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               gap: "0.5rem",
-              background: "#f9fafb",
-              border: "1px solid #e5e7eb",
+              background: "var(--cw-bg-surface-elevated, #f9fafb)",
+              border: "1px solid var(--cw-border, #e5e7eb)",
               borderRadius: "8px",
               padding: "0.45rem 0.75rem",
               fontSize: "0.72rem",
@@ -673,7 +677,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           >
             <span
               style={{
-                color: "#6b7280",
+                color: "var(--cw-text-muted, #6b7280)",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -697,7 +701,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
                     ? "#d97706"
                     : uploadState === "error"
                     ? "#dc2626"
-                    : "#6b7280",
+                    : "var(--cw-text-muted, #6b7280)",
                 whiteSpace: "nowrap",
                 flexShrink: 0,
               }}
@@ -711,7 +715,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   );
 
   return (
-    <div style={{ width: "100%", margin: "0 auto", padding: isMobile ? "1rem 1rem 1.5rem" : "2rem clamp(2rem, 4vw, 4rem) 3rem", display: "flex", flexDirection: "column", gap: isMobile ? "1.25rem" : "2rem", boxSizing: "border-box", background: "#f8f9fb" }}>
+    <div style={{ width: "100%", margin: "0 auto", padding: 0, display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "24px", boxSizing: "border-box", background: "transparent" }}>
       {styleInject}
 
       {duplicateToast.show && (
@@ -765,7 +769,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(255, 255, 255, 0.85)",
+          background: "rgba(0, 0, 0, 0.6)",
           backdropFilter: "blur(12px)",
           display: "flex",
           alignItems: "center",
@@ -774,8 +778,8 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           animation: "fadeInToast 0.3s ease-out forwards",
         }}>
           <div style={{
-            background: "#ffffff",
-            border: "1px solid #e5e7eb",
+            background: "var(--cw-bg-surface, #ffffff)",
+            border: "1px solid var(--cw-border, #e5e7eb)",
             borderRadius: "24px",
             padding: isMobile ? "2rem 1.25rem" : "2.5rem 3rem",
             maxWidth: "480px",
@@ -810,7 +814,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 800,
               fontSize: "1.5rem",
-              color: "#111827",
+              color: "var(--cw-text-primary, #111827)",
               margin: "0 0 0.5rem 0",
               letterSpacing: "0.01em",
             }}>
@@ -820,7 +824,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
             <p style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.95rem",
-              color: "#6b7280",
+              color: "var(--cw-text-secondary, #6b7280)",
               lineHeight: "1.6",
               margin: "0 0 1.75rem 0",
             }}>
@@ -830,7 +834,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
             <div style={{
               width: "100%",
               height: "4px",
-              background: "#e5e7eb",
+              background: "var(--cw-border, #e5e7eb)",
               borderRadius: "2px",
               overflow: "hidden",
             }}>
@@ -846,38 +850,33 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
         </div>
       )}
 
-      {/* ── Page header ─────────────────────────────────────────── */}
-      <div>
-        <h1 style={{ margin: 0, fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: isMobile ? "1.3rem" : "1.5rem", color: "#111827", letterSpacing: "-0.01em" }}>
-          Data Import
-        </h1>
-        <p style={{ margin: "4px 0 0", fontFamily: "'Poppins', sans-serif", fontSize: "0.875rem", color: "#6b7280" }}>
-          Connect your CATalyst workspace, upload RRL documents, then refine your research gap.
-        </p>
-      </div>
 
       {/* ── Two-column grid ─────────────────────────────────────── */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: catalystData && !isMobile ? "minmax(0, 1fr) 420px" : "minmax(0, 1fr)",
-          gap: isMobile ? "1.25rem" : "2rem",
+          gap: isMobile ? "16px" : "14px",
           alignItems: "start",
         }}
       >
         {/* LEFT COLUMN — CATalyst Workspace + Gap Workshop */}
-        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "1.25rem" : "2rem", minWidth: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "14px", minWidth: 0 }}>
 
           {/* CATalyst Workspace card */}
-          <div style={card}>
-            <div style={{ ...cardHeader, ...(isMobile && { flexWrap: "wrap", padding: "1rem" }) }}>
+          <div style={card} data-guide="citewise-catalyst-workspace">
+            <div className="workflow-card-header" style={{ ...cardHeader, ...(isMobile && { flexWrap: "wrap", padding: "1rem" }) }}>
               <div>
                 <span style={cardTitle}>
-                  <span style={{ color: "#ea580c" }}>CAT</span>alyst Workspace
+                  CATalyst Workspace
                 </span>
-                {catalystData && (
-                  <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif" }}>
+                {catalystData ? (
+                  <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
                     Loaded — title, rationale and gaps imported.
+                  </p>
+                ) : (
+                  <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
+                    Import research questions, rationale, and gaps from CATalyst.
                   </p>
                 )}
               </div>
@@ -967,8 +966,8 @@ const styleInject = (
 
 // ── Shared style tokens ──────────────────────────────────────────
 const card = {
-  background: "#ffffff",
-  border: "1px solid #e5e7eb",
+  background: "var(--cw-bg-surface, #ffffff)",
+  border: "1px solid var(--cw-border, #e5e7eb)",
   borderRadius: "16px",
   overflow: "hidden",
   animation: "cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both",
@@ -981,16 +980,16 @@ const cardHeader = {
   alignItems: "center",
   justifyContent: "space-between",
   padding: "1.125rem 1.5rem",
-  borderBottom: "1px solid #e5e7eb",
+  borderBottom: "1px solid var(--cw-border, #e5e7eb)",
   gap: "1rem",
-  background: "#f9fafb",
+  background: "var(--cw-bg-surface-elevated, #f9fafb)",
 };
 
 const cardTitle = {
   fontFamily: "'Poppins', sans-serif",
   fontWeight: 700,
   fontSize: "1.05rem",
-  color: "#111827",
+  color: "var(--cw-text-primary, #111827)",
   letterSpacing: "0.01em",
   flexShrink: 0,
 };

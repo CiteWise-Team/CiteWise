@@ -1,4 +1,7 @@
+import { useTheme } from "../../context/ThemeContext";
+
 export default function FeedbackModal({ isOpen, type, title, message, onClose }) {
+  const { isDark } = useTheme();
   if (!isOpen) return null;
 
   const isSuccess = type === "success";
@@ -9,7 +12,7 @@ export default function FeedbackModal({ isOpen, type, title, message, onClose })
       tabIndex="-1"
       role="dialog"
       aria-modal="true"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.65)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}
@@ -18,13 +21,13 @@ export default function FeedbackModal({ isOpen, type, title, message, onClose })
         <div
           className="modal-content text-center p-4"
           style={{
-            backgroundColor: "#ffffff",
-            border: "none",
+            backgroundColor: isDark ? "#15141f" : "#ffffff",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
             outline: "none",
             borderRadius: "16px",
-            color: "#4b5563",
+            color: isDark ? "#cbd5e1" : "#4b5563",
             fontFamily: "'Poppins', sans-serif",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.15)",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.3)",
           }}
         >
 
@@ -54,8 +57,8 @@ export default function FeedbackModal({ isOpen, type, title, message, onClose })
           </div>
 
           {/* Text */}
-          <h5 className="fw-bold" style={{ color: "#0f0e17" }}>{title}</h5>
-          <p className="mb-4" style={{ color: "#4b5563" }}>{message}</p>
+          <h5 className="fw-bold" style={{ color: isDark ? "#ffffff" : "#0f0e17" }}>{title}</h5>
+          <p className="mb-4" style={{ color: isDark ? "#cbd5e1" : "#4b5563" }}>{message}</p>
 
           {/* OK Button */}
           <button

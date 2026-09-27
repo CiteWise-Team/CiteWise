@@ -43,15 +43,15 @@ button {
   font-size: 0.9rem;
   font-weight: 600;
   font-family: inherit;
-  background: linear-gradient(135deg, #5b5bd6, #4a4ac2);
+  background: linear-gradient(135deg, #ea580c, #c2410c);
   color: #fff;
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 button:hover {
-  border-color: #a5b4fc;
-  background: linear-gradient(135deg, #7777e8, #5b5bd6);
-  box-shadow: 0 10px 24px -8px rgba(91, 91, 214, 0.65);
+  border-color: #fdba74;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  box-shadow: 0 10px 24px -8px rgba(234, 88, 12, 0.55);
   transform: translateY(-1px);
 }
 button:focus,
@@ -73,14 +73,14 @@ button:focus-visible {
 .citewise-app-shell button:not([aria-label]):not([title]),
 .citewise-app-shell button.btn {
   min-height: 42px !important;
-  border: 1px solid #7777e8 !important;
+  border: 1px solid rgba(234, 88, 12, 0.4) !important;
   border-radius: 12px !important;
   padding: 0.65rem 1.5rem !important;
-  background: linear-gradient(135deg, #5b5bd6, #4a4ac2) !important;
+  background: linear-gradient(135deg, #ea580c, #c2410c) !important;
   color: #fff !important;
   font-size: 0.9rem !important;
   font-weight: 600 !important;
-  box-shadow: 0 0 24px -8px rgba(91, 91, 214, 0.45) !important;
+  box-shadow: 0 0 24px -8px rgba(234, 88, 12, 0.35) !important;
   transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease !important;
 }
 
@@ -92,9 +92,9 @@ button:focus-visible {
 .workflow-page button.btn:focus-visible,
 .citewise-app-shell button:not([aria-label]):not([title]):focus-visible,
 .citewise-app-shell button.btn:focus-visible {
-  border-color: #a5b4fc !important;
-  background: linear-gradient(135deg, #7777e8, #5b5bd6) !important;
-  box-shadow: 0 14px 34px -8px rgba(91, 91, 214, 0.7), 0 0 34px -10px rgba(165, 180, 252, 0.75) !important;
+  border-color: #fdba74 !important;
+  background: linear-gradient(135deg, #f97316, #ea580c) !important;
+  box-shadow: 0 14px 34px -8px rgba(234, 88, 12, 0.6), 0 0 34px -10px rgba(251, 146, 60, 0.65) !important;
   color: #fff !important;
   transform: translateY(-2px) !important;
 }

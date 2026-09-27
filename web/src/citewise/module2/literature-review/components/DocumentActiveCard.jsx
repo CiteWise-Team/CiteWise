@@ -21,14 +21,15 @@ export default function DocumentActiveCard({
       >
         {/* Header: No documents */}
         <div
+          className="workflow-card-header"
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             marginBottom: 0,
             padding: "1.125rem 1.5rem",
-            background: "#f9fafb",
-            borderBottom: "1px solid #e5e7eb",
+            background: "var(--cw-bg-surface-elevated, #f9fafb)",
+            borderBottom: "1px solid var(--cw-border, #e5e7eb)",
           }}
         >
           <span
@@ -36,7 +37,7 @@ export default function DocumentActiveCard({
               fontFamily: "'Poppins', sans-serif",
               fontSize: "15px",
               fontWeight: "700",
-              color: "#f97316",
+              color: "var(--cw-text-primary, #0f0e17)",
             }}
           >
             No documents uploaded

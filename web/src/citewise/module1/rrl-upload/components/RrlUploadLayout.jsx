@@ -556,9 +556,10 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
       >
         <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
         <div
+          className="citewise-queue-container"
           style={{
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
+            background: "var(--cw-bg-base, #f9fafb)",
+            border: "1px solid var(--cw-border, #e5e7eb)",
             borderRadius: "8px",
             display: "flex",
             flexDirection: "column",
@@ -568,10 +569,11 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           }}
         >
           <div
+            className="citewise-queue-header"
             style={{
               padding: "0.625rem 0.875rem",
-              borderBottom: "1px solid #e5e7eb",
-              background: "#f3f4f6",
+              borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+              background: "var(--cw-bg-surface-elevated, #f3f4f6)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",

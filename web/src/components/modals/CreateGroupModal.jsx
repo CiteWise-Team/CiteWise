@@ -1,17 +1,19 @@
 import { useState } from "react";
+import { useTheme } from "../../context/ThemeContext";
 
 const COLORS = [
 "#7a1e1e", // maroon
 "#d4af37", // gold
 "#1e40af", // blue
 "#047857", // green
-"#7c3aed", // purple
+"#ea580c", // orange
 "#be123c", // rose
 "#0f766e", // teal
 "#374151", // gray
 ];
 
 export default function CreateGroupModal({ onSubmit }) {
+  const { isDark } = useTheme();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState(COLORS[0]);
@@ -51,7 +53,7 @@ export default function CreateGroupModal({ onSubmit }) {
                 <path d="M 0,28 C 140,14 260,42 390,20 C 470,8 540,26 600,32 L 600,56 L 0,56 Z" fill="rgba(251, 191, 36, 0.4)" />
                 <path d="M 0,36 C 130,50 250,22 370,38 C 450,48 520,32 600,26 L 600,56 L 0,56 Z" fill="rgba(192, 132, 252, 0.35)" />
                 <path d="M 0,30 C 150,44 270,16 400,32 C 480,42 550,28 600,24 L 600,56 L 0,56 Z" fill="rgba(251, 146, 60, 0.3)" />
-                <path d="M 0,38 C 140,52 260,26 390,42 C 470,52 540,38 600,34 L 600,56 L 0,56 Z" fill="#ffffff" />
+                <path d="M 0,38 C 140,52 260,26 390,42 C 470,52 540,38 600,34 L 600,56 L 0,56 Z" fill={isDark ? "#15141f" : "#ffffff"} />
               </svg>
             </div>
           </div>

@@ -35,12 +35,29 @@ export function ThemeProvider({ children }) {
     }
   }, [theme]);
 
+  const triggerTransition = () => {
+    try {
+      const root = document.documentElement;
+      root.classList.add("theme-transitioning");
+      if (window.__themeTransitionTimeout) {
+        clearTimeout(window.__themeTransitionTimeout);
+      }
+      window.__themeTransitionTimeout = setTimeout(() => {
+        root.classList.remove("theme-transitioning");
+      }, 450);
+    } catch {
+      // ignore
+    }
+  };
+
   const toggleTheme = () => {
+    triggerTransition();
     setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
   const setTheme = (newTheme) => {
     if (newTheme === "dark" || newTheme === "light") {
+      triggerTransition();
       setThemeState(newTheme);
     }
   };
