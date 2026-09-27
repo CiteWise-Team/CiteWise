@@ -798,12 +798,13 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
           width: "100%",
           margin: "0 auto",
           padding: 0,
+          paddingBottom: isMobile ? "80px" : "100px",
           boxSizing: "border-box",
           flex: 1,
           display: isMobile ? "flex" : "grid",
           flexDirection: "column",
-          gridTemplateColumns: "320px minmax(0, 1fr)",
-          gap: isMobile ? "16px" : "24px",
+          gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "420px minmax(0, 1fr)",
+          gap: isMobile ? "16px" : "14px",
           minHeight: 0,
           alignItems: isMobile ? "stretch" : "start",
           background: "transparent",
@@ -811,7 +812,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       >
         {/* On phones the sidebar dissolves so the active document and its
             assessment come first, with the document list below them. */}
-        <div style={isMobile ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: "24px", minHeight: 0 }}>
+        <div style={isMobile ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "14px", minHeight: 0 }}>
           <div style={{ order: 0, minWidth: 0 }} data-guide="citewise-active-doc">
             <DocumentActiveCard
               documents={documents}

@@ -1,16 +1,20 @@
+import { useTheme } from "../../../../context/ThemeContext";
+
 export default function DocumentActiveCard({
   documents = [],
   currentIndex = 0,
   onNavigate,
 }) {
+  const { isDark } = useTheme();
   const hasDocs = documents.length > 0;
 
   if (!hasDocs) {
     return (
       <div
+        className="citewise-card"
         style={{
-          background: "#ffffff",
-          border: "1px solid #e5e7eb",
+          background: "var(--cw-bg-surface, #ffffff)",
+          border: "1px solid var(--cw-border, #e5e7eb)",
           borderRadius: "16px",
           padding: 0,
           display: "flex",
@@ -33,6 +37,7 @@ export default function DocumentActiveCard({
           }}
         >
           <span
+            className="workflow-card-header-title"
             style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: "15px",
@@ -49,8 +54,8 @@ export default function DocumentActiveCard({
             width: "48px",
             height: "48px",
             borderRadius: "50%",
-            background: "#fff7ef",
-            border: "1px solid #fed7aa",
+            background: isDark ? "rgba(249, 115, 22, 0.15)" : "#fff7ef",
+            border: isDark ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid #fed7aa",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -66,7 +71,7 @@ export default function DocumentActiveCard({
           <span style={{
             fontFamily: "'Poppins', sans-serif",
             fontSize: "0.85rem",
-            color: "#6b7280",
+            color: isDark ? "#94a3b8" : "#6b7280",
             lineHeight: "1.5",
           }}>
             Upload PDF candidates using the upload button to view and manage their AI assessments.
@@ -77,12 +82,14 @@ export default function DocumentActiveCard({
   }
 
   const doc = documents[currentIndex];
+  const cardBgColor = isDark ? "#15141f" : "#ffffff";
 
   return (
     <div
+      className="citewise-card"
       style={{
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
+        background: "var(--cw-bg-surface, #ffffff)",
+        border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "16px",
         padding: "16px",
         display: "flex",
@@ -116,7 +123,7 @@ export default function DocumentActiveCard({
             boxShadow: "0 2px 6px rgba(249, 115, 22, 0.25)",
           }}
         >
-          {/* Dog-ear triangle overlay — matches white card bg */}
+          {/* Dog-ear triangle overlay — matches card bg */}
           <div
             style={{
               position: "absolute",
@@ -126,7 +133,7 @@ export default function DocumentActiveCard({
               height: 0,
               borderStyle: "solid",
               borderWidth: "0 10px 10px 0",
-              borderColor: "transparent transparent #ffffff #ffffff",
+              borderColor: `transparent transparent ${cardBgColor} ${cardBgColor}`,
               borderTopRightRadius: "4px",
             }}
           />
@@ -149,7 +156,7 @@ export default function DocumentActiveCard({
               fontFamily: "'Poppins', sans-serif",
               fontSize: "14px",
               fontWeight: "600",
-              color: "#111827",
+              color: isDark ? "#ffffff" : "#111827",
               marginBottom: "4px",
               wordWrap: "break-word",
               whiteSpace: "normal",
@@ -162,7 +169,7 @@ export default function DocumentActiveCard({
               style={{
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: "12px",
-                color: "#6b7280",
+                color: isDark ? "#cbd5e1" : "#6b7280",
                 marginBottom: "4px",
                 fontStyle: "italic",
                 wordWrap: "break-word",
@@ -176,7 +183,7 @@ export default function DocumentActiveCard({
             style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: "12px",
-              color: "#9ca3af",
+              color: isDark ? "#94a3b8" : "#9ca3af",
             }}
           >
             {doc.size}

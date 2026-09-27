@@ -2197,8 +2197,9 @@
 }
 
 [data-theme="dark"] .workflow-card-header {
-  background: #12111b !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #1e2638 !important;
+  background-color: #1e2638 !important;
+  border-bottom: 1px solid #2d3748 !important;
 }
 
 [data-theme="dark"] .workflow-card-header h4,

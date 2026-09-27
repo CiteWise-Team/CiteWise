@@ -1,3 +1,5 @@
+import { useTheme } from "../../../../context/ThemeContext";
+
 // Metrics definition using first file's keys, but labels from second file
 const METRICS = [
   { label: "Gap Alignment", key: "gapAlignment" },
@@ -69,6 +71,7 @@ const getPercentage = (value) => {
 };
 
 const ScoreBar = ({ label, value }) => {
+  const { isDark } = useTheme();
   const percent = getPercentage(value);
   return (
     <div
@@ -85,7 +88,7 @@ const ScoreBar = ({ label, value }) => {
           fontFamily: "'Poppins', sans-serif",
           fontSize: "13px",
           fontWeight: 500,
-          color: "#374151",
+          color: isDark ? "#cbd5e1" : "#374151",
           whiteSpace: "nowrap",
         }}
       >
@@ -96,10 +99,10 @@ const ScoreBar = ({ label, value }) => {
       <div
         style={{
           height: "8px",
-          background: "#f3f4f6",
+          background: isDark ? "#222034" : "#f3f4f6",
           borderRadius: "4px",
           overflow: "hidden",
-          border: "1px solid #e5e7eb",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
         }}
       >
         <div
@@ -130,6 +133,8 @@ const ScoreBar = ({ label, value }) => {
 };
 
 const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceLevel, relevanceLevel, weaknessFlags = [], validationFlags = [], metricWeights }) => {
+  const { isDark } = useTheme();
+
   const displayValidationFlags = validationFlags.filter((flag) => {
     const label = String(flag ?? "");
     if (getPercentage(scores.theoretical) === 0 && /^Theory\/Framework.*capped/i.test(label)) {
@@ -145,7 +150,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
           style={{
             fontFamily: "'Poppins', sans-serif",
             fontSize: "13px",
-            color: "#9ca3af",
+            color: isDark ? "#94a3b8" : "#9ca3af",
             lineHeight: 1.65,
             marginBottom: "6px",
             fontWeight: 400,
@@ -167,7 +172,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
           style={{
             fontFamily: "'Poppins', sans-serif",
             fontSize: "13px",
-            color: "#374151",
+            color: isDark ? "#cbd5e1" : "#374151",
             lineHeight: 1.65,
             marginBottom: "6px",
             fontWeight: 400,
@@ -222,9 +227,9 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
           style={{
             padding: "4px 10px",
             borderRadius: "12px",
-            background: "#fff7ef",
-            border: "1px solid #fed7aa",
-            color: "#9a3412",
+            background: isDark ? "rgba(249, 115, 22, 0.12)" : "#fff7ef",
+            border: isDark ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid #fed7aa",
+            color: isDark ? "#f97316" : "#9a3412",
             fontSize: "11px",
             fontFamily: "'Poppins', sans-serif",
             fontWeight: 500,
@@ -265,7 +270,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "#fff7ef",
+              backgroundColor: isDark ? "#171624" : "#fff7ef",
               boxShadow: "0 0 20px rgba(249, 115, 22, 0.15)",
             }}
           >
@@ -274,7 +279,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: "48px",
                 fontWeight: "800",
-                color: "#111827",
+                color: isDark ? "#ffffff" : "#111827",
               }}
             >
               {overallScore}
@@ -286,7 +291,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: "14px",
                 fontWeight: "700",
-                color: displayStatus.toUpperCase() === 'RECOMMENDED' ? '#f97316' : '#6b7280',
+                color: displayStatus.toUpperCase() === 'RECOMMENDED' ? '#f97316' : (isDark ? '#cbd5e1' : '#6b7280'),
                 textAlign: "center",
               }}
             >
@@ -324,8 +329,8 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
           style={{
             padding: "20px",
             borderRadius: "8px",
-            border: "1px solid #e5e7eb",
-            backgroundColor: "#f9fafb",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
+            backgroundColor: isDark ? "#171624" : "#f9fafb",
             minHeight: "108px",
             display: "flex",
             flexDirection: "column",
@@ -353,7 +358,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
               fontFamily: "'Poppins', sans-serif",
               fontSize: "30px",
               fontWeight: "800",
-              color: "#111827",
+              color: isDark ? "#ffffff" : "#111827",
               lineHeight: 1,
               width: "100%",
               textAlign: "center",
@@ -368,8 +373,8 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
           style={{
             padding: "20px",
             borderRadius: "8px",
-            border: "1px solid #e5e7eb",
-            backgroundColor: "#f9fafb",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
+            backgroundColor: isDark ? "#171624" : "#f9fafb",
             minHeight: "108px",
             display: "flex",
             flexDirection: "column",
@@ -397,7 +402,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
               fontFamily: "'Poppins', sans-serif",
               fontSize: "30px",
               fontWeight: "800",
-              color: "#111827",
+              color: isDark ? "#ffffff" : "#111827",
               lineHeight: 1,
               width: "100%",
               textAlign: "center",
@@ -412,8 +417,8 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
           style={{
             padding: "20px",
             borderRadius: "8px",
-            border: "1px solid #e5e7eb",
-            backgroundColor: "#f9fafb",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
+            backgroundColor: isDark ? "#171624" : "#f9fafb",
           }}
         >
           <div
@@ -444,8 +449,8 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
           style={{
             padding: "20px",
             borderRadius: "8px",
-            border: "1px solid #e5e7eb",
-            backgroundColor: "#f9fafb",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
+            backgroundColor: isDark ? "#171624" : "#f9fafb",
           }}
         >
           <div

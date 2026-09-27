@@ -169,9 +169,8 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                 return (
                   <div
                     key={gap.id}
+                    className={`citewise-gap-card ${gap.selected ? "selected" : ""}`}
                     style={{
-                      background: gap.selected ? "rgba(249, 115, 22, 0.06)" : "var(--cw-bg-surface-elevated, #f9fafb)",
-                      border: `1px solid ${gap.selected ? "#f97316" : "var(--cw-border, #e5e7eb)"}`,
                       borderRadius: "12px",
                       padding: "1rem",
                       transition: "border-color 0.15s ease, background 0.15s ease",
@@ -284,50 +283,36 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                             </button>
                           </>
                         ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={saveEdit}
-                              title="Save changes"
-                              aria-label="Save changes"
-                              style={{
-                                background: "#f97316",
-                                border: "none",
-                                borderRadius: "6px",
-                                color: "#ffffff",
-                                cursor: "pointer",
-                                padding: "4px 8px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px",
-                                fontSize: "0.72rem",
-                                fontWeight: 700,
-                                fontFamily: "'Poppins', sans-serif",
-                              }}
-                            >
-                              <Check size={13} />
-                              <span>Save</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingId(null)}
-                              title="Cancel"
-                              aria-label="Cancel"
-                              style={{
-                                background: "transparent",
-                                border: "1px solid var(--cw-border, #e5e7eb)",
-                                borderRadius: "6px",
-                                color: "var(--cw-text-muted, #9ca3af)",
-                                cursor: "pointer",
-                                padding: "4px 6px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <X size={13} />
-                            </button>
-                          </>
+                          <button
+                            type="button"
+                            onClick={() => { setEditingId(null); setEditingText(""); }}
+                            title="Cancel editing"
+                            aria-label="Cancel editing"
+                            style={{
+                              background: "transparent",
+                              border: "1px solid var(--cw-border, #e5e7eb)",
+                              borderRadius: "6px",
+                              color: "var(--cw-text-muted, #9ca3af)",
+                              cursor: "pointer",
+                              padding: "5px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              transition: "all 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = "#dc2626";
+                              e.currentTarget.style.borderColor = "#dc2626";
+                              e.currentTarget.style.background = "rgba(220, 38, 38, 0.08)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = "var(--cw-text-muted, #9ca3af)";
+                              e.currentTarget.style.borderColor = "var(--cw-border, #e5e7eb)";
+                              e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            <X size={14} />
+                          </button>
                         )}
                       </div>
                     </div>
@@ -356,21 +341,24 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                             boxShadow: "0 0 0 2px rgba(249, 115, 22, 0.15)",
                           }}
                         />
-                        <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                        <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
                           <button
                             type="button"
                             onClick={saveEdit}
-                            style={{ background: "#f97316", color: "#fff", border: "none", borderRadius: "7px", padding: "5px 14px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.76rem", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }}
+                            disabled={!editingText.trim()}
+                            className="citewise-gap-btn-save"
+                            title={!editingText.trim() ? "Enter gap text to save" : "Save changes"}
                           >
-                            <Check size={13} />
+                            <Check size={14} />
                             <span>Save</span>
                           </button>
                           <button
                             type="button"
-                            onClick={() => setEditingId(null)}
-                            style={{ background: "transparent", color: "var(--cw-text-secondary, #374151)", border: "1px solid var(--cw-border, #e5e7eb)", borderRadius: "7px", padding: "5px 14px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.76rem", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}
+                            onClick={() => { setEditingId(null); setEditingText(""); }}
+                            className="citewise-gap-btn-cancel"
+                            title="Cancel editing"
                           >
-                            <X size={13} />
+                            <X size={14} />
                             <span>Cancel</span>
                           </button>
                         </div>

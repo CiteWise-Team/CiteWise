@@ -1,4 +1,5 @@
 import useIsMobile, { MOBILE_TABBAR_HEIGHT } from "../../../../hooks/useIsMobile";
+import { useTheme } from "../../../../context/ThemeContext";
 
 export default function ValidationSummaryFooter({
     approvedCount = 0,
@@ -8,32 +9,35 @@ export default function ValidationSummaryFooter({
 }) {
     const canProceed = approvedCount > 0;
     const isMobile = useIsMobile();
+    const { isDark } = useTheme();
 
     return (
         <footer
             style={{
-                background: "linear-gradient(180deg, #fffaf5 0%, #fff5ec 100%)",
-                borderTop: "1px solid rgba(249, 115, 22, 0.18)",
+                background: isDark ? "#15141f" : "linear-gradient(180deg, #fffaf5 0%, #fff5ec 100%)",
+                borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(249, 115, 22, 0.18)",
                 height: isMobile ? "64px" : "72px",
                 display: "flex",
                 alignItems: "center",
-                position: "sticky",
+                position: "fixed",
                 bottom: isMobile ? `calc(${MOBILE_TABBAR_HEIGHT}px + env(safe-area-inset-bottom))` : 0,
+                left: 0,
+                right: 0,
                 zIndex: 100,
                 width: "100%",
-                boxShadow: "0 -2px 12px rgba(249, 115, 22, 0.06)",
+                boxShadow: isDark ? "0 -4px 16px rgba(0, 0, 0, 0.4)" : "0 -2px 12px rgba(249, 115, 22, 0.06)",
             }}
         >
             <div
                 style={{
-                    maxWidth: 1280,
                     width: "100%",
                     margin: "0 auto",
-                    padding: isMobile ? "0 12px" : "0 32px",
+                    padding: isMobile ? "0 1rem" : "0 clamp(1rem, 4vw, 4rem)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: isMobile ? "10px" : "24px",
+                    boxSizing: "border-box",
                 }}
             >
                 {/* Stats */}
@@ -50,7 +54,7 @@ export default function ValidationSummaryFooter({
                                 fontFamily: "'Poppins', sans-serif",
                                 fontSize: isMobile ? "18px" : "24px",
                                 fontWeight: "700",
-                                color: "#111827",
+                                color: isDark ? "#ffffff" : "#111827",
                                 lineHeight: 1.1,
                             }}
                         >
@@ -78,7 +82,7 @@ export default function ValidationSummaryFooter({
                                 fontFamily: "'Poppins', sans-serif",
                                 fontSize: isMobile ? "18px" : "24px",
                                 fontWeight: "700",
-                                color: "#111827",
+                                color: isDark ? "#ffffff" : "#111827",
                                 lineHeight: 1.1,
                             }}
                         >
@@ -109,8 +113,8 @@ export default function ValidationSummaryFooter({
                         gap: "10px",
                         background: canProceed
                             ? "linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
-                            : "#f3f4f6",
-                        border: "none",
+                            : (isDark ? "rgba(255, 255, 255, 0.08)" : "#f3f4f6"),
+                        border: canProceed ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none"),
                         borderRadius: "8px",
                         padding: isMobile ? "12px 14px" : "14px 28px",
                         cursor: canProceed ? "pointer" : "not-allowed",
@@ -141,7 +145,7 @@ export default function ValidationSummaryFooter({
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                         <path
                             d="M3 9H15M15 9L10.5 4.5M15 9L10.5 13.5"
-                            stroke={canProceed ? "#ffffff" : "#9ca3af"}
+                            stroke={canProceed ? "#ffffff" : (isDark ? "#6b7280" : "#9ca3af")}
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -152,7 +156,7 @@ export default function ValidationSummaryFooter({
                             fontFamily: "'Poppins', sans-serif",
                             fontSize: "14px",
                             fontWeight: "700",
-                            color: canProceed ? "#ffffff" : "#9ca3af",
+                            color: canProceed ? "#ffffff" : (isDark ? "#6b7280" : "#9ca3af"),
                             whiteSpace: "nowrap",
                             letterSpacing: "0.2px",
                         }}
