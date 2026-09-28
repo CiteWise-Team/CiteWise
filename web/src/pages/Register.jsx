@@ -10,7 +10,8 @@ import {
   Sparkles, 
   ShieldCheck, 
   FileText, 
-  CheckCircle2
+  CheckCircle2,
+  Circle
 } from "lucide-react";
 
 import { register as registerAPI } from "../api/auth.api";
@@ -20,17 +21,60 @@ import FeedbackModal from "../components/modals/FeedbackModal";
 import citeWiseLogo from "../assets/citewise-logo.png";
 import "../styles/AuthSplitScreen.css";
 
+// Mirrors passwordPolicyError in api/src/modules/auth/auth.controller.js.
+const PASSWORD_RULES = [
+  { label: "At least 8 characters", test: (pw) => pw.length >= 8 },
+  { label: "One uppercase letter", test: (pw) => /[A-Z]/.test(pw) },
+  { label: "One lowercase letter", test: (pw) => /[a-z]/.test(pw) },
+  { label: "One number", test: (pw) => /[0-9]/.test(pw) },
+  { label: "One special character", test: (pw) => /[^A-Za-z0-9\s]/.test(pw) },
+];
+const MAX_PASSWORD_BYTES = 72;
+
+function passwordExtraError(password, email) {
+  if (new TextEncoder().encode(password).length > MAX_PASSWORD_BYTES) {
+    return `Password must be at most ${MAX_PASSWORD_BYTES} characters.`;
+  }
+  if (password !== password.trim()) {
+    return "Password cannot start or end with a space.";
+  }
+  const localPart = email.trim().toLowerCase().split("@")[0];
+  if (localPart.length >= 3 && password.toLowerCase().includes(localPart)) {
+    return "Password cannot contain your email address.";
+  }
+  return null;
+}
+
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const { config, showFeedback, hideFeedback } = useFeedbackModal();
   const navigate = useNavigate();
 
+  const ruleResults = PASSWORD_RULES.map((rule) => ({ ...rule, met: rule.test(password) }));
+  const allRulesMet = ruleResults.every((rule) => rule.met);
+  const extraError = password ? passwordExtraError(password, email) : null;
+  const passwordsMatch = password === confirmPassword;
+  const showMismatch = confirmPassword.length > 0 && !passwordsMatch;
+  const canSubmit = allRulesMet && !extraError && passwordsMatch && confirmPassword.length > 0;
+
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!canSubmit) {
+      showFeedback({
+        type: "error",
+        title: "Check your password",
+        message: !allRulesMet
+          ? "Your password does not meet all of the requirements."
+          : extraError || "Passwords do not match.",
+      });
+      return;
+    }
     setIsLoading(true);
     try {
       const data = await registerAPI({ email, password });
@@ -220,9 +264,6 @@ export default function Register() {
                 <label htmlFor="register-password" className="auth-input-label">
                   Password
                 </label>
-                <span style={{ fontSize: "0.74rem", color: "#64748b" }}>
-                  Min. 8 characters
-                </span>
               </div>
               <div className="auth-input-container">
                 <span className="auth-input-prefix-icon">
@@ -233,11 +274,13 @@ export default function Register() {
                   type={showPassword ? "text" : "password"}
                   required
                   minLength={8}
+                  maxLength={MAX_PASSWORD_BYTES}
                   autoComplete="new-password"
                   className="auth-input-field"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  aria-describedby="register-password-rules"
                 />
                 <button
                   type="button"
@@ -248,13 +291,60 @@ export default function Register() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              <ul id="register-password-rules" className="auth-password-rules">
+                {ruleResults.map((rule) => (
+                  <li key={rule.label} className={rule.met ? "is-met" : undefined}>
+                    {rule.met ? <CheckCircle2 size={14} /> : <Circle size={14} />}
+                    <span>{rule.label}</span>
+                  </li>
+                ))}
+              </ul>
+              {extraError && (
+                <p className="auth-field-error" role="alert">{extraError}</p>
+              )}
+            </div>
+
+            {/* Confirm Password Field */}
+            <div className="auth-input-group">
+              <div className="auth-input-label-row">
+                <label htmlFor="register-confirm-password" className="auth-input-label">
+                  Confirm Password
+                </label>
+              </div>
+              <div className="auth-input-container">
+                <span className="auth-input-prefix-icon">
+                  <Lock size={18} />
+                </span>
+                <input
+                  id="register-confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  autoComplete="new-password"
+                  className="auth-input-field"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  aria-invalid={showMismatch}
+                />
+                <button
+                  type="button"
+                  className="auth-password-toggle-btn"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {showMismatch && (
+                <p className="auth-field-error" role="alert">Passwords do not match.</p>
+              )}
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
               className="auth-submit-btn"
-              disabled={isLoading}
+              disabled={isLoading || !canSubmit}
             >
               <div className="auth-btn-shine" />
               {isLoading ? (

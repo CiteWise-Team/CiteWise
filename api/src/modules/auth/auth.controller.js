@@ -1,9 +1,35 @@
 import supabase from '../../common/config/supabaseClient.js';
 import fetch from 'node-fetch';
 
-// Kept in step with the "Min 8 characters" hint on the registration form.
+// Kept in step with the password checklist on the registration form.
 const MIN_PASSWORD_LENGTH = 8;
+// bcrypt ignores everything past 72 bytes, so a longer password would
+// silently be accepted with only its first 72 bytes checked.
+const MAX_PASSWORD_BYTES = 72;
+const MAX_EMAIL_LENGTH = 254;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function passwordPolicyError(password, email) {
+  const missing = [];
+  if (password.length < MIN_PASSWORD_LENGTH) missing.push(`at least ${MIN_PASSWORD_LENGTH} characters`);
+  if (!/[A-Z]/.test(password)) missing.push('an uppercase letter');
+  if (!/[a-z]/.test(password)) missing.push('a lowercase letter');
+  if (!/[0-9]/.test(password)) missing.push('a number');
+  if (!/[^A-Za-z0-9\s]/.test(password)) missing.push('a special character');
+  if (missing.length) return `Password must contain ${missing.join(', ')}.`;
+
+  if (Buffer.byteLength(password, 'utf8') > MAX_PASSWORD_BYTES) {
+    return `Password must be at most ${MAX_PASSWORD_BYTES} characters.`;
+  }
+  if (password !== password.trim()) {
+    return 'Password cannot start or end with a space.';
+  }
+  const localPart = email.split('@')[0];
+  if (localPart.length >= 3 && password.toLowerCase().includes(localPart)) {
+    return 'Password cannot contain your email address.';
+  }
+  return null;
+}
 
 function sendError(res, status, message) {
   return res.status(status).json({ error: message, message });
@@ -106,12 +132,14 @@ async function signup(req, res) {
     if (!email || !password) {
       return sendError(res, 400, 'Email and password are required');
     }
-    if (!EMAIL_PATTERN.test(email)) {
+    if (typeof password !== 'string') {
+      return sendError(res, 400, 'Password must be a string');
+    }
+    if (email.length > MAX_EMAIL_LENGTH || !EMAIL_PATTERN.test(email)) {
       return sendError(res, 400, 'Please enter a valid email address');
     }
-    if (String(password).length < MIN_PASSWORD_LENGTH) {
-      return sendError(res, 400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
-    }
+    const policyError = passwordPolicyError(password, email);
+    if (policyError) return sendError(res, 400, policyError);
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,

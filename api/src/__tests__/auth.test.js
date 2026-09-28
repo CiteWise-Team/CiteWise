@@ -72,7 +72,7 @@ describe('Auth – signup recovery, login errors, logout', () => {
 
     const res = await request(app)
       .post('/api/auth/signup')
-      .send({ email: '  James.Resma@CIT.edu ', password: 'abcd1234' });
+      .send({ email: '  James.Resma@CIT.edu ', password: 'Abcd123!' });
 
     expect(res.status).toBe(201);
     expect(received.email).toBe('james.resma@cit.edu');
@@ -84,7 +84,7 @@ describe('Auth – signup recovery, login errors, logout', () => {
 
     const res = await request(app)
       .post('/api/auth/signup')
-      .send({ email: 'james.resma@cit.edu', password: 'abcd1234' });
+      .send({ email: 'james.resma@cit.edu', password: 'Abcd123!' });
 
     expect(res.status).toBe(201);
     expect(state.inserted[0].username).toBe('james.resma_abcdef');
@@ -97,7 +97,7 @@ describe('Auth – signup recovery, login errors, logout', () => {
 
     const res = await request(app)
       .post('/api/auth/signup')
-      .send({ email: 'someone@cit.edu', password: 'abcd1234' });
+      .send({ email: 'someone@cit.edu', password: 'Abcd123!' });
 
     expect(res.status).toBe(500);
     expect(state.deleted).toEqual(['u-rollback']);
@@ -110,7 +110,7 @@ describe('Auth – signup recovery, login errors, logout', () => {
 
     const res = await request(app)
       .post('/api/auth/signup')
-      .send({ email: 'james.resma@cit.edu', password: 'abcd1234' });
+      .send({ email: 'james.resma@cit.edu', password: 'Abcd123!' });
 
     expect(res.status).toBe(201);
     expect(state.inserted[0]).toMatchObject({ id: 'orphan-1', username: 'james.resma' });
@@ -122,7 +122,7 @@ describe('Auth – signup recovery, login errors, logout', () => {
 
     const res = await request(app)
       .post('/api/auth/signup')
-      .send({ email: 'james.resma@cit.edu', password: 'wrongpass' });
+      .send({ email: 'james.resma@cit.edu', password: 'Wr0ng!pass' });
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/already exists/i);
