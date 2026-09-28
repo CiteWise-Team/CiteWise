@@ -581,7 +581,7 @@ describe('Signup – error attribution and password policy (findings 3 & 9)', ()
 
     const res = await request(app)
       .post('/api/auth/signup')
-      .send({ email: 'brand.new.address@example.com', password: 'abcdefgh' });
+      .send({ email: 'brand.new.address@example.com', password: 'Abcd123!' });
 
     expect(res.status).toBe(400);
     expect(res.body.message).not.toMatch(/already exists/i);
@@ -596,7 +596,7 @@ describe('Signup – error attribution and password policy (findings 3 & 9)', ()
 
     const res = await request(app)
       .post('/api/auth/signup')
-      .send({ email: 'taken@example.com', password: 'abcdefgh' });
+      .send({ email: 'taken@example.com', password: 'Abcd123!' });
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/already exists/i);
@@ -605,7 +605,7 @@ describe('Signup – error attribution and password policy (findings 3 & 9)', ()
   it('enforces the 8-character minimum the form advertises', async () => {
     const res = await request(app)
       .post('/api/auth/signup')
-      .send({ email: 'short.pw@example.com', password: 'abc1234' }); // 7 chars
+      .send({ email: 'short.pw@example.com', password: 'Ab1!xyz' }); // 7 chars
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/8/);
@@ -617,9 +617,57 @@ describe('Signup – error attribution and password policy (findings 3 & 9)', ()
 
     const res = await request(app)
       .post('/api/auth/signup')
-      .send({ email: 'ok.pw@example.com', password: 'abcd1234' });
+      .send({ email: 'ok.pw@example.com', password: 'Abcd123!' });
 
     expect(res.status).toBe(201);
+  });
+
+  it.each([
+    ['abcd123!', /uppercase/],
+    ['ABCD123!', /lowercase/],
+    ['Abcdefg!', /number/],
+    ['Abcd1234', /special/],
+  ])('rejects %s for missing a character class', async (password, pattern) => {
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({ email: 'weak.pw@example.com', password });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(pattern);
+  });
+
+  it('lists every unmet requirement at once', async () => {
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({ email: 'weak.pw@example.com', password: 'abc' });
+
+    expect(res.body.message).toMatch(/8 characters.*uppercase.*number.*special/);
+  });
+
+  it('rejects passwords longer than 72 bytes', async () => {
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({ email: 'long.pw@example.com', password: 'Aa1!' + 'x'.repeat(69) });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/72/);
+  });
+
+  it('rejects a password containing the email local part', async () => {
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({ email: 'jresma@example.com', password: 'Jresma2024!' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/email/i);
+  });
+
+  it('rejects a non-string password', async () => {
+    const res = await request(app)
+      .post('/api/auth/signup')
+      .send({ email: 'obj.pw@example.com', password: { $gt: '' } });
+
+    expect(res.status).toBe(400);
   });
 });
 

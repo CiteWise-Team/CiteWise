@@ -18,6 +18,10 @@ import synthesisRoutes   from './modules/citewise/synthesis.routes.js';
 
 const app = express();
 
+// Behind the hosting platform's proxy; without this req.ip is the proxy's
+// address and every client shares one rate-limit bucket.
+app.set('trust proxy', 1);
+
 // Define allowed origins for CORS
 const allowedOrigins = [
   'http://localhost:5173',               // Local development
