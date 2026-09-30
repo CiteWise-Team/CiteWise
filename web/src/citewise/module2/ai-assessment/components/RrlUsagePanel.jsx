@@ -5,7 +5,7 @@
 // specific excerpts that are eye-catching / most relevant. These choices flow
 // straight into the synthesis payload.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import * as store from "../../../lib/citewiseStore";
 import { useTheme } from "../../../../context/ThemeContext";
 
@@ -13,6 +13,17 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
   const { isDark } = useTheme();
   const [usage, setUsage] = useState(() => store.getRrlUsageFor(sessionId, documentId));
   const [customHighlightText, setCustomHighlightText] = useState("");
+  const highlightInputRef = useRef(null);
+
+  const handleAddHighlight = () => {
+    if (customHighlightText.trim()) {
+      setUsage(store.addCustomExcerpt(sessionId, documentId, customHighlightText.trim()));
+      setCustomHighlightText("");
+      if (highlightInputRef.current) {
+        highlightInputRef.current.style.height = "38px";
+      }
+    }
+  };
 
   useEffect(() => {
     setUsage(store.getRrlUsageFor(sessionId, documentId));
@@ -191,25 +202,41 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
         <p style={{ margin: "0 0 10px", fontSize: "0.74rem", color: isDark ? "#94a3b8" : "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
           Paste or type any specific text from the PDF you want the AI to emphasize.
         </p>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
           <textarea
+            ref={highlightInputRef}
             value={customHighlightText}
-            onChange={(e) => setCustomHighlightText(e.target.value)}
-            placeholder="Paste highlight here..."
-            rows={2}
+            onChange={(e) => {
+              setCustomHighlightText(e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = `${Math.min(Math.max(e.target.scrollHeight, 38), 180)}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleAddHighlight();
+              }
+            }}
+            placeholder="Paste or type any specific highlight here…"
+            rows={1}
             style={{
               flex: 1,
-              minHeight: 60,
-              resize: "vertical",
-              fontSize: "0.78rem",
+              minHeight: "38px",
+              height: "38px",
+              maxHeight: "180px",
               background: isDark ? "#100f18" : "#ffffff",
               border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e5e7eb",
-              borderRadius: "10px",
+              borderRadius: "8px",
               color: isDark ? "#f9fafb" : "#111827",
-              padding: "0.6rem 0.75rem",
+              padding: "0.5rem 0.85rem",
               fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.85rem",
+              lineHeight: 1.45,
+              resize: "none",
+              overflowY: "auto",
               outline: "none",
               boxSizing: "border-box",
+              transition: "border-color 0.15s ease, box-shadow 0.15s ease",
             }}
             onFocus={(e) => {
               e.currentTarget.style.borderColor = "#ea580c";
@@ -221,12 +248,7 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
             }}
           />
           <button
-            onClick={() => {
-              if (customHighlightText.trim()) {
-                setUsage(store.addCustomExcerpt(sessionId, documentId, customHighlightText.trim()));
-                setCustomHighlightText("");
-              }
-            }}
+            onClick={handleAddHighlight}
             disabled={!customHighlightText.trim()}
             style={{
               background: customHighlightText.trim() ? "#ea580c" : (isDark ? "rgba(255, 255, 255, 0.06)" : "#f3f4f6"),
@@ -240,7 +262,6 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
               fontSize: "0.82rem",
               fontWeight: 700,
               flexShrink: 0,
-              alignSelf: "center",
               transition: "all 180ms ease",
               boxShadow: customHighlightText.trim() ? "0 2px 8px rgba(234, 88, 12, 0.22)" : "none",
             }}

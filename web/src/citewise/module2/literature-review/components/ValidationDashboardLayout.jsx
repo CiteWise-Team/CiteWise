@@ -48,13 +48,27 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   });
 
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(20);
+  const [loadingStatusText, setLoadingStatusText] = useState("Connecting to workspace session...");
+  const isFirstLoadRef = useRef(true);
 
-  const [hasEverAssessed, setHasEverAssessed] = useState(false);
+  const [hasEverAssessed, setHasEverAssessed] = useState(() => {
+    try {
+      return localStorage.getItem(`citewise_has_assessed_${resolvedSessionId}`) === "true";
+    } catch {
+      return false;
+    }
+  });
+
   useEffect(() => {
     if (documents.some((doc) => doc.rawStatus === "complete")) {
       setHasEverAssessed(true);
+      try {
+        localStorage.setItem(`citewise_has_assessed_${resolvedSessionId}`, "true");
+      } catch {}
     }
-  }, [documents]);
+  }, [documents, resolvedSessionId]);
 
   const activeDoc = documents[currentIndex];
 
@@ -119,21 +133,67 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       setActiveInsights(null);
       setIsInsightsLoading(false);
       setInsightsPollExhausted(false);
+      setIsInitialLoading(true);
+      setLoadingProgress(20);
+      setLoadingStatusText("Connecting to workspace session...");
+      isFirstLoadRef.current = true;
     }
   }, [propSessionId, resolvedSessionId]);
 
   const fetchDocuments = useCallback(async () => {
-    if (!resolvedSessionId) return;
+    if (!resolvedSessionId) {
+      setIsInitialLoading(false);
+      return;
+    }
+
+    if (isFirstLoadRef.current) {
+      setLoadingProgress(22);
+      setLoadingStatusText("Connecting to workspace session...");
+    }
+
+    const t1 = isFirstLoadRef.current ? setTimeout(() => {
+      setLoadingProgress(48);
+      setLoadingStatusText("Retrieving literature review documents...");
+    }, 140) : null;
+
     try {
       const { res: response, data } = await apiFetch(`/api/v1/documents/session/${resolvedSessionId}`, {
         headers: {
           'X-Session-Id': resolvedSessionId,
         }
       });
-      if (!response.ok) return;
-      setDocuments((prev) => mapDocuments(Array.isArray(data) ? data : [], prev));
+
+      if (isFirstLoadRef.current) {
+        setLoadingProgress(76);
+        setLoadingStatusText("Calibrating relevance metrics & scoring...");
+      }
+
+      if (response.ok) {
+        setDocuments((prev) => {
+          const mapped = mapDocuments(Array.isArray(data) ? data : [], prev);
+          if (mapped.some((doc) => doc.rawStatus === "complete")) {
+            setHasEverAssessed(true);
+            try {
+              localStorage.setItem(`citewise_has_assessed_${resolvedSessionId}`, "true");
+            } catch {}
+          }
+          return mapped;
+        });
+      }
     } catch (err) {
       console.warn("Error loading session documents:", err);
+    } finally {
+      if (t1) clearTimeout(t1);
+      if (isFirstLoadRef.current) {
+        isFirstLoadRef.current = false;
+        setTimeout(() => {
+          setLoadingProgress(100);
+          setLoadingStatusText("Dashboard ready!");
+          setTimeout(() => {
+            setIsInitialLoading(false);
+          }, 350);
+        }, 300);
+      }
     }
   }, [resolvedSessionId]);
 
@@ -491,9 +551,25 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         from { opacity: 0; transform: translateX(50px) scale(0.95); }
         to { opacity: 1; transform: translateX(0) scale(1); }
       }
+      @keyframes cwSpin {
+        to { transform: rotate(360deg); }
+      }
+      @keyframes cwPulseGlow {
+        0%, 100% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 16px rgba(234, 88, 12, 0.2); }
+        50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 30px rgba(234, 88, 12, 0.4); }
+      }
+      @keyframes cwIndeterminate {
+        0% { left: -40%; width: 40%; }
+        50% { left: 25%; width: 60%; }
+        100% { left: 100%; width: 40%; }
+      }
     `}</style>
   );
-  const hasAssessedDocs = hasEverAssessed && documents.length > 0;
+  const anyDocAssessed = documents.some((doc) =>
+    doc.rawStatus === "complete" ||
+    (doc.relevancyScore !== null && doc.relevancyScore !== undefined && doc.relevancyScore > 0)
+  );
+  const hasAssessedDocs = documents.length > 0 && anyDocAssessed;
   return (
     <div
       style={{
@@ -720,7 +796,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   <div style={{
     position: "fixed",
     inset: 0,
-    background: "rgba(255, 255, 255, 0.9)",
+    background: "rgba(255, 255, 255, 0.92)",
     backdropFilter: "blur(12px)",
     display: "flex",
     alignItems: "center",
@@ -736,34 +812,72 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       maxWidth: "480px",
       width: "90%",
       textAlign: "center",
-      boxShadow: "0 24px 60px rgba(0, 0, 0, 0.12), 0 0 40px rgba(249, 115, 22, 0.1)",
+      boxShadow: "0 24px 60px rgba(0, 0, 0, 0.12), 0 0 40px rgba(234, 88, 12, 0.12)",
       animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
     }}>
       <div style={{
+        position: "relative",
         width: "80px",
         height: "80px",
-        borderRadius: "50%",
-        background: "rgba(249, 115, 22, 0.1)",
-        border: "2px solid #f97316",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         margin: "0 auto 1.5rem",
-        boxShadow: "0 0 20px rgba(249, 115, 22, 0.15)",
-        animation: "pulseRing 2s infinite",
       }}>
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" style={{
-            strokeDasharray: 50,
-            strokeDashoffset: 50,
-            animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
-          }} />
+        {/* Guaranteed Animated SVG Spinner with glowing center */}
+        <svg width="80" height="80" viewBox="0 0 50 50" style={{ position: "absolute", inset: 0 }}>
+          <circle
+            cx="25"
+            cy="25"
+            r="20"
+            fill="none"
+            stroke="rgba(234, 88, 12, 0.12)"
+            strokeWidth="3.5"
+          />
+          <circle
+            cx="25"
+            cy="25"
+            r="20"
+            fill="none"
+            stroke="#ea580c"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeDasharray="55 70"
+          >
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              from="0 25 25"
+              to="360 25 25"
+              dur="0.95s"
+              repeatCount="indefinite"
+            />
+          </circle>
         </svg>
+        <div style={{
+          width: "44px",
+          height: "44px",
+          borderRadius: "50%",
+          background: "rgba(234, 88, 12, 0.09)",
+          border: "2px solid #ea580c",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 0 20px rgba(234, 88, 12, 0.25)",
+        }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" style={{
+              strokeDasharray: 50,
+              strokeDashoffset: 50,
+              animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
+            }} />
+          </svg>
+        </div>
       </div>
       <h3 style={{
         fontFamily: "'Poppins', sans-serif",
         fontWeight: 800,
-        fontSize: "1.5rem",
+        fontSize: "1.4rem",
         color: "#111827",
         margin: "0 0 0.5rem 0",
         letterSpacing: "0.01em",
@@ -772,25 +886,29 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       </h3>
       <p style={{
         fontFamily: "'Poppins', sans-serif",
-        fontSize: "0.95rem",
+        fontSize: "0.9rem",
         color: "#6b7280",
         lineHeight: "1.6",
         margin: "0 0 1.75rem 0",
       }}>
         Your validated documents are being synthesized. Preparing the synthesis dashboard.
       </p>
+      {/* Moving progress bar matching unified design */}
       <div style={{
         width: "100%",
-        height: "4px",
-        background: "#e5e7eb",
-        borderRadius: "2px",
+        height: "8px",
+        background: "var(--cw-border, #e5e7eb)",
+        borderRadius: "999px",
         overflow: "hidden",
+        position: "relative",
+        boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.08)",
       }}>
         <div style={{
           height: "100%",
-          background: "linear-gradient(90deg, #f97316, #fb8c3a)",
+          background: "linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)",
           width: "0%",
-          borderRadius: "2px",
+          borderRadius: "999px",
+          boxShadow: "0 0 10px rgba(234, 88, 12, 0.45)",
           animation: "fillProgress 2.2s linear forwards",
         }} />
       </div>
@@ -798,110 +916,286 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   </div>
 )}
 
-      <div
-        style={{
-          width: "100%",
-          margin: "0 auto",
-          padding: 0,
-          paddingBottom: isMobile ? "80px" : "100px",
-          boxSizing: "border-box",
-          flex: 1,
-          display: isMobile ? "flex" : "grid",
-          flexDirection: "column",
-          gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "420px minmax(0, 1fr)",
-          gap: isMobile ? "16px" : "14px",
-          minHeight: 0,
-          alignItems: isMobile ? "stretch" : "start",
-          background: "transparent",
-        }}
-      >
-        {/* On phones the sidebar dissolves so the active document and its
-            assessment come first, with the document list below them. */}
-        <div style={isMobile ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "14px", minHeight: 0 }}>
-          <div style={{ order: 0, minWidth: 0 }} data-guide="citewise-active-doc">
-            <DocumentActiveCard
-              documents={documents}
-              currentIndex={currentIndex}
-              onNavigate={(idx) => setCurrentIndex(Math.max(0, Math.min(documents.length - 1, idx)))}
-            />
-          </div>
-          <div style={{ order: 2, minWidth: 0 }} data-guide="citewise-quick-nav">
-          <QuickNavigationList
-            documents={documents}
-            currentIndex={currentIndex}
-            onSelect={setCurrentIndex}
-            onApprovalToggle={handleApprovalToggle}
-            onDelete={handleDeleteDocument}
-          />
-          </div>
-          {hasAssessedDocs && (
-            <div style={{ order: 3, minWidth: 0 }}>
-            <MetricWeightCustomization
-              sessionId={resolvedSessionId}
-              documents={documents}
-              onAssessmentTriggered={(assessedDocIds) => {
-                setHasEverAssessed(true);
-                insightsCacheRef.current.clear();
-                setIsInsightsLoading(true);
-                setAssessVersion(v => v + 1);
-                fetchDocuments();
-                if (assessedDocIds && assessedDocIds.length > 0) {
-                  const targetId = assessedDocIds[0];
-                  const idx = documents.findIndex(d => d.id === targetId);
-                  if (idx !== -1) {
-                    setCurrentIndex(idx);
-                  }
-                }
+      {isInitialLoading ? (
+        <div className="cw-loading-container" style={{ padding: isMobile ? "2rem 1rem" : "3.5rem 1rem" }}>
+          <div className="cw-loading-card" style={{ padding: isMobile ? "2rem 1.5rem" : "2.75rem 2.5rem" }}>
+            {/* Guaranteed Animated SVG Spinner with glowing center */}
+            <div
+              style={{
+                position: "relative",
+                width: "80px",
+                height: "80px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "1.25rem",
               }}
-            />
+            >
+              <svg width="80" height="80" viewBox="0 0 50 50" style={{ position: "absolute", inset: 0 }}>
+                <circle
+                  cx="25"
+                  cy="25"
+                  r="20"
+                  fill="none"
+                  stroke="rgba(234, 88, 12, 0.12)"
+                  strokeWidth="3.5"
+                />
+                <circle
+                  cx="25"
+                  cy="25"
+                  r="20"
+                  fill="none"
+                  stroke="#ea580c"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeDasharray="55 70"
+                >
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="0 25 25"
+                    to="360 25 25"
+                    dur="0.95s"
+                    repeatCount="indefinite"
+                  />
+                </circle>
+              </svg>
+              <div
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "50%",
+                  background: "rgba(234, 88, 12, 0.09)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 0 16px rgba(234, 88, 12, 0.25)",
+                }}
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#ea580c"
+                  strokeWidth="2.3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+              </div>
+            </div>
+
+            <h3
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "1.25rem",
+                fontWeight: 700,
+                color: "var(--cw-text-primary, #0f0e17)",
+                margin: "0 0 0.4rem 0",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Loading AI Assessment
+            </h3>
+            <p
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.85rem",
+                color: "var(--cw-text-muted, #6b7280)",
+                lineHeight: 1.55,
+                margin: "0 0 1.5rem 0",
+                maxWidth: "420px",
+                minHeight: "1.55em",
+              }}
+            >
+              {loadingStatusText}
+            </p>
+
+            {/* Moving Progress Bar & Percentage Count */}
+            <div
+              style={{
+                width: "280px",
+                maxWidth: "85%",
+                height: "8px",
+                background: "var(--cw-border, #e5e7eb)",
+                borderRadius: "999px",
+                overflow: "hidden",
+                position: "relative",
+                boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.08)",
+                margin: "0 auto 0.6rem auto",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${loadingProgress}%`,
+                  background: "linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)",
+                  borderRadius: "999px",
+                  transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  boxShadow: "0 0 10px rgba(234, 88, 12, 0.45)",
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                width: "280px",
+                maxWidth: "85%",
+                margin: "0 auto",
+                fontSize: "0.75rem",
+                fontFamily: "'Poppins', sans-serif",
+              }}
+            >
+              <span style={{ color: "var(--cw-text-muted, #6b7280)" }}>Loading progress</span>
+              <span style={{ color: "#ea580c", fontWeight: 700 }}>{loadingProgress}%</span>
+            </div>
+          </div>
+
+          {/* Shimmering skeleton cards beneath previewing layout */}
+          <div className="cw-loading-skeleton-preview" style={{ marginTop: "1.5rem", width: "100%", maxWidth: "520px", display: "flex", gap: "12px" }}>
+            <div className="cw-loading-skeleton-card-left" />
+            <div className="cw-loading-skeleton-card-right" />
+          </div>
+        </div>
+      ) : (
+        <>
+          {!hasAssessedDocs ? (
+            /* Full-screen content display: ONLY Metric Weight Customization card */
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "100%",
+                margin: "0 auto",
+                padding: isMobile ? "0 4px 80px 4px" : "4px 0 100px 0",
+                boxSizing: "border-box",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                justifyContent: "flex-start",
+                animation: "fadeInToast 0.35s ease-out forwards",
+              }}
+            >
+              <MetricWeightCustomization
+                sessionId={resolvedSessionId}
+                documents={documents}
+                onAssessmentTriggered={(assessedDocIds) => {
+                  setHasEverAssessed(true);
+                  try {
+                    localStorage.setItem(`citewise_has_assessed_${resolvedSessionId}`, "true");
+                  } catch {}
+                  insightsCacheRef.current.clear();
+                  setIsInsightsLoading(true);
+                  setAssessVersion(v => v + 1);
+                  fetchDocuments();
+                  if (assessedDocIds && assessedDocIds.length > 0) {
+                    const targetId = assessedDocIds[0];
+                    const idx = documents.findIndex(d => d.id === targetId);
+                    if (idx !== -1) {
+                      setCurrentIndex(idx);
+                    }
+                  }
+                }}
+                isHero={true}
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                width: "100%",
+                margin: "0 auto",
+                padding: 0,
+                paddingBottom: isMobile ? "80px" : "100px",
+                boxSizing: "border-box",
+                flex: 1,
+                display: isMobile ? "flex" : "grid",
+                flexDirection: "column",
+                gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "420px minmax(0, 1fr)",
+                gap: isMobile ? "16px" : "14px",
+                minHeight: 0,
+                alignItems: isMobile ? "stretch" : "start",
+                background: "transparent",
+                animation: "fadeInToast 0.35s ease-out forwards",
+              }}
+            >
+              {/* Sidebar with active card, quick nav, and collapsed customization panel */}
+              <div style={isMobile ? { display: "contents" } : { display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "14px", minHeight: 0 }}>
+                <div style={{ order: 0, minWidth: 0 }} data-guide="citewise-active-doc">
+                  <DocumentActiveCard
+                    documents={documents}
+                    currentIndex={currentIndex}
+                    onNavigate={(idx) => setCurrentIndex(Math.max(0, Math.min(documents.length - 1, idx)))}
+                  />
+                </div>
+                <div style={{ order: 2, minWidth: 0 }} data-guide="citewise-quick-nav">
+                  <QuickNavigationList
+                    documents={documents}
+                    currentIndex={currentIndex}
+                    onSelect={setCurrentIndex}
+                    onApprovalToggle={handleApprovalToggle}
+                    onDelete={handleDeleteDocument}
+                  />
+                </div>
+                <div style={{ order: 3, minWidth: 0 }}>
+                  <MetricWeightCustomization
+                    sessionId={resolvedSessionId}
+                    documents={documents}
+                    onAssessmentTriggered={(assessedDocIds) => {
+                      setHasEverAssessed(true);
+                      try {
+                        localStorage.setItem(`citewise_has_assessed_${resolvedSessionId}`, "true");
+                      } catch {}
+                      insightsCacheRef.current.clear();
+                      setIsInsightsLoading(true);
+                      setAssessVersion(v => v + 1);
+                      fetchDocuments();
+                      if (assessedDocIds && assessedDocIds.length > 0) {
+                        const targetId = assessedDocIds[0];
+                        const idx = documents.findIndex(d => d.id === targetId);
+                        if (idx !== -1) {
+                          setCurrentIndex(idx);
+                        }
+                      }
+                    }}
+                    isHero={false}
+                  />
+                </div>
+              </div>
+
+              {/* Main Assessment Panel */}
+              <div style={{ order: 1, minWidth: 0 }} data-guide="citewise-assessment-panel">
+                <AIAssessmentPanel
+                  documentId={activeDoc?.id}
+                  sessionId={resolvedSessionId}
+                  insights={activeInsights}
+                  isLoading={isInsightsLoading}
+                  error={insightsErrorMsg || (insightsPollExhausted ? "poll exhausted" : null)}
+                  assessmentTimedOut={insightsPollExhausted}
+                  onAssess={handleAssessDocument}
+                  onUploadClick={handleUploadNew}
+                  docStatus={activeDoc?.rawStatus}
+                  metricWeights={activeDoc?.metricWeights}
+                />
+              </div>
             </div>
           )}
-        </div>
 
-        <div style={{ order: 1, minWidth: 0 }} data-guide="citewise-assessment-panel">
-        {!hasAssessedDocs ? (
-          <MetricWeightCustomization
-            sessionId={resolvedSessionId}
-            documents={documents}
-            onAssessmentTriggered={(assessedDocIds) => {
-              setHasEverAssessed(true);
-              insightsCacheRef.current.clear();
-              setIsInsightsLoading(true);
-              setAssessVersion(v => v + 1);
-              fetchDocuments();
-              if (assessedDocIds && assessedDocIds.length > 0) {
-                const targetId = assessedDocIds[0];
-                const idx = documents.findIndex(d => d.id === targetId);
-                if (idx !== -1) {
-                  setCurrentIndex(idx);
-                }
-              }
-            }}
-            isHero={true}
+          <ValidationSummaryFooter
+            approvedCount={batchStats.approvedCount}
+            totalCount={batchStats.totalCount}
+            averageScore={batchStats.averageScore}
+            onProceed={handleProceed}
           />
-        ) : (
-          <AIAssessmentPanel
-            documentId={activeDoc?.id}
-            sessionId={resolvedSessionId}
-            insights={activeInsights}
-            isLoading={isInsightsLoading}
-            error={insightsErrorMsg || (insightsPollExhausted ? "poll exhausted" : null)}
-            assessmentTimedOut={insightsPollExhausted}
-            onAssess={handleAssessDocument}
-            onUploadClick={handleUploadNew}
-            docStatus={activeDoc?.rawStatus}
-            metricWeights={activeDoc?.metricWeights}
-          />
-        )}
-        </div>
-      </div>
-
-      <ValidationSummaryFooter
-        approvedCount={batchStats.approvedCount}
-        totalCount={batchStats.totalCount}
-        averageScore={batchStats.averageScore}
-        onProceed={handleProceed}
-      />
+        </>
+      )}
     </div>
   );
 }

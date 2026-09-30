@@ -108,6 +108,134 @@
   box-shadow: none !important;
 }
 
+/* ==========================================================================
+   CiteWise Metric Weight Sliders (Matching Reference: Slim Pill + White/Orange Ring)
+   ========================================================================== */
+
+input[type="range"].cw-weight-slider,
+input[type="range"].cw-relevance-slider,
+[data-theme="dark"] input[type="range"].cw-weight-slider,
+[data-theme="dark"] input[type="range"].cw-relevance-slider,
+body.dark-theme input[type="range"].cw-weight-slider,
+body.dark-theme input[type="range"].cw-relevance-slider,
+.citewise-app-shell input[type="range"].cw-weight-slider,
+.citewise-app-shell input[type="range"].cw-relevance-slider,
+[data-theme="dark"] .citewise-app-shell input[type="range"].cw-weight-slider,
+[data-theme="dark"] .citewise-app-shell input[type="range"].cw-relevance-slider {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  border: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  color-scheme: light !important;
+}
+
+input[type="range"].cw-weight-slider::-webkit-slider-runnable-track,
+input[type="range"].cw-relevance-slider::-webkit-slider-runnable-track,
+[data-theme="dark"] input[type="range"].cw-weight-slider::-webkit-slider-runnable-track,
+[data-theme="dark"] input[type="range"].cw-relevance-slider::-webkit-slider-runnable-track,
+body.dark-theme input[type="range"].cw-weight-slider::-webkit-slider-runnable-track,
+body.dark-theme input[type="range"].cw-relevance-slider::-webkit-slider-runnable-track,
+.citewise-app-shell input[type="range"].cw-weight-slider::-webkit-slider-runnable-track,
+.citewise-app-shell input[type="range"].cw-relevance-slider::-webkit-slider-runnable-track,
+[data-theme="dark"] .citewise-app-shell input[type="range"].cw-weight-slider::-webkit-slider-runnable-track,
+[data-theme="dark"] .citewise-app-shell input[type="range"].cw-relevance-slider::-webkit-slider-runnable-track {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  height: 7px !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+input[type="range"].cw-weight-slider::-moz-range-track,
+input[type="range"].cw-relevance-slider::-moz-range-track,
+[data-theme="dark"] input[type="range"].cw-weight-slider::-moz-range-track,
+[data-theme="dark"] input[type="range"].cw-relevance-slider::-moz-range-track,
+body.dark-theme input[type="range"].cw-weight-slider::-moz-range-track,
+body.dark-theme input[type="range"].cw-relevance-slider::-moz-range-track,
+.citewise-app-shell input[type="range"].cw-weight-slider::-moz-range-track,
+.citewise-app-shell input[type="range"].cw-relevance-slider::-moz-range-track,
+[data-theme="dark"] .citewise-app-shell input[type="range"].cw-weight-slider::-moz-range-track,
+[data-theme="dark"] .citewise-app-shell input[type="range"].cw-relevance-slider::-moz-range-track {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  height: 7px !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+input[type="range"].cw-weight-slider::-webkit-slider-thumb,
+input[type="range"].cw-relevance-slider::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-top: -6.5px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: 3.5px solid #ea580c !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+  cursor: pointer !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+}
+
+input[type="range"].cw-weight-slider::-webkit-slider-thumb:hover,
+input[type="range"].cw-relevance-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 8px rgba(234, 88, 12, 0.5) !important;
+}
+
+input[type="range"].cw-weight-slider::-webkit-slider-thumb:active,
+input[type="range"].cw-relevance-slider::-webkit-slider-thumb:active {
+  transform: scale(1.18);
+}
+
+input[type="range"].cw-weight-slider::-moz-range-thumb,
+input[type="range"].cw-relevance-slider::-moz-range-thumb {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: 3.5px solid #ea580c !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+  cursor: pointer !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+}
+
+input[type="range"].cw-weight-slider::-moz-range-thumb:hover,
+input[type="range"].cw-relevance-slider::-moz-range-thumb:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 8px rgba(234, 88, 12, 0.5) !important;
+}
+
+input[type="range"].cw-weight-slider:disabled::-webkit-slider-thumb,
+input[type="range"].cw-relevance-slider:disabled::-webkit-slider-thumb {
+  background: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+input[type="range"].cw-weight-slider:disabled::-moz-range-thumb,
+input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
+  background: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 .workflow-page .workflow-icon-action {
   display: inline-grid;
   width: 38px;
@@ -828,6 +956,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 .workflow-guide-back,
@@ -1729,8 +1858,10 @@
     line-height: 1.45 !important;
   }
 
-  .workflow-guide-button {
-    align-self: flex-start !important;
+  .workflow-guide-button,
+  .groups-guide-trigger-btn.workflow-guide-button {
+    align-self: flex-end !important;
+    margin-left: auto !important;
     height: 34px !important;
     min-height: 34px !important;
     min-width: 90px !important;
@@ -2702,4 +2833,228 @@
   background: #c2410c !important;
   border-color: #c2410c !important;
 }
+
+/* ==========================================================================
+   CiteWise AI Assessment Loading Screen Animations
+   ========================================================================== */
+
+@keyframes cwSpinOrbit {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cwSpinCounter {
+  0% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes cwGlowHalo {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.6;
+    box-shadow: 0 0 20px rgba(234, 88, 12, 0.2);
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+    box-shadow: 0 0 35px rgba(234, 88, 12, 0.45);
+  }
+}
+
+@keyframes cwIconFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes cwProgressBarRun {
+  0% {
+    left: -40%;
+    width: 40%;
+  }
+  50% {
+    left: 25%;
+    width: 55%;
+  }
+  100% {
+    left: 100%;
+    width: 40%;
+  }
+}
+
+@keyframes cwShimmerFlow {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes cwDotBlink {
+  0%, 20% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+  80%, 100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+}
+
+.cw-loading-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  min-height: 460px;
+  box-sizing: border-box;
+  animation: fadeInToast 0.35s ease-out forwards;
+}
+
+.cw-loading-card {
+  background: var(--cw-bg-surface, #ffffff);
+  border: 1px solid var(--cw-border, #e5e7eb);
+  border-radius: 24px;
+  padding: 3rem 2.5rem;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06), 0 0 30px rgba(234, 88, 12, 0.05);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cw-loading-badge-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.cw-loading-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(234, 88, 12, 0.2) 0%, rgba(234, 88, 12, 0.05) 70%, transparent 100%);
+  animation: cwGlowHalo 2.5s ease-in-out infinite;
+}
+
+.cw-loading-spinner-outer {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #ea580c;
+  border-right-color: #ea580c;
+  animation: cwSpinOrbit 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.cw-loading-spinner-inner {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 2px dashed rgba(234, 88, 12, 0.4);
+  animation: cwSpinCounter 3s linear infinite;
+}
+
+.cw-loading-icon-badge {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cwIconFloat 2s ease-in-out infinite;
+}
+
+.cw-loading-progress-track {
+  width: 240px;
+  height: 5px;
+  background: var(--cw-border, #e5e7eb);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.cw-loading-progress-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #ea580c 0%, #fb923c 50%, #ea580c 100%);
+  background-size: 200% 100%;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(234, 88, 12, 0.5);
+  animation: cwProgressBarRun 1.6s ease-in-out infinite, cwShimmerFlow 1.6s linear infinite;
+}
+
+.cw-loading-dot-1 {
+  display: inline-block;
+  animation: cwDotBlink 1.4s infinite 0s;
+}
+
+.cw-loading-dot-2 {
+  display: inline-block;
+  animation: cwDotBlink 1.4s infinite 0.2s;
+}
+
+.cw-loading-dot-3 {
+  display: inline-block;
+  animation: cwDotBlink 1.4s infinite 0.4s;
+}
+
+.cw-loading-skeleton-preview {
+  margin-top: 1.5rem;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  gap: 12px;
+}
+
+.cw-loading-skeleton-card-left {
+  flex: 0 0 42%;
+  height: 60px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--cw-bg-surface, #ffffff) 25%, var(--cw-bg-surface-elevated, #f3f4f6) 50%, var(--cw-bg-surface, #ffffff) 75%);
+  background-size: 200% 100%;
+  border: 1px dashed var(--cw-border, #e5e7eb);
+  animation: cwShimmerFlow 2s linear infinite;
+  opacity: 0.7;
+}
+
+.cw-loading-skeleton-card-right {
+  flex: 1;
+  height: 60px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--cw-bg-surface, #ffffff) 25%, var(--cw-bg-surface-elevated, #f3f4f6) 50%, var(--cw-bg-surface, #ffffff) 75%);
+  background-size: 200% 100%;
+  border: 1px dashed var(--cw-border, #e5e7eb);
+  animation: cwShimmerFlow 2s linear infinite;
+  opacity: 0.7;
+}
+
 

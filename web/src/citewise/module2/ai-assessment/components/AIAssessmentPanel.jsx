@@ -71,6 +71,52 @@ const AIAssessmentPanel = ({
   // Re-render the recomputed overall score when the user changes weight prefs.
   const [prefsVersion, setPrefsVersion] = useState(0);
 
+  // Synchronized active loading progression
+  const [panelProgress, setPanelProgress] = useState(25);
+  const [panelStatusText, setPanelStatusText] = useState("Analyzing document content...");
+
+  useEffect(() => {
+    if (!resolvedLoading && !isAssessing) {
+      setPanelProgress(25);
+      return;
+    }
+    setPanelProgress(25);
+    setPanelStatusText(
+      isAssessing
+        ? "Submitting document for AI evaluation..."
+        : "Reading document excerpts & methodology..."
+    );
+
+    const t1 = setTimeout(() => {
+      setPanelProgress(52);
+      setPanelStatusText(
+        isAssessing
+          ? "Evaluating study relevance & findings..."
+          : "Extracting key research arguments & evidence..."
+      );
+    }, 600);
+
+    const t2 = setTimeout(() => {
+      setPanelProgress(78);
+      setPanelStatusText(
+        isAssessing
+          ? "Calibrating alignment metrics & scoring..."
+          : "Synthesizing document insights..."
+      );
+    }, 1300);
+
+    const t3 = setTimeout(() => {
+      setPanelProgress(94);
+      setPanelStatusText("Finalizing assessment report...");
+    }, 2200);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [resolvedLoading, isAssessing, documentId]);
+
   useEffect(() => {
     const unsub = store.subscribe(({ name }) => {
       if (name === "scorePrefs") setPrefsVersion((v) => v + 1);
@@ -269,7 +315,7 @@ const AIAssessmentPanel = ({
             }}
             onMouseOver={(e) => {
               if (!isAssessing) {
-                e.currentTarget.style.background = 'rgba(249, 115, 22, 0.1)';
+                e.currentTarget.style.background = 'rgba(234, 88, 12, 0.1)';
               }
             }}
             onMouseOut={(e) => {
@@ -280,18 +326,36 @@ const AIAssessmentPanel = ({
           >
             {isAssessing ? (
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
-                  <line x1="12" y1="2" x2="12" y2="6"></line>
-                  <line x1="12" y1="18" x2="12" y2="22"></line>
-                  <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-                  <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-                  <line x1="2" y1="12" x2="6" y2="12"></line>
-                  <line x1="18" y1="12" x2="22" y2="12"></line>
-                  <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-                  <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                <svg width="14" height="14" viewBox="0 0 50 50">
+                  <circle
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.3)"
+                    strokeWidth="5"
+                  />
+                  <circle
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                    strokeDasharray="50 70"
+                  >
+                    <animateTransform
+                      attributeName="transform"
+                      type="rotate"
+                      from="0 25 25"
+                      to="360 25 25"
+                      dur="0.8s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
                 </svg>
                 Assessing...
-                <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
               </span>
             ) : resolvedInsights ? 'Reassess' : 'Assess Selected'}
           </button>
@@ -345,30 +409,164 @@ const AIAssessmentPanel = ({
         <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
           <PanelHeader />
         </div>
-        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '320px' }}>
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: '13px',
-              color: '#6b7280',
-              letterSpacing: '0.5px',
+              justifyContent: 'center',
+              padding: '2.5rem 1.5rem',
+              maxWidth: '460px',
+              width: '100%',
+              textAlign: 'center',
+              boxSizing: 'border-box',
             }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', color: '#f97316' }}>
-              <line x1="12" y1="2" x2="12" y2="6"></line>
-              <line x1="12" y1="18" x2="12" y2="22"></line>
-              <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-              <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-              <line x1="2" y1="12" x2="6" y2="12"></line>
-              <line x1="18" y1="12" x2="22" y2="12"></line>
-              <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-              <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
-            </svg>
-            {isAssessing ? 'Starting assessment...' : 'Analyzing document content...'}
+            {/* Guaranteed Animated SVG Spinner with glowing center */}
+            <div
+              style={{
+                position: 'relative',
+                width: '76px',
+                height: '76px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1.25rem',
+              }}
+            >
+              <svg width="76" height="76" viewBox="0 0 50 50" style={{ position: 'absolute', inset: 0 }}>
+                <circle
+                  cx="25"
+                  cy="25"
+                  r="20"
+                  fill="none"
+                  stroke="rgba(234, 88, 12, 0.12)"
+                  strokeWidth="3.5"
+                />
+                <circle
+                  cx="25"
+                  cy="25"
+                  r="20"
+                  fill="none"
+                  stroke="#ea580c"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeDasharray="55 70"
+                >
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="0 25 25"
+                    to="360 25 25"
+                    dur="0.95s"
+                    repeatCount="indefinite"
+                  />
+                </circle>
+              </svg>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: 'rgba(234, 88, 12, 0.09)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 16px rgba(234, 88, 12, 0.25)',
+                }}
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#ea580c"
+                  strokeWidth="2.3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+              </div>
+            </div>
+
+            <h3
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: '1.2rem',
+                fontWeight: 700,
+                color: 'var(--cw-text-primary, #0f0e17)',
+                margin: '0 0 0.35rem 0',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {isAssessing ? 'Running AI Assessment' : 'Analyzing Document Content'}
+            </h3>
+            <p
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: '0.85rem',
+                color: 'var(--cw-text-muted, #6b7280)',
+                lineHeight: 1.55,
+                margin: '0 0 1.5rem 0',
+                maxWidth: '400px',
+                minHeight: '1.55em',
+              }}
+            >
+              {panelStatusText}
+            </p>
+
+            {/* Moving Progress Bar & Percentage Count */}
+            <div
+              style={{
+                width: '280px',
+                maxWidth: '85%',
+                height: '8px',
+                background: 'var(--cw-border, #e5e7eb)',
+                borderRadius: '999px',
+                overflow: 'hidden',
+                position: 'relative',
+                boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.08)',
+                margin: '0 auto 0.6rem auto',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${panelProgress}%`,
+                  background: 'linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)',
+                  borderRadius: '999px',
+                  transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 0 10px rgba(234, 88, 12, 0.45)',
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                width: '280px',
+                maxWidth: '85%',
+                margin: '0 auto',
+                fontSize: '0.75rem',
+                fontFamily: "'Poppins', sans-serif",
+              }}
+            >
+              <span style={{ color: 'var(--cw-text-muted, #6b7280)' }}>Assessment progress</span>
+              <span style={{ color: '#ea580c', fontWeight: 700 }}>{panelProgress}%</span>
+            </div>
+
+            {/* Shimmering skeleton cards beneath previewing layout */}
+            <div className="cw-loading-skeleton-preview" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px', display: 'flex', gap: '10px' }}>
+              <div className="cw-loading-skeleton-card-left" style={{ height: '48px' }} />
+              <div className="cw-loading-skeleton-card-right" style={{ height: '48px' }} />
+            </div>
           </div>
         </div>
       </div>

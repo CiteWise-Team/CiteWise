@@ -310,13 +310,15 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
             <h2 id="workflow-guide-title">{renderGuideText(guideSteps[guideStep]?.title)}</h2>
             <p>{renderGuideText(guideSteps[guideStep]?.description)}</p>
             <div className="workflow-guide-actions">
-              <button
-                type="button"
-                className="workflow-guide-skip"
-                onClick={() => setGuideStep(-1)}
-              >
-                Skip Tour
-              </button>
+              {guideStep < guideSteps.length - 1 && (
+                <button
+                  type="button"
+                  className="workflow-guide-skip"
+                  onClick={() => setGuideStep(-1)}
+                >
+                  Skip Tour
+                </button>
+              )}
               <div className="workflow-guide-nav-buttons">
                 {guideStep > 0 && (
                   <button
@@ -328,7 +330,7 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
                   </button>
                 )}
                 <button type="button" className="workflow-guide-next" onClick={advanceGuide}>
-                  {guideStep === guideSteps.length - 1 ? "Finish" : "Next"}
+                  {guideStep >= guideSteps.length - 1 ? "Finish" : "Next"}
                 </button>
               </div>
             </div>

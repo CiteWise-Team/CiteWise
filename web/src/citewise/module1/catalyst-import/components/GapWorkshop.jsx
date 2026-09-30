@@ -697,11 +697,39 @@ export default function GapWorkshop({ sessionId, catalystData }) {
               }
             }}
           >
-            {titleLoading ? "Generating…" : "Suggest titles"}
+            {titleLoading ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                <svg width="14" height="14" viewBox="0 0 50 50">
+                  <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="5" />
+                  <circle cx="25" cy="25" r="20" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="50 70">
+                    <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
+                  </circle>
+                </svg>
+                Generating…
+              </span>
+            ) : "Suggest titles"}
           </button>
         </div>
 
         <div style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {titleLoading && (
+            <div style={{ padding: "1.25rem", background: "rgba(234, 88, 12, 0.06)", border: "1px solid rgba(234, 88, 12, 0.2)", borderRadius: "10px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center", textAlign: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <svg width="18" height="18" viewBox="0 0 50 50">
+                  <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.15)" strokeWidth="4" />
+                  <circle cx="25" cy="25" r="20" fill="none" stroke="#ea580c" strokeWidth="4" strokeLinecap="round" strokeDasharray="55 70">
+                    <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.95s" repeatCount="indefinite" />
+                  </circle>
+                </svg>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#9a3412", fontFamily: "'Poppins', sans-serif" }}>
+                  Generating research title suggestions from gaps...
+                </span>
+              </div>
+              <div style={{ width: "200px", maxWidth: "90%", height: "5px", background: "#fed7aa", borderRadius: "999px", overflow: "hidden", position: "relative" }}>
+                <div className="cw-loading-progress-fill" />
+              </div>
+            </div>
+          )}
           {titleError && (
             <p style={{ color: "#dc2626", fontSize: "0.78rem", margin: 0, fontFamily: "'Poppins', sans-serif" }}>{titleError}</p>
           )}

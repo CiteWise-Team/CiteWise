@@ -461,7 +461,7 @@ body {
 }
 
 /* Inputs, textareas, selects inside CiteWise */
-[data-theme="dark"] .citewise-app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+[data-theme="dark"] .citewise-app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
 [data-theme="dark"] .citewise-app-shell textarea,
 [data-theme="dark"] .citewise-app-shell select {
   background: #100f18 !important;
@@ -725,7 +725,7 @@ body {
 }
 
 /* Input Fields & Textareas */
-[data-theme="dark"] .citewise-app-shell input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] .citewise-app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
 [data-theme="dark"] .citewise-app-shell textarea,
 [data-theme="dark"] .citewise-app-shell select {
   background: #100f18 !important;

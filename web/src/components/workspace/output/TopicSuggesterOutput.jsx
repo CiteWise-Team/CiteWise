@@ -136,9 +136,80 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
 
           <div className="workflow-result-sidebar-list flex-grow-1" style={{ overflowY: "auto", minHeight: 0, paddingRight: "4px" }}>
             {loading ? (
-              <div className="text-center mt-5">
-                <RiLoader4Line className="fs-1 mb-2 spin-loader" style={{ color: "#ea580c" }} />
-                <p style={{ color: "#4b5563" }}>Loading topics...</p>
+              <div style={{ padding: "3rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+                {/* Guaranteed Animated SVG Spinner with glowing center */}
+                <div
+                  style={{
+                    position: "relative",
+                    width: "68px",
+                    height: "68px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <svg width="68" height="68" viewBox="0 0 50 50" style={{ position: "absolute", inset: 0 }}>
+                    <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.12)" strokeWidth="3.5" />
+                    <circle
+                      cx="25"
+                      cy="25"
+                      r="20"
+                      fill="none"
+                      stroke="#ea580c"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeDasharray="55 70"
+                    >
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from="0 25 25"
+                        to="360 25 25"
+                        dur="0.95s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  </svg>
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "50%",
+                      background: "rgba(234, 88, 12, 0.09)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 0 14px rgba(234, 88, 12, 0.25)",
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                  </div>
+                </div>
+
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.95rem", fontWeight: 700, color: "var(--cw-text-primary, #0f0e17)", margin: "0 0 0.25rem 0" }}>
+                  Loading Topics
+                </p>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "var(--cw-text-muted, #6b7280)", margin: "0 0 1rem 0" }}>
+                  Generating research topic suggestions...
+                </p>
+
+                {/* Moving Progress Bar */}
+                <div
+                  style={{
+                    width: "180px",
+                    maxWidth: "80%",
+                    height: "6px",
+                    background: "var(--cw-border, #e5e7eb)",
+                    borderRadius: "999px",
+                    overflow: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  <div className="cw-loading-progress-fill" />
+                </div>
               </div>
             ) : items.length === 0 ? (
               <div className="text-center mt-5">

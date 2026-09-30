@@ -137,10 +137,149 @@ export default function GroupWorkflow() {
     );
   }
 
+  const [loadingProgress, setLoadingProgress] = useState(25);
+
+  useEffect(() => {
+    if (resolved) return;
+    const t1 = setTimeout(() => setLoadingProgress(55), 250);
+    const t2 = setTimeout(() => setLoadingProgress(85), 600);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [resolved]);
+
   if (!resolved) {
     return (
       <WorkflowLayout>
-        <p style={{ padding: "40px", color: "#9ca3af" }}>Opening workspace…</p>
+        <div className="cw-loading-container" style={{ padding: "4rem 1rem", minHeight: "500px", width: "100%" }}>
+          <div className="cw-loading-card" style={{ padding: "2.75rem 2.5rem" }}>
+            {/* Guaranteed Animated SVG Spinner with glowing center */}
+            <div
+              style={{
+                position: "relative",
+                width: "80px",
+                height: "80px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "1.25rem",
+              }}
+            >
+              <svg width="80" height="80" viewBox="0 0 50 50" style={{ position: "absolute", inset: 0 }}>
+                <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.12)" strokeWidth="3.5" />
+                <circle
+                  cx="25"
+                  cy="25"
+                  r="20"
+                  fill="none"
+                  stroke="#ea580c"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeDasharray="55 70"
+                >
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="0 25 25"
+                    to="360 25 25"
+                    dur="0.95s"
+                    repeatCount="indefinite"
+                  />
+                </circle>
+              </svg>
+              <div
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "50%",
+                  background: "rgba(234, 88, 12, 0.09)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 0 16px rgba(234, 88, 12, 0.25)",
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                </svg>
+              </div>
+            </div>
+
+            <h3
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "1.25rem",
+                fontWeight: 700,
+                color: "var(--cw-text-primary, #0f0e17)",
+                margin: "0 0 0.4rem 0",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Loading CATalyst Workspace
+            </h3>
+            <p
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.85rem",
+                color: "var(--cw-text-muted, #6b7280)",
+                lineHeight: 1.55,
+                margin: "0 0 1.5rem 0",
+                maxWidth: "420px",
+                minHeight: "1.55em",
+              }}
+            >
+              Opening research workflow and synchronizing state...
+            </p>
+
+            {/* Moving Progress Bar & Percentage Count */}
+            <div
+              style={{
+                width: "280px",
+                maxWidth: "85%",
+                height: "8px",
+                background: "var(--cw-border, #e5e7eb)",
+                borderRadius: "999px",
+                overflow: "hidden",
+                position: "relative",
+                boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.08)",
+                margin: "0 auto 0.6rem auto",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${loadingProgress}%`,
+                  background: "linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)",
+                  borderRadius: "999px",
+                  transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  boxShadow: "0 0 10px rgba(234, 88, 12, 0.45)",
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                width: "280px",
+                maxWidth: "85%",
+                margin: "0 auto",
+                fontSize: "0.75rem",
+                fontFamily: "'Poppins', sans-serif",
+              }}
+            >
+              <span style={{ color: "var(--cw-text-muted, #6b7280)" }}>Loading progress</span>
+              <span style={{ color: "#ea580c", fontWeight: 700 }}>{loadingProgress}%</span>
+            </div>
+          </div>
+
+          {/* Shimmering skeleton cards beneath previewing layout */}
+          <div className="cw-loading-skeleton-preview" style={{ marginTop: "1.5rem", width: "100%", maxWidth: "520px", display: "flex", gap: "12px" }}>
+            <div className="cw-loading-skeleton-card-left" />
+            <div className="cw-loading-skeleton-card-right" />
+          </div>
+        </div>
       </WorkflowLayout>
     );
   }

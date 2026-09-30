@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Component } from "react";
+import React, { useState, useEffect, useMemo, Component } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Compass, X } from "lucide-react";
 import { apiRequest } from "../api/http";
@@ -88,6 +88,11 @@ const CITEWISE_GUIDE_STEPS = {
       target: "citewise-quick-nav",
       title: "Quick Navigation List",
       description: "Browse all uploaded papers, toggle approval status, and switch between documents.",
+    },
+    {
+      target: "citewise-metric-weights",
+      title: "Metric Weight Customization",
+      description: "Calibrate evaluation priorities across Gap Alignment, Methodology, Theory / Framework, and Citation Quality to customize document relevance scoring.",
     },
     {
       target: "citewise-assessment-panel",
@@ -235,7 +240,15 @@ export default function CiteWiseApp() {
   const [guideStep, setGuideStep] = useState(-1);
   const [spotlight, setSpotlight] = useState(null);
   const guideOpen = guideStep >= 0;
-  const currentGuideSteps = CITEWISE_GUIDE_STEPS[step] || CITEWISE_GUIDE_STEPS[0];
+  const allGuideSteps = CITEWISE_GUIDE_STEPS[step] || CITEWISE_GUIDE_STEPS[0];
+  const currentGuideSteps = useMemo(() => {
+    if (typeof document === "undefined" || !guideOpen) return allGuideSteps;
+    return allGuideSteps.filter((s) => {
+      if (!s.target) return true;
+      if (s.target === "workflow-stepper") return true;
+      return !!document.querySelector(`[data-guide="${s.target}"]`);
+    });
+  }, [step, guideOpen]);
 
   useEffect(() => {
     if (!guideOpen) {
@@ -251,7 +264,10 @@ export default function CiteWiseApp() {
       const mobileTarget = document.querySelector('[data-guide="workflow-stepper-mobile"]');
       if (mobileTarget) target = mobileTarget;
     }
-    if (!target) return undefined;
+    if (!target) {
+      setSpotlight(null);
+      return undefined;
+    }
 
     if (targetKey === "workflow-guide-button" || targetKey === "workspace-header" || (targetKey === "workflow-stepper" && !isMobileViewport)) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -319,7 +335,7 @@ export default function CiteWiseApp() {
   }, [guideOpen]);
 
   function advanceGuide() {
-    if (guideStep === currentGuideSteps.length - 1) {
+    if (guideStep >= currentGuideSteps.length - 1) {
       setGuideStep(-1);
       return;
     }
@@ -543,13 +559,15 @@ export default function CiteWiseApp() {
             <h2 id="citewise-guide-title">{currentGuideSteps[guideStep]?.title}</h2>
             <p>{currentGuideSteps[guideStep]?.description}</p>
             <div className="workflow-guide-actions">
-              <button
-                type="button"
-                className="workflow-guide-skip"
-                onClick={() => setGuideStep(-1)}
-              >
-                Skip Tour
-              </button>
+              {guideStep < currentGuideSteps.length - 1 && (
+                <button
+                  type="button"
+                  className="workflow-guide-skip"
+                  onClick={() => setGuideStep(-1)}
+                >
+                  Skip Tour
+                </button>
+              )}
               <div className="workflow-guide-nav-buttons">
                 {guideStep > 0 && (
                   <button
@@ -561,7 +579,7 @@ export default function CiteWiseApp() {
                   </button>
                 )}
                 <button type="button" className="workflow-guide-next" onClick={advanceGuide}>
-                  {guideStep === currentGuideSteps.length - 1 ? "Finish" : "Next"}
+                  {guideStep >= currentGuideSteps.length - 1 ? "Finish" : "Next"}
                 </button>
               </div>
             </div>
