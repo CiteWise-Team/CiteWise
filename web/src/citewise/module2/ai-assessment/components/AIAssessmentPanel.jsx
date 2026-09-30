@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import EvidenceExcerptList from './EvidenceExcerptList';
 import SemanticScoreDashboard from './SemanticScoreDashboard';
 import UploadNewPDFButton from './UploadNewPDFButton';
@@ -68,6 +69,7 @@ const AIAssessmentPanel = ({
   const resolvedInsights = useExternal ? externalInsights : insights;
   const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
   const resolvedError = useExternal ? externalError : error;
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
   // Re-render the recomputed overall score when the user changes weight prefs.
   const [prefsVersion, setPrefsVersion] = useState(0);
 
@@ -297,7 +299,10 @@ const AIAssessmentPanel = ({
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
         {documentId && (
           <button
-            onClick={handleAssess}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAssess();
+            }}
             disabled={isAssessing}
             style={{
               padding: '8px 16px',
@@ -360,7 +365,12 @@ const AIAssessmentPanel = ({
             ) : resolvedInsights ? 'Reassess' : 'Assess Selected'}
           </button>
         )}
-        <UploadNewPDFButton onClick={onUploadClick || externalUploadPDF} />
+        <div onClick={(e) => e.stopPropagation()}>
+          <UploadNewPDFButton onClick={onUploadClick || externalUploadPDF} />
+        </div>
+        <span style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}>
+          {isPanelOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </span>
       </div>
     </div>
   );
@@ -368,36 +378,47 @@ const AIAssessmentPanel = ({
   // --- Empty state (no document selected) ---
   if (!documentId && !useExternal) {
     return (
-      <div style={panelStyle} className="citewise-card">
-        <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
+      <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+        <div
+          className="workflow-card-header cw-panel-header"
+          onClick={() => setIsPanelOpen((o) => !o)}
+          style={{
+            ...panelHeaderStyle,
+            cursor: 'pointer',
+            userSelect: 'none',
+            borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none',
+          }}
+        >
           <PanelHeader />
         </div>
-        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', flexDirection: 'column', gap: '12px' }}>
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#9ca3af"
-              strokeWidth="1"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p
-              style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: '13px',
-                color: '#6b7280',
-                margin: 0,
-              }}
-            >
-              Select a document to view AI insights.
-            </p>
+        {isPanelOpen && (
+          <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', flexDirection: 'column', gap: '12px' }}>
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#9ca3af"
+                strokeWidth="1"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: '13px',
+                  color: '#6b7280',
+                  margin: 0,
+                }}
+              >
+                Select a document to view AI insights.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -405,11 +426,21 @@ const AIAssessmentPanel = ({
   // --- Loading state ---
   if (resolvedLoading || isAssessing) {
     return (
-      <div style={panelStyle} className="citewise-card">
-        <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
+      <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+        <div
+          className="workflow-card-header cw-panel-header"
+          onClick={() => setIsPanelOpen((o) => !o)}
+          style={{
+            ...panelHeaderStyle,
+            cursor: 'pointer',
+            userSelect: 'none',
+            borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none',
+          }}
+        >
           <PanelHeader />
         </div>
-        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '320px' }}>
+        {isPanelOpen && (
+          <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '320px' }}>
           <div
             style={{
               display: 'flex',
@@ -569,49 +600,61 @@ const AIAssessmentPanel = ({
             </div>
           </div>
         </div>
-      </div>
-    );
+      )}
+    </div>
+  );
   }
 
   // --- Error state ---
   if (resolvedError) {
     return (
-      <div style={panelStyle}>
-        <div className="cw-panel-header" style={panelHeaderStyle}>
+      <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+        <div
+          className="workflow-card-header cw-panel-header"
+          onClick={() => setIsPanelOpen((o) => !o)}
+          style={{
+            ...panelHeaderStyle,
+            cursor: 'pointer',
+            userSelect: 'none',
+            borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none',
+          }}
+        >
           <PanelHeader />
         </div>
-        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
-          <div
-            style={{
-              background: 'rgba(220, 38, 38, 0.06)',
-              border: '1px solid rgba(220, 38, 38, 0.25)',
-              borderRadius: '8px',
-              padding: '16px',
-              textAlign: 'center',
-            }}
-          >
-            <h3
+        {isPanelOpen && (
+          <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
+            <div
               style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: '16px',
-                color: '#dc2626',
-                margin: '0 0 8px 0',
+                background: 'rgba(220, 38, 38, 0.06)',
+                border: '1px solid rgba(220, 38, 38, 0.25)',
+                borderRadius: '8px',
+                padding: '16px',
+                textAlign: 'center',
               }}
             >
-              Analysis Error
-            </h3>
-            <p
-              style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: '13px',
-                color: '#374151',
-                margin: 0,
-              }}
-            >
-              {resolvedError}
-            </p>
+              <h3
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: '16px',
+                  color: '#dc2626',
+                  margin: '0 0 8px 0',
+                }}
+              >
+                Analysis Error
+              </h3>
+              <p
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: '13px',
+                  color: '#374151',
+                  margin: 0,
+                }}
+              >
+                {resolvedError}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -625,50 +668,72 @@ const AIAssessmentPanel = ({
       waitingMessage = 'Assessment did not return results. Check backend logs and your n8n Code node (it may be returning empty {}). Click Assess Selected to try again.';
     }
     return (
-      <div style={panelStyle} className="citewise-card">
-        <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
+      <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+        <div
+          className="workflow-card-header cw-panel-header"
+          onClick={() => setIsPanelOpen((o) => !o)}
+          style={{
+            ...panelHeaderStyle,
+            cursor: 'pointer',
+            userSelect: 'none',
+            borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none',
+          }}
+        >
           <PanelHeader />
         </div>
-        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
-          <p
-            style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: '13px',
-              color: '#6b7280',
-            }}
-          >
-            {waitingMessage}
-          </p>
-        </div>
+        {isPanelOpen && (
+          <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
+            <p
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: '13px',
+                color: '#6b7280',
+              }}
+            >
+              {waitingMessage}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
 
   // --- Success state ---
   return (
-    <div style={panelStyle} className="citewise-card">
-      <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
+    <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+      <div
+        className="workflow-card-header cw-panel-header"
+        onClick={() => setIsPanelOpen((o) => !o)}
+        style={{
+          ...panelHeaderStyle,
+          cursor: 'pointer',
+          userSelect: 'none',
+          borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none',
+        }}
+      >
         <PanelHeader />
       </div>
-      <div className="cw-panel-content" style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
-        <EvidenceExcerptList excerpts={mappedData.excerpts} />
-        <div style={{ height: '35px' }} />
-        <SemanticScoreDashboard
-          scores={mappedData.scores}
-          recommendationStatus={mappedData.recommendationStatus}
-          confidenceLevel={mappedData.confidenceLevel}
-          relevanceLevel={mappedData.relevanceLevel}
-          mismatchFlags={mappedData.mismatchFlags}
-          weaknessFlags={mappedData.weaknessFlags}
-          validationFlags={mappedData.validationFlags}
-          metricWeights={metricWeights}
-        />
-        <RrlUsagePanel
-          sessionId={sessionId}
-          documentId={documentId}
-          excerpts={mappedData.excerpts}
-        />
-      </div>
+      {isPanelOpen && (
+        <div className="cw-panel-content" style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
+          <EvidenceExcerptList excerpts={mappedData.excerpts} />
+          <div style={{ height: '35px' }} />
+          <SemanticScoreDashboard
+            scores={mappedData.scores}
+            recommendationStatus={mappedData.recommendationStatus}
+            confidenceLevel={mappedData.confidenceLevel}
+            relevanceLevel={mappedData.relevanceLevel}
+            mismatchFlags={mappedData.mismatchFlags}
+            weaknessFlags={mappedData.weaknessFlags}
+            validationFlags={mappedData.validationFlags}
+            metricWeights={metricWeights}
+          />
+          <RrlUsagePanel
+            sessionId={sessionId}
+            documentId={documentId}
+            excerpts={mappedData.excerpts}
+          />
+        </div>
+      )}
     </div>
   );
 };

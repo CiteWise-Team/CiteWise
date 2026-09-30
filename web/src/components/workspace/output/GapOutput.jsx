@@ -4,7 +4,7 @@ import { getGapsByGroupAPI } from "../../../api/workflow.gap";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function ExtractorOutput({ result, onComplete }) {
+export default function ExtractorOutput({ result, onComplete, isCollapsed = false, onToggleCollapse }) {
   const group_id = useGroup().groupId;
 
   const [items, setItems] = useState([]);
@@ -40,10 +40,12 @@ export default function ExtractorOutput({ result, onComplete }) {
   const activeItem = items.find((p) => p.id === activeId);
 
   return (
-    <div className="h-100 d-flex flex-column rounded-4 workflow-result-card gap-result-card" style={{ minHeight: 0 }}>
+    <div className={`h-100 d-flex flex-column rounded-4 workflow-result-card gap-result-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
       <WorkflowCardHeader
         title="Explore research gaps"
         subtitle="Review the detected gaps and use them to understand where your research can contribute."
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
         rightContent={
           items.length > 0 ? (
             <span
@@ -64,7 +66,8 @@ export default function ExtractorOutput({ result, onComplete }) {
           ) : null
         }
       />
-      <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
+      {!isCollapsed && (
+        <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
         <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, gap: 0 }}>
         {/* LEFT SIDEBAR — Titles only */}
         <div
@@ -249,6 +252,7 @@ export default function ExtractorOutput({ result, onComplete }) {
         </div>
       </div>
       </div>
+      )}
     </div>
   );
 }

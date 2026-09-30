@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTheme } from "../../../../context/ThemeContext";
 
 export default function QuickNavigationList({
@@ -10,6 +11,7 @@ export default function QuickNavigationList({
   onBatchApprove, // ✨ NEW: optional callback for batch approve
 }) {
   const { isDark } = useTheme();
+  const [open, setOpen] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, index: null, name: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -124,8 +126,8 @@ export default function QuickNavigationList({
         display: "flex",
         flexDirection: "column",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
-        height: "500px",
-        maxHeight: "540px",
+        height: open ? "500px" : "auto",
+        maxHeight: open ? "540px" : "none",
         boxSizing: "border-box",
         overflow: "hidden",
       }}
@@ -133,30 +135,20 @@ export default function QuickNavigationList({
       {/* Panel Header matching Data Import panels */}
       <div
         className="workflow-card-header"
+        onClick={() => setOpen((o) => !o)}
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "1.125rem 1.5rem",
           background: "var(--cw-bg-surface-elevated, #f9fafb)",
-          borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+          borderBottom: open ? "1px solid var(--cw-border, #e5e7eb)" : "none",
           flexShrink: 0,
+          cursor: "pointer",
+          userSelect: "none",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                style={{
-                  width: "16px",
-                  height: "2px",
-                  background: "#f97316",
-                  borderRadius: "1px",
-                }}
-              />
-            ))}
-          </div>
+        <div style={{ display: "flex", alignItems: "center" }}>
           <span
             className="workflow-card-header-title"
             style={{
@@ -170,32 +162,42 @@ export default function QuickNavigationList({
             Quick Navigation
           </span>
         </div>
-        <span
-          className="workflow-card-header-subtitle"
-          style={{
-            fontSize: "11px",
-            color: "var(--cw-text-muted, #6b7280)",
-            fontFamily: "'Poppins', sans-serif",
-            fontWeight: 500,
-          }}
-        >
-          {filteredDocs.length} of {totalCount} papers
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span
+            className="workflow-card-header-subtitle"
+            style={{
+              fontSize: "11px",
+              color: "var(--cw-text-muted, #6b7280)",
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 500,
+            }}
+          >
+            {filteredDocs.length} of {totalCount} papers
+          </span>
+          <span
+            className="cw-collapse-chevron"
+            style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}
+          >
+            {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
+        </div>
       </div>
 
-      {/* Main card body with controls, scroll list, and actions */}
-      <div
-        style={{
-          padding: "16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-          flex: 1,
-          minHeight: 0,
-          overflow: "hidden",
-          boxSizing: "border-box",
-        }}
-      >
+      {open && (
+        <>
+          {/* Main card body with controls, scroll list, and actions */}
+          <div
+            style={{
+              padding: "16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              flex: 1,
+              minHeight: 0,
+              overflow: "hidden",
+              boxSizing: "border-box",
+            }}
+          >
         {/* Pinned Top Controls */}
         <div style={{ display: "flex", flexDirection: "column", gap: "10px", flexShrink: 0 }}>
           {/* Search Input Bar */}
@@ -861,6 +863,8 @@ export default function QuickNavigationList({
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
       <style>{`
         .citewise-queue-scroll::-webkit-scrollbar {

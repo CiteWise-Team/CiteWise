@@ -378,9 +378,30 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
   transition: all 180ms ease;
 }
 
-.workflow-input-card .rounded-4.text-center:hover {
-  background: #fff7ed !important;
+.workflow-input-card .rounded-4.text-center:hover,
+.workflow-input-card .citewise-upload-dropzone:hover,
+.workflow-upload-dropzone:hover {
+  background: #fff3e6 !important;
+  background-color: #fff3e6 !important;
   border-color: #c2410c !important;
+}
+
+.workflow-panel.is-collapsed {
+  height: auto !important;
+  max-height: fit-content !important;
+  align-self: start !important;
+}
+
+.workflow-input-card.is-collapsed,
+.workflow-result-card.is-collapsed {
+  height: auto !important;
+  min-height: auto !important;
+  max-height: fit-content !important;
+}
+
+.workflow-input-card.is-collapsed .workflow-card-header,
+.workflow-result-card.is-collapsed .workflow-card-header {
+  border-bottom: none !important;
 }
 
 .workflow-input-card .d-flex.flex-column.gap-2 > div,
@@ -468,7 +489,8 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
   justify-content: space-between;
   gap: 24px;
   flex-shrink: 0;
-  padding: 8px 0 34px;
+  padding: 8px 0 14px;
+  margin-bottom: 0;
   border-bottom: 1px solid #e5e7eb;
 }
 
@@ -757,6 +779,7 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
 .workflow-guide-spotlight {
   position: fixed;
   z-index: 9992;
+  box-sizing: border-box !important;
   border: 2px solid #ea580c;
   border-radius: 18px;
   box-shadow: 0 0 0 9999px rgba(15, 14, 23, 0.65),
@@ -801,7 +824,7 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
 
 /* When describing the Guide button in the header, position the card below the button without overlapping */
 .workflow-guide-card.is-near-guide-button {
-  top: 155px;
+  top: 78px;
   bottom: auto;
   right: clamp(1rem, 3vw, 3rem);
   left: auto;
@@ -1016,7 +1039,7 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  padding-top: 32px;
+  padding-top: 14px;
 }
 
 /* ==========================================================================
@@ -1029,7 +1052,7 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
   border: 1px solid #e5e7eb !important;
   border-radius: 16px !important;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
-  padding: 14px 20px 12px;
+  padding: 14px 20px 14px;
   margin-bottom: 16px !important;
   flex-shrink: 0;
 }
@@ -1869,6 +1892,19 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
     font-size: 0.78rem !important;
   }
 
+  .navbar-guide-btn {
+    height: 34px !important;
+    padding: 0 10px !important;
+    font-size: 0.76rem !important;
+    gap: 5px !important;
+  }
+
+  .cw-nav-avatar-btn {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 0.88rem !important;
+  }
+
   /* ==========================================================================
      CATalyst Workflow Mobile Progression:
      Hide top desktop stepper card; use modern fixed mobile bottom navbar just like CiteWise
@@ -2456,6 +2492,14 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
   outline: none !important;
 }
 
+[data-theme="dark"] .workflow-input-card .rounded-4.text-center:hover,
+[data-theme="dark"] .workflow-input-card .citewise-upload-dropzone:hover,
+[data-theme="dark"] .workflow-upload-dropzone:hover {
+  background: rgba(234, 88, 12, 0.12) !important;
+  background-color: rgba(234, 88, 12, 0.12) !important;
+  border-color: #f97316 !important;
+}
+
 [data-theme="dark"] .workflow-input-card .rounded-4.text-center h6 {
   color: #ffffff !important;
 }
@@ -2605,10 +2649,52 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
 [data-theme="dark"] .workflow-card-header span[style*="border-radius: 20px"],
 [data-theme="dark"] .workflow-card-header span[style*="borderRadius: 20px"],
 [data-theme="dark"] .workflow-card-header span[style*="borderRadius: \"20px\""],
-[data-theme="dark"] .workflow-card-header-actions span {
+[data-theme="dark"] .workflow-card-header-actions span:not(.workflow-card-collapse-icon):not(.cw-collapse-chevron) {
   background: rgba(234, 88, 12, 0.15) !important;
   border-color: rgba(234, 88, 12, 0.4) !important;
   color: #fb923c !important;
+}
+
+/* Uniform hide/expand chevron buttons across CATalyst & CiteWise */
+.workflow-card-collapse-icon,
+.cw-collapse-chevron {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: var(--cw-text-muted, #6b7280) !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: color 0.15s ease !important;
+}
+
+[data-theme="dark"] .workflow-card-collapse-icon,
+[data-theme="dark"] .cw-collapse-chevron {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #94a3b8 !important;
+}
+
+.workflow-card-header:hover .workflow-card-collapse-icon,
+.workflow-card-header:hover .cw-collapse-chevron,
+.workflow-card-collapse-icon:hover,
+.cw-collapse-chevron:hover {
+  color: var(--cw-text-primary, #0f0e17) !important;
+}
+
+[data-theme="dark"] .workflow-card-header:hover .workflow-card-collapse-icon,
+[data-theme="dark"] .workflow-card-header:hover .cw-collapse-chevron,
+[data-theme="dark"] .workflow-card-collapse-icon:hover,
+[data-theme="dark"] .cw-collapse-chevron:hover {
+  color: #ffffff !important;
 }
 
 [data-theme="dark"] .workflow-result-sidebar {

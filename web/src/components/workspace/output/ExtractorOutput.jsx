@@ -4,7 +4,7 @@ import { getExtractedFilesByGroupAPI } from "../../../api/workflow.extractor";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function ExtractorOutput({ result, onComplete }) {
+export default function ExtractorOutput({ result, onComplete, isCollapsed = false, onToggleCollapse }) {
   const group_id = useGroup().groupId;
 
   const [activeTab, setActiveTab] = useState("papers");
@@ -42,15 +42,20 @@ export default function ExtractorOutput({ result, onComplete }) {
 
 
   return (
-    <div className="h-100 d-flex flex-column rounded-4 workflow-result-card document-result-card" style={{ minHeight: 0 }}>
+    <div className={`h-100 d-flex flex-column rounded-4 workflow-result-card document-result-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
       <WorkflowCardHeader
         title="Review extracted papers"
         subtitle="Your uploaded documents and extracted information appear here for review."
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
         rightContent={
-          <div className="d-flex gap-2 workflow-result-tabs flex-shrink-0">
+          <div className="d-flex gap-2 workflow-result-tabs flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             <button
               className={`workflow-result-tab${activeTab === "papers" ? " is-active" : ""}`}
-              onClick={() => setActiveTab("papers")}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab("papers");
+              }}
             >
               Papers
             </button>
@@ -58,7 +63,10 @@ export default function ExtractorOutput({ result, onComplete }) {
             <button
               className={`workflow-result-tab${activeTab === "result" ? " is-active" : ""}`}
               disabled={!selectedPaper}
-              onClick={() => setActiveTab("result")}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab("result");
+              }}
             >
               Result
             </button>
@@ -66,10 +74,11 @@ export default function ExtractorOutput({ result, onComplete }) {
         }
       />
 
-      <div
-        className="workflow-result-content flex-grow-1"
-        style={{ minHeight: 0, overflow: "hidden" }}
-      >
+      {!isCollapsed && (
+        <div
+          className="workflow-result-content flex-grow-1"
+          style={{ minHeight: 0, overflow: "hidden" }}
+        >
         {loading ? (
           <div style={{ padding: "3rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
             {/* Guaranteed Animated SVG Spinner with glowing center */}
@@ -239,6 +248,7 @@ export default function ExtractorOutput({ result, onComplete }) {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import * as store from "../../../lib/citewiseStore";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 function fmt(ts) {
   try {
@@ -88,7 +88,9 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{ fontSize: "0.72rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif" }}>{versions.length} saved</span>
-          {isOpen ? <ChevronDown size={18} color="#f97316" /> : <ChevronRight size={18} color="#9ca3af" />}
+          <span style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)" }}>
+            {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
         </div>
       </div>
 

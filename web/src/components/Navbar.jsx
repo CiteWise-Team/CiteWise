@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { LogOut, Menu, Moon, Sun, X, Compass, User } from "lucide-react";
 import citeWiseLogo from "../assets/citewise-logo.png";
 import "../App.css";
 
-export default function Navbar() {
+export default function Navbar({ onGuideClick }) {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ export default function Navbar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
+  const dropdownRef = useRef(null);
 
   const isLanding = location.pathname === "/";
   const isCiteWise = location.pathname.startsWith("/citewise");
@@ -23,6 +24,26 @@ export default function Navbar() {
     || location.pathname.startsWith("/workspace/")
     || location.pathname === "/upload";
   const appName = isCatalyst ? "CATalyst" : "CiteWise";
+
+  const accountEmail = user?.email || user?.username || "Researcher";
+
+  const handleTriggerGuide = () => {
+    if (typeof onGuideClick === "function") {
+      onGuideClick();
+    }
+    window.dispatchEvent(new CustomEvent("open-page-guide"));
+  };
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [open]);
 
   const handleLogout = () => {
     logout();
@@ -229,26 +250,99 @@ export default function Navbar() {
           </button>
         )}
 
-        {/* NON-LANDING APP DROPDOWN */}
+        {/* NON-LANDING APP CLUSTER: GUIDE BUTTON + USER PROFILE BUTTON */}
         {!isLanding && isAuthenticated && user && (
-          <div className="dropdown ms-auto" style={{ position: "relative" }}>
+          <div className="d-flex align-items-center gap-2 ms-auto" style={{ position: "relative" }}>
+            {/* Guide button on the left side of profile button - Solid Orange */}
             <button
-              className="btn btn-dark dropdown-toggle cw-nav-user"
               type="button"
+              className="navbar-guide-btn"
+              data-guide="workflow-guide-button"
+              onClick={handleTriggerGuide}
+              aria-label="Open page guide"
+              title="Open interactive guide"
               style={{
-                backgroundColor: isDark ? "#161522" : "#f1f1f5",
-                color: isDark ? "#e4e4f0" : "#0f0e17",
-                border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #cbd5e1",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                height: "36px",
+                padding: "0 13px",
+                backgroundColor: "#ea580c",
+                color: "#ffffff",
+                border: "1px solid #ea580c",
                 borderRadius: "8px",
-                padding: "6px 14px",
+                cursor: "pointer",
                 fontFamily: "'Poppins', sans-serif",
-                fontSize: "0.8rem",
+                fontSize: "0.82rem",
                 fontWeight: 600,
+                transition: "all 0.18s ease",
+                whiteSpace: "nowrap",
+                boxShadow: "0 2px 8px rgba(234, 88, 12, 0.25)",
               }}
-              onClick={() => setOpen(prev => !prev)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#c2410c";
+                e.currentTarget.style.borderColor = "#c2410c";
+                e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#ea580c";
+                e.currentTarget.style.borderColor = "#ea580c";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.25)";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
             >
-              {user.username || user.email}
+              <Compass size={16} color="#ffffff" strokeWidth={2.2} />
+              <span style={{ color: "#ffffff", fontWeight: 600 }}>Guide</span>
             </button>
+
+            {/* Modern profile button: rounded rectangle container, orange profile icon */}
+            <div className="dropdown" ref={dropdownRef} style={{ position: "relative" }}>
+              <button
+                className="cw-nav-avatar-btn"
+                type="button"
+                aria-label="User profile menu"
+                aria-expanded={open}
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "8px",
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#ffffff",
+                  color: "#ea580c",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  border: open
+                    ? "1px solid #ea580c"
+                    : isDark ? "1px solid rgba(255, 255, 255, 0.14)" : "1px solid #e2e8f0",
+                  boxShadow: open
+                    ? "0 0 0 3px rgba(234, 88, 12, 0.35), 0 2px 8px rgba(0, 0, 0, 0.15)"
+                    : "0 1px 3px rgba(0, 0, 0, 0.05)",
+                  transition: "all 0.18s ease",
+                  userSelect: "none",
+                  padding: 0,
+                  outline: "none",
+                }}
+                onClick={() => setOpen((prev) => !prev)}
+                onMouseEnter={(e) => {
+                  if (!open) {
+                    e.currentTarget.style.borderColor = "#ea580c";
+                    e.currentTarget.style.backgroundColor = isDark ? "rgba(234, 88, 12, 0.12)" : "rgba(234, 88, 12, 0.06)";
+                    e.currentTarget.style.boxShadow = "0 0 0 2px rgba(234, 88, 12, 0.25)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!open) {
+                    e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.14)" : "#e2e8f0";
+                    e.currentTarget.style.backgroundColor = isDark ? "rgba(255, 255, 255, 0.06)" : "#ffffff";
+                    e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.05)";
+                  }
+                }}
+              >
+                <User size={19} color="#ea580c" strokeWidth={2.2} />
+              </button>
 
               {open && (
                 <ul
@@ -260,22 +354,83 @@ export default function Navbar() {
                     top: "calc(100% + 8px)",
                     backgroundColor: isDark ? "#15141f" : "#ffffff",
                     border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
-                    borderRadius: "10px",
+                    borderRadius: "12px",
                     padding: "6px",
-                    minWidth: "165px",
-                    boxShadow: isDark ? "0 16px 32px rgba(0, 0, 0, 0.55)" : "0 16px 32px rgba(0, 0, 0, 0.12)",
+                    minWidth: "230px",
+                    boxShadow: isDark ? "0 16px 36px rgba(0, 0, 0, 0.55)" : "0 16px 36px rgba(0, 0, 0, 0.12)",
+                    zIndex: 1050,
                   }}
                 >
+                  {/* Whole account email display */}
+                  <li
+                    style={{
+                      padding: "10px 12px 12px 12px",
+                      borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div
+                        style={{
+                          width: "34px",
+                          height: "34px",
+                          borderRadius: "8px",
+                          backgroundColor: isDark ? "rgba(234, 88, 12, 0.12)" : "rgba(234, 88, 12, 0.08)",
+                          border: isDark ? "1px solid rgba(234, 88, 12, 0.3)" : "1px solid rgba(234, 88, 12, 0.25)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <User size={18} color="#ea580c" strokeWidth={2.2} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div
+                          style={{
+                            fontSize: "0.68rem",
+                            textTransform: "uppercase",
+                            fontWeight: 700,
+                            letterSpacing: "0.06em",
+                            color: "#ea580c",
+                            fontFamily: "'Poppins', sans-serif",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          Signed in as
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.82rem",
+                            fontWeight: 600,
+                            color: isDark ? "#ffffff" : "#0f0e17",
+                            fontFamily: "'Poppins', sans-serif",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            marginTop: "2px",
+                          }}
+                          title={accountEmail}
+                        >
+                          {accountEmail}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+
+                  {/* Dark/Light mode button */}
                   <li>
                     <button
+                      type="button"
                       className="dropdown-item d-flex align-items-center gap-2"
                       style={{
                         color: isDark ? "#e4e4f0" : "#1e293b",
-                        borderRadius: "6px",
-                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        padding: "8px 12px",
                         fontFamily: "'Poppins', sans-serif",
-                        fontSize: "0.8rem",
-                        transition: "background 0.2s ease, color 0.2s ease",
+                        fontSize: "0.82rem",
+                        fontWeight: 500,
+                        transition: "background 0.15s ease, color 0.15s ease",
                         border: "none",
                         background: "transparent",
                         width: "100%",
@@ -299,26 +454,31 @@ export default function Navbar() {
                       <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
                     </button>
                   </li>
+
                   <li>
                     <hr
                       className="dropdown-divider"
                       style={{
-                        borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "#e2e8f0",
+                        borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : "#e2e8f0",
                         opacity: 1,
                         margin: "4px 0",
                       }}
                     />
                   </li>
+
+                  {/* Logout button */}
                   <li>
                     <button
+                      type="button"
                       className="dropdown-item d-flex align-items-center gap-2"
                       style={{
                         color: "#e5544b",
-                        borderRadius: "6px",
-                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        padding: "8px 12px",
                         fontFamily: "'Poppins', sans-serif",
-                        fontSize: "0.8rem",
-                        transition: "background 0.2s ease, color 0.2s ease",
+                        fontSize: "0.82rem",
+                        fontWeight: 500,
+                        transition: "background 0.15s ease, color 0.15s ease",
                         border: "none",
                         background: "transparent",
                         width: "100%",
@@ -338,13 +498,14 @@ export default function Navbar() {
                         setShowLogoutConfirm(true);
                       }}
                     >
-                      <LogOut size={15} color="#ea580c" />
+                      <LogOut size={15} color="#e5544b" />
                       <span>Logout</span>
                     </button>
                   </li>
                 </ul>
               )}
             </div>
+          </div>
         )}
       </div>
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { apiRequest, apiFetch } from "../../../../api/http";
-import { ChevronDown, ChevronRight, Settings, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Settings, Trash2 } from "lucide-react";
 import { Modal } from "bootstrap";
 import ConfirmModal from "../../../../components/modals/ConfirmModal";
 import * as store from "../../../lib/citewiseStore";
@@ -206,7 +206,9 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
           >
             <Settings size={14} /> <span style={{ textDecoration: "underline" }}>Manage Sources</span>
           </button>
-          {isOpen ? <ChevronDown size={18} color="#f97316" /> : <ChevronRight size={18} color="#9ca3af" />}
+          <span style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)" }}>
+            {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
         </div>
       </div>
 

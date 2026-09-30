@@ -1,4 +1,5 @@
-// module3/synthesis-draft/components/SynthesisControlPanel.jsx
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import DraftIntroductionButton from "./DraftIntroductionButton";
 
 export default function SynthesisControlPanel({ 
@@ -10,48 +11,69 @@ export default function SynthesisControlPanel({
   hasApprovedDocuments,
   approvedCount
 }) {
+  const [open, setOpen] = useState(true);
+
   return (
     <div style={styles.card}>
-      <div className="workflow-card-header" style={styles.cardHeader}>
-        <span style={styles.cardTitle}>Synthesis Control</span>
-        <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
-          Generate an introduction draft with APA citations from approved literature.
-        </p>
+      <div
+        className="workflow-card-header"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          ...styles.cardHeader,
+          borderBottom: open ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+          cursor: "pointer",
+          userSelect: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div>
+          <span style={styles.cardTitle}>Synthesis Control</span>
+          <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
+            Generate an introduction draft with APA citations from approved literature.
+          </p>
+        </div>
+        <span style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}>
+          {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </span>
       </div>
 
-      <div style={styles.cardBody}>
-        {/* Generation Status Box */}
-        <div style={styles.statusBox}>
-          <span style={styles.statusLabel}>Generation Status</span>
-          <span style={styles.statusText}>
-            {generationStatus === "generating" && <span style={styles.statusDot} />}
-            {statusText}
-          </span>
+      {open && (
+        <div style={styles.cardBody}>
+          {/* Generation Status Box */}
+          <div style={styles.statusBox}>
+            <span style={styles.statusLabel}>Generation Status</span>
+            <span style={styles.statusText}>
+              {generationStatus === "generating" && <span style={styles.statusDot} />}
+              {statusText}
+            </span>
 
-          {generationStatus === "generating" && (
-            <div style={styles.progressBarContainer}>
-              <div style={{ ...styles.progressBarFill, width: `${generationProgress}%` }} />
+            {generationStatus === "generating" && (
+              <div style={styles.progressBarContainer}>
+                <div style={{ ...styles.progressBarFill, width: `${generationProgress}%` }} />
+              </div>
+            )}
+          </div>
+
+          {/* Warning if no approved documents */}
+          {!hasApprovedDocuments && generationStatus === "idle" && (
+            <div style={styles.warningBox}>
+              <span style={styles.warningText}>⚠️ No approved documents found. Please approve documents in AI Assessment first.</span>
             </div>
           )}
+
+          {/* Draft Introduction Button */}
+          <DraftIntroductionButton
+            generationStatus={generationStatus}
+            generationProgress={generationProgress}
+            onSynthesize={onSynthesize}
+            onRegenerate={resetGeneration => onRegenerate && onRegenerate(resetGeneration)}
+            hasApprovedDocuments={hasApprovedDocuments}
+            approvedCount={approvedCount}
+          />
         </div>
-
-        {/* Warning if no approved documents */}
-        {!hasApprovedDocuments && generationStatus === "idle" && (
-          <div style={styles.warningBox}>
-            <span style={styles.warningText}>⚠️ No approved documents found. Please approve documents in AI Assessment first.</span>
-          </div>
-        )}
-
-        {/* Draft Introduction Button */}
-        <DraftIntroductionButton
-          generationStatus={generationStatus}
-          generationProgress={generationProgress}
-          onSynthesize={onSynthesize}
-          onRegenerate={onRegenerate}
-          hasApprovedDocuments={hasApprovedDocuments}
-          approvedCount={approvedCount}
-        />
-      </div>
+      )}
 
       <style>{`
         @keyframes pulse {

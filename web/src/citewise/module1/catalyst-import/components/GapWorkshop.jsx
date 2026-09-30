@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Pencil, Trash2, Check, X } from "lucide-react";
+import { Pencil, Trash2, Check, X, Layers, ArrowRight, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
 import { apiFetch } from "../../../../api/http";
@@ -18,6 +18,9 @@ export default function GapWorkshop({ sessionId, catalystData }) {
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState("");
   const [expandedNote, setExpandedNote] = useState(null);
+  const [workshopOpen, setWorkshopOpen] = useState(true);
+  const [addOwnGapOpen, setAddOwnGapOpen] = useState(true);
+  const [titleGapOpen, setTitleGapOpen] = useState(true);
   const newGapInputRef = useRef(null);
 
   useEffect(() => {
@@ -103,7 +106,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "24px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "14px" }}>
       {/* ── Panel 1: Research Gap Workshop ─────────────────────── */}
       <div
         className="citewise-gap-workshop-panel cw-m-auto-height"
@@ -121,15 +124,18 @@ export default function GapWorkshop({ sessionId, catalystData }) {
         {/* Header */}
         <div
           className="workflow-card-header"
+          onClick={() => setWorkshopOpen((o) => !o)}
           style={{
             padding: "1.125rem 1.5rem",
-            borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+            borderBottom: workshopOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
             background: "var(--cw-bg-surface-elevated, #f9fafb)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             gap: "1rem",
             flexShrink: 0,
+            cursor: "pointer",
+            userSelect: "none",
           }}
         >
           <div>
@@ -140,28 +146,32 @@ export default function GapWorkshop({ sessionId, catalystData }) {
               Select, edit, or create gaps. The title is derived from your selection.
             </p>
           </div>
-          {selectedCount > 0 && (
-            <span
-              style={{
-                background: "rgba(234, 88, 12, 0.1)",
-                border: "1px solid rgba(234, 88, 12, 0.4)",
-                borderRadius: "999px",
-                padding: "2px 10px",
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#ea580c",
-                fontFamily: "'Poppins', sans-serif",
-                whiteSpace: "nowrap",
-                marginLeft: 8,
-              }}
-            >
-              {selectedCount} selected
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+            {selectedCount > 0 && (
+              <span
+                style={{
+                  background: "rgba(234, 88, 12, 0.1)",
+                  border: "1px solid rgba(234, 88, 12, 0.4)",
+                  borderRadius: "999px",
+                  padding: "2px 10px",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  color: "#ea580c",
+                  fontFamily: "'Poppins', sans-serif",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {selectedCount} selected
+              </span>
+            )}
+            <span style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)" }}>
+              {workshopOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </span>
-          )}
+          </div>
         </div>
 
-        {/* Scrollable body */}
-        <div style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {workshopOpen && (
+          <div style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
           {/* Gap list */}
           {gaps.length === 0 ? (
             <div style={{ padding: "2rem 0", textAlign: "center" }}>
@@ -175,6 +185,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                 const badge = SOURCE_BADGE[gap.source] || SOURCE_BADGE.user;
                 const isEditing = editingId === gap.id;
                 const noteOpen = expandedNote === gap.id;
+                const effectiveNote = gap.note && !/^combined from/i.test(gap.note.trim()) ? gap.note : "";
                 return (
                   <div
                     key={gap.id}
@@ -410,7 +421,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                         {noteOpen ? (
                           <>
                             <textarea
-                              value={gap.note || ""}
+                              value={effectiveNote}
                               onClick={(e) => e.stopPropagation()}
                               onChange={(e) => store.updateGap(sessionId, gap.id, { note: e.target.value })}
                               placeholder="Add your note or insight…"
@@ -431,6 +442,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                               }}
                             />
                             <button
+                              type="button"
                               onClick={(e) => { e.stopPropagation(); setExpandedNote(null); }}
                               style={{ background: "none", border: "none", color: "var(--cw-text-muted, #9ca3af)", cursor: "pointer", fontSize: "0.72rem", padding: "2px 0", fontFamily: "'Poppins', sans-serif" }}
                             >
@@ -439,10 +451,29 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                           </>
                         ) : (
                           <button
+                            type="button"
                             onClick={(e) => { e.stopPropagation(); setExpandedNote(gap.id); }}
-                            style={{ background: "none", border: "none", color: gap.note ? "#ea580c" : "var(--cw-text-muted, #9ca3af)", cursor: "pointer", fontSize: "0.72rem", padding: "2px 0", fontFamily: "'Poppins', sans-serif" }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: effectiveNote ? "#ea580c" : "var(--cw-text-muted, #9ca3af)",
+                              cursor: "pointer",
+                              fontSize: "0.72rem",
+                              padding: "2px 0",
+                              fontFamily: "'Poppins', sans-serif",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "5px",
+                            }}
                           >
-                            {gap.note ? `📝 Note — ${gap.note.slice(0, 40)}${gap.note.length > 40 ? "…" : ""}` : "+ Add note"}
+                            {effectiveNote ? (
+                              <>
+                                <FileText size={12} />
+                                <span>Note — {effectiveNote.slice(0, 40)}{effectiveNote.length > 40 ? "…" : ""}</span>
+                              </>
+                            ) : (
+                              "+ Add note"
+                            )}
                           </button>
                         )}
                       </div>
@@ -455,39 +486,106 @@ export default function GapWorkshop({ sessionId, catalystData }) {
 
           {/* Combine button */}
           {selectedCount >= 2 && (
-            <button
-              onClick={handleCombine}
+            <div
               style={{
-                background: "rgba(234, 88, 12, 0.08)",
-                color: "#ea580c",
-                border: "1px solid rgba(234, 88, 12, 0.4)",
-                borderRadius: "8px",
-                padding: "8px 16px",
-                cursor: "pointer",
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: "0.82rem",
-                fontWeight: 700,
-                alignSelf: "flex-start",
-                transition: "all 180ms ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.borderColor = "#ea580c";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(234, 88, 12, 0.18)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.borderColor = "rgba(234, 88, 12, 0.4)";
-                e.currentTarget.style.boxShadow = "none";
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "12px",
+                padding: "12px 16px",
+                background: "var(--cw-combine-banner-bg, rgba(234, 88, 12, 0.06))",
+                border: "1px solid var(--cw-combine-banner-border, rgba(234, 88, 12, 0.22))",
+                borderRadius: "12px",
+                marginTop: "4px",
+                boxShadow: "0 2px 8px rgba(234, 88, 12, 0.06)",
+                animation: "fadeInToast 0.22s ease-out forwards",
               }}
             >
-              Combine {selectedCount} gaps →
-            </button>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
+                    background: "rgba(234, 88, 12, 0.14)",
+                    color: "#ea580c",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Layers size={17} strokeWidth={2.2} />
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontWeight: 600,
+                      fontSize: "0.85rem",
+                      color: "var(--cw-text-primary, #0f0e17)",
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    Synthesize Research Gaps
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.75rem",
+                      color: "var(--cw-text-muted, #6b7280)",
+                      marginTop: "2px",
+                    }}
+                  >
+                    Merge {selectedCount} selected gaps into a unified composite gap
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCombine}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  height: "38px",
+                  padding: "0 18px",
+                  background: "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  boxShadow: "0 2px 8px rgba(234, 88, 12, 0.28)",
+                  transition: "all 180ms ease",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.38)";
+                  e.currentTarget.style.filter = "brightness(1.05)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.28)";
+                  e.currentTarget.style.filter = "none";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <span>Combine {selectedCount} Gaps</span>
+                <ArrowRight size={15} strokeWidth={2.2} />
+              </button>
+            </div>
           )}
         </div>
+        )}
       </div>
 
       {/* ── Panel 2: Add Your Own Gap ──────────────────────────── */}
@@ -506,15 +604,18 @@ export default function GapWorkshop({ sessionId, catalystData }) {
       >
         <div
           className="workflow-card-header"
+          onClick={() => setAddOwnGapOpen((o) => !o)}
           style={{
             padding: "1.125rem 1.5rem",
-            borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+            borderBottom: addOwnGapOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
             background: "var(--cw-bg-surface-elevated, #f9fafb)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             gap: "1rem",
             flexShrink: 0,
+            cursor: "pointer",
+            userSelect: "none",
           }}
         >
           <div>
@@ -525,9 +626,13 @@ export default function GapWorkshop({ sessionId, catalystData }) {
               Describe an identified research gap to add it to your working list.
             </p>
           </div>
+          <span style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)", flexShrink: 0 }}>
+            {addOwnGapOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
         </div>
 
-        <div style={{ padding: "1.25rem 1.5rem" }}>
+        {addOwnGapOpen && (
+          <div style={{ padding: "1.25rem 1.5rem" }}>
           <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
             <textarea
               ref={newGapInputRef}
@@ -613,6 +718,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
             </button>
           </div>
         </div>
+        )}
       </div>
 
       {/* ── Panel 3: Title From Gap(s) ─────────────────────────── */}
@@ -631,15 +737,18 @@ export default function GapWorkshop({ sessionId, catalystData }) {
       >
         <div
           className="workflow-card-header"
+          onClick={() => setTitleGapOpen((o) => !o)}
           style={{
             padding: "1.125rem 1.5rem",
-            borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+            borderBottom: titleGapOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
             background: "var(--cw-bg-surface-elevated, #f9fafb)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             gap: "1rem",
             flexShrink: 0,
+            cursor: "pointer",
+            userSelect: "none",
           }}
         >
           <div>
@@ -650,68 +759,77 @@ export default function GapWorkshop({ sessionId, catalystData }) {
               Derive or refine your working paper title from the selected gaps.
             </p>
           </div>
-          <button
-            onClick={handleSuggestTitles}
-            disabled={titleLoading || gaps.length === 0}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "38px",
-              minHeight: "38px",
-              padding: "0 16px",
-              background: "#ea580c",
-              color: "#ffffff",
-              border: "1px solid #ea580c",
-              borderRadius: "8px",
-              cursor: titleLoading || gaps.length === 0 ? "not-allowed" : "pointer",
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-              opacity: titleLoading || gaps.length === 0 ? 0.6 : 1,
-              whiteSpace: "nowrap",
-              boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
-              flexShrink: 0,
-              transition: "all 180ms ease",
-            }}
-            onMouseEnter={(e) => {
-              if (!titleLoading && gaps.length > 0) {
-                e.currentTarget.style.background = "#c2410c";
-                e.currentTarget.style.borderColor = "#c2410c";
-                e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!titleLoading && gaps.length > 0) {
-                e.currentTarget.style.background = "#ea580c";
-                e.currentTarget.style.borderColor = "#ea580c";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
-              }
-            }}
-            onMouseDown={(e) => {
-              if (!titleLoading && gaps.length > 0) {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
-              }
-            }}
-          >
-            {titleLoading ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                <svg width="14" height="14" viewBox="0 0 50 50">
-                  <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="5" />
-                  <circle cx="25" cy="25" r="20" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="50 70">
-                    <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
-                  </circle>
-                </svg>
-                Generating…
-              </span>
-            ) : "Suggest titles"}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSuggestTitles();
+              }}
+              disabled={titleLoading || gaps.length === 0}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "38px",
+                minHeight: "38px",
+                padding: "0 16px",
+                background: "#ea580c",
+                color: "#ffffff",
+                border: "1px solid #ea580c",
+                borderRadius: "8px",
+                cursor: titleLoading || gaps.length === 0 ? "not-allowed" : "pointer",
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                opacity: titleLoading || gaps.length === 0 ? 0.6 : 1,
+                whiteSpace: "nowrap",
+                boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
+                flexShrink: 0,
+                transition: "all 180ms ease",
+              }}
+              onMouseEnter={(e) => {
+                if (!titleLoading && gaps.length > 0) {
+                  e.currentTarget.style.background = "#c2410c";
+                  e.currentTarget.style.borderColor = "#c2410c";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!titleLoading && gaps.length > 0) {
+                  e.currentTarget.style.background = "#ea580c";
+                  e.currentTarget.style.borderColor = "#ea580c";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                }
+              }}
+              onMouseDown={(e) => {
+                if (!titleLoading && gaps.length > 0) {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+                }
+              }}
+            >
+              {titleLoading ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                  <svg width="14" height="14" viewBox="0 0 50 50">
+                    <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="5" />
+                    <circle cx="25" cy="25" r="20" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="50 70">
+                      <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
+                    </circle>
+                  </svg>
+                  Generating…
+                </span>
+              ) : "Suggest titles"}
+            </button>
+            <span style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)" }}>
+              {titleGapOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </span>
+          </div>
         </div>
 
-        <div style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {titleGapOpen && (
+          <div style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
           {titleLoading && (
             <div style={{ padding: "1.25rem", background: "rgba(234, 88, 12, 0.06)", border: "1px solid rgba(234, 88, 12, 0.2)", borderRadius: "10px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center", textAlign: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -809,7 +927,8 @@ export default function GapWorkshop({ sessionId, catalystData }) {
             )}
           </div>
         </div>
-      </div>
+      )}
     </div>
-  );
+  </div>
+);
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import SynthesisControlPanel from "./SynthesisControlPanel";
 import ApprovedSourceList from "./ApprovedSourceList";
 import GeneratedDraftDisplay from "./GeneratedDraftDisplay";
@@ -171,6 +172,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [draftPanelOpen, setDraftPanelOpen] = useState(true);
 
   const DRAFT_STORAGE_KEY = `citewise_draft_${sessionId}`;
   const DOCS_STORAGE_KEY = `citewise_approved_docs_${sessionId}`;
@@ -672,32 +674,50 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
         </div>
 
         <div style={styles.rightColumn} data-guide="citewise-draft-editor">
-          <div style={styles.rightPanel}>
-            <div className="workflow-card-header" style={styles.rightPanelHeader}>
+          <div style={{ ...styles.rightPanel, height: draftPanelOpen ? "100%" : "auto", minHeight: draftPanelOpen ? (isMobile ? "320px" : "500px") : "0" }}>
+            <div
+              className="workflow-card-header"
+              onClick={() => setDraftPanelOpen((o) => !o)}
+              style={{
+                ...styles.rightPanelHeader,
+                borderBottom: draftPanelOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+            >
               <div>
                 <span style={styles.rightPanelTitle}>Generated Introduction</span>
                 <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
                   Review, edit, and export your literature synthesis draft.
                 </p>
               </div>
-              <ExportDraftDropdown 
-                isOpen={exportDropdownOpen}
-                onToggle={setExportDropdownOpen}
-                onExport={handleExport}
-                onCopy={copyToClipboard}
-                isEnabled={generationStatus === "complete"}
-                isExportingPdf={isExportingPdf}
-              />
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <ExportDraftDropdown 
+                    isOpen={exportDropdownOpen}
+                    onToggle={setExportDropdownOpen}
+                    onExport={handleExport}
+                    onCopy={copyToClipboard}
+                    isEnabled={generationStatus === "complete"}
+                    isExportingPdf={isExportingPdf}
+                  />
+                </div>
+                <span style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}>
+                  {draftPanelOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </span>
+              </div>
             </div>
-            <div style={styles.rightPanelContent}>
-              <GeneratedDraftDisplay
-                generationStatus={generationStatus}
-                content={generatedContent}
-                references={references}
-                onSaveEdit={handleSaveEdit}
-                citationIntegrity={citationIntegrity}
-              />
-            </div>
+            {draftPanelOpen && (
+              <div style={styles.rightPanelContent}>
+                <GeneratedDraftDisplay
+                  generationStatus={generationStatus}
+                  content={generatedContent}
+                  references={references}
+                  onSaveEdit={handleSaveEdit}
+                  citationIntegrity={citationIntegrity}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

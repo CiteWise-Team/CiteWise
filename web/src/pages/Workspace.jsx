@@ -33,6 +33,8 @@ export default function GroupWorkflow() {
   const { user } = useAuth();
   // Holds the id that failed to resolve, so navigating elsewhere clears it.
   const [missingFor, setMissingFor] = useState(null);
+  const [isInputCollapsed, setIsInputCollapsed] = useState(false);
+  const [isResultCollapsed, setIsResultCollapsed] = useState(false);
 
   const resolved = Boolean(routeGroupId) && groupId === routeGroupId;
 
@@ -295,15 +297,22 @@ export default function GroupWorkflow() {
       </div>
 
       <div className="workflow-workbench">
-        <section className="workflow-panel" data-guide="workflow-input" aria-label="Workflow input">
-          <InputPanel step={step} setResult={(nextResult) => handleStepResult(step, nextResult)} />
+        <section className={`workflow-panel ${isInputCollapsed ? "is-collapsed" : ""}`} data-guide="workflow-input" aria-label="Workflow input">
+          <InputPanel
+            step={step}
+            setResult={(nextResult) => handleStepResult(step, nextResult)}
+            isCollapsed={isInputCollapsed}
+            onToggleCollapse={() => setIsInputCollapsed(!isInputCollapsed)}
+          />
         </section>
 
-        <section className="workflow-panel" data-guide="workflow-results" aria-label="Workflow results">
+        <section className={`workflow-panel ${isResultCollapsed ? "is-collapsed" : ""}`} data-guide="workflow-results" aria-label="Workflow results">
           <ResultPanel
             step={step}
             result={result}
             onComplete={handleResultComplete}
+            isCollapsed={isResultCollapsed}
+            onToggleCollapse={() => setIsResultCollapsed(!isResultCollapsed)}
           />
         </section>
       </div>

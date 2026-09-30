@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 import * as store from "../../../lib/citewiseStore";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 const TIER_META = {
   CORE: { label: "Core evidence", color: "#16a34a", bg: "#f0fdf4", note: "Used as main synthesis evidence." },
@@ -88,7 +88,9 @@ export default function SourceUsageTransparency({ sessionId, documents }) {
           </p>
         </div>
         <div style={{ paddingLeft: "10px" }}>
-          {isOpen ? <ChevronDown size={18} color="#f97316" /> : <ChevronRight size={18} color="#9ca3af" />}
+          <span style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)" }}>
+            {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
         </div>
       </div>
 

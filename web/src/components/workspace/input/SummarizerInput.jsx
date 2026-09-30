@@ -10,7 +10,7 @@ import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function SummarizerInput({ setResult }) {
+export default function SummarizerInput({ setResult, isCollapsed = false, onToggleCollapse }) {
   const group_id = useGroup().groupId;
 
   const [file, setFile] = useState(null);
@@ -165,104 +165,110 @@ export default function SummarizerInput({ setResult }) {
 
   return (
     <>
-      <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
+      <div className={`h-100 rounded-4 workflow-input-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
         {/* HEADER */}
         <WorkflowCardHeader
           title="Choose a document to summarize"
           subtitle="Select an extracted paper and provide the details needed to create a concise summary."
+          isCollapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse}
         />
 
-        {/* BODY */}
-        <div className="workflow-input-body">
-          <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
-            <small style={{ color: "#4b5563", fontWeight: 600 }}>Choose an extracted document</small>
+        {!isCollapsed && (
+          <>
+            {/* BODY */}
+            <div className="workflow-input-body">
+              <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
+                <small style={{ color: "#4b5563", fontWeight: 600 }}>Choose an extracted document</small>
 
-            <div
-              className="workflow-scroll-list mt-2 d-flex flex-column gap-2"
-              style={{
-                flex: "1 1 auto",
-                minHeight: "140px",
-                maxHeight: "clamp(200px, 35vh, 340px)",
-                overflowY: "auto",
-                paddingRight: "6px",
-              }}
-            >
-              {loading && (
-                <div style={{ padding: "1.5rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <svg width="18" height="18" viewBox="0 0 50 50">
-                      <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.15)" strokeWidth="4" />
-                      <circle cx="25" cy="25" r="20" fill="none" stroke="#ea580c" strokeWidth="4" strokeLinecap="round" strokeDasharray="55 70">
-                        <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.95s" repeatCount="indefinite" />
-                      </circle>
-                    </svg>
-                    <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#9a3412", fontFamily: "'Poppins', sans-serif" }}>
-                      Loading extracted papers...
-                    </span>
-                  </div>
-                  <div style={{ width: "140px", height: "4px", background: "#fed7aa", borderRadius: "999px", overflow: "hidden", position: "relative" }}>
-                    <div className="cw-loading-progress-fill" />
-                  </div>
-                </div>
-              )}
-
-              {!loading && extractedFiles.length === 0 && (
-                <div style={{ color: "#6b7280" }}>
-                  No extracted files found.
-                </div>
-              )}
-
-              {!loading &&
-                extractedFiles.map((item) => {
-                  const isSelected = selectedInstruction === item.id;
-                  return (
-                    <div
-                      key={item.id}
-                      className="p-2 rounded-3 d-flex align-items-start gap-2"
-                      style={{
-                        backgroundColor: isSelected ? "#fff7ed" : "#f9fafb",
-                        border: isSelected ? "1px solid #ea580c" : "1px solid #e5e7eb",
-                        cursor: "pointer",
-                        transition: "all 0.18s ease",
-                      }}
-                      onClick={() => toggleInstruction(item.id)}
-                    >
-                      <input
-                        type="radio"
-                        checked={isSelected}
-                        readOnly
-                        style={{ marginTop: "4px", accentColor: "#ea580c" }}
-                      />
-                      <div>
-                        <div className="small fw-semibold" style={{ color: isSelected ? "#ea580c" : "#0f0e17" }}>
-                          {item.title}
-                        </div>
-                        <div style={{ fontSize: "12px", color: "#6b7280" }}>
-                          {item.description}
-                        </div>
+                <div
+                  className="workflow-scroll-list mt-2 d-flex flex-column gap-2"
+                  style={{
+                    flex: "1 1 auto",
+                    minHeight: "140px",
+                    maxHeight: "clamp(200px, 35vh, 340px)",
+                    overflowY: "auto",
+                    paddingRight: "6px",
+                  }}
+                >
+                  {loading && (
+                    <div style={{ padding: "1.5rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <svg width="18" height="18" viewBox="0 0 50 50">
+                          <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.15)" strokeWidth="4" />
+                          <circle cx="25" cy="25" r="20" fill="none" stroke="#ea580c" strokeWidth="4" strokeLinecap="round" strokeDasharray="55 70">
+                            <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.95s" repeatCount="indefinite" />
+                          </circle>
+                        </svg>
+                        <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#9a3412", fontFamily: "'Poppins', sans-serif" }}>
+                          Loading extracted papers...
+                        </span>
+                      </div>
+                      <div style={{ width: "140px", height: "4px", background: "#fed7aa", borderRadius: "999px", overflow: "hidden", position: "relative" }}>
+                        <div className="cw-loading-progress-fill" />
                       </div>
                     </div>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
+                  )}
 
-        {/* RUN BUTTON */}
-        <div className="workflow-input-actions">
-          <button
-            onClick={handleRunWorkflow}
-            disabled={running}
-            className="workflow-action-button"
-          >
-            {running ? (
-              <RiLoader4Line className="spinner-border spinner-border-sm spin-loader" style={{ animation: "spin 1s linear infinite" }} />
-            ) : (
-              <FaPlay size={12} className="me-1" />
-            )}
-            {running ? runningText : "Run Workflow"}
-          </button>
-        </div>
+                  {!loading && extractedFiles.length === 0 && (
+                    <div style={{ color: "#6b7280" }}>
+                      No extracted files found.
+                    </div>
+                  )}
+
+                  {!loading &&
+                    extractedFiles.map((item) => {
+                      const isSelected = selectedInstruction === item.id;
+                      return (
+                        <div
+                          key={item.id}
+                          className="p-2 rounded-3 d-flex align-items-start gap-2"
+                          style={{
+                            backgroundColor: isSelected ? "#fff7ed" : "#f9fafb",
+                            border: isSelected ? "1px solid #ea580c" : "1px solid #e5e7eb",
+                            cursor: "pointer",
+                            transition: "all 0.18s ease",
+                          }}
+                          onClick={() => toggleInstruction(item.id)}
+                        >
+                          <input
+                            type="radio"
+                            checked={isSelected}
+                            readOnly
+                            style={{ marginTop: "4px", accentColor: "#ea580c" }}
+                          />
+                          <div>
+                            <div className="small fw-semibold" style={{ color: isSelected ? "#ea580c" : "#0f0e17" }}>
+                              {item.title}
+                            </div>
+                            <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                              {item.description}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+
+            {/* RUN BUTTON */}
+            <div className="workflow-input-actions">
+              <button
+                onClick={handleRunWorkflow}
+                disabled={running}
+                className="workflow-action-button"
+              >
+                {running ? (
+                  <RiLoader4Line className="spinner-border spinner-border-sm spin-loader" style={{ animation: "spin 1s linear infinite" }} />
+                ) : (
+                  <FaPlay size={12} className="me-1" />
+                )}
+                {running ? runningText : "Run Workflow"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <FeedbackModal {...config} onClose={hideFeedback} />

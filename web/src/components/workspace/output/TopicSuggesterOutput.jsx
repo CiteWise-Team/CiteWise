@@ -7,7 +7,7 @@ import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 import { apiFetch } from "../../../api/http";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function TopicSuggesterOutput({ result, onComplete }) {
+export default function TopicSuggesterOutput({ result, onComplete, isCollapsed = false, onToggleCollapse }) {
   const group_id = useGroup().groupId;
   const navigate = useNavigate();
 
@@ -88,10 +88,12 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
   const activeItem = items.find((p) => p.id === activeId);
 
   return (
-    <div className="h-100 d-flex flex-column rounded-4 workflow-result-card topic-result-card" style={{ minHeight: 0 }}>
+    <div className={`h-100 d-flex flex-column rounded-4 workflow-result-card topic-result-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
       <WorkflowCardHeader
         title="Compare suggested topics"
         subtitle="Review the suggested topics and their supporting rationale before choosing your direction."
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
         rightContent={
           items.length > 0 ? (
             <span
@@ -112,7 +114,8 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
           ) : null
         }
       />
-      <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
+      {!isCollapsed && (
+        <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
         <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, overflow: "visible", gap: 0 }}>
         {/* LEFT SIDEBAR — Titles only */}
         <div
@@ -313,6 +316,7 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
         </div>
       </div>
       </div>
+      )}
     </div>
   );
 }

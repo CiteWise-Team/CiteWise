@@ -10,7 +10,7 @@ import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function TopicSuggesterInput({ setResult }) {
+export default function TopicSuggesterInput({ setResult, isCollapsed = false, onToggleCollapse }) {
   const { groupId: group_id } = useGroup();
 
   const [gaps, setGaps] = useState([]);
@@ -159,17 +159,21 @@ export default function TopicSuggesterInput({ setResult }) {
 
   return (
     <>
-      <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
+      <div className={`h-100 rounded-4 workflow-input-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
         <WorkflowCardHeader
           title="Generate topic suggestions"
           subtitle={
             <span>
-              Provide your research context and let <span style={{ color: "#ea580c", fontWeight: 600 }}>CAT</span>alyst propose focused directions for your study.
+              Provide your research context and let CATalyst propose focused directions for your study.
             </span>
           }
+          isCollapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse}
         />
 
-        <div className="workflow-input-body">
+        {!isCollapsed && (
+          <>
+            <div className="workflow-input-body">
           <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
             <small style={{ color: "#4b5563", fontWeight: 600 }}>Choose one or more gaps</small>
 
@@ -258,7 +262,9 @@ export default function TopicSuggesterInput({ setResult }) {
             {running ? runningText : "Run Workflow"}
           </button>
         </div>
-      </div>
+      </>
+    )}
+  </div>
 
       <FeedbackModal {...config} onClose={hideFeedback} />
     </>

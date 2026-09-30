@@ -4,7 +4,7 @@ import { getSummaryByGroupAPI } from "../../../api/workflow.summarizer";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function SummarizerResult({ result, onComplete }) {
+export default function SummarizerResult({ result, onComplete, isCollapsed = false, onToggleCollapse }) {
   const group_id = useGroup().groupId;
 
   const [activeTab, setActiveTab] = useState("papers");
@@ -44,15 +44,20 @@ export default function SummarizerResult({ result, onComplete }) {
   }, [group_id, result]);
 
   return (
-    <div className="h-100 d-flex flex-column rounded-4 workflow-result-card document-result-card" style={{ minHeight: 0 }}>
+    <div className={`h-100 d-flex flex-column rounded-4 workflow-result-card document-result-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
       <WorkflowCardHeader
         title="Read the summary"
         subtitle="The generated summary appears here so you can review key ideas quickly."
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
         rightContent={
-          <div className="d-flex gap-2 workflow-result-tabs flex-shrink-0">
+          <div className="d-flex gap-2 workflow-result-tabs flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             <button
               className={`workflow-result-tab${activeTab === "papers" ? " is-active" : ""}`}
-              onClick={() => setActiveTab("papers")}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab("papers");
+              }}
             >
               Papers
             </button>
@@ -60,7 +65,10 @@ export default function SummarizerResult({ result, onComplete }) {
             <button
               className={`workflow-result-tab${activeTab === "result" ? " is-active" : ""}`}
               disabled={!selectedPaper}
-              onClick={() => setActiveTab("result")}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab("result");
+              }}
             >
               Result
             </button>
@@ -68,10 +76,11 @@ export default function SummarizerResult({ result, onComplete }) {
         }
       />
 
-      {/* CONTENT AREA */}
-      <div
-        className="workflow-result-content flex-grow-1"
-        style={{
+      {!isCollapsed && (
+        /* CONTENT AREA */
+        <div
+          className="workflow-result-content flex-grow-1"
+          style={{
           minHeight: 0,
           overflow: "hidden"
         }}
@@ -238,6 +247,7 @@ export default function SummarizerResult({ result, onComplete }) {
 
         )}
       </div>
+      )}
     </div>
   );
 }

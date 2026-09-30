@@ -27,7 +27,9 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #0e0e18;
+  background-color: var(--cw-bg-base, #0f0e17);
+  color: var(--cw-text-primary, #f9fafb);
+  transition: background-color 240ms cubic-bezier(0.4, 0, 0.2, 1), color 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 h1 {

@@ -3,6 +3,7 @@ import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
 import { apiFetch } from "../../../../api/http";
 import { useTheme } from "../../../../context/ThemeContext";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 const METRIC_DETAILS = {
   gapAlignment: {
@@ -376,16 +377,32 @@ export default function MetricWeightCustomization({
           </span>
           <span
             style={{
-              color: pendingDocs.length ? "#f97316" : (isDark ? "#94a3b8" : "#6b7280"),
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.78rem",
               fontWeight: 600,
               whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
             }}
           >
-            {pendingDocs.length > 0 && !open
-              ? `${pendingDocs.length} pending ▼`
-              : (open ? "Hide ▲" : "Customize ▼")}
+            {pendingDocs.length > 0 && !open && (
+              <span
+                style={{
+                  fontSize: "0.72rem",
+                  color: "#ea580c",
+                  background: isDark ? "rgba(234, 88, 12, 0.15)" : "#fff7ed",
+                  border: isDark ? "1px solid rgba(234, 88, 12, 0.3)" : "1px solid #fed7aa",
+                  padding: "2px 8px",
+                  borderRadius: "12px",
+                }}
+              >
+                {pendingDocs.length} pending
+              </span>
+            )}
+            <span style={{ display: "inline-flex", alignItems: "center", color: isDark ? "#94a3b8" : "#6b7280" }}>
+              {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </span>
           </span>
         </button>
       )}

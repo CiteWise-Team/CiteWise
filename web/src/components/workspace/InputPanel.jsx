@@ -11,8 +11,8 @@ const STEP_INPUT_COMPONENTS = {
   search : SearcherInput
 };
 
-export default function InputPanel({ step, setResult }) {
+export default function InputPanel({ step, setResult, isCollapsed, onToggleCollapse }) {
   const Component = STEP_INPUT_COMPONENTS[step];
-  return <Component setResult = {setResult} />;
+  return <Component setResult={setResult} isCollapsed={isCollapsed} onToggleCollapse={onToggleCollapse} />;
 }
 

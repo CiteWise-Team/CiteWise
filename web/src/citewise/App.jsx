@@ -240,6 +240,15 @@ export default function CiteWiseApp() {
   const [guideStep, setGuideStep] = useState(-1);
   const [spotlight, setSpotlight] = useState(null);
   const guideOpen = guideStep >= 0;
+
+  useEffect(() => {
+    const handleOpenGuide = () => {
+      setGuideStep(0);
+    };
+    window.addEventListener("open-page-guide", handleOpenGuide);
+    return () => window.removeEventListener("open-page-guide", handleOpenGuide);
+  }, []);
+
   const allGuideSteps = CITEWISE_GUIDE_STEPS[step] || CITEWISE_GUIDE_STEPS[0];
   const currentGuideSteps = useMemo(() => {
     if (typeof document === "undefined" || !guideOpen) return allGuideSteps;
@@ -267,6 +276,21 @@ export default function CiteWiseApp() {
     if (!target) {
       setSpotlight(null);
       return undefined;
+    }
+
+    // For specific targets, refine to the exact visual element for crisp, centered rounded highlights
+    if (targetKey === "workspace-header") {
+      const headerLeft = target.querySelector(".workflow-header-left");
+      if (headerLeft) target = headerLeft;
+    } else if (targetKey === "workflow-stepper" && !isMobileViewport) {
+      const card = target.querySelector(".workflow-progression-card") || (target.classList?.contains("workflow-progression-card") ? target : null);
+      if (card) target = card;
+    } else if (targetKey === "citewise-active-doc" || targetKey === "citewise-quick-nav" || targetKey === "citewise-assessment-panel" || targetKey === "citewise-synthesis-controls") {
+      const card = target.firstElementChild;
+      if (card) target = card;
+    } else if (targetKey === "citewise-draft-editor") {
+      const panel = target.firstElementChild;
+      if (panel) target = panel;
     }
 
     if (targetKey === "workflow-guide-button" || targetKey === "workspace-header" || (targetKey === "workflow-stepper" && !isMobileViewport)) {
@@ -416,7 +440,7 @@ export default function CiteWiseApp() {
         textAlign: "left",
       }}
     >
-      <Navbar appName="CiteWise" />
+      <Navbar appName="CiteWise" onGuideClick={() => setGuideStep(0)} />
 
       <main
         className="workflow-shell"
@@ -425,7 +449,7 @@ export default function CiteWiseApp() {
           paddingBottom: isMobile ? `calc(${MOBILE_TABBAR_HEIGHT}px + env(safe-area-inset-bottom) + 16px)` : undefined,
         }}
       >
-        {/* Workspace Page Header with Back button beside page title & Guide button on right */}
+        {/* Workspace Page Header with Back button beside page title */}
         <header
           className="workflow-header"
           data-guide="workspace-header"
@@ -448,23 +472,12 @@ export default function CiteWiseApp() {
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="groups-guide-trigger-btn workflow-guide-button"
-            data-guide="workflow-guide-button"
-            onClick={() => setGuideStep(0)}
-            aria-label="Open page guide"
-          >
-            <Compass size={16} />
-            <span>Guide</span>
-          </button>
         </header>
 
         <div className="workflow-content">
           {/* Workflow Progression Stepper Bar */}
           <div
             className="workflow-stepper"
-            data-guide="workflow-stepper"
             style={{
               margin: 0,
               boxSizing: "border-box",
@@ -532,7 +545,7 @@ export default function CiteWiseApp() {
                   : { bottom: "80px", top: "auto", left: "16px", right: "16px", width: "auto" }
                 : isNearGuideBtn && spotlight
                 ? {
-                    top: Math.max(150, Math.round(spotlight.top + spotlight.height + 16)),
+                    top: Math.max(76, Math.round(spotlight.top + spotlight.height + 14)),
                     bottom: "auto",
                     right: Math.max(16, Math.round((typeof window !== "undefined" ? window.innerWidth : 1200) - (spotlight.left + spotlight.width))),
                     left: "auto",

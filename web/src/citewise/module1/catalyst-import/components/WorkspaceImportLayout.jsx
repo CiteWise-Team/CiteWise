@@ -7,6 +7,7 @@ import DragDropZone from "../../rrl-upload/components/DragDropZone";
 import SelectedFilesList from "../../rrl-upload/components/SelectedFilesList";
 import UploadAllButton from "../../rrl-upload/components/UploadAllButton";
 import { apiFetch } from "../../../../api/http";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 const MAX_FILE_MB = 20;
 const DUPLICATE_REMOVE_DELAY = 3000;
@@ -19,6 +20,10 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   // Group-scoped localStorage keys so each workspace keeps independent data.
   const STORAGE_SESSION_KEY  = `citewise.${groupId}.sessionId`;
   const STORAGE_CATALYST_KEY = `citewise.${groupId}.catalystData`;
+
+  // ── Panel Collapse States ──────────────────────────────────────
+  const [catalystCardOpen, setCatalystCardOpen] = useState(true);
+  const [rrlCardOpen, setRrlCardOpen] = useState(true);
 
   // ── CATalyst Import State ──────────────────────────────────────
   const [workspaceId, setWorkspaceId] = useState("");
@@ -562,6 +567,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
       {/* ✨ RRL card header with warm orange gradient */}
       <div
         className="workflow-card-header citewise-rrl-card-header"
+        onClick={() => setRrlCardOpen((o) => !o)}
         style={{
           display: "flex",
           alignItems: "center",
@@ -569,7 +575,9 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           padding: "1.125rem 1.5rem",
           gap: "1rem",
           background: "var(--cw-bg-surface-elevated, #f9fafb)",
-          borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+          borderBottom: rrlCardOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+          cursor: "pointer",
+          userSelect: "none",
         }}
       >
         <div>
@@ -578,9 +586,13 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
             Upload PDF research papers to assess against your research gap.
           </p>
         </div>
+        <span style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)", flexShrink: 0 }}>
+          {rrlCardOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </span>
       </div>
 
-      <div style={{ padding: "1.5rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      {rrlCardOpen && (
+        <div style={{ padding: "1.5rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
         {/* Drop zone + queue stacked vertically */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
@@ -711,6 +723,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 
@@ -865,8 +878,18 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
           {/* CATalyst Workspace card */}
           <div style={card} data-guide="citewise-catalyst-workspace">
-            <div className="workflow-card-header" style={{ ...cardHeader, ...(isMobile && { flexWrap: "wrap", padding: "1rem" }) }}>
-              <div>
+            <div
+              className="workflow-card-header"
+              onClick={() => setCatalystCardOpen((o) => !o)}
+              style={{
+                ...cardHeader,
+                borderBottom: catalystCardOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+                cursor: "pointer",
+                userSelect: "none",
+                ...(isMobile && { flexWrap: "wrap", padding: "1rem" }),
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <span style={cardTitle}>
                   CATalyst Workspace
                 </span>
@@ -880,36 +903,48 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
                   </p>
                 )}
               </div>
-              {!catalystData && (
-                <ImportHeaderBar
-                  workspaceId={workspaceId}
-                  onWorkspaceIdChange={setWorkspaceId}
-                  onImport={handleImport}
-                  isLoading={isLoading}
-                />
-              )}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }} onClick={(e) => e.stopPropagation()}>
+                {!catalystData && (
+                  <ImportHeaderBar
+                    workspaceId={workspaceId}
+                    onWorkspaceIdChange={setWorkspaceId}
+                    onImport={handleImport}
+                    isLoading={isLoading}
+                  />
+                )}
+                <span
+                  style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)", cursor: "pointer" }}
+                  onClick={() => setCatalystCardOpen((o) => !o)}
+                >
+                  {catalystCardOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </span>
+              </div>
             </div>
 
-            {!catalystData && (
-              <div style={{ padding: isMobile ? "1.75rem 1rem" : "2.5rem 2rem", textAlign: "center" }}>
-                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(249, 115, 22, 0.08)", border: "1px solid rgba(249, 115, 22, 0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                </div>
-                <p style={{ color: "#6b7280", fontFamily: "'Poppins', sans-serif", fontSize: "0.875rem", margin: 0 }}>
-                  Enter your CATalyst workspace ID above to load your research data.
-                </p>
-              </div>
-            )}
+            {catalystCardOpen && (
+              <>
+                {!catalystData && (
+                  <div style={{ padding: isMobile ? "1.75rem 1rem" : "2.5rem 2rem", textAlign: "center" }}>
+                    <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(249, 115, 22, 0.08)", border: "1px solid rgba(249, 115, 22, 0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                    </div>
+                    <p style={{ color: "#6b7280", fontFamily: "'Poppins', sans-serif", fontSize: "0.875rem", margin: 0 }}>
+                      Enter your CATalyst workspace ID above to load your research data.
+                    </p>
+                  </div>
+                )}
 
-            <DataDisplayGrid
-              catalystData={catalystData}
-              isLoading={isLoading}
-              error={error}
-              hasAttempted={hasAttempted}
-              sessionId={sessionId}
-            />
+                <DataDisplayGrid
+                  catalystData={catalystData}
+                  isLoading={isLoading}
+                  error={error}
+                  hasAttempted={hasAttempted}
+                  sessionId={sessionId}
+                />
+              </>
+            )}
           </div>
 
           {/* ✨ Gap Workshop in the left column (below CATalyst) */}

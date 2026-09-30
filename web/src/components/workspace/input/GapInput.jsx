@@ -10,7 +10,7 @@ import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function GapInput({ setResult }) {
+export default function GapInput({ setResult, isCollapsed = false, onToggleCollapse }) {
   const group_id = useGroup().groupId;
 
   const [file, setFile] = useState(null);
@@ -172,17 +172,21 @@ export default function GapInput({ setResult }) {
 
   return (
     <>
-      <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
+      <div className={`h-100 rounded-4 workflow-input-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
         <WorkflowCardHeader
           title="Describe your research direction"
           subtitle={
             <span>
-              Use this area to provide the context <span style={{ color: "#ea580c", fontWeight: 600 }}>CAT</span>alyst should use for gap discovery.
+              Use this area to provide the context CATalyst should use for gap discovery.
             </span>
           }
+          isCollapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse}
         />
 
-        <div className="workflow-input-body">
+        {!isCollapsed && (
+          <>
+            <div className="workflow-input-body">
           <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
             <small style={{ color: "#4b5563", fontWeight: 600 }}>Choose one or more summaries</small>
 
@@ -271,7 +275,9 @@ export default function GapInput({ setResult }) {
             {running ? runningText : "Run Workflow"}
           </button>
         </div>
-      </div>
+      </>
+    )}
+  </div>
 
       <FeedbackModal {...config} onClose={hideFeedback} />
     </>

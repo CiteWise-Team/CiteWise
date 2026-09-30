@@ -58,6 +58,14 @@ export default function Groups() {
 
   const guideOpen = guideStep >= 0;
 
+  useEffect(() => {
+    const handleOpenGuide = () => {
+      setGuideStep(0);
+    };
+    window.addEventListener("open-page-guide", handleOpenGuide);
+    return () => window.removeEventListener("open-page-guide", handleOpenGuide);
+  }, []);
+
   const handleCloseGuide = () => {
     if (id) {
       localStorage.setItem(`citewise.guideCompleted.${id}`, "true");
@@ -99,12 +107,18 @@ export default function Groups() {
     const target = document.querySelector(`[data-guide="${currentStepConfig.target}"]`);
     if (!target) return;
 
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (currentStepConfig.target === "groups-header") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
 
     const updateSpotlight = () => {
       const rect = target.getBoundingClientRect();
       const padding = 10;
       const isFab = currentStepConfig.target === "create-workspace-fab";
+      const computedStyle = window.getComputedStyle(target);
+      const elemRadius = parseInt(computedStyle.borderRadius, 10) || 16;
       const width = rect.width + padding * 2;
       const height = rect.height + padding * 2;
       setSpotlight({
@@ -112,14 +126,34 @@ export default function Groups() {
         left: Math.max(0, rect.left - padding),
         width,
         height,
-        borderRadius: isFab ? Math.round(width / 2) : 20,
+        borderRadius: isFab ? Math.round(width / 2) : Math.max(elemRadius + 4, 16),
       });
     };
 
     updateSpotlight();
+    const timer1 = setTimeout(updateSpotlight, 100);
+    const timer2 = setTimeout(updateSpotlight, 250);
+    const timer3 = setTimeout(updateSpotlight, 450);
+    const timer4 = setTimeout(updateSpotlight, 700);
+
+    let frameId;
+    const startTime = performance.now();
+    const trackAnimation = (currentTime) => {
+      updateSpotlight();
+      if (currentTime - startTime < 650) {
+        frameId = requestAnimationFrame(trackAnimation);
+      }
+    };
+    frameId = requestAnimationFrame(trackAnimation);
+
     window.addEventListener("resize", updateSpotlight);
     window.addEventListener("scroll", updateSpotlight, true);
     return () => {
+      cancelAnimationFrame(frameId);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
       window.removeEventListener("resize", updateSpotlight);
       window.removeEventListener("scroll", updateSpotlight, true);
     };
@@ -371,15 +405,6 @@ export default function Groups() {
               </button>
             )}
           </div>
-          <button
-            type="button"
-            className="groups-guide-trigger-btn"
-            onClick={() => setGuideStep(0)}
-            aria-label="Open page guide"
-          >
-            <Compass size={16} />
-            <span>Guide</span>
-          </button>
         </div>
 
         <div className="row g-4 groups-grid" data-guide="workspace-cards">
