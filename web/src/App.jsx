@@ -9,6 +9,7 @@ import Upload from "./pages/Upload";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import GroupWorkflow from "./pages/Workspace";
 import CiteWiseApp from "./citewise/App";
+import SmartGoals from "./pages/SmartGoals";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -56,6 +57,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <CiteWiseApp />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/smart-goals/:groupId"
+          element={
+            <ProtectedRoute>
+              <SmartGoals />
             </ProtectedRoute>
           }
         />

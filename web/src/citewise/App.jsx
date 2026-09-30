@@ -381,6 +381,19 @@ export default function CiteWiseApp() {
     navigate("/groups");
   }
 
+  function handleProceedToSmartGoals(version) {
+    if (!groupId || !version?.id || !version.content?.trim()) return;
+    const selectedIntroduction = {
+      id: version.id,
+      label: version.label,
+      content: version.content,
+      references: Array.isArray(version.references) ? version.references : [],
+      timestamp: version.timestamp || null,
+    };
+    localStorage.setItem(scopedKey(groupId, "smartGoalsIntroduction"), JSON.stringify(selectedIntroduction));
+    navigate(`/smart-goals/${groupId}`, { state: { selectedIntroduction } });
+  }
+
   const currentStepMeta = CITEWISE_STEP_META[step] || CITEWISE_STEP_META[0];
 
   return (
@@ -476,8 +489,10 @@ export default function CiteWiseApp() {
 
               {step === 2 && (
                 <SynthesisDraftModule
+                  groupId={groupId}
                   sessionId={sessionId}
                   onStepChange={handleModuleStepChange}
+                  onProceedToSmartGoals={handleProceedToSmartGoals}
                 />
               )}
             </ErrorBoundary>

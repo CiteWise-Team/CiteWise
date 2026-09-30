@@ -18,7 +18,7 @@ function fmt(ts) {
   }
 }
 
-export default function DraftVersionHistory({ sessionId, currentContent, onRestore }) {
+export default function DraftVersionHistory({ sessionId, currentContent, onRestore, selectedSmartGoalsVersionId, onSelectForSmartGoals }) {
   const [versions, setVersions] = useState(() => store.getDraftVersions(sessionId));
   const [compare, setCompare] = useState(null); // { a, b }
   const [pickA, setPickA] = useState(null);
@@ -107,6 +107,7 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
               )}
               {versions.map((v) => {
                 const isCurrent = v.content === currentContent;
+                const isSelectedForSmartGoals = selectedSmartGoalsVersionId === v.id;
                 return (
                   <div
                     key={v.id}
@@ -124,10 +125,11 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
                         </div>
                         <div style={{ fontSize: "0.68rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif" }}>
                           {v.source === "edited" ? "Manual edit" : "Generated"} · {fmt(v.timestamp)}
+                          {isSelectedForSmartGoals && <span style={{ color: "#14766b", fontWeight: 700 }}> · Final for SMART Goals</span>}
                         </div>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
                       <button
                         onClick={() => onRestore?.(v)}
                         disabled={isCurrent}
@@ -210,6 +212,24 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
                         }}
                       >
                         Delete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onSelectForSmartGoals?.(v)}
+                        aria-pressed={isSelectedForSmartGoals}
+                        style={{
+                          background: isSelectedForSmartGoals ? "#e8f5f1" : "transparent",
+                          color: isSelectedForSmartGoals ? "#14766b" : "#374151",
+                          border: `1px solid ${isSelectedForSmartGoals ? "#75b9aa" : "#e5e7eb"}`,
+                          borderRadius: "6px",
+                          padding: "3px 10px",
+                          fontSize: "0.7rem",
+                          fontFamily: "'Poppins', sans-serif",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {isSelectedForSmartGoals ? "Final selected" : "Set as final"}
                       </button>
                     </div>
                   </div>
