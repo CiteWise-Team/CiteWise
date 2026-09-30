@@ -405,9 +405,10 @@
   box-shadow: 0 2px 6px rgba(234, 88, 12, 0.2);
 }
 
-/* Standardized Guide Button (identical size & style as on Groups page) */
+/* Standardized Guide Button & CiteWise Primary Buttons (identical size & style as on Groups page) */
 .workflow-guide-button,
-.groups-guide-trigger-btn {
+.groups-guide-trigger-btn,
+.cw-primary-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -428,10 +429,12 @@
   cursor: pointer;
   white-space: nowrap;
   transition: all 180ms ease;
+  text-decoration: none;
 }
 
 .workflow-guide-button span,
-.groups-guide-trigger-btn span {
+.groups-guide-trigger-btn span,
+.cw-primary-btn span {
   color: #ffffff !important;
   font-family: "Poppins", sans-serif;
   font-size: 0.82rem;
@@ -440,16 +443,19 @@
 }
 
 .workflow-guide-button svg,
-.groups-guide-trigger-btn svg {
+.groups-guide-trigger-btn svg,
+.cw-primary-btn svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
   flex-shrink: 0;
 }
 
-.workflow-guide-button:hover,
-.workflow-guide-button:focus-visible,
-.groups-guide-trigger-btn:hover,
-.groups-guide-trigger-btn:focus-visible {
+.workflow-guide-button:hover:not(:disabled),
+.workflow-guide-button:focus-visible:not(:disabled),
+.groups-guide-trigger-btn:hover:not(:disabled),
+.groups-guide-trigger-btn:focus-visible:not(:disabled),
+.cw-primary-btn:hover:not(:disabled),
+.cw-primary-btn:focus-visible:not(:disabled) {
   border-color: #c2410c;
   background: #c2410c;
   color: #ffffff !important;
@@ -458,25 +464,104 @@
   outline: none;
 }
 
-.workflow-guide-button:hover span,
-.workflow-guide-button:focus-visible span,
-.groups-guide-trigger-btn:hover span,
-.groups-guide-trigger-btn:focus-visible span {
+.workflow-guide-button:hover:not(:disabled) span,
+.workflow-guide-button:focus-visible:not(:disabled) span,
+.groups-guide-trigger-btn:hover:not(:disabled) span,
+.groups-guide-trigger-btn:focus-visible:not(:disabled) span,
+.cw-primary-btn:hover:not(:disabled) span,
+.cw-primary-btn:focus-visible:not(:disabled) span {
   color: #ffffff !important;
 }
 
-.workflow-guide-button:hover svg,
-.workflow-guide-button:focus-visible svg,
-.groups-guide-trigger-btn:hover svg,
-.groups-guide-trigger-btn:focus-visible svg {
+.workflow-guide-button:hover:not(:disabled) svg,
+.workflow-guide-button:focus-visible:not(:disabled) svg,
+.groups-guide-trigger-btn:hover:not(:disabled) svg,
+.groups-guide-trigger-btn:focus-visible:not(:disabled) svg,
+.cw-primary-btn:hover:not(:disabled) svg,
+.cw-primary-btn:focus-visible:not(:disabled) svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
 }
 
-.workflow-guide-button:active,
-.groups-guide-trigger-btn:active {
+.workflow-guide-button:active:not(:disabled),
+.groups-guide-trigger-btn:active:not(:disabled),
+.cw-primary-btn:active:not(:disabled) {
   transform: translateY(0);
   box-shadow: 0 2px 6px rgba(234, 88, 12, 0.2);
+}
+
+.cw-primary-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Rounded rectangle usage options in "How this source should be used" */
+.cw-usage-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  box-sizing: border-box;
+  transition: all 180ms ease;
+  white-space: nowrap;
+}
+
+.cw-usage-toggle-btn.is-active {
+  background: #ea580c !important;
+  color: #ffffff !important;
+  border: 1px solid #ea580c !important;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.22) !important;
+}
+
+.cw-usage-toggle-btn.is-active:hover {
+  background: #c2410c !important;
+  border-color: #c2410c !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35) !important;
+}
+
+.cw-usage-toggle-btn.is-active:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.2) !important;
+}
+
+.cw-usage-toggle-btn.is-inactive {
+  background: var(--cw-bg-surface-elevated, #ffffff);
+  color: var(--cw-text-secondary, #374151);
+  border: 1px solid var(--cw-border, #e5e7eb);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.cw-usage-toggle-btn.is-inactive:hover {
+  border-color: #ea580c;
+  color: #ea580c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.15);
+}
+
+.cw-usage-toggle-btn.is-inactive:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .cw-usage-toggle-btn.is-inactive {
+  background: #1f1d2e;
+  color: #cbd5e1;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .cw-usage-toggle-btn.is-inactive:hover {
+  border-color: #ea580c;
+  color: #f97316;
+  background: rgba(234, 88, 12, 0.12);
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.25);
 }
 
 .workflow-header h1 {
@@ -2075,7 +2160,8 @@
 }
 
 [data-theme="dark"] .workflow-guide-button,
-[data-theme="dark"] .groups-guide-trigger-btn {
+[data-theme="dark"] .groups-guide-trigger-btn,
+[data-theme="dark"] .cw-primary-btn {
   background: #ea580c !important;
   border-color: #ea580c !important;
   color: #ffffff !important;
@@ -2083,7 +2169,8 @@
 }
 
 [data-theme="dark"] .workflow-guide-button:hover,
-[data-theme="dark"] .groups-guide-trigger-btn:hover {
+[data-theme="dark"] .groups-guide-trigger-btn:hover,
+[data-theme="dark"] .cw-primary-btn:hover {
   background: #c2410c !important;
   border-color: #c2410c !important;
   color: #ffffff !important;

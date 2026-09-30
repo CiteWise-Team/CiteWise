@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Pencil, Trash2, Check, X } from "lucide-react";
 import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
@@ -18,6 +18,15 @@ export default function GapWorkshop({ sessionId, catalystData }) {
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState("");
   const [expandedNote, setExpandedNote] = useState(null);
+  const newGapInputRef = useRef(null);
+
+  useEffect(() => {
+    const el = newGapInputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const nextHeight = Math.min(Math.max(el.scrollHeight, 38), 180);
+    el.style.height = `${nextHeight}px`;
+  }, [newGapText]);
 
   const [titleSuggestions, setTitleSuggestions] = useState([]);
   const [titleLoading, setTitleLoading] = useState(false);
@@ -134,13 +143,13 @@ export default function GapWorkshop({ sessionId, catalystData }) {
           {selectedCount > 0 && (
             <span
               style={{
-                background: "rgba(249, 115, 22, 0.1)",
-                border: "1px solid rgba(249, 115, 22, 0.4)",
+                background: "rgba(234, 88, 12, 0.1)",
+                border: "1px solid rgba(234, 88, 12, 0.4)",
                 borderRadius: "999px",
                 padding: "2px 10px",
                 fontSize: "0.72rem",
                 fontWeight: 700,
-                color: "#f97316",
+                color: "#ea580c",
                 fontFamily: "'Poppins', sans-serif",
                 whiteSpace: "nowrap",
                 marginLeft: 8,
@@ -170,10 +179,27 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                   <div
                     key={gap.id}
                     className={`citewise-gap-card ${gap.selected ? "selected" : ""}`}
+                    role={isEditing ? undefined : "button"}
+                    tabIndex={isEditing ? undefined : 0}
+                    aria-pressed={isEditing ? undefined : gap.selected}
+                    onClick={(e) => {
+                      if (isEditing) return;
+                      if (e.target.closest("button, textarea, input, a")) return;
+                      store.toggleGapSelected(sessionId, gap.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (isEditing) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        if (e.target.closest("button, textarea, input, a")) return;
+                        e.preventDefault();
+                        store.toggleGapSelected(sessionId, gap.id);
+                      }
+                    }}
                     style={{
                       borderRadius: "12px",
                       padding: "1rem",
-                      transition: "border-color 0.15s ease, background 0.15s ease",
+                      cursor: isEditing ? "default" : "pointer",
+                      transition: "border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease",
                     }}
                   >
                     {/* Top row: checkbox + badge + focus label ON LEFT, Edit/Delete icons ON RIGHT */}
@@ -183,7 +209,8 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                           type="checkbox"
                           checked={gap.selected}
                           onChange={() => store.toggleGapSelected(sessionId, gap.id)}
-                          style={{ width: 17, height: 17, accentColor: "#f97316", cursor: "pointer", flexShrink: 0 }}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ width: 17, height: 17, accentColor: "#ea580c", cursor: "pointer", flexShrink: 0 }}
                           title="Select as research focus"
                         />
                         <span
@@ -206,7 +233,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                             style={{
                               fontSize: "0.62rem",
                               fontWeight: 700,
-                              color: "#f97316",
+                              color: "#ea580c",
                               textTransform: "uppercase",
                               letterSpacing: "0.04em",
                               fontFamily: "'Poppins', sans-serif",
@@ -223,7 +250,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                           <>
                             <button
                               type="button"
-                              onClick={() => { setEditingId(gap.id); setEditingText(gap.text); }}
+                              onClick={(e) => { e.stopPropagation(); setEditingId(gap.id); setEditingText(gap.text); }}
                               title="Edit gap"
                               aria-label="Edit gap"
                               style={{
@@ -239,9 +266,9 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                                 transition: "all 0.15s ease",
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.color = "#f97316";
-                                e.currentTarget.style.borderColor = "#f97316";
-                                e.currentTarget.style.background = "rgba(249, 115, 22, 0.08)";
+                                e.currentTarget.style.color = "#ea580c";
+                                e.currentTarget.style.borderColor = "#ea580c";
+                                e.currentTarget.style.background = "rgba(234, 88, 12, 0.08)";
                               }}
                               onMouseLeave={(e) => {
                                 e.currentTarget.style.color = "var(--cw-text-muted, #9ca3af)";
@@ -253,7 +280,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                             </button>
                             <button
                               type="button"
-                              onClick={() => store.removeGap(sessionId, gap.id)}
+                              onClick={(e) => { e.stopPropagation(); store.removeGap(sessionId, gap.id); }}
                               title="Delete gap"
                               aria-label="Delete gap"
                               style={{
@@ -285,7 +312,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => { setEditingId(null); setEditingText(""); }}
+                            onClick={(e) => { e.stopPropagation(); setEditingId(null); setEditingText(""); }}
                             title="Cancel editing"
                             aria-label="Cancel editing"
                             style={{
@@ -319,7 +346,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
 
                     {/* Gap text */}
                     {isEditing ? (
-                      <div>
+                      <div onClick={(e) => e.stopPropagation()}>
                         <textarea
                           value={editingText}
                           onChange={(e) => setEditingText(e.target.value)}
@@ -328,7 +355,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                           style={{
                             width: "100%",
                             background: "var(--cw-bg-input, #ffffff)",
-                            border: "1px solid #f97316",
+                            border: "1px solid #ea580c",
                             borderRadius: "8px",
                             color: "var(--cw-text-primary, #111827)",
                             padding: "0.6rem 0.75rem",
@@ -338,13 +365,13 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                             resize: "vertical",
                             outline: "none",
                             boxSizing: "border-box",
-                            boxShadow: "0 0 0 2px rgba(249, 115, 22, 0.15)",
+                            boxShadow: "0 0 0 2px rgba(234, 88, 12, 0.15)",
                           }}
                         />
                         <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
                           <button
                             type="button"
-                            onClick={saveEdit}
+                            onClick={(e) => { e.stopPropagation(); saveEdit(); }}
                             disabled={!editingText.trim()}
                             className="citewise-gap-btn-save"
                             title={!editingText.trim() ? "Enter gap text to save" : "Save changes"}
@@ -354,7 +381,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                           </button>
                           <button
                             type="button"
-                            onClick={() => { setEditingId(null); setEditingText(""); }}
+                            onClick={(e) => { e.stopPropagation(); setEditingId(null); setEditingText(""); }}
                             className="citewise-gap-btn-cancel"
                             title="Cancel editing"
                           >
@@ -384,6 +411,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                           <>
                             <textarea
                               value={gap.note || ""}
+                              onClick={(e) => e.stopPropagation()}
                               onChange={(e) => store.updateGap(sessionId, gap.id, { note: e.target.value })}
                               placeholder="Add your note or insight…"
                               rows={2}
@@ -403,7 +431,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                               }}
                             />
                             <button
-                              onClick={() => setExpandedNote(null)}
+                              onClick={(e) => { e.stopPropagation(); setExpandedNote(null); }}
                               style={{ background: "none", border: "none", color: "var(--cw-text-muted, #9ca3af)", cursor: "pointer", fontSize: "0.72rem", padding: "2px 0", fontFamily: "'Poppins', sans-serif" }}
                             >
                               Hide note
@@ -411,8 +439,8 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                           </>
                         ) : (
                           <button
-                            onClick={() => setExpandedNote(gap.id)}
-                            style={{ background: "none", border: "none", color: gap.note ? "#f97316" : "var(--cw-text-muted, #9ca3af)", cursor: "pointer", fontSize: "0.72rem", padding: "2px 0", fontFamily: "'Poppins', sans-serif" }}
+                            onClick={(e) => { e.stopPropagation(); setExpandedNote(gap.id); }}
+                            style={{ background: "none", border: "none", color: gap.note ? "#ea580c" : "var(--cw-text-muted, #9ca3af)", cursor: "pointer", fontSize: "0.72rem", padding: "2px 0", fontFamily: "'Poppins', sans-serif" }}
                           >
                             {gap.note ? `📝 Note — ${gap.note.slice(0, 40)}${gap.note.length > 40 ? "…" : ""}` : "+ Add note"}
                           </button>
@@ -430,16 +458,30 @@ export default function GapWorkshop({ sessionId, catalystData }) {
             <button
               onClick={handleCombine}
               style={{
-                background: "rgba(249, 115, 22, 0.08)",
-                color: "#f97316",
-                border: "1px solid rgba(249, 115, 22, 0.4)",
-                borderRadius: "9px",
+                background: "rgba(234, 88, 12, 0.08)",
+                color: "#ea580c",
+                border: "1px solid rgba(234, 88, 12, 0.4)",
+                borderRadius: "8px",
                 padding: "8px 16px",
                 cursor: "pointer",
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: "0.82rem",
                 fontWeight: 700,
                 alignSelf: "flex-start",
+                transition: "all 180ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.borderColor = "#ea580c";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(234, 88, 12, 0.18)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.borderColor = "rgba(234, 88, 12, 0.4)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
               }}
             >
               Combine {selectedCount} gaps →
@@ -486,29 +528,40 @@ export default function GapWorkshop({ sessionId, catalystData }) {
         </div>
 
         <div style={{ padding: "1.25rem 1.5rem" }}>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
             <textarea
+              ref={newGapInputRef}
               value={newGapText}
-              onChange={(e) => setNewGapText(e.target.value)}
+              onChange={(e) => {
+                setNewGapText(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = `${Math.min(Math.max(e.target.scrollHeight, 38), 180)}px`;
+              }}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAdd(); } }}
               placeholder="Describe a gap you've identified…"
-              rows={2}
+              rows={1}
               style={{
                 flex: 1,
+                minHeight: "38px",
+                height: "38px",
+                maxHeight: "180px",
                 background: "var(--cw-bg-input, #ffffff)",
                 border: "1px solid var(--cw-border, #e5e7eb)",
-                borderRadius: "10px",
+                borderRadius: "8px",
                 color: "var(--cw-text-primary, #111827)",
-                padding: "0.6rem 0.85rem",
+                padding: "0.5rem 0.85rem",
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: "0.85rem",
-                resize: "vertical",
+                lineHeight: 1.45,
+                resize: "none",
+                overflowY: "auto",
                 outline: "none",
                 boxSizing: "border-box",
+                transition: "border-color 0.15s ease, box-shadow 0.15s ease",
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#f97316";
-                e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
+                e.currentTarget.style.borderColor = "#ea580c";
+                e.currentTarget.style.boxShadow = "0 0 0 2px rgba(234, 88, 12, 0.15)";
               }}
               onBlur={(e) => {
                 e.currentTarget.style.borderColor = "var(--cw-border, #e5e7eb)";
@@ -519,9 +572,9 @@ export default function GapWorkshop({ sessionId, catalystData }) {
               onClick={handleAdd}
               disabled={!newGapText.trim()}
               style={{
-                background: newGapText.trim() ? "#f97316" : "var(--cw-border-subtle, rgba(255, 255, 255, 0.08))",
+                background: newGapText.trim() ? "#ea580c" : "var(--cw-border-subtle, rgba(255, 255, 255, 0.08))",
                 color: newGapText.trim() ? "#ffffff" : "var(--cw-text-muted, #9ca3af)",
-                border: `1px solid ${newGapText.trim() ? "#f97316" : "var(--cw-border, #e5e7eb)"}`,
+                border: `1px solid ${newGapText.trim() ? "#ea580c" : "var(--cw-border, #e5e7eb)"}`,
                 borderRadius: "8px",
                 padding: "0 18px",
                 height: "38px",
@@ -530,9 +583,30 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                 fontSize: "0.82rem",
                 fontWeight: 700,
                 flexShrink: 0,
-                alignSelf: "center",
-                transition: "all 0.2s ease",
-                boxShadow: newGapText.trim() ? "0 2px 8px rgba(249, 115, 22, 0.25)" : "none",
+                transition: "all 180ms ease",
+                boxShadow: newGapText.trim() ? "0 2px 8px rgba(234, 88, 12, 0.22)" : "none",
+              }}
+              onMouseEnter={(e) => {
+                if (newGapText.trim()) {
+                  e.currentTarget.style.background = "#c2410c";
+                  e.currentTarget.style.borderColor = "#c2410c";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (newGapText.trim()) {
+                  e.currentTarget.style.background = "#ea580c";
+                  e.currentTarget.style.borderColor = "#ea580c";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                }
+              }}
+              onMouseDown={(e) => {
+                if (newGapText.trim()) {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+                }
               }}
             >
               Add
@@ -580,19 +654,47 @@ export default function GapWorkshop({ sessionId, catalystData }) {
             onClick={handleSuggestTitles}
             disabled={titleLoading || gaps.length === 0}
             style={{
-              background: "#f97316",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "38px",
+              minHeight: "38px",
+              padding: "0 16px",
+              background: "#ea580c",
               color: "#ffffff",
-              border: "none",
+              border: "1px solid #ea580c",
               borderRadius: "8px",
-              padding: "7px 16px",
               cursor: titleLoading || gaps.length === 0 ? "not-allowed" : "pointer",
               fontFamily: "'Poppins', sans-serif",
-              fontSize: "0.78rem",
-              fontWeight: 700,
+              fontSize: "0.82rem",
+              fontWeight: 600,
               opacity: titleLoading || gaps.length === 0 ? 0.6 : 1,
               whiteSpace: "nowrap",
-              boxShadow: "0 2px 6px rgba(249, 115, 22, 0.25)",
+              boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
               flexShrink: 0,
+              transition: "all 180ms ease",
+            }}
+            onMouseEnter={(e) => {
+              if (!titleLoading && gaps.length > 0) {
+                e.currentTarget.style.background = "#c2410c";
+                e.currentTarget.style.borderColor = "#c2410c";
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!titleLoading && gaps.length > 0) {
+                e.currentTarget.style.background = "#ea580c";
+                e.currentTarget.style.borderColor = "#ea580c";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+              }
+            }}
+            onMouseDown={(e) => {
+              if (!titleLoading && gaps.length > 0) {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+              }
             }}
           >
             {titleLoading ? "Generating…" : "Suggest titles"}
@@ -618,8 +720,8 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                       onClick={() => pickTitle(t)}
                       style={{
                         textAlign: "left",
-                        background: active ? "rgba(249, 115, 22, 0.08)" : "var(--cw-bg-surface-elevated, #f9fafb)",
-                        border: `1px solid ${active ? "#f97316" : "var(--cw-border, #e5e7eb)"}`,
+                        background: active ? "rgba(234, 88, 12, 0.08)" : "var(--cw-bg-surface-elevated, #f9fafb)",
+                        border: `1px solid ${active ? "#ea580c" : "var(--cw-border, #e5e7eb)"}`,
                         borderRadius: "10px",
                         padding: "0.7rem 0.9rem",
                         color: "var(--cw-text-primary, #1f2937)",
@@ -631,7 +733,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                       }}
                     >
                       {active && (
-                        <span style={{ color: "#f97316", fontWeight: 700, fontSize: "0.64rem", display: "block", marginBottom: 3, textTransform: "uppercase" }}>
+                        <span style={{ color: "#ea580c", fontWeight: 700, fontSize: "0.64rem", display: "block", marginBottom: 3, textTransform: "uppercase" }}>
                           ✓ Chosen
                         </span>
                       )}
@@ -644,7 +746,7 @@ export default function GapWorkshop({ sessionId, catalystData }) {
           )}
 
           <div>
-            <label style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#f97316", fontFamily: "'Poppins', sans-serif", display: "block", marginBottom: 6 }}>
+            <label style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#ea580c", fontFamily: "'Poppins', sans-serif", display: "block", marginBottom: 6 }}>
               Working title
             </label>
             <input
@@ -664,8 +766,8 @@ export default function GapWorkshop({ sessionId, catalystData }) {
                 boxSizing: "border-box",
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#f97316";
-                e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
+                e.currentTarget.style.borderColor = "#ea580c";
+                e.currentTarget.style.boxShadow = "0 0 0 2px rgba(234, 88, 12, 0.15)";
               }}
               onBlur={(e) => {
                 e.currentTarget.style.borderColor = "var(--cw-border, #e5e7eb)";

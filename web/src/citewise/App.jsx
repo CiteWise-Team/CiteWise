@@ -152,7 +152,7 @@ class ErrorBoundary extends Component {
     if (this.state.hasError) {
       return (
         <div style={{ padding: "4rem 2rem", textAlign: "center", color: "#111827", maxWidth: 600, margin: "0 auto" }}>
-          <h2 style={{ color: "#f97316", fontFamily: "'Poppins', sans-serif", fontSize: "1.5rem", marginBottom: "1rem" }}>
+          <h2 style={{ color: "#ea580c", fontFamily: "'Poppins', sans-serif", fontSize: "1.5rem", marginBottom: "1rem" }}>
             Something went wrong loading this section.
           </h2>
           <p style={{ color: "#6b7280", fontFamily: "'Poppins', sans-serif", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
@@ -161,26 +161,32 @@ class ErrorBoundary extends Component {
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
             style={{
-              background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+              background: "#ea580c",
               color: "#ffffff",
-              border: "none",
+              border: "1px solid #ea580c",
               borderRadius: "8px",
               padding: "0.75rem 1.5rem",
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
-              transition: "all 0.2s ease",
+              boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
+              transition: "all 180ms ease",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
-              e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.4)";
+              e.currentTarget.style.background = "#c2410c";
+              e.currentTarget.style.borderColor = "#c2410c";
+              e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
               e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
+              e.currentTarget.style.background = "#ea580c";
+              e.currentTarget.style.borderColor = "#ea580c";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
               e.currentTarget.style.transform = "translateY(0)";
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
             }}
           >
             Reload Module

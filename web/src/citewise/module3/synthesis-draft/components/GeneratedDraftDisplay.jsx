@@ -174,7 +174,35 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
           <>
             <button
               onClick={saveEdit}
-              style={{ background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)", color: "#ffffff", border: "none", borderRadius: "8px", padding: "6px 16px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", fontWeight: 700, boxShadow: "0 2px 6px rgba(249, 115, 22, 0.25)" }}
+              style={{
+                background: "#ea580c",
+                color: "#ffffff",
+                border: "1px solid #ea580c",
+                borderRadius: "8px",
+                padding: "6px 16px",
+                cursor: "pointer",
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
+                transition: "all 180ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#c2410c";
+                e.currentTarget.style.borderColor = "#c2410c";
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#ea580c";
+                e.currentTarget.style.borderColor = "#ea580c";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+              }}
             >
               Save edit
             </button>
@@ -190,16 +218,39 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
             <button
               onClick={handleParaphrase}
               disabled={isParaphrasing || !!paraphrasedDraft}
-              style={{ background: "transparent", color: "#f97316", border: "1px solid rgba(249, 115, 22, 0.5)", borderRadius: "8px", padding: "6px 16px", cursor: (isParaphrasing || !!paraphrasedDraft) ? "not-allowed" : "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px", transition: "all 0.2s ease" }}
+              style={{
+                background: "transparent",
+                color: "#ea580c",
+                border: "1px solid rgba(234, 88, 12, 0.4)",
+                borderRadius: "8px",
+                padding: "6px 16px",
+                cursor: (isParaphrasing || !!paraphrasedDraft) ? "not-allowed" : "pointer",
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 180ms ease",
+              }}
               onMouseEnter={(e) => {
                 if (!isParaphrasing && !paraphrasedDraft) {
-                  e.currentTarget.style.background = "rgba(249, 115, 22, 0.1)";
-                  e.currentTarget.style.borderColor = "#f97316";
+                  e.currentTarget.style.background = "rgba(234, 88, 12, 0.08)";
+                  e.currentTarget.style.borderColor = "#ea580c";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(234, 88, 12, 0.15)";
                 }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.borderColor = "rgba(249, 115, 22, 0.5)";
+                e.currentTarget.style.borderColor = "rgba(234, 88, 12, 0.4)";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+              onMouseDown={(e) => {
+                if (!isParaphrasing && !paraphrasedDraft) {
+                  e.currentTarget.style.transform = "translateY(0)";
+                }
               }}
             >
               {isParaphrasing ? (
@@ -211,14 +262,32 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
             {!paraphrasedDraft && (
               <button
                 onClick={() => setEditing(true)}
-                style={{ background: "transparent", color: "#f97316", border: "1px solid rgba(249, 115, 22, 0.5)", borderRadius: "8px", padding: "6px 16px", cursor: "pointer", fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", fontWeight: 700, transition: "all 0.2s ease" }}
+                style={{
+                  background: "transparent",
+                  color: "#ea580c",
+                  border: "1px solid rgba(234, 88, 12, 0.4)",
+                  borderRadius: "8px",
+                  padding: "6px 16px",
+                  cursor: "pointer",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  transition: "all 180ms ease",
+                }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(249, 115, 22, 0.1)";
-                  e.currentTarget.style.borderColor = "#f97316";
+                  e.currentTarget.style.background = "rgba(234, 88, 12, 0.08)";
+                  e.currentTarget.style.borderColor = "#ea580c";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(234, 88, 12, 0.15)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.borderColor = "rgba(249, 115, 22, 0.5)";
+                  e.currentTarget.style.borderColor = "rgba(234, 88, 12, 0.4)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
                 ✎ Edit draft
@@ -301,15 +370,15 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
             resize: "vertical",
             outline: "none",
             boxSizing: "border-box",
-            boxShadow: "0 0 0 2px rgba(249, 115, 22, 0.1)",
+            boxShadow: "0 0 0 2px rgba(234, 88, 12, 0.1)",
           }}
           onFocus={(e) => {
-            e.currentTarget.style.borderColor = "#f97316";
-            e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
+            e.currentTarget.style.borderColor = "#ea580c";
+            e.currentTarget.style.boxShadow = "0 0 0 2px rgba(234, 88, 12, 0.15)";
           }}
           onBlur={(e) => {
             e.currentTarget.style.borderColor = "#e5e7eb";
-            e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.1)";
+            e.currentTarget.style.boxShadow = "0 0 0 2px rgba(234, 88, 12, 0.1)";
           }}
         />
       ) : (
@@ -322,7 +391,7 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
       {(references && references.length > 0 || editing) && !paraphrasedDraft && (
         <>
           <div style={{ margin: "40px 0 20px 0", height: "1px", background: "#e5e7eb" }} />
-          <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "1rem", fontWeight: 700, color: "#f97316", marginBottom: "12px", fontFamily: "'Poppins', sans-serif" }}>
+          <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "1rem", fontWeight: 700, color: "#ea580c", marginBottom: "12px", fontFamily: "'Poppins', sans-serif" }}>
             References <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "#6b7280" }}>(APA 7th ed.)</span>
           </h3>
           {editing ? (
@@ -346,8 +415,8 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
                 boxSizing: "border-box",
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#f97316";
-                e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
+                e.currentTarget.style.borderColor = "#ea580c";
+                e.currentTarget.style.boxShadow = "0 0 0 2px rgba(234, 88, 12, 0.15)";
               }}
               onBlur={(e) => {
                 e.currentTarget.style.borderColor = "#e5e7eb";

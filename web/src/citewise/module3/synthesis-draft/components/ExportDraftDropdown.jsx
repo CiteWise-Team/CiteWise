@@ -36,10 +36,10 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
         disabled={isButtonDisabled}
         style={{
           background: !isButtonDisabled
-            ? "linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+            ? "#ea580c"
             : "#f3f4f6",
           color: !isButtonDisabled ? "#ffffff" : "#9ca3af",
-          border: "none",
+          border: !isButtonDisabled ? "1px solid #ea580c" : "1px solid #e5e7eb",
           borderRadius: "8px",
           padding: "8px 16px",
           cursor: !isButtonDisabled ? "pointer" : "not-allowed",
@@ -49,23 +49,32 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
           fontFamily: "'Poppins', sans-serif",
           fontSize: "0.85rem",
           fontWeight: "700",
-          boxShadow: !isButtonDisabled ? "0 4px 12px rgba(249, 115, 22, 0.25)" : "none",
-          transition: "background 0.18s ease, transform 0.18s ease, box-shadow 0.22s ease",
+          boxShadow: !isButtonDisabled ? "0 2px 8px rgba(234, 88, 12, 0.22)" : "none",
+          transition: "all 180ms ease",
         }}
         onMouseEnter={(e) => {
           if (isButtonDisabled) return;
-          e.currentTarget.style.transform = "scale(1.04)";
-          e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
-          e.currentTarget.style.boxShadow = "0 10px 28px rgba(249, 115, 22, 0.35), 0 0 40px rgba(249, 115, 22, 0.22)";
+          e.currentTarget.style.transform = "translateY(-1px)";
+          e.currentTarget.style.background = "#c2410c";
+          e.currentTarget.style.borderColor = "#c2410c";
+          e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
         }}
         onMouseLeave={(e) => {
           if (isButtonDisabled) return;
-          e.currentTarget.style.transform = "scale(1)";
-          e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.background = "#ea580c";
+          e.currentTarget.style.borderColor = "#ea580c";
+          e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
         }}
-        onMouseDown={(e) => { if (!isButtonDisabled) e.currentTarget.style.transform = "scale(0.98)"; }}
-        onMouseUp={(e) => { if (!isButtonDisabled) e.currentTarget.style.transform = "scale(1.04)"; }}
+        onMouseDown={(e) => {
+          if (!isButtonDisabled) {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+          }
+        }}
+        onMouseUp={(e) => {
+          if (!isButtonDisabled) e.currentTarget.style.transform = "translateY(-1px)";
+        }}
       >
         {isExportingPdf ? (
           <>

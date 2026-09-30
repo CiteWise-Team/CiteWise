@@ -119,7 +119,7 @@ cardHeader: {
     width: "8px",
     height: "8px",
     borderRadius: "50%",
-    background: "#f97316",
+    background: "#ea580c",
     display: "inline-block",
     animation: "pulse 1.2s infinite",
   },
@@ -133,7 +133,7 @@ cardHeader: {
   },
   progressBarFill: {
     height: "100%",
-    background: "linear-gradient(90deg, #f97316, #fb8c3a)",
+    background: "#ea580c",
     borderRadius: "2px",
     transition: "width 0.4s ease",
   },

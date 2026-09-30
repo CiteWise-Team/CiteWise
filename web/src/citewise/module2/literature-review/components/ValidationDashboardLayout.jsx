@@ -580,28 +580,33 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
                 type="button"
                 onClick={handleConfirmApprovalWarning}
                 style={{
-                  background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  border: "none",
-                  borderRadius: "10px",
+                  background: "#ea580c",
+                  border: "1px solid #ea580c",
+                  borderRadius: "8px",
                   padding: "0.85rem 1rem",
                   color: "#ffffff",
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: 700,
                   fontSize: "0.9rem",
                   cursor: "pointer",
-                  transform: "scale(1)",
-                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
-                  transition: "transform 0.18s ease, box-shadow 0.22s ease, background 0.2s ease",
+                  boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
+                  transition: "all 180ms ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "scale(1.04)";
-                  e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
-                  e.currentTarget.style.boxShadow = "0 0 24px rgba(249, 115, 22, 0.45), 0 0 42px rgba(249, 115, 22, 0.28)";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.background = "#c2410c";
+                  e.currentTarget.style.borderColor = "#c2410c";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.background = "#ea580c";
+                  e.currentTarget.style.borderColor = "#ea580c";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
                 }}
               >
                 Yes

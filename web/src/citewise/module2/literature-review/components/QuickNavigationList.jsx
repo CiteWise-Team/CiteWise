@@ -269,29 +269,43 @@ export default function QuickNavigationList({
                   type="button"
                   onClick={() => setActiveFilter(tab.id)}
                   style={{
-                    background: isSelected ? "#f97316" : (isDark ? "#171624" : "#ffffff"),
+                    background: isSelected ? "#ea580c" : (isDark ? "#171624" : "#ffffff"),
                     color: isSelected ? "#ffffff" : (isDark ? "#cbd5e1" : "#6b7280"),
-                    border: `1px solid ${isSelected ? "#f97316" : (isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb")}`,
-                    borderRadius: "12px",
-                    padding: "3px 8px",
+                    border: `1px solid ${isSelected ? "#ea580c" : (isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb")}`,
+                    borderRadius: "8px",
+                    padding: "4px 10px",
                     fontSize: "11px",
                     fontFamily: "'Poppins', sans-serif",
                     fontWeight: isSelected ? 600 : 500,
                     cursor: "pointer",
-                    transition: "all 0.15s ease",
+                    transition: "all 180ms ease",
                     whiteSpace: "nowrap",
+                    boxShadow: isSelected ? "0 2px 8px rgba(234, 88, 12, 0.22)" : "none",
                   }}
                   onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.borderColor = "#f97316";
-                      e.currentTarget.style.color = "#f97316";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    if (isSelected) {
+                      e.currentTarget.style.background = "#c2410c";
+                      e.currentTarget.style.borderColor = "#c2410c";
+                      e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                    } else {
+                      e.currentTarget.style.borderColor = "#ea580c";
+                      e.currentTarget.style.color = "#ea580c";
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (!isSelected) {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    if (isSelected) {
+                      e.currentTarget.style.background = "#ea580c";
+                      e.currentTarget.style.borderColor = "#ea580c";
+                      e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                    } else {
                       e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb";
                       e.currentTarget.style.color = isDark ? "#cbd5e1" : "#6b7280";
                     }
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >
                   {tab.label}
@@ -652,39 +666,42 @@ export default function QuickNavigationList({
               justifyContent: "center",
               gap: "8px",
               padding: "11px 16px",
-              borderRadius: "10px",
-              border: "none",
+              borderRadius: "8px",
+              border: selectionCount === 0 ? (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb") : "1px solid #ea580c",
               background:
                 selectionCount === 0
                   ? (isDark ? "rgba(255, 255, 255, 0.06)" : "#f3f4f6")
-                  : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                  : "#ea580c",
               color: selectionCount === 0 ? (isDark ? "#6b7280" : "#9ca3af") : "#ffffff",
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.85rem",
               fontWeight: 700,
               letterSpacing: "0.02em",
               cursor: selectionCount === 0 ? "not-allowed" : "pointer",
-              transition: "all 0.2s ease",
+              transition: "all 180ms ease",
               boxShadow:
                 selectionCount === 0
                   ? "none"
-                  : "0 4px 12px rgba(249, 115, 22, 0.25)",
+                  : "0 2px 8px rgba(234, 88, 12, 0.22)",
             }}
             onMouseEnter={(e) => {
               if (selectionCount === 0) return;
-              e.currentTarget.style.background =
-                "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
-              e.currentTarget.style.boxShadow =
-                "0 6px 16px rgba(249, 115, 22, 0.4)";
+              e.currentTarget.style.background = "#c2410c";
+              e.currentTarget.style.borderColor = "#c2410c";
+              e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
               e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
               if (selectionCount === 0) return;
-              e.currentTarget.style.background =
-                "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
-              e.currentTarget.style.boxShadow =
-                "0 4px 12px rgba(249, 115, 22, 0.25)";
+              e.currentTarget.style.background = "#ea580c";
+              e.currentTarget.style.borderColor = "#ea580c";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
               e.currentTarget.style.transform = "translateY(0)";
+            }}
+            onMouseDown={(e) => {
+              if (selectionCount === 0) return;
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
             }}
             title={
               selectionCount === 0
@@ -810,27 +827,33 @@ export default function QuickNavigationList({
                   setDeleteConfirm({ show: false, index: null, name: "" });
                 }}
                 style={{
-                  background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  border: "none",
-                  borderRadius: "10px",
+                  background: "#ea580c",
+                  border: "1px solid #ea580c",
+                  borderRadius: "8px",
                   color: "#ffffff",
                   padding: "0.75rem 1rem",
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: "0.85rem",
                   fontWeight: 700,
                   cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.3)",
+                  transition: "all 180ms ease",
+                  boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
+                  e.currentTarget.style.background = "#c2410c";
+                  e.currentTarget.style.borderColor = "#c2410c";
                   e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.45)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
+                  e.currentTarget.style.background = "#ea580c";
+                  e.currentTarget.style.borderColor = "#ea580c";
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.3)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
                 }}
               >
                 Remove File

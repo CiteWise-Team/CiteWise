@@ -355,7 +355,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                       width: "16px",
                       height: "16px",
                       borderRadius: "50%",
-                      background: "#f97316",
+                      background: "#ea580c",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -444,14 +444,40 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                 onClick={handleSave}
                 disabled={isSubmitting || !citationText.trim()}
                 style={{
-                  background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  color: "#ffffff", border: "none",
-                  borderRadius: "8px", padding: "8px 16px",
+                  background: (isSubmitting || !citationText.trim()) ? "#f3f4f6" : "#ea580c",
+                  color: (isSubmitting || !citationText.trim()) ? "#9ca3af" : "#ffffff",
+                  border: (isSubmitting || !citationText.trim()) ? "1px solid #e5e7eb" : "1px solid #ea580c",
+                  borderRadius: "8px",
+                  padding: "8px 16px",
                   cursor: (isSubmitting || !citationText.trim()) ? "not-allowed" : "pointer",
-                  opacity: (isSubmitting || !citationText.trim()) ? 0.5 : 1,
-                  fontFamily: "'Poppins', sans-serif", fontSize: "0.85rem", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
-                  transition: "all 0.2s ease",
+                  opacity: (isSubmitting || !citationText.trim()) ? 0.6 : 1,
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                  boxShadow: (isSubmitting || !citationText.trim()) ? "none" : "0 2px 8px rgba(234, 88, 12, 0.22)",
+                  transition: "all 180ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSubmitting && citationText.trim()) {
+                    e.currentTarget.style.background = "#c2410c";
+                    e.currentTarget.style.borderColor = "#c2410c";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSubmitting && citationText.trim()) {
+                    e.currentTarget.style.background = "#ea580c";
+                    e.currentTarget.style.borderColor = "#ea580c";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                  }
+                }}
+                onMouseDown={(e) => {
+                  if (!isSubmitting && citationText.trim()) {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+                  }
                 }}
               >
                 {isSubmitting ? "Saving..." : "Save Citation"}
@@ -598,12 +624,33 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                   }
                 }}
                 style={{
-                  background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  color: "#ffffff", border: "none", borderRadius: "8px",
-                  padding: "10px 20px", cursor: "pointer",
-                  fontFamily: "'Poppins', sans-serif", fontSize: "0.9rem", fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
-                  transition: "all 0.2s ease",
+                  background: "#ea580c",
+                  color: "#ffffff",
+                  border: "1px solid #ea580c",
+                  borderRadius: "8px",
+                  padding: "10px 20px",
+                  cursor: "pointer",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.9rem",
+                  fontWeight: 700,
+                  boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
+                  transition: "all 180ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#c2410c";
+                  e.currentTarget.style.borderColor = "#c2410c";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#ea580c";
+                  e.currentTarget.style.borderColor = "#ea580c";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
                 }}
               >
                 Save Selection

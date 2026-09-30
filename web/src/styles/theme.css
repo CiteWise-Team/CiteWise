@@ -215,7 +215,8 @@ body {
 
 [data-theme="dark"] .workflow-back-btn,
 [data-theme="dark"] .workflow-guide-button,
-[data-theme="dark"] .groups-guide-trigger-btn {
+[data-theme="dark"] .groups-guide-trigger-btn,
+[data-theme="dark"] .cw-primary-btn {
   background-color: #ea580c !important;
   border-color: #ea580c !important;
   color: #ffffff !important;
@@ -224,14 +225,16 @@ body {
 
 [data-theme="dark"] .workflow-back-btn svg,
 [data-theme="dark"] .workflow-guide-button svg,
-[data-theme="dark"] .groups-guide-trigger-btn svg {
+[data-theme="dark"] .groups-guide-trigger-btn svg,
+[data-theme="dark"] .cw-primary-btn svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
 }
 
 [data-theme="dark"] .workflow-back-btn:hover,
 [data-theme="dark"] .workflow-guide-button:hover,
-[data-theme="dark"] .groups-guide-trigger-btn:hover {
+[data-theme="dark"] .groups-guide-trigger-btn:hover,
+[data-theme="dark"] .cw-primary-btn:hover {
   border-color: #c2410c !important;
   color: #ffffff !important;
   background-color: #c2410c !important;
@@ -956,10 +959,12 @@ body {
   border: 1px solid var(--cw-border, #e5e7eb) !important;
   border-radius: 12px !important;
   transition: all 0.2s ease !important;
+  cursor: pointer;
 }
 
 .citewise-gap-card:hover {
-  border-color: #f97316 !important;
+  border-color: #ea580c !important;
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.08) !important;
 }
 
 .citewise-gap-card.selected {
@@ -973,10 +978,12 @@ body {
   background: #171624 !important;
   background-color: #171624 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  cursor: pointer;
 }
 
 [data-theme="dark"] .citewise-gap-card:hover {
-  border-color: rgba(249, 115, 22, 0.5) !important;
+  border-color: rgba(234, 88, 12, 0.6) !important;
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.18) !important;
 }
 
 [data-theme="dark"] .citewise-gap-card.selected {

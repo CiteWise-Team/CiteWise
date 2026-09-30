@@ -290,19 +290,39 @@ export default function MetricWeightCustomization({
                 justifyContent: "center",
                 gap: "8px",
                 cursor: isProcessing ? "wait" : (documents.length === 0 ? "not-allowed" : "pointer"),
-                background: isProcessing
-                  ? "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)"
-                  : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                background: "#ea580c",
                 color: "#ffffff",
-                border: "none",
-                borderRadius: "10px",
+                border: "1px solid #ea580c",
+                borderRadius: "8px",
                 fontFamily: "'Poppins', sans-serif",
                 fontWeight: 700,
                 boxShadow: isProcessing
-                  ? "0 0 16px rgba(249, 115, 22, 0.55)"
-                  : "0 4px 12px rgba(249, 115, 22, 0.25)",
+                  ? "0 0 16px rgba(234, 88, 12, 0.55)"
+                  : "0 2px 8px rgba(234, 88, 12, 0.22)",
                 opacity: documents.length === 0 ? 0.5 : 1,
-                transition: "all 0.2s ease",
+                transition: "all 180ms ease",
+              }}
+              onMouseEnter={(e) => {
+                if (!isProcessing && documents.length > 0) {
+                  e.currentTarget.style.background = "#c2410c";
+                  e.currentTarget.style.borderColor = "#c2410c";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isProcessing && documents.length > 0) {
+                  e.currentTarget.style.background = "#ea580c";
+                  e.currentTarget.style.borderColor = "#ea580c";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                }
+              }}
+              onMouseDown={(e) => {
+                if (!isProcessing && documents.length > 0) {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+                }
               }}
             >
               {isProcessing ? (
@@ -519,9 +539,9 @@ export default function MetricWeightCustomization({
                   onClick={handleAssessSelected}
                   disabled={selectedDocs.size === 0 || isProcessing}
                   style={{
-                    background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                    background: "#ea580c",
                     color: "#ffffff",
-                    border: "none",
+                    border: "1px solid #ea580c",
                     borderRadius: "8px",
                     fontFamily: "'Poppins', sans-serif",
                     fontWeight: 700,
@@ -533,9 +553,31 @@ export default function MetricWeightCustomization({
                     cursor: isProcessing ? "wait" : (selectedDocs.size === 0 ? "not-allowed" : "pointer"),
                     opacity: selectedDocs.size === 0 ? 0.5 : 1,
                     boxShadow: isProcessing
-                      ? "0 0 14px rgba(249, 115, 22, 0.5)"
-                      : "0 4px 12px rgba(249, 115, 22, 0.25)",
-                    transition: "all 0.2s ease",
+                      ? "0 0 14px rgba(234, 88, 12, 0.5)"
+                      : "0 2px 8px rgba(234, 88, 12, 0.22)",
+                    transition: "all 180ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isProcessing && selectedDocs.size > 0) {
+                      e.currentTarget.style.background = "#c2410c";
+                      e.currentTarget.style.borderColor = "#c2410c";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isProcessing && selectedDocs.size > 0) {
+                      e.currentTarget.style.background = "#ea580c";
+                      e.currentTarget.style.borderColor = "#ea580c";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    if (!isProcessing && selectedDocs.size > 0) {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+                    }
                   }}
                 >
                   {isProcessing ? (
