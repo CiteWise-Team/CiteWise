@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ArrowRight, Target } from "lucide-react";
 import SynthesisControlPanel from "./SynthesisControlPanel";
 import ApprovedSourceList from "./ApprovedSourceList";
 import GeneratedDraftDisplay from "./GeneratedDraftDisplay";
@@ -156,7 +157,7 @@ const downloadBlob = (blob, filename) => {
   URL.revokeObjectURL(url);
 };
 
-export default function SynthesisDraftModule({ sessionId, onStepChange }) {
+export default function SynthesisDraftModule({ sessionId, groupId, onStepChange, onProceedToSmartGoals }) {
   const isMobile = useIsMobile();
   const styles = getStyles(isMobile);
   const [approvedDocuments, setApprovedDocuments] = useState([]);
@@ -171,6 +172,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [selectedSmartGoalsVersion, setSelectedSmartGoalsVersion] = useState(null);
 
   const DRAFT_STORAGE_KEY = `citewise_draft_${sessionId}`;
   const DOCS_STORAGE_KEY = `citewise_approved_docs_${sessionId}`;
@@ -512,6 +514,17 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
   };
 
+  const handleSelectSmartGoalsVersion = (version) => {
+    if (!version?.id || !version.content?.trim()) return;
+    setSelectedSmartGoalsVersion({
+      id: version.id,
+      label: version.label || "Selected introduction",
+      content: version.content,
+      references: Array.isArray(version.references) ? version.references : [],
+      timestamp: version.timestamp || null,
+    });
+  };
+
   const handleExport = async (format) => {
     setExportDropdownOpen(false);
     const referencesText = references.join("\n\n");
@@ -648,6 +661,8 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
             sessionId={sessionId}
             currentContent={generatedContent}
             onRestore={handleRestoreVersion}
+            selectedSmartGoalsVersionId={selectedSmartGoalsVersion?.id}
+            onSelectForSmartGoals={handleSelectSmartGoalsVersion}
           />
           <ApprovedSourceList 
             sessionId={sessionId}
@@ -680,14 +695,43 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
                   Review, edit, and export your literature synthesis draft.
                 </p>
               </div>
-              <ExportDraftDropdown 
-                isOpen={exportDropdownOpen}
-                onToggle={setExportDropdownOpen}
-                onExport={handleExport}
-                onCopy={copyToClipboard}
-                isEnabled={generationStatus === "complete"}
-                isExportingPdf={isExportingPdf}
-              />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => onProceedToSmartGoals?.(selectedSmartGoalsVersion)}
+                  disabled={!selectedSmartGoalsVersion || !groupId}
+                  title={selectedSmartGoalsVersion ? `Use ${selectedSmartGoalsVersion.label} for SMART Goals` : "Select a final version from Version History first"}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 7,
+                    minHeight: 36,
+                    padding: "0 11px",
+                    border: "1px solid #b5d7d0",
+                    borderRadius: 7,
+                    color: selectedSmartGoalsVersion ? "#176d62" : "#8b989b",
+                    background: selectedSmartGoalsVersion ? "#edf7f4" : "#f5f7f7",
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: 11,
+                    fontWeight: 650,
+                    cursor: selectedSmartGoalsVersion && groupId ? "pointer" : "not-allowed",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <Target size={15} />
+                  Proceed to SMART Goals
+                  <ArrowRight size={14} />
+                </button>
+                <ExportDraftDropdown 
+                  isOpen={exportDropdownOpen}
+                  onToggle={setExportDropdownOpen}
+                  onExport={handleExport}
+                  onCopy={copyToClipboard}
+                  isEnabled={generationStatus === "complete"}
+                  isExportingPdf={isExportingPdf}
+                />
+              </div>
             </div>
             <div style={styles.rightPanelContent}>
               <GeneratedDraftDisplay

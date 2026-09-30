@@ -70,6 +70,8 @@ SUPABASE_KEY=<service_role_key>
 SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
 FRONTEND_URL=http://localhost:5173
 N8N_BASE_URL=http://localhost:5678
+GEMINI_API_KEY=<your_gemini_api_key>
+GEMINI_MODEL=gemini-3.6-flash
 
 # CATalyst n8n webhooks
 N8N_EXTRACTOR_WEBHOOK=http://localhost:5678/webhook/<your-extractor-path>
