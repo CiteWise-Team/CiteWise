@@ -11,7 +11,8 @@ import {
   ShieldCheck, 
   FileText, 
   CheckCircle2,
-  Circle
+  Circle,
+  AlertCircle
 } from "lucide-react";
 
 import { register as registerAPI } from "../api/auth.api";
@@ -57,6 +58,7 @@ export default function Register() {
   const navigate = useNavigate();
 
   const ruleResults = PASSWORD_RULES.map((rule) => ({ ...rule, met: rule.test(password) }));
+  const metCount = ruleResults.filter((r) => r.met).length;
   const allRulesMet = ruleResults.every((rule) => rule.met);
   const extraError = password ? passwordExtraError(password, email) : null;
   const passwordsMatch = password === confirmPassword;
@@ -229,9 +231,6 @@ export default function Register() {
           </div>
 
           <h2 className="auth-form-heading">Create your account</h2>
-          <p className="auth-form-subheading">
-            Start discovering research gaps and synthesizing papers in seconds
-          </p>
 
           <form onSubmit={handleSubmit}>
             {/* Email Field */}
@@ -291,17 +290,60 @@ export default function Register() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <ul id="register-password-rules" className="auth-password-rules">
-                {ruleResults.map((rule) => (
-                  <li key={rule.label} className={rule.met ? "is-met" : undefined}>
-                    {rule.met ? <CheckCircle2 size={14} /> : <Circle size={14} />}
-                    <span>{rule.label}</span>
-                  </li>
-                ))}
-              </ul>
-              {extraError && (
-                <p className="auth-field-error" role="alert">{extraError}</p>
-              )}
+              {/* Modern Password Security & Complexity Card */}
+              <div className="auth-password-complexity-card" id="register-password-rules">
+                <div className="auth-password-strength-header">
+                  <div className="auth-password-strength-label">
+                    <ShieldCheck size={14} className="auth-password-shield-icon" />
+                    <span>Password Security</span>
+                  </div>
+                  {password.length > 0 && (
+                    <span
+                      className={`auth-password-strength-badge ${
+                        metCount === 5 ? "is-strong" : metCount >= 3 ? "is-medium" : "is-weak"
+                      }`}
+                    >
+                      {metCount === 5 ? "Strong" : metCount >= 3 ? "Moderate" : "Weak"}
+                    </span>
+                  )}
+                </div>
+
+                <div className="auth-password-strength-track">
+                  <div
+                    className={`auth-password-strength-bar ${
+                      metCount === 5 ? "is-strong" : metCount >= 3 ? "is-medium" : "is-weak"
+                    }`}
+                    style={{
+                      width: `${password.length === 0 ? 0 : Math.max(14, (metCount / 5) * 100)}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="auth-password-rules-grid">
+                  {ruleResults.map((rule) => (
+                    <div
+                      key={rule.label}
+                      className={`auth-password-rule-item ${rule.met ? "is-met" : ""}`}
+                    >
+                      <div className="auth-password-rule-icon">
+                        {rule.met ? (
+                          <CheckCircle2 size={13} strokeWidth={2.6} />
+                        ) : (
+                          <Circle size={12} strokeWidth={2} />
+                        )}
+                      </div>
+                      <span className="auth-password-rule-text">{rule.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {extraError && (
+                  <div className="auth-password-extra-error">
+                    <AlertCircle size={13} />
+                    <span>{extraError}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Confirm Password Field */}

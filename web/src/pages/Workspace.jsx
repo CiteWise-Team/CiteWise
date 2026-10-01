@@ -35,8 +35,16 @@ export default function GroupWorkflow() {
   const [missingFor, setMissingFor] = useState(null);
   const [isInputCollapsed, setIsInputCollapsed] = useState(false);
   const [isResultCollapsed, setIsResultCollapsed] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState("");
 
   const resolved = Boolean(routeGroupId) && groupId === routeGroupId;
+
+  useEffect(() => {
+    setResult(null);
+    setIsProcessing(false);
+    setProcessingStatus("");
+  }, [step]);
 
   useEffect(() => {
     if (!routeGroupId || resolved) return;
@@ -303,6 +311,10 @@ export default function GroupWorkflow() {
             setResult={(nextResult) => handleStepResult(step, nextResult)}
             isCollapsed={isInputCollapsed}
             onToggleCollapse={() => setIsInputCollapsed(!isInputCollapsed)}
+            isProcessing={isProcessing}
+            setIsProcessing={setIsProcessing}
+            processingStatus={processingStatus}
+            setProcessingStatus={setProcessingStatus}
           />
         </section>
 
@@ -313,6 +325,8 @@ export default function GroupWorkflow() {
             onComplete={handleResultComplete}
             isCollapsed={isResultCollapsed}
             onToggleCollapse={() => setIsResultCollapsed(!isResultCollapsed)}
+            isProcessing={isProcessing}
+            processingStatus={processingStatus}
           />
         </section>
       </div>

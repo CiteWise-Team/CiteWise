@@ -3,8 +3,16 @@ import { useGroup } from "../../../context/GroupContext";
 import { getGapsByGroupAPI } from "../../../api/workflow.gap";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 import WorkflowCardHeader from "../WorkflowCardHeader";
+import WorkflowPartnerLoadingUI from "./WorkflowPartnerLoadingUI";
 
-export default function ExtractorOutput({ result, onComplete, isCollapsed = false, onToggleCollapse }) {
+export default function GapOutput({
+  result,
+  onComplete,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing = false,
+  processingStatus = "",
+}) {
   const group_id = useGroup().groupId;
 
   const [items, setItems] = useState([]);
@@ -68,6 +76,12 @@ export default function ExtractorOutput({ result, onComplete, isCollapsed = fals
       />
       {!isCollapsed && (
         <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
+        {isProcessing ? (
+          <WorkflowPartnerLoadingUI
+            stepType="gap"
+            title={processingStatus || "Analyzing research gaps with AI..."}
+          />
+        ) : (
         <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, gap: 0 }}>
         {/* LEFT SIDEBAR — Titles only */}
         <div
@@ -251,6 +265,7 @@ export default function ExtractorOutput({ result, onComplete, isCollapsed = fals
           )}
         </div>
       </div>
+        )}
       </div>
       )}
     </div>

@@ -844,6 +844,35 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
   z-index: 1;
 }
 
+/* When describing action buttons (Paraphrase, Edit, Export), position the card near the button */
+.workflow-guide-card.is-near-action-button {
+  bottom: auto;
+  left: auto;
+}
+
+.workflow-guide-card.is-near-action-button::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: var(--guide-arrow-right, 36px);
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border-top: 1px solid rgba(234, 88, 12, 0.35);
+  border-left: 1px solid rgba(234, 88, 12, 0.35);
+  transform: rotate(45deg);
+  z-index: 1;
+}
+
+.workflow-guide-card.is-near-action-button.is-above-button::before {
+  top: auto;
+  bottom: -7px;
+  border-top: none;
+  border-left: none;
+  border-bottom: 1px solid rgba(234, 88, 12, 0.35);
+  border-right: 1px solid rgba(234, 88, 12, 0.35);
+}
+
 /* When describing the Draft in CiteWise button at the bottom-right, position the card directly above the button */
 .workflow-guide-card.is-near-draft-btn {
   bottom: 150px;
@@ -2865,6 +2894,7 @@ input[type="range"].cw-relevance-slider:disabled::-moz-range-thumb {
 }
 
 [data-theme="dark"] .workflow-guide-card.is-near-guide-button::before,
+[data-theme="dark"] .workflow-guide-card.is-near-action-button::before,
 [data-theme="dark"] .workflow-guide-card.is-near-draft-btn::before {
   background: #171624 !important;
   border-color: rgba(234, 88, 12, 0.35) !important;

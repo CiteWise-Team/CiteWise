@@ -97,6 +97,37 @@ export default function QuickNavigationList({
     setSelectedForApproval(new Set());
   };
 
+  const unapprovedInDocuments = documents
+    .map((doc, idx) => (!doc.approved ? idx : null))
+    .filter((idx) => idx !== null);
+
+  const targetIndices = (activeFilter !== "all" || searchQuery.trim())
+    ? filteredDocs
+        .map(({ doc, originalIndex }) => (!doc.approved ? originalIndex : null))
+        .filter((idx) => idx !== null)
+    : unapprovedInDocuments;
+
+  const isAllSelected =
+    targetIndices.length > 0 &&
+    targetIndices.every((idx) => selectedForApproval.has(idx));
+
+  const handleSelectAllToggle = () => {
+    if (targetIndices.length === 0) return;
+    if (isAllSelected) {
+      setSelectedForApproval((prev) => {
+        const next = new Set(prev);
+        targetIndices.forEach((idx) => next.delete(idx));
+        return next;
+      });
+    } else {
+      setSelectedForApproval((prev) => {
+        const next = new Set(prev);
+        targetIndices.forEach((idx) => next.add(idx));
+        return next;
+      });
+    }
+  };
+
   // ✨ Approve everything the user circle-selected
   const handleApproveSelected = () => {
     if (selectedForApproval.size === 0) return;
@@ -314,6 +345,125 @@ export default function QuickNavigationList({
                 </button>
               );
             })}
+          </div>
+
+          {/* Selection Toolbar Row: Select All & count */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "8px",
+              padding: "2px 2px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "11px",
+                fontFamily: "'Poppins', sans-serif",
+                color: isDark ? "#94a3b8" : "#6b7280",
+                fontWeight: 500,
+              }}
+            >
+              {selectionCount > 0 ? (
+                <span>
+                  <strong style={{ color: "#ea580c" }}>{selectionCount}</strong> of {totalCount} selected
+                </span>
+              ) : approvedCount === totalCount && totalCount > 0 ? (
+                <span style={{ color: "#16a34a", fontWeight: 600 }}>All papers approved</span>
+              ) : (
+                <span>
+                  {unapprovedInDocuments.length} paper{unapprovedInDocuments.length !== 1 ? "s" : ""} to approve
+                </span>
+              )}
+            </span>
+
+            <button
+              type="button"
+              onClick={handleSelectAllToggle}
+              disabled={totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                background: isAllSelected
+                  ? (isDark ? "rgba(234, 88, 12, 0.22)" : "#fff7ed")
+                  : (isDark ? "#171624" : "#ffffff"),
+                color: isAllSelected
+                  ? "#ea580c"
+                  : (isDark ? "#e2e8f0" : "#374151"),
+                border: `1px solid ${
+                  isAllSelected
+                    ? "#ea580c"
+                    : (isDark ? "rgba(255, 255, 255, 0.14)" : "#d1d5db")
+                }`,
+                borderRadius: "6px",
+                padding: "3px 8px",
+                fontSize: "11px",
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: 600,
+                cursor: totalCount === 0 || (approvedCount === totalCount && selectionCount === 0) ? "not-allowed" : "pointer",
+                opacity: totalCount === 0 || (approvedCount === totalCount && selectionCount === 0) ? 0.6 : 1,
+                transition: "all 160ms ease",
+                boxShadow: isAllSelected ? "0 1px 4px rgba(234, 88, 12, 0.18)" : "none",
+                whiteSpace: "nowrap",
+              }}
+              onMouseEnter={(e) => {
+                if (totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)) return;
+                e.currentTarget.style.borderColor = "#ea580c";
+                e.currentTarget.style.color = "#ea580c";
+                e.currentTarget.style.background = isDark ? "rgba(234, 88, 12, 0.16)" : "#fff7ed";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={(e) => {
+                if (totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)) return;
+                e.currentTarget.style.borderColor = isAllSelected
+                  ? "#ea580c"
+                  : (isDark ? "rgba(255, 255, 255, 0.14)" : "#d1d5db");
+                e.currentTarget.style.color = isAllSelected
+                  ? "#ea580c"
+                  : (isDark ? "#e2e8f0" : "#374151");
+                e.currentTarget.style.background = isAllSelected
+                  ? (isDark ? "rgba(234, 88, 12, 0.22)" : "#fff7ed")
+                  : (isDark ? "#171624" : "#ffffff");
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+              onMouseDown={(e) => {
+                if (totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)) return;
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+              title={
+                approvedCount === totalCount && selectionCount === 0
+                  ? "All uploaded papers are already approved"
+                  : isAllSelected
+                  ? "Deselect all papers"
+                  : "Select all uploaded papers for approval"
+              }
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {isAllSelected ? (
+                  <>
+                    <polyline points="9 11 12 14 22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </>
+                ) : (
+                  <>
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <polyline points="9 11 12 14 17 9" />
+                  </>
+                )}
+              </svg>
+              <span>{isAllSelected ? "Deselect All" : "Select All"}</span>
+            </button>
           </div>
         </div>
 
@@ -651,9 +801,31 @@ export default function QuickNavigationList({
                 color: isDark ? "#94a3b8" : "#9ca3af",
                 fontStyle: "italic",
                 textAlign: "center",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "5px",
               }}
             >
-              Click the circle next to one or more papers to select them.
+              <span>Click circles or use</span>
+              <button
+                type="button"
+                onClick={handleSelectAllToggle}
+                disabled={targetIndices.length === 0}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: targetIndices.length === 0 ? (isDark ? "#6b7280" : "#9ca3af") : "#ea580c",
+                  fontSize: "0.68rem",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 600,
+                  cursor: targetIndices.length === 0 ? "default" : "pointer",
+                  padding: 0,
+                  textDecoration: targetIndices.length === 0 ? "none" : "underline",
+                }}
+              >
+                Select All
+              </button>
             </div>
           )}
 

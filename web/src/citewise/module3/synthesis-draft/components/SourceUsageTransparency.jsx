@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import * as store from "../../../lib/citewiseStore";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useTheme } from "../../../../context/ThemeContext";
 
 const TIER_META = {
   CORE: { label: "Core evidence", color: "#16a34a", bg: "#f0fdf4", note: "Used as main synthesis evidence." },
@@ -42,6 +43,7 @@ function computeTier(doc, usageChoice, prefs) {
 }
 
 export default function SourceUsageTransparency({ sessionId, documents }) {
+  const { isDark } = useTheme();
   const [prefs, setPrefs] = useState(() => store.getScorePrefs(sessionId));
   const [usage, setUsage] = useState(() => store.getRrlUsage(sessionId));
 
@@ -83,9 +85,6 @@ export default function SourceUsageTransparency({ sessionId, documents }) {
           <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.05rem", color: "var(--cw-text-primary, #0f0e17)", letterSpacing: "0.01em" }}>
             How your sources are used
           </span>
-          <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>
-            Each approved RRL is ranked by your relevance weights. Tiers decide how strongly the AI leans on each source.
-          </p>
         </div>
         <div style={{ paddingLeft: "10px" }}>
           <span style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)" }}>
@@ -95,13 +94,24 @@ export default function SourceUsageTransparency({ sessionId, documents }) {
       </div>
 
       {isOpen && (
-        <div style={{ padding: "0.75rem 1.25rem 1rem", display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ padding: "0.75rem 1.25rem 1rem" }}>
           {documents.length === 0 ? (
             <p style={{ color: "#9ca3af", fontSize: "0.82rem", fontFamily: "'Poppins', sans-serif", fontStyle: "italic", margin: 0 }}>
               No approved sources yet.
             </p>
           ) : (
-            documents.map((doc, idx) => {
+            <div
+              className="workflow-scrollable"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                maxHeight: "295px",
+                overflowY: documents.length > 5 ? "auto" : "visible",
+                paddingRight: documents.length > 5 ? "4px" : "0px",
+              }}
+            >
+              {documents.map((doc, idx) => {
               const docId = doc.id ?? doc.documentId;
               const choice = (usage[docId] || usage[String(docId)] || {}).usage || "auto";
               const { tier, reason } = computeTier(doc, choice === "auto" ? null : choice, prefs);
@@ -114,8 +124,8 @@ export default function SourceUsageTransparency({ sessionId, documents }) {
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: "10px",
-                    background: "#f9fafb",
-                    border: "1px solid #e5e7eb",
+                    background: isDark ? "rgba(255, 255, 255, 0.04)" : "#f9fafb",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
                     borderRadius: "8px",
                     padding: "8px 12px",
                   }}
@@ -124,7 +134,7 @@ export default function SourceUsageTransparency({ sessionId, documents }) {
                     <div
                       style={{
                         fontSize: "0.82rem",
-                        color: "#111827",
+                        color: isDark ? "#f9fafb" : "#111827",
                         fontFamily: "'Poppins', sans-serif",
                         fontWeight: 500,
                         overflow: "hidden",
@@ -136,7 +146,7 @@ export default function SourceUsageTransparency({ sessionId, documents }) {
                     >
                       {doc.fileName || doc.name}
                     </div>
-                    <div style={{ fontSize: "0.7rem", color: "#6b7280", fontFamily: "'Poppins', sans-serif" }}>{reason}</div>
+                    <div style={{ fontSize: "0.7rem", color: isDark ? "#9ca3af" : "#6b7280", fontFamily: "'Poppins', sans-serif" }}>{reason}</div>
                   </div>
                   <span
                     style={{
@@ -144,8 +154,8 @@ export default function SourceUsageTransparency({ sessionId, documents }) {
                       fontSize: "0.68rem",
                       fontWeight: 700,
                       color: meta.color,
-                      background: meta.bg,
-                      border: `1px solid ${meta.color}40`,
+                      background: isDark ? `${meta.color}22` : meta.bg,
+                      border: isDark ? `1px solid ${meta.color}55` : `1px solid ${meta.color}40`,
                       borderRadius: "6px",
                       padding: "2px 8px",
                       fontFamily: "'Poppins', sans-serif",
@@ -156,7 +166,8 @@ export default function SourceUsageTransparency({ sessionId, documents }) {
                   </span>
                 </div>
               );
-            })
+            })}
+            </div>
           )}
         </div>
       )}

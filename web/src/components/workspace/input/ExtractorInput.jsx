@@ -9,7 +9,15 @@ import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function InputPanel({ setResult, isCollapsed = false, onToggleCollapse }) {
+export default function InputPanel({
+  setResult,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing,
+  setIsProcessing,
+  processingStatus,
+  setProcessingStatus,
+}) {
   const group_id = useGroup().groupId;
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
@@ -25,6 +33,8 @@ export default function InputPanel({ setResult, isCollapsed = false, onToggleCol
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
     };
   }, []);
 
@@ -79,12 +89,16 @@ export default function InputPanel({ setResult, isCollapsed = false, onToggleCol
     try {
       setLoading(true);
       setLoadingText("Starting extraction...");
+      setIsProcessing?.(true);
+      setProcessingStatus?.("Extracting sections with AI...");
 
       const response = await extractorAPI(file, group_id);
 
       // If backend dispatched background extraction job (202 Accepted)
       if (response?.jobId) {
         setLoadingText("Extracting sections with AI...");
+        setIsProcessing?.(true);
+        setProcessingStatus?.("Extracting sections with AI...");
 
         const startTime = Date.now();
         const MAX_POLL_TIME = 180 * 1000; // 3 minutes timeout
@@ -95,6 +109,8 @@ export default function InputPanel({ setResult, isCollapsed = false, onToggleCol
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setLoading(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Timeout",
@@ -108,6 +124,8 @@ export default function InputPanel({ setResult, isCollapsed = false, onToggleCol
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setLoading(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               setResult(pollRes.data);
               showFeedback({
                 type: "success",
@@ -118,6 +136,8 @@ export default function InputPanel({ setResult, isCollapsed = false, onToggleCol
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setLoading(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Extraction Failed",
@@ -134,6 +154,8 @@ export default function InputPanel({ setResult, isCollapsed = false, onToggleCol
 
       if (!response?.jobId) {
         setLoading(false);
+        setIsProcessing?.(false);
+        setProcessingStatus?.("");
         showFeedback({
           type: "error",
           title: "Extraction Failed",
@@ -144,6 +166,8 @@ export default function InputPanel({ setResult, isCollapsed = false, onToggleCol
     } catch (err) {
       console.error(err);
       setLoading(false);
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
       showFeedback({
         type: "error",
         title: "Server Error",

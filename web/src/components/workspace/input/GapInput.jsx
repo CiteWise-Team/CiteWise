@@ -10,7 +10,15 @@ import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function GapInput({ setResult, isCollapsed = false, onToggleCollapse }) {
+export default function GapInput({
+  setResult,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing,
+  setIsProcessing,
+  processingStatus,
+  setProcessingStatus,
+}) {
   const group_id = useGroup().groupId;
 
   const [file, setFile] = useState(null);
@@ -31,6 +39,8 @@ export default function GapInput({ setResult, isCollapsed = false, onToggleColla
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
     };
   }, []);
 
@@ -78,6 +88,8 @@ export default function GapInput({ setResult, isCollapsed = false, onToggleColla
     try {
       setRunning(true);
       setRunningText("Starting gap analysis...");
+      setIsProcessing?.(true);
+      setProcessingStatus?.("Analyzing research gaps with AI...");
 
       const response = await GapAPI({
         group_id,
@@ -87,6 +99,8 @@ export default function GapInput({ setResult, isCollapsed = false, onToggleColla
       // Handle async 202 background job
       if (response?.jobId) {
         setRunningText("Analyzing research gaps with AI...");
+        setIsProcessing?.(true);
+        setProcessingStatus?.("Analyzing research gaps with AI...");
 
         const startTime = Date.now();
         const MAX_POLL_TIME = 180 * 1000; // 3 minutes timeout
@@ -97,6 +111,8 @@ export default function GapInput({ setResult, isCollapsed = false, onToggleColla
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Timeout",
@@ -110,6 +126,8 @@ export default function GapInput({ setResult, isCollapsed = false, onToggleColla
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               setResult(pollRes.data);
               showFeedback({
                 type: "success",
@@ -120,6 +138,8 @@ export default function GapInput({ setResult, isCollapsed = false, onToggleColla
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Workflow Failed",
@@ -136,6 +156,8 @@ export default function GapInput({ setResult, isCollapsed = false, onToggleColla
 
       if (!response?.jobId) {
         setRunning(false);
+        setIsProcessing?.(false);
+        setProcessingStatus?.("");
         showFeedback({
           type: "error",
           title: "Gap Analysis Failed",
@@ -146,6 +168,8 @@ export default function GapInput({ setResult, isCollapsed = false, onToggleColla
     } catch (err) {
       console.error(err);
       setRunning(false);
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
       showFeedback({
         type: "error",
         title: "Workflow Failed",

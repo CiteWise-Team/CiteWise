@@ -8,8 +8,10 @@ import MetricWeightCustomization from "../../ai-assessment/components/MetricWeig
 import { apiFetch } from "../../../../api/http";
 import useIsMobile from "../../../../hooks/useIsMobile";
 import * as store from "../../../lib/citewiseStore";
+import { useTheme } from "../../../../context/ThemeContext";
+import ModernToast from "../../../../components/ui/ModernToast";
 
-export default function ValidationDashboardLayout({ groupId, sessionId: propSessionId, onStepChange }) {
+export default function ValidationDashboardLayout({ groupId, sessionId: propSessionId, onStepChange, onLockStep3 }) {
   const STORAGE_SESSION_KEY = groupId ? `citewise.${groupId}.sessionId` : "citewise.session_id";
   const LOW_RELEVANCE_APPROVAL_THRESHOLD = 60;
 
@@ -23,6 +25,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   });
 
   const isMobile = useIsMobile();
+  const { isDark } = useTheme();
   const [documents, setDocuments] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showRrlUpload, setShowRrlUpload] = useState(false);
@@ -69,6 +72,20 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       } catch {}
     }
   }, [documents, resolvedSessionId]);
+
+  useEffect(() => {
+    if (documents.length > 0) {
+      const hasAnyApproved = documents.some((d) => d.approved === true);
+      if (!hasAnyApproved) {
+        if (groupId) {
+          localStorage.setItem(`citewise.${groupId}.synthesisUnlocked`, "false");
+          localStorage.setItem(`citewise.${groupId}.maxUnlockedStep`, "1");
+        }
+        localStorage.setItem(`citewise_proceeded_synthesis_${resolvedSessionId}`, "false");
+        onLockStep3?.();
+      }
+    }
+  }, [documents, groupId, resolvedSessionId, onLockStep3]);
 
   const activeDoc = documents[currentIndex];
 
@@ -388,6 +405,16 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     localStorage.setItem(storageKey, JSON.stringify(approvedList));
     sessionStorage.setItem(storageKey, JSON.stringify(approvedList));
 
+    // When an approved document is unapproved or no documents are approved, lock Step 3
+    if (!targetApprovalState || approvedList.length === 0) {
+      if (groupId) {
+        localStorage.setItem(`citewise.${groupId}.synthesisUnlocked`, "false");
+        localStorage.setItem(`citewise.${groupId}.maxUnlockedStep`, "1");
+      }
+      localStorage.setItem(`citewise_proceeded_synthesis_${resolvedSessionId}`, "false");
+      onLockStep3?.();
+    }
+
     setBatchStats((prev) => ({
       ...prev,
       approvedCount: updatedDocs.filter((d) => d.approved).length,
@@ -431,6 +458,57 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     await applyApprovalToggle(index, targetApprovalState);
   };
 
+  const handleBatchApprove = async (indicesToApprove) => {
+    if (!indicesToApprove || indicesToApprove.length === 0) return;
+    const indexSet = new Set(indicesToApprove);
+
+    const targetDocsToApprove = [];
+    const updatedDocs = documents.map((doc, i) => {
+      if (indexSet.has(i)) {
+        targetDocsToApprove.push(doc);
+        return { ...doc, approved: true };
+      }
+      return doc;
+    });
+
+    setDocuments(updatedDocs);
+
+    const approvedList = updatedDocs.filter((d) => d.approved === true);
+    const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
+    localStorage.setItem(storageKey, JSON.stringify(approvedList));
+    sessionStorage.setItem(storageKey, JSON.stringify(approvedList));
+
+    const scoredApproved = approvedList.filter((doc) => typeof doc.relevancyScore === "number");
+    const avgScore = scoredApproved.length
+      ? scoredApproved.reduce((sum, doc) => sum + doc.relevancyScore, 0) / scoredApproved.length
+      : 0;
+
+    setBatchStats({
+      approvedCount: approvedList.length,
+      totalCount: updatedDocs.length,
+      averageScore: avgScore,
+    });
+
+    try {
+      await Promise.allSettled(
+        targetDocsToApprove.map((doc) =>
+          apiFetch(`/api/v1/documents/${doc.id}/approval`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Session-Id": resolvedSessionId,
+            },
+            body: JSON.stringify({
+              status: "APPROVED",
+            }),
+          })
+        )
+      );
+    } catch (err) {
+      console.warn("Backend batch approval sync skipped (offline):", err.message);
+    }
+  };
+
   const handleConfirmApprovalWarning = async () => {
     const { docId } = approvalWarningModal;
     setApprovalWarningModal({ show: false, docId: null, message: "" });
@@ -451,6 +529,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     const docToDelete = documents[index];
     if (!docToDelete?.id) return;
 
+    const wasApproved = docToDelete.approved;
     const updatedDocs = documents.filter((_, i) => i !== index);
     setDocuments(updatedDocs);
 
@@ -458,6 +537,15 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     const updatedApproved = updatedDocs.filter((d) => d.approved);
     localStorage.setItem(storageKey, JSON.stringify(updatedApproved));
     sessionStorage.setItem(storageKey, JSON.stringify(updatedApproved));
+
+    if (wasApproved || updatedApproved.length === 0) {
+      if (groupId) {
+        localStorage.setItem(`citewise.${groupId}.synthesisUnlocked`, "false");
+        localStorage.setItem(`citewise.${groupId}.maxUnlockedStep`, "1");
+      }
+      localStorage.setItem(`citewise_proceeded_synthesis_${resolvedSessionId}`, "false");
+      onLockStep3?.();
+    }
 
     const currentUsage = store.getRrlUsage(resolvedSessionId) || {};
     if (currentUsage[docToDelete.id] || currentUsage[String(docToDelete.id)]) {
@@ -520,6 +608,12 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
     localStorage.setItem(storageKey, JSON.stringify(mergedApproved));
     sessionStorage.setItem(storageKey, JSON.stringify(mergedApproved));
+
+    if (groupId) {
+      localStorage.setItem(`citewise.${groupId}.synthesisUnlocked`, "true");
+      localStorage.setItem(`citewise.${groupId}.maxUnlockedStep`, "2");
+    }
+    localStorage.setItem(`citewise_proceeded_synthesis_${resolvedSessionId}`, "true");
 
     setShowSuccessToast(true);
     setTimeout(() => {
@@ -792,129 +886,14 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         </div>
       )}
 
-    {showSuccessToast && (
-  <div style={{
-    position: "fixed",
-    inset: 0,
-    background: "rgba(255, 255, 255, 0.92)",
-    backdropFilter: "blur(12px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 9999,
-    animation: "fadeInToast 0.3s ease-out forwards",
-  }}>
-    <div style={{
-      background: "#ffffff",
-      border: "1px solid #e5e7eb",
-      borderRadius: "24px",
-      padding: isMobile ? "2rem 1.25rem" : "2.5rem 3rem",
-      maxWidth: "480px",
-      width: "90%",
-      textAlign: "center",
-      boxShadow: "0 24px 60px rgba(0, 0, 0, 0.12), 0 0 40px rgba(234, 88, 12, 0.12)",
-      animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
-    }}>
-      <div style={{
-        position: "relative",
-        width: "80px",
-        height: "80px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        margin: "0 auto 1.5rem",
-      }}>
-        {/* Guaranteed Animated SVG Spinner with glowing center */}
-        <svg width="80" height="80" viewBox="0 0 50 50" style={{ position: "absolute", inset: 0 }}>
-          <circle
-            cx="25"
-            cy="25"
-            r="20"
-            fill="none"
-            stroke="rgba(234, 88, 12, 0.12)"
-            strokeWidth="3.5"
-          />
-          <circle
-            cx="25"
-            cy="25"
-            r="20"
-            fill="none"
-            stroke="#ea580c"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            strokeDasharray="55 70"
-          >
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              from="0 25 25"
-              to="360 25 25"
-              dur="0.95s"
-              repeatCount="indefinite"
-            />
-          </circle>
-        </svg>
-        <div style={{
-          width: "44px",
-          height: "44px",
-          borderRadius: "50%",
-          background: "rgba(234, 88, 12, 0.09)",
-          border: "2px solid #ea580c",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 0 20px rgba(234, 88, 12, 0.25)",
-        }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" style={{
-              strokeDasharray: 50,
-              strokeDashoffset: 50,
-              animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
-            }} />
-          </svg>
-        </div>
-      </div>
-      <h3 style={{
-        fontFamily: "'Poppins', sans-serif",
-        fontWeight: 800,
-        fontSize: "1.4rem",
-        color: "#111827",
-        margin: "0 0 0.5rem 0",
-        letterSpacing: "0.01em",
-      }}>
-        Synthesis Starting
-      </h3>
-      <p style={{
-        fontFamily: "'Poppins', sans-serif",
-        fontSize: "0.9rem",
-        color: "#6b7280",
-        lineHeight: "1.6",
-        margin: "0 0 1.75rem 0",
-      }}>
-        Your validated documents are being synthesized. Preparing the synthesis dashboard.
-      </p>
-      {/* Moving progress bar matching unified design */}
-      <div style={{
-        width: "100%",
-        height: "8px",
-        background: "var(--cw-border, #e5e7eb)",
-        borderRadius: "999px",
-        overflow: "hidden",
-        position: "relative",
-        boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.08)",
-      }}>
-        <div style={{
-          height: "100%",
-          background: "linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)",
-          width: "0%",
-          borderRadius: "999px",
-          boxShadow: "0 0 10px rgba(234, 88, 12, 0.45)",
-          animation: "fillProgress 2.2s linear forwards",
-        }} />
-      </div>
-    </div>
-  </div>
-)}
+    <ModernToast
+      show={showSuccessToast}
+      type="success"
+      title="Synthesis Starting"
+      message="Your validated documents are ready. Transitioning to Literature Synthesis..."
+      onClose={() => setShowSuccessToast(false)}
+      duration={2200}
+    />
 
       {isInitialLoading ? (
         <div className="cw-loading-container" style={{ padding: isMobile ? "2rem 1rem" : "3.5rem 1rem" }}>
@@ -1141,6 +1120,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
                     currentIndex={currentIndex}
                     onSelect={setCurrentIndex}
                     onApprovalToggle={handleApprovalToggle}
+                    onBatchApprove={handleBatchApprove}
                     onDelete={handleDeleteDocument}
                   />
                 </div>

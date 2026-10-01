@@ -3,8 +3,16 @@ import { useGroup } from "../../../context/GroupContext";
 import { getExtractedFilesByGroupAPI } from "../../../api/workflow.extractor";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 import WorkflowCardHeader from "../WorkflowCardHeader";
+import WorkflowPartnerLoadingUI from "./WorkflowPartnerLoadingUI";
 
-export default function ExtractorOutput({ result, onComplete, isCollapsed = false, onToggleCollapse }) {
+export default function ExtractorOutput({
+  result,
+  onComplete,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing = false,
+  processingStatus = "",
+}) {
   const group_id = useGroup().groupId;
 
   const [activeTab, setActiveTab] = useState("papers");
@@ -79,7 +87,12 @@ export default function ExtractorOutput({ result, onComplete, isCollapsed = fals
           className="workflow-result-content flex-grow-1"
           style={{ minHeight: 0, overflow: "hidden" }}
         >
-        {loading ? (
+        {isProcessing ? (
+          <WorkflowPartnerLoadingUI
+            stepType="extractor"
+            title={processingStatus || "Extracting sections with AI..."}
+          />
+        ) : loading ? (
           <div style={{ padding: "3rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
             {/* Guaranteed Animated SVG Spinner with glowing center */}
             <div

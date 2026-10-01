@@ -292,9 +292,6 @@ const AIAssessmentPanel = ({
         >
           AI Assessment Panel
         </h2>
-        <p className="workflow-card-header-subtitle cw-panel-subtitle" style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--cw-text-muted, #6b7280)', fontFamily: "'Poppins', sans-serif" }}>
-          Analyze literature relevance, methodology, and theoretical frameworks.
-        </p>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
         {documentId && (

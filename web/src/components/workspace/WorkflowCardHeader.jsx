@@ -23,11 +23,6 @@ export default function WorkflowCardHeader({
     >
       <div className="workflow-card-header-left" style={{ minWidth: 0, flex: 1 }}>
         <h3 className="workflow-card-header-title">{title}</h3>
-        {subtitle && (
-          <p className="workflow-card-header-subtitle">
-            {subtitle}
-          </p>
-        )}
       </div>
       <div
         className="workflow-card-header-right"

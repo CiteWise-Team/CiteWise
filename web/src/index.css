@@ -120,3 +120,20 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+@keyframes cw-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.cw-spinning {
+  display: inline-block !important;
+  transform-origin: center center !important;
+  animation: cw-spin 0.9s linear infinite !important;
+}
+
+.cw-spinning-reverse {
+  display: inline-block !important;
+  transform-origin: center center !important;
+  animation: cw-spin 1.4s linear infinite reverse !important;
+}

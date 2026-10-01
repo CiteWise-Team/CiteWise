@@ -3,8 +3,16 @@ import { useGroup } from "../../../context/GroupContext";
 import { getSummaryByGroupAPI } from "../../../api/workflow.summarizer";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 import WorkflowCardHeader from "../WorkflowCardHeader";
+import WorkflowPartnerLoadingUI from "./WorkflowPartnerLoadingUI";
 
-export default function SummarizerResult({ result, onComplete, isCollapsed = false, onToggleCollapse }) {
+export default function SummarizerResult({
+  result,
+  onComplete,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing = false,
+  processingStatus = "",
+}) {
   const group_id = useGroup().groupId;
 
   const [activeTab, setActiveTab] = useState("papers");
@@ -85,7 +93,12 @@ export default function SummarizerResult({ result, onComplete, isCollapsed = fal
           overflow: "hidden"
         }}
       >
-        {loading ? (
+        {isProcessing ? (
+          <WorkflowPartnerLoadingUI
+            stepType="summarizer"
+            title={processingStatus || "Summarizing sections with AI..."}
+          />
+        ) : loading ? (
           <div style={{ padding: "3rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
             {/* Guaranteed Animated SVG Spinner with glowing center */}
             <div

@@ -10,7 +10,15 @@ import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function TopicSuggesterInput({ setResult, isCollapsed = false, onToggleCollapse }) {
+export default function TopicSuggesterInput({
+  setResult,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing,
+  setIsProcessing,
+  processingStatus,
+  setProcessingStatus,
+}) {
   const { groupId: group_id } = useGroup();
 
   const [gaps, setGaps] = useState([]);
@@ -28,6 +36,8 @@ export default function TopicSuggesterInput({ setResult, isCollapsed = false, on
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
     };
   }, []);
 
@@ -77,6 +87,8 @@ export default function TopicSuggesterInput({ setResult, isCollapsed = false, on
     try {
       setRunning(true);
       setRunningText("Starting topic discovery...");
+      setIsProcessing?.(true);
+      setProcessingStatus?.("Generating topic recommendations with AI...");
 
       const selectedGapTexts = gaps
         .filter((g) => selectedGaps.includes(g.id))
@@ -90,6 +102,8 @@ export default function TopicSuggesterInput({ setResult, isCollapsed = false, on
       // Handle async 202 background job
       if (response?.jobId) {
         setRunningText("Generating topic recommendations with AI...");
+        setIsProcessing?.(true);
+        setProcessingStatus?.("Generating topic recommendations with AI...");
 
         const startTime = Date.now();
         const MAX_POLL_TIME = 180 * 1000; // 3 minutes timeout
@@ -100,6 +114,8 @@ export default function TopicSuggesterInput({ setResult, isCollapsed = false, on
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Timeout",
@@ -113,6 +129,8 @@ export default function TopicSuggesterInput({ setResult, isCollapsed = false, on
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               setResult(pollRes.data);
               showFeedback({
                 type: "success",
@@ -123,6 +141,8 @@ export default function TopicSuggesterInput({ setResult, isCollapsed = false, on
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Workflow Failed",
@@ -139,6 +159,8 @@ export default function TopicSuggesterInput({ setResult, isCollapsed = false, on
 
       if (!response?.jobId) {
         setRunning(false);
+        setIsProcessing?.(false);
+        setProcessingStatus?.("");
         showFeedback({
           type: "error",
           title: "Topic Suggestion Failed",
@@ -149,6 +171,8 @@ export default function TopicSuggesterInput({ setResult, isCollapsed = false, on
     } catch (err) {
       console.error(err);
       setRunning(false);
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
       showFeedback({
         type: "error",
         title: "Workflow Failed",

@@ -6,8 +6,16 @@ import { getTopicsByGroupIdAPI } from "../../../api/workflow.topic";
 import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
 import { apiFetch } from "../../../api/http";
 import WorkflowCardHeader from "../WorkflowCardHeader";
+import WorkflowPartnerLoadingUI from "./WorkflowPartnerLoadingUI";
 
-export default function TopicSuggesterOutput({ result, onComplete, isCollapsed = false, onToggleCollapse }) {
+export default function TopicSuggesterOutput({
+  result,
+  onComplete,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing = false,
+  processingStatus = "",
+}) {
   const group_id = useGroup().groupId;
   const navigate = useNavigate();
 
@@ -116,6 +124,12 @@ export default function TopicSuggesterOutput({ result, onComplete, isCollapsed =
       />
       {!isCollapsed && (
         <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
+        {isProcessing ? (
+          <WorkflowPartnerLoadingUI
+            stepType="topic"
+            title={processingStatus || "Generating topic recommendations with AI..."}
+          />
+        ) : (
         <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, overflow: "visible", gap: 0 }}>
         {/* LEFT SIDEBAR — Titles only */}
         <div
@@ -315,6 +329,7 @@ export default function TopicSuggesterOutput({ result, onComplete, isCollapsed =
           )}
         </div>
       </div>
+        )}
       </div>
       )}
     </div>

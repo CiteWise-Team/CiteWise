@@ -142,9 +142,6 @@ export default function GapWorkshop({ sessionId, catalystData }) {
             <h2 style={{ margin: 0, fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.05rem", color: "var(--cw-text-primary, #0f0e17)" }}>
               Research Gap Workshop
             </h2>
-            <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>
-              Select, edit, or create gaps. The title is derived from your selection.
-            </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
             {selectedCount > 0 && (
@@ -622,9 +619,6 @@ export default function GapWorkshop({ sessionId, catalystData }) {
             <h2 style={{ margin: 0, fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.05rem", color: "var(--cw-text-primary, #0f0e17)" }}>
               Add Your Own Gap
             </h2>
-            <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>
-              Describe an identified research gap to add it to your working list.
-            </p>
           </div>
           <span style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)", flexShrink: 0 }}>
             {addOwnGapOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -755,9 +749,6 @@ export default function GapWorkshop({ sessionId, catalystData }) {
             <h2 style={{ margin: 0, fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "1.05rem", color: "var(--cw-text-primary, #0f0e17)" }}>
               Title from Gap(s)
             </h2>
-            <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>
-              Derive or refine your working paper title from the selected gaps.
-            </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
             <button

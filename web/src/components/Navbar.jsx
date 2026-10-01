@@ -472,7 +472,7 @@ export default function Navbar({ onGuideClick }) {
                       type="button"
                       className="dropdown-item d-flex align-items-center gap-2"
                       style={{
-                        color: "#e5544b",
+                        color: "#ea580c",
                         borderRadius: "8px",
                         padding: "8px 12px",
                         fontFamily: "'Poppins', sans-serif",
@@ -486,19 +486,19 @@ export default function Navbar({ onGuideClick }) {
                         cursor: "pointer",
                       }}
                       onMouseEnter={(event) => {
-                        event.currentTarget.style.background = "rgba(229, 84, 75, 0.12)";
-                        event.currentTarget.style.color = "#ff8b84";
+                        event.currentTarget.style.background = isDark ? "rgba(234, 88, 12, 0.16)" : "rgba(234, 88, 12, 0.1)";
+                        event.currentTarget.style.color = "#f97316";
                       }}
                       onMouseLeave={(event) => {
                         event.currentTarget.style.background = "transparent";
-                        event.currentTarget.style.color = "#e5544b";
+                        event.currentTarget.style.color = "#ea580c";
                       }}
                       onClick={() => {
                         setOpen(false);
                         setShowLogoutConfirm(true);
                       }}
                     >
-                      <LogOut size={15} color="#e5544b" />
+                      <LogOut size={15} color="#ea580c" />
                       <span>Logout</span>
                     </button>
                   </li>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, Component } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Component } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Compass, X } from "lucide-react";
 import { apiRequest } from "../api/http";
@@ -118,18 +118,48 @@ const CITEWISE_GUIDE_STEPS = {
     },
     {
       target: "citewise-synthesis-controls",
-      title: "Synthesis Controls",
-      description: "Trigger AI introduction drafting, monitor generation progress, and calibrate options.",
+      title: "Synthesis Control",
+      description: "Initiate introduction drafting with AI, monitor live synthesis progress, and adjust synthesis options.",
     },
     {
-      target: "citewise-approved-sources",
-      title: "Approved Sources & References",
-      description: "Manage the verified literature sources cited within your generated academic introduction.",
+      target: "citewise-guide-ai",
+      title: "Guide the AI",
+      description: "Provide custom guidance, framing, or specific emphasis to steer the AI drafting your research introduction.",
+    },
+    {
+      target: "citewise-source-usage",
+      title: "How Your Sources Are Used",
+      description: "Inspect transparent source utilization tiers showing which references serve as Core, Supporting, or Background evidence.",
+    },
+    {
+      target: "citewise-version-history",
+      title: "Version History",
+      description: "Track and restore earlier draft revisions, or compare changes across your synthesis iterations.",
+    },
+    {
+      target: "citewise-source-documents",
+      title: "Source Documents",
+      description: "View all approved literature sources, manage citations, and override author or year metadata when needed.",
     },
     {
       target: "citewise-draft-editor",
-      title: "Introduction Draft Editor & Export",
-      description: "Read, edit in real-time, inspect citations, and export your introduction as DOCX, PDF, or Markdown.",
+      title: "Generated Introduction",
+      description: "Review your full synthesized introduction with in-text APA citations, section breakdowns, and references.",
+    },
+    {
+      target: "citewise-btn-paraphrase",
+      title: "Paraphrase",
+      description: "Polish and refine the academic tone to eliminate AI slop while keeping all citations and section titles intact.",
+    },
+    {
+      target: "citewise-btn-edit",
+      title: "Edit Draft",
+      description: "Directly edit your generated introduction and APA reference entries in real-time.",
+    },
+    {
+      target: "citewise-btn-export",
+      title: "Export Options",
+      description: "Export your finished research introduction with justified formatting as PDF, Word (.docx), or plain text.",
     },
     {
       target: "workflow-guide-button",
@@ -228,13 +258,25 @@ export default function CiteWiseApp() {
   const [maxUnlockedStep, setMaxUnlockedStep] = useState(() => {
     const saved = localStorage.getItem(scopedKey(groupId, "maxUnlockedStep"));
     const parsed = saved !== null ? parseInt(saved, 10) : NaN;
+    const isSynthesisUnlocked = localStorage.getItem(scopedKey(groupId, "synthesisUnlocked"));
     const initialSession = localStorage.getItem(scopedKey(groupId, "sessionId"));
     const floor = initialSession ? Math.max(step, 1) : Math.max(step, 0);
-    const resolved = !Number.isNaN(parsed) ? Math.max(parsed, floor) : floor;
-    if (initialSession && localStorage.getItem(`citewise_draft_${initialSession}`)) {
-      return Math.max(resolved, 3);
+
+    if (!Number.isNaN(parsed)) {
+      if (isSynthesisUnlocked === "false") {
+        return Math.min(parsed, 1);
+      }
+      return Math.max(parsed, floor);
     }
-    return resolved;
+
+    if (isSynthesisUnlocked === "false") {
+      return 1;
+    }
+
+    if (initialSession && localStorage.getItem(`citewise_draft_${initialSession}`)) {
+      return Math.max(floor, 3);
+    }
+    return floor;
   });
 
   const [guideStep, setGuideStep] = useState(-1);
@@ -285,7 +327,16 @@ export default function CiteWiseApp() {
     } else if (targetKey === "workflow-stepper" && !isMobileViewport) {
       const card = target.querySelector(".workflow-progression-card") || (target.classList?.contains("workflow-progression-card") ? target : null);
       if (card) target = card;
-    } else if (targetKey === "citewise-active-doc" || targetKey === "citewise-quick-nav" || targetKey === "citewise-assessment-panel" || targetKey === "citewise-synthesis-controls") {
+    } else if (
+      targetKey === "citewise-active-doc" ||
+      targetKey === "citewise-quick-nav" ||
+      targetKey === "citewise-assessment-panel" ||
+      targetKey === "citewise-synthesis-controls" ||
+      targetKey === "citewise-guide-ai" ||
+      targetKey === "citewise-source-usage" ||
+      targetKey === "citewise-version-history" ||
+      targetKey === "citewise-source-documents"
+    ) {
       const card = target.firstElementChild;
       if (card) target = card;
     } else if (targetKey === "citewise-draft-editor") {
@@ -301,9 +352,10 @@ export default function CiteWiseApp() {
 
     const updateSpotlight = () => {
       const rect = target.getBoundingClientRect();
-      const padding = isMobileViewport ? 8 : 10;
+      const isButtonTarget = targetKey && targetKey.startsWith("citewise-btn-");
+      const padding = isButtonTarget ? 5 : (isMobileViewport ? 8 : 10);
       const computedStyle = window.getComputedStyle(target);
-      const elemRadius = parseInt(computedStyle.borderRadius, 10) || 16;
+      const elemRadius = parseInt(computedStyle.borderRadius, 10) || (isButtonTarget ? 8 : 16);
       const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
 
       const left = Math.max(4, rect.left - padding);
@@ -314,7 +366,7 @@ export default function CiteWiseApp() {
         left,
         width,
         height: rect.height + padding * 2,
-        borderRadius: Math.max(elemRadius + 4, 16),
+        borderRadius: isButtonTarget ? 10 : Math.max(elemRadius + 4, 16),
       });
     };
 
@@ -368,9 +420,13 @@ export default function CiteWiseApp() {
 
   const currentTarget = currentGuideSteps[guideStep]?.target;
   const isNearGuideBtn = currentTarget === "workflow-guide-button";
-  const isDockedLeft = !isMobile && !isNearGuideBtn && (
+  const isActionBtn = currentTarget && currentTarget.startsWith("citewise-btn-");
+  const isDockedLeft = !isMobile && !isNearGuideBtn && !isActionBtn && (
     (spotlight && spotlight.left > (typeof window !== "undefined" ? window.innerWidth * 0.45 : 600))
   );
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+  const isAboveActionBtn = isActionBtn && spotlight && (spotlight.top + spotlight.height + 220 > vh);
 
   useEffect(() => {
     if (groupId) localStorage.setItem(scopedKey(groupId, "step"), step.toString());
@@ -412,9 +468,29 @@ export default function CiteWiseApp() {
     setStep(1);
   };
 
+  const handleLockStep3 = useCallback(() => {
+    setMaxUnlockedStep(1);
+    if (groupId) {
+      localStorage.setItem(scopedKey(groupId, "maxUnlockedStep"), "1");
+      localStorage.setItem(scopedKey(groupId, "synthesisUnlocked"), "false");
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    if (step > maxUnlockedStep) {
+      setStep(maxUnlockedStep);
+    }
+  }, [step, maxUnlockedStep]);
+
   const handleModuleStepChange = (nextStep, nextSessionId) => {
     if (nextSessionId) setSessionId(nextSessionId);
     if (typeof nextStep !== "number") return;
+    if (nextStep >= 2) {
+      if (groupId) {
+        localStorage.setItem(scopedKey(groupId, "synthesisUnlocked"), "true");
+        localStorage.setItem(scopedKey(groupId, "maxUnlockedStep"), Math.max(nextStep, 2).toString());
+      }
+    }
     setMaxUnlockedStep((prev) => Math.max(prev, nextStep));
     if (nextStep < 3) setStep(nextStep);
   };
@@ -506,6 +582,7 @@ export default function CiteWiseApp() {
                   groupId={groupId}
                   sessionId={sessionId}
                   onStepChange={handleModuleStepChange}
+                  onLockStep3={handleLockStep3}
                 />
               )}
 
@@ -537,18 +614,34 @@ export default function CiteWiseApp() {
             />
           )}
           <section
-            className={`workflow-guide-card${isDockedLeft ? " is-dock-left" : ""}${isNearGuideBtn ? " is-near-guide-button" : ""}`}
+            className={`workflow-guide-card${isDockedLeft ? " is-dock-left" : ""}${isNearGuideBtn ? " is-near-guide-button" : ""}${isActionBtn ? ` is-near-action-button${isAboveActionBtn ? " is-above-button" : ""}` : ""}`}
             style={
               isMobile
-                ? currentTarget === "workflow-stepper"
+                ? isActionBtn && spotlight
+                  ? {
+                      top: !isAboveActionBtn ? Math.round(spotlight.top + spotlight.height + 12) : "auto",
+                      bottom: isAboveActionBtn ? Math.max(16, Math.round(vh - spotlight.top + 12)) : "auto",
+                      left: "16px",
+                      right: "16px",
+                      width: "auto",
+                    }
+                  : currentTarget === "workflow-stepper"
                   ? { top: "16px", bottom: "auto", left: "16px", right: "16px", width: "auto" }
                   : { bottom: "80px", top: "auto", left: "16px", right: "16px", width: "auto" }
                 : isNearGuideBtn && spotlight
                 ? {
                     top: Math.max(76, Math.round(spotlight.top + spotlight.height + 14)),
                     bottom: "auto",
-                    right: Math.max(16, Math.round((typeof window !== "undefined" ? window.innerWidth : 1200) - (spotlight.left + spotlight.width))),
+                    right: Math.max(16, Math.round(vw - (spotlight.left + spotlight.width))),
                     left: "auto",
+                  }
+                : isActionBtn && spotlight
+                ? {
+                    top: !isAboveActionBtn ? Math.round(spotlight.top + spotlight.height + 14) : "auto",
+                    bottom: isAboveActionBtn ? Math.max(16, Math.round(vh - spotlight.top + 14)) : "auto",
+                    right: Math.max(16, Math.min(vw - 390, Math.round(vw - (spotlight.left + spotlight.width) - 10))),
+                    left: "auto",
+                    "--guide-arrow-right": `${Math.max(20, Math.min(340, Math.round(vw - (spotlight.left + spotlight.width / 2) - Math.max(16, Math.min(vw - 390, Math.round(vw - (spotlight.left + spotlight.width) - 10))) - 7)))}px`,
                   }
                 : undefined
             }

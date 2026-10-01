@@ -10,7 +10,15 @@ import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function SummarizerInput({ setResult, isCollapsed = false, onToggleCollapse }) {
+export default function SummarizerInput({
+  setResult,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing,
+  setIsProcessing,
+  processingStatus,
+  setProcessingStatus,
+}) {
   const group_id = useGroup().groupId;
 
   const [file, setFile] = useState(null);
@@ -31,6 +39,8 @@ export default function SummarizerInput({ setResult, isCollapsed = false, onTogg
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
     };
   }, []);
 
@@ -74,12 +84,16 @@ export default function SummarizerInput({ setResult, isCollapsed = false, onTogg
     try {
       setRunning(true);
       setRunningText("Starting summarizer...");
+      setIsProcessing?.(true);
+      setProcessingStatus?.("Summarizing sections with AI...");
 
       const response = await summarizerAPI(selectedInstruction, group_id);
 
       // Handle async 202 background job
       if (response?.jobId) {
         setRunningText("Summarizing sections with AI...");
+        setIsProcessing?.(true);
+        setProcessingStatus?.("Summarizing sections with AI...");
 
         const startTime = Date.now();
         const MAX_POLL_TIME = 180 * 1000; // 3 minutes timeout
@@ -90,6 +104,8 @@ export default function SummarizerInput({ setResult, isCollapsed = false, onTogg
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Timeout",
@@ -103,6 +119,8 @@ export default function SummarizerInput({ setResult, isCollapsed = false, onTogg
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               setResult(pollRes.data);
               showFeedback({
                 type: "success",
@@ -113,6 +131,8 @@ export default function SummarizerInput({ setResult, isCollapsed = false, onTogg
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Workflow Failed",
@@ -129,6 +149,8 @@ export default function SummarizerInput({ setResult, isCollapsed = false, onTogg
 
       if (!response?.jobId) {
         setRunning(false);
+        setIsProcessing?.(false);
+        setProcessingStatus?.("");
         showFeedback({
           type: "error",
           title: "Summarization Failed",
@@ -139,6 +161,8 @@ export default function SummarizerInput({ setResult, isCollapsed = false, onTogg
     } catch (err) {
       console.error(err);
       setRunning(false);
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
       showFeedback({
         type: "error",
         title: "Workflow Failed",
