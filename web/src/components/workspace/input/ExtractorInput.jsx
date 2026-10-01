@@ -241,20 +241,21 @@ export default function InputPanel({
               {/* Selected File */}
               {file && (
                 <div>
-                  <small style={{ color: "#4b5563", fontWeight: 600 }}>File ready:</small>
+                  <small style={{ color: "var(--cw-text-secondary, #64748b)", fontWeight: 600 }}>File ready:</small>
 
                   <div
                     className="mt-2 p-2 rounded-3 d-flex justify-content-between align-items-center"
                     style={{
-                      backgroundColor: "#f9fafb",
-                      border: "1px solid #e5e7eb"
+                      backgroundColor: "var(--cw-bg-surface-elevated, #f9fafb)",
+                      border: "1px solid var(--cw-border, #e5e7eb)",
+                      transition: "all 0.2s ease",
                     }}
                   >
-                    <span className="small fw-semibold text-truncate me-2" style={{ color: "#0f0e17" }}>{file.name}</span>
+                    <span className="small fw-semibold text-truncate me-2" style={{ color: "var(--cw-text-primary, #0f0e17)" }}>{file.name}</span>
 
                     <button
                       type="button"
-                      className="workflow-icon-action flex-shrink-0"
+                      className="workflow-icon-action workflow-paper-delete-btn flex-shrink-0"
                       aria-label="Remove selected file"
                       title="Remove selected file"
                       onClick={() => {
@@ -279,12 +280,7 @@ export default function InputPanel({
                 className="workflow-action-button"
               >
                 {loading ? (
-                  <svg width="14" height="14" viewBox="0 0 50 50" style={{ marginRight: "6px" }}>
-                    <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="5" />
-                    <circle cx="25" cy="25" r="20" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="50 70">
-                      <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
-                    </circle>
-                  </svg>
+                  <span className="catalyst-btn-spinner" />
                 ) : (
                   <FaPlay size={12} className="me-1" />
                 )}

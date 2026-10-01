@@ -3,7 +3,19 @@ import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
 import { apiFetch } from "../../../../api/http";
 import { useTheme } from "../../../../context/ThemeContext";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { 
+  ChevronDown, 
+  ChevronUp, 
+  Lock, 
+  Unlock, 
+  X, 
+  Search, 
+  FileText, 
+  CheckCircle2, 
+  Clock, 
+  Check, 
+  Sparkles 
+} from "lucide-react";
 
 const METRIC_DETAILS = {
   gapAlignment: {
@@ -108,25 +120,39 @@ export default function MetricWeightCustomization({
     const initial = store.getScorePrefs(sessionId);
     return { ...initial, weights: normalizeWeights(initial.weights, initial.enabled) };
   });
+  const [locked, setLocked] = useState({});
   const [open, setOpen] = useState(isHero);
   const [selectedDocs, setSelectedDocs] = useState(new Set());
   const [showSelectModal, setShowSelectModal] = useState(false);
-
-  const pendingDocs = documents.filter((d) => d.rawStatus === "pending");
-  const autoOpenedRef = useRef(false);
-  useEffect(() => {
-    if (!isHero && !autoOpenedRef.current && pendingDocs.length > 0) {
-      autoOpenedRef.current = true;
-      setOpen(true);
-    }
-  }, [isHero, pendingDocs.length]);
-
+  const [modalSearch, setModalSearch] = useState("");
+  const [modalFilter, setModalFilter] = useState("all"); // 'all' | 'pending' | 'assessed'
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasChanged, setHasChanged] = useState(false);
 
   // Synchronized active loading progression
   const [processProgress, setProcessProgress] = useState(25);
   const [processStatusText, setProcessStatusText] = useState("Calibrating weights...");
+
+  const pendingDocs = documents.filter((d) => d.rawStatus === "pending");
+  const autoOpenedRef = useRef(false);
+
+  useEffect(() => {
+    if (!showSelectModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && !isProcessing) {
+        setShowSelectModal(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showSelectModal, isProcessing]);
+
+  useEffect(() => {
+    if (!isHero && !autoOpenedRef.current && pendingDocs.length > 0) {
+      autoOpenedRef.current = true;
+      setOpen(true);
+    }
+  }, [isHero, pendingDocs.length]);
 
   useEffect(() => {
     if (!isProcessing) {
@@ -171,8 +197,16 @@ export default function MetricWeightCustomization({
     if (onWeightsChanged) onWeightsChanged(next);
   };
 
+  const toggleLock = (key) => {
+    if (!prefs.enabled[key]) return;
+    setLocked((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
   const rebalanceWeights = (targetKey, rawValue) => {
-    if (!prefs.enabled[targetKey]) return;
+    if (!prefs.enabled[targetKey] || locked[targetKey]) return;
 
     const enabledKeys = store.SCORE_COMPONENTS.filter((c) => prefs.enabled[c.key]).map((c) => c.key);
     if (enabledKeys.length <= 1) {
@@ -181,18 +215,39 @@ export default function MetricWeightCustomization({
       return;
     }
 
-    const targetVal = Math.max(0, Math.min(100, Math.round(Number(rawValue) || 0)));
-    const rem = 100 - targetVal;
     const otherKeys = enabledKeys.filter((k) => k !== targetKey);
+    const otherLockedKeys = otherKeys.filter((k) => locked[k]);
+    const otherUnlockedKeys = otherKeys.filter((k) => !locked[k]);
 
-    const items = otherKeys.map((k) => ({
+    // Total percentage locked among other enabled metrics
+    const sumLocked = otherLockedKeys.reduce(
+      (sum, k) => sum + Math.round((Number(prefs.weights[k]) || 0) * 100),
+      0
+    );
+    const maxAllowed = Math.max(0, 100 - sumLocked);
+
+    // If there are no other unlocked metrics, targetKey cannot rebalance against anything
+    if (otherUnlockedKeys.length === 0) {
+      const nextWeights = { ...prefs.weights, [targetKey]: maxAllowed / 100 };
+      persist({ ...prefs, weights: nextWeights });
+      return;
+    }
+
+    const targetVal = Math.max(0, Math.min(maxAllowed, Math.round(Number(rawValue) || 0)));
+    const rem = 100 - sumLocked - targetVal;
+
+    const items = otherUnlockedKeys.map((k) => ({
       key: k,
       weight: Math.round((Number(prefs.weights[k]) || 0) * 100),
     }));
 
     const allocated = distributeInteger(rem, items);
     const nextWeights = { ...prefs.weights, [targetKey]: targetVal / 100 };
-    for (const k of otherKeys) {
+
+    for (const k of otherLockedKeys) {
+      nextWeights[k] = Math.round((Number(prefs.weights[k]) || 0) * 100) / 100;
+    }
+    for (const k of otherUnlockedKeys) {
       nextWeights[k] = (allocated[k] || 0) / 100;
     }
 
@@ -204,6 +259,15 @@ export default function MetricWeightCustomization({
     const enabledKeys = store.SCORE_COMPONENTS.filter((c) => nextEnabled[c.key]).map((c) => c.key);
     const nextWeights = { ...prefs.weights };
 
+    // If disabling key, clear its lock
+    if (prefs.enabled[key]) {
+      setLocked((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+
     if (enabledKeys.length === 0) {
       for (const c of store.SCORE_COMPONENTS) {
         nextWeights[c.key] = 0;
@@ -211,31 +275,72 @@ export default function MetricWeightCustomization({
     } else if (!nextEnabled[key]) {
       // Key disabled: set to 0 and rebalance remaining enabled keys to sum to 100%
       nextWeights[key] = 0;
-      const items = enabledKeys.map((k) => ({
-        key: k,
-        weight: Math.round((Number(prefs.weights[k]) || 0) * 100),
-      }));
-      const allocated = distributeInteger(100, items);
-      for (const k of enabledKeys) {
-        nextWeights[k] = (allocated[k] || 0) / 100;
+      const otherLockedKeys = enabledKeys.filter((k) => locked[k]);
+      const otherUnlockedKeys = enabledKeys.filter((k) => !locked[k]);
+      const sumLocked = otherLockedKeys.reduce(
+        (sum, k) => sum + Math.round((Number(prefs.weights[k]) || 0) * 100),
+        0
+      );
+
+      if (otherUnlockedKeys.length > 0 && sumLocked < 100) {
+        const rem = 100 - sumLocked;
+        const items = otherUnlockedKeys.map((k) => ({
+          key: k,
+          weight: Math.round((Number(prefs.weights[k]) || 0) * 100),
+        }));
+        const allocated = distributeInteger(rem, items);
+        for (const k of otherLockedKeys) {
+          nextWeights[k] = Math.round((Number(prefs.weights[k]) || 0) * 100) / 100;
+        }
+        for (const k of otherUnlockedKeys) {
+          nextWeights[k] = (allocated[k] || 0) / 100;
+        }
+      } else {
+        const items = enabledKeys.map((k) => ({
+          key: k,
+          weight: Math.round((Number(prefs.weights[k]) || 0) * 100),
+        }));
+        const allocated = distributeInteger(100, items);
+        for (const k of enabledKeys) {
+          nextWeights[k] = (allocated[k] || 0) / 100;
+        }
       }
     } else {
       // Key enabled: introduce it and rebalance others
       if (enabledKeys.length === 1) {
         nextWeights[key] = 1.0;
       } else {
-        const defaultShare = Math.round((store.DEFAULT_WEIGHTS[key] || (1 / enabledKeys.length)) * 100);
-        const targetPct = Math.min(defaultShare, Math.floor(100 / enabledKeys.length));
-        const rem = 100 - targetPct;
         const otherKeys = enabledKeys.filter((k) => k !== key);
-        const items = otherKeys.map((k) => ({
-          key: k,
-          weight: Math.round((Number(prefs.weights[k]) || 0) * 100),
-        }));
-        const allocated = distributeInteger(rem, items);
-        nextWeights[key] = targetPct / 100;
-        for (const k of otherKeys) {
-          nextWeights[k] = (allocated[k] || 0) / 100;
+        const otherLockedKeys = otherKeys.filter((k) => locked[k]);
+        const otherUnlockedKeys = otherKeys.filter((k) => !locked[k]);
+        const sumLocked = otherLockedKeys.reduce(
+          (sum, k) => sum + Math.round((Number(prefs.weights[k]) || 0) * 100),
+          0
+        );
+
+        const defaultShare = Math.round((store.DEFAULT_WEIGHTS[key] || (1 / enabledKeys.length)) * 100);
+        const maxForNew = Math.max(0, 100 - sumLocked);
+        const targetPct = Math.min(defaultShare, Math.min(maxForNew, Math.floor(100 / enabledKeys.length)));
+
+        if (otherUnlockedKeys.length > 0) {
+          const rem = 100 - sumLocked - targetPct;
+          const items = otherUnlockedKeys.map((k) => ({
+            key: k,
+            weight: Math.round((Number(prefs.weights[k]) || 0) * 100),
+          }));
+          const allocated = distributeInteger(rem, items);
+          nextWeights[key] = targetPct / 100;
+          for (const k of otherLockedKeys) {
+            nextWeights[k] = Math.round((Number(prefs.weights[k]) || 0) * 100) / 100;
+          }
+          for (const k of otherUnlockedKeys) {
+            nextWeights[k] = (allocated[k] || 0) / 100;
+          }
+        } else {
+          nextWeights[key] = maxForNew / 100;
+          for (const k of otherLockedKeys) {
+            nextWeights[k] = Math.round((Number(prefs.weights[k]) || 0) * 100) / 100;
+          }
         }
       }
     }
@@ -244,6 +349,7 @@ export default function MetricWeightCustomization({
   };
 
   const reset = () => {
+    setLocked({});
     const defaults = store.getScorePrefs("__defaults__never__");
     persist(defaults);
   };
@@ -307,6 +413,36 @@ export default function MetricWeightCustomization({
     const next = new Set(selectedDocs);
     if (next.has(id)) next.delete(id);
     else next.add(id);
+    setSelectedDocs(next);
+  };
+
+  const modalPendingCount = documents.filter(
+    (d) => d.rawStatus === "pending" || (!d.relevancyScore && d.relevancyScore !== 0)
+  ).length;
+  const modalAssessedCount = documents.length - modalPendingCount;
+
+  const filteredModalDocs = documents.filter((doc) => {
+    const isPending = doc.rawStatus === "pending" || (!doc.relevancyScore && doc.relevancyScore !== 0);
+    if (modalFilter === "pending" && !isPending) return false;
+    if (modalFilter === "assessed" && isPending) return false;
+    if (modalSearch.trim()) {
+      const q = modalSearch.toLowerCase().trim();
+      const title = (doc.name || doc.fileName || doc.title || doc.file_name || "").toLowerCase();
+      const authors = (doc.authors || doc.author || "").toString().toLowerCase();
+      return title.includes(q) || authors.includes(q);
+    }
+    return true;
+  });
+
+  const areAllFilteredSelected = filteredModalDocs.length > 0 && filteredModalDocs.every((d) => selectedDocs.has(d.id));
+
+  const toggleSelectAllFiltered = () => {
+    const next = new Set(selectedDocs);
+    if (areAllFilteredSelected) {
+      filteredModalDocs.forEach((d) => next.delete(d.id));
+    } else {
+      filteredModalDocs.forEach((d) => next.add(d.id));
+    }
     setSelectedDocs(next);
   };
 
@@ -660,13 +796,14 @@ export default function MetricWeightCustomization({
               >
                 Before AI assessment begins, calibrate how much each component counts toward the overall relevance score.
                 Weights automatically rebalance across enabled metrics to maintain exactly 100% allocation.
+                You can lock any metric to freeze its percentage while adjusting the others.
               </p>
             </div>
           )}
 
           {!isHero && (
             <p style={{ margin: 0, fontSize: "0.76rem", color: isDark ? "#94a3b8" : "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
-              Customize metric weights for assessment scoring.
+              Customize metric weights for assessment scoring. Lock any metric to freeze its percentage while adjusting the others.
               {pendingDocs.length > 0 && (
                 <>
                   {" "}
@@ -690,9 +827,16 @@ export default function MetricWeightCustomization({
           >
             {store.SCORE_COMPONENTS.map(({ key, label }, index) => {
               const enabled = prefs.enabled[key];
+              const isLocked = Boolean(locked[key]);
               const pct = enabled ? Math.round((Number(prefs.weights[key]) || 0) * 100) : 0;
               const detail = METRIC_DETAILS[key];
               const isLast = index === store.SCORE_COMPONENTS.length - 1;
+
+              // Check if all other enabled components are locked
+              const otherKeys = store.SCORE_COMPONENTS.filter((c) => prefs.enabled[c.key] && c.key !== key);
+              const otherUnlockedCount = otherKeys.filter((c) => !locked[c.key]).length;
+              const isSoleUnlocked = enabled && !isLocked && otherUnlockedCount === 0 && otherKeys.length > 0;
+
               return (
                 <div
                   key={key}
@@ -729,24 +873,80 @@ export default function MetricWeightCustomization({
                       />
                       <span>{label}</span>
                     </label>
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontFamily: "'Poppins', sans-serif",
-                        fontSize: isHero ? "0.95rem" : "0.82rem",
-                        color: enabled ? "#ea580c" : (isDark ? "#64748b" : "#9ca3af"),
-                        fontWeight: 700,
-                        padding: isHero ? "3px 14px" : "0",
-                        borderRadius: "999px",
-                        background: isHero ? (isDark ? "rgba(234, 88, 12, 0.14)" : "#fff7ed") : "transparent",
-                        border: isHero ? (isDark ? "1px solid rgba(234, 88, 12, 0.35)" : "1px solid #fed7aa") : "none",
-                        minWidth: isHero ? "60px" : "42px",
-                        textAlign: "right",
-                      }}
-                    >
-                      {enabled ? `${pct}%` : "off"}
+
+                    <div style={{ display: "flex", alignItems: "center", gap: isHero ? "8px" : "6px" }}>
+                      {enabled && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleLock(key);
+                          }}
+                          title={isLocked ? `Unlock ${label}` : `Lock ${label} at ${pct}%`}
+                          aria-label={isLocked ? `Unlock ${label}` : `Lock ${label} at ${pct}%`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            padding: isHero ? "4px 10px" : "2px 8px",
+                            borderRadius: "999px",
+                            fontSize: isHero ? "0.75rem" : "0.7rem",
+                            fontWeight: 600,
+                            fontFamily: "'Poppins', sans-serif",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                            border: isLocked
+                              ? "1px solid #ea580c"
+                              : (isDark ? "1px solid rgba(255, 255, 255, 0.16)" : "1px solid #cbd5e1"),
+                            background: isLocked
+                              ? (isDark ? "rgba(234, 88, 12, 0.22)" : "rgba(234, 88, 12, 0.12)")
+                              : (isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc"),
+                            color: isLocked
+                              ? "#ea580c"
+                              : (isDark ? "#94a3b8" : "#64748b"),
+                            outline: "none",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isLocked) {
+                              e.currentTarget.style.borderColor = "#ea580c";
+                              e.currentTarget.style.color = "#ea580c";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isLocked) {
+                              e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.16)" : "#cbd5e1";
+                              e.currentTarget.style.color = isDark ? "#94a3b8" : "#64748b";
+                            }
+                          }}
+                        >
+                          {isLocked ? (
+                            <Lock size={isHero ? 13 : 11} strokeWidth={2.4} style={{ color: "#ea580c" }} />
+                          ) : (
+                            <Unlock size={isHero ? 13 : 11} strokeWidth={2} />
+                          )}
+                          <span>{isLocked ? "Locked" : "Lock"}</span>
+                        </button>
+                      )}
+
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontFamily: "'Poppins', sans-serif",
+                          fontSize: isHero ? "0.95rem" : "0.82rem",
+                          color: enabled ? "#ea580c" : (isDark ? "#64748b" : "#9ca3af"),
+                          fontWeight: 700,
+                          padding: isHero ? "3px 14px" : "2px 8px",
+                          borderRadius: "999px",
+                          background: isHero ? (isDark ? "rgba(234, 88, 12, 0.14)" : "#fff7ed") : (isDark ? "rgba(255, 255, 255, 0.05)" : "#f8fafc"),
+                          border: isHero ? (isDark ? "1px solid rgba(234, 88, 12, 0.35)" : "1px solid #fed7aa") : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0"),
+                          minWidth: isHero ? "60px" : "44px",
+                          textAlign: "right",
+                        }}
+                      >
+                        {enabled ? `${pct}%` : "off"}
+                      </div>
                     </div>
                   </div>
 
@@ -792,11 +992,17 @@ export default function MetricWeightCustomization({
                         style={{
                           height: "100%",
                           width: `${pct}%`,
-                          background: enabled ? "#ea580c" : (isDark ? "rgba(255, 255, 255, 0.2)" : "#cbd5e1"),
-                          backgroundColor: enabled ? "#ea580c" : (isDark ? "rgba(255, 255, 255, 0.2)" : "#cbd5e1"),
+                          background: enabled
+                            ? (isLocked ? "linear-gradient(90deg, #ea580c 0%, #c2410c 100%)" : "#ea580c")
+                            : (isDark ? "rgba(255, 255, 255, 0.2)" : "#cbd5e1"),
+                          backgroundColor: enabled
+                            ? (isLocked ? "#ea580c" : "#ea580c")
+                            : (isDark ? "rgba(255, 255, 255, 0.2)" : "#cbd5e1"),
                           borderRadius: "999px",
                           transition: "width 0.08s ease-out",
-                          boxShadow: enabled ? "0 0 10px rgba(234, 88, 12, 0.45)" : "none",
+                          boxShadow: enabled
+                            ? (isLocked ? "0 0 6px rgba(234, 88, 12, 0.35)" : "0 0 10px rgba(234, 88, 12, 0.45)")
+                            : "none",
                         }}
                       />
                     </div>
@@ -807,9 +1013,18 @@ export default function MetricWeightCustomization({
                       min={0}
                       max={100}
                       value={pct}
-                      disabled={!enabled}
+                      disabled={!enabled || isLocked || isSoleUnlocked}
                       onChange={(e) => rebalanceWeights(key, e.target.value)}
                       className="cw-weight-slider"
+                      title={
+                        !enabled
+                          ? `${label} is disabled`
+                          : isLocked
+                          ? `${label} is locked at ${pct}%. Click "Locked" to unlock.`
+                          : isSoleUnlocked
+                          ? `Remaining weight is fixed at ${pct}% because all other metrics are locked.`
+                          : `Adjust ${label} weight (${pct}%)`
+                      }
                       style={{
                         position: "absolute",
                         left: 0,
@@ -823,10 +1038,11 @@ export default function MetricWeightCustomization({
                         colorScheme: "light",
                         border: "none",
                         outline: "none",
-                        cursor: enabled ? "pointer" : "not-allowed",
+                        cursor: (!enabled || isLocked || isSoleUnlocked) ? "not-allowed" : "pointer",
                         zIndex: 2,
                         WebkitAppearance: "none",
                         appearance: "none",
+                        opacity: isLocked ? 0.8 : 1,
                       }}
                     />
                   </div>
@@ -903,7 +1119,14 @@ export default function MetricWeightCustomization({
             <div style={{ display: "flex", gap: "12px", width: "100%" }}>
               <button
                 onClick={() => {
-                  setSelectedDocs(new Set());
+                  const pending = documents.filter(d => d.rawStatus === "pending" || (!d.relevancyScore && d.relevancyScore !== 0));
+                  if (pending.length > 0) {
+                    setSelectedDocs(new Set(pending.map(d => d.id)));
+                  } else {
+                    setSelectedDocs(new Set(documents.map(d => d.id)));
+                  }
+                  setModalSearch("");
+                  setModalFilter("all");
                   setShowSelectModal(true);
                 }}
                 disabled={isProcessing || documents.length === 0}
@@ -1041,139 +1264,707 @@ export default function MetricWeightCustomization({
       {/* Select Documents Modal */}
       {showSelectModal && (
         <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isProcessing) {
+              setShowSelectModal(false);
+            }
+          }}
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(17, 24, 39, 0.6)",
+            background: "rgba(15, 23, 42, 0.65)",
             zIndex: 1000,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backdropFilter: "blur(4px)",
+            backdropFilter: "blur(8px)",
+            padding: "16px",
+            animation: "citewiseFadeIn 0.2s ease-out forwards",
           }}
         >
           <div
             style={{
-              background: isDark ? "#171624" : "#ffffff",
-              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e5e7eb",
-              borderRadius: "16px",
-              padding: "24px",
-              width: "90%",
-              maxWidth: "500px",
+              background: isDark ? "#161522" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+              borderRadius: "20px",
+              width: "100%",
+              maxWidth: "560px",
+              maxHeight: "min(680px, 90vh)",
               display: "flex",
               flexDirection: "column",
-              gap: "16px",
-              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.25)",
+              boxShadow: isDark
+                ? "0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(234, 88, 12, 0.08)"
+                : "0 20px 50px -10px rgba(0, 0, 0, 0.15), 0 0 30px rgba(234, 88, 12, 0.04)",
+              animation: "citewiseModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+              overflow: "hidden",
             }}
           >
-            <h3 style={{ margin: 0, color: isDark ? "#ffffff" : "#111827", fontFamily: "'Poppins', sans-serif", fontWeight: 700 }}>
-              Select Documents to Assess
-            </h3>
-            <p style={{ margin: 0, color: isDark ? "#94a3b8" : "#6b7280", fontSize: "0.85rem", fontFamily: "'Poppins', sans-serif" }}>
-              Select which documents to run through the AI assessment.
-            </p>
-            <div style={{ maxHeight: "300px", overflowY: "auto", border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e5e7eb", borderRadius: "8px", padding: "8px", background: isDark ? "#100f18" : "#f9fafb" }}>
-              {documents.map(doc => (
-                <label
-                  key={doc.id}
+            {/* Header */}
+            <div
+              style={{
+                padding: "20px 24px 16px 24px",
+                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: "12px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
+                <div
                   style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "12px",
+                    background: "linear-gradient(135deg, rgba(234, 88, 12, 0.18) 0%, rgba(249, 115, 22, 0.08) 100%)",
+                    border: isDark ? "1px solid rgba(234, 88, 12, 0.35)" : "1px solid #fed7aa",
                     display: "flex",
                     alignItems: "center",
-                    gap: "12px",
-                    padding: "8px",
-                    cursor: "pointer",
-                    borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
+                    justifyContent: "center",
+                    color: "#ea580c",
+                    flexShrink: 0,
+                    marginTop: "2px",
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selectedDocs.has(doc.id)}
-                    onChange={() => toggleDocSelection(doc.id)}
-                    style={{ width: "16px", height: "16px", accentColor: "#f97316", cursor: "pointer" }}
-                  />
-                  <span style={{ color: isDark ? "#f3f4f6" : "#111827", fontFamily: "'Poppins', sans-serif", fontSize: "0.85rem", wordWrap: "break-word" }}>
-                    {doc.name || doc.fileName || doc.title || doc.file_name}
-                  </span>
-                </label>
-              ))}
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
+                  <Sparkles size={19} />
+                </div>
+                <div>
+                  <h3
+                    style={{
+                      margin: 0,
+                      color: isDark ? "#ffffff" : "#0f172a",
+                      fontFamily: "'Poppins', sans-serif",
+                      fontWeight: 700,
+                      fontSize: "1.1rem",
+                      letterSpacing: "-0.01em",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    Select Documents to Assess
+                  </h3>
+                  <p
+                    style={{
+                      margin: "3px 0 0 0",
+                      color: isDark ? "#94a3b8" : "#64748b",
+                      fontSize: "0.8rem",
+                      fontFamily: "'Poppins', sans-serif",
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    Choose which papers to evaluate with your custom metric weights
+                  </p>
+                </div>
+              </div>
+
               <button
-                onClick={() => setShowSelectModal(false)}
+                type="button"
+                onClick={() => !isProcessing && setShowSelectModal(false)}
+                disabled={isProcessing}
                 style={{
-                  background: "transparent",
-                  color: isDark ? "#cbd5e1" : "#6b7280",
-                  border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e5e7eb",
+                  width: "32px",
+                  height: "32px",
                   borderRadius: "8px",
-                  fontFamily: "'Poppins', sans-serif",
-                  fontWeight: 600,
-                  fontSize: "0.85rem",
-                  padding: "8px 16px",
-                  cursor: "pointer",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+                  background: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                  color: isDark ? "#94a3b8" : "#64748b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: isProcessing ? "not-allowed" : "pointer",
                   transition: "all 0.2s ease",
+                  padding: 0,
+                  marginTop: "2px",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.05)" : "#f9fafb";
-                  e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.3)" : "#d1d5db";
-                  e.currentTarget.style.color = isDark ? "#ffffff" : "#374151";
+                  if (!isProcessing) {
+                    e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.1)" : "#f1f5f9";
+                    e.currentTarget.style.color = isDark ? "#ffffff" : "#0f172a";
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb";
-                  e.currentTarget.style.color = isDark ? "#cbd5e1" : "#6b7280";
+                  if (!isProcessing) {
+                    e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc";
+                    e.currentTarget.style.color = isDark ? "#94a3b8" : "#64748b";
+                  }
                 }}
               >
-                Cancel
+                <X size={16} />
               </button>
-              <div style={{ display: "flex", gap: "10px" }}>
+            </div>
+
+            {/* Search & Filter Bar */}
+            <div
+              style={{
+                padding: "14px 24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #f1f5f9",
+                background: isDark ? "rgba(255, 255, 255, 0.015)" : "#fafafa",
+              }}
+            >
+              {/* Search input */}
+              <div
+                style={{
+                  position: "relative",
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <Search
+                  size={15}
+                  style={{
+                    position: "absolute",
+                    left: "12px",
+                    color: isDark ? "#64748b" : "#94a3b8",
+                    pointerEvents: "none",
+                  }}
+                />
+                <input
+                  type="text"
+                  value={modalSearch}
+                  onChange={(e) => setModalSearch(e.target.value)}
+                  placeholder="Search papers by title or author..."
+                  style={{
+                    width: "100%",
+                    padding: "9px 34px 9px 36px",
+                    background: isDark ? "#100f18" : "#ffffff",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                    borderRadius: "10px",
+                    color: isDark ? "#ffffff" : "#0f172a",
+                    fontSize: "0.84rem",
+                    fontFamily: "'Poppins', sans-serif",
+                    outline: "none",
+                    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#ea580c";
+                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(234, 88, 12, 0.15)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.12)" : "#cbd5e1";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                />
+                {modalSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setModalSearch("")}
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      background: "transparent",
+                      border: "none",
+                      color: isDark ? "#94a3b8" : "#64748b",
+                      cursor: "pointer",
+                      padding: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter chips & Select All toggle */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "8px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setModalFilter("all")}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "999px",
+                      fontSize: "0.74rem",
+                      fontWeight: 600,
+                      fontFamily: "'Poppins', sans-serif",
+                      cursor: "pointer",
+                      border: modalFilter === "all"
+                        ? "1px solid #ea580c"
+                        : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0"),
+                      background: modalFilter === "all"
+                        ? (isDark ? "rgba(234, 88, 12, 0.2)" : "#fff7ed")
+                        : "transparent",
+                      color: modalFilter === "all"
+                        ? "#ea580c"
+                        : (isDark ? "#94a3b8" : "#64748b"),
+                      transition: "all 0.18s ease",
+                    }}
+                  >
+                    All ({documents.length})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setModalFilter("pending")}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "999px",
+                      fontSize: "0.74rem",
+                      fontWeight: 600,
+                      fontFamily: "'Poppins', sans-serif",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      border: modalFilter === "pending"
+                        ? "1px solid #f59e0b"
+                        : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0"),
+                      background: modalFilter === "pending"
+                        ? (isDark ? "rgba(245, 158, 11, 0.18)" : "#fffbeb")
+                        : "transparent",
+                      color: modalFilter === "pending"
+                        ? (isDark ? "#fbbf24" : "#d97706")
+                        : (isDark ? "#94a3b8" : "#64748b"),
+                      transition: "all 0.18s ease",
+                    }}
+                  >
+                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b" }} />
+                    Pending ({modalPendingCount})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setModalFilter("assessed")}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "999px",
+                      fontSize: "0.74rem",
+                      fontWeight: 600,
+                      fontFamily: "'Poppins', sans-serif",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      border: modalFilter === "assessed"
+                        ? "1px solid #10b981"
+                        : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0"),
+                      background: modalFilter === "assessed"
+                        ? (isDark ? "rgba(16, 185, 129, 0.18)" : "#ecfdf5")
+                        : "transparent",
+                      color: modalFilter === "assessed"
+                        ? (isDark ? "#34d399" : "#059669")
+                        : (isDark ? "#94a3b8" : "#64748b"),
+                      transition: "all 0.18s ease",
+                    }}
+                  >
+                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981" }} />
+                    Assessed ({modalAssessedCount})
+                  </button>
+                </div>
+
                 <button
+                  type="button"
+                  onClick={toggleSelectAllFiltered}
+                  disabled={filteredModalDocs.length === 0}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#ea580c",
+                    fontSize: "0.76rem",
+                    fontWeight: 600,
+                    fontFamily: "'Poppins', sans-serif",
+                    cursor: filteredModalDocs.length === 0 ? "not-allowed" : "pointer",
+                    padding: "4px 8px",
+                    borderRadius: "6px",
+                    transition: "all 0.15s ease",
+                    opacity: filteredModalDocs.length === 0 ? 0.4 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (filteredModalDocs.length > 0) {
+                      e.currentTarget.style.background = isDark ? "rgba(234, 88, 12, 0.12)" : "#fff7ed";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  {areAllFilteredSelected ? "Deselect All Files" : "Select All Files"}
+                </button>
+              </div>
+            </div>
+
+            {/* Documents List */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "16px 24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                minHeight: "180px",
+                maxHeight: "360px",
+              }}
+            >
+              {filteredModalDocs.length === 0 ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "36px 16px",
+                    gap: "10px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "50%",
+                      background: isDark ? "rgba(255, 255, 255, 0.05)" : "#f1f5f9",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: isDark ? "#64748b" : "#94a3b8",
+                    }}
+                  >
+                    <FileText size={24} />
+                  </div>
+                  <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.88rem", fontWeight: 600, color: isDark ? "#e2e8f0" : "#334155" }}>
+                    No matching documents found
+                  </div>
+                  <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.78rem", color: isDark ? "#94a3b8" : "#64748b" }}>
+                    Try changing your search query or switching active filter tabs.
+                  </div>
+                  {(modalSearch || modalFilter !== "all") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalSearch("");
+                        setModalFilter("all");
+                      }}
+                      style={{
+                        marginTop: "4px",
+                        background: isDark ? "rgba(234, 88, 12, 0.15)" : "#fff7ed",
+                        border: "1px solid #ea580c",
+                        color: "#ea580c",
+                        borderRadius: "8px",
+                        padding: "6px 14px",
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        fontFamily: "'Poppins', sans-serif",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+              ) : (
+                filteredModalDocs.map((doc) => {
+                  const isSelected = selectedDocs.has(doc.id);
+                  const isPending = doc.rawStatus === "pending" || (!doc.relevancyScore && doc.relevancyScore !== 0);
+                  const docTitle = doc.name || doc.fileName || doc.title || doc.file_name || "Untitled Paper";
+                  const authors = doc.authors || doc.author || "";
+                  const year = doc.year || doc.publication_year || "";
+
+                  return (
+                    <div
+                      key={doc.id}
+                      onClick={() => toggleDocSelection(doc.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "14px",
+                        padding: "12px 14px",
+                        borderRadius: "12px",
+                        cursor: "pointer",
+                        transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+                        background: isSelected
+                          ? (isDark ? "rgba(234, 88, 12, 0.1)" : "#fff7ed")
+                          : (isDark ? "rgba(255, 255, 255, 0.02)" : "#ffffff"),
+                        border: isSelected
+                          ? "1px solid rgba(234, 88, 12, 0.45)"
+                          : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+                        borderLeft: isSelected
+                          ? "3.5px solid #ea580c"
+                          : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+                        boxShadow: isSelected
+                          ? (isDark ? "0 4px 14px rgba(234, 88, 12, 0.15)" : "0 2px 8px rgba(234, 88, 12, 0.08)")
+                          : "none",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc";
+                          e.currentTarget.style.borderColor = isDark ? "rgba(234, 88, 12, 0.25)" : "rgba(234, 88, 12, 0.25)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.02)" : "#ffffff";
+                          e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.08)" : "#e2e8f0";
+                        }
+                      }}
+                    >
+                      {/* Custom checkbox */}
+                      <div
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          borderRadius: "5px",
+                          border: isSelected
+                            ? "1.5px solid #ea580c"
+                            : (isDark ? "1.5px solid rgba(255, 255, 255, 0.25)" : "1.5px solid #cbd5e1"),
+                          background: isSelected ? "#ea580c" : "transparent",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          marginTop: "2px",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {isSelected && <Check size={12} strokeWidth={3} color="#ffffff" />}
+                      </div>
+
+                      {/* File Icon */}
+                      <div
+                        style={{
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "8px",
+                          background: isSelected
+                            ? (isDark ? "rgba(234, 88, 12, 0.2)" : "#fed7aa")
+                            : (isDark ? "rgba(255, 255, 255, 0.05)" : "#f1f5f9"),
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: isSelected ? "#ea580c" : (isDark ? "#94a3b8" : "#64748b"),
+                          flexShrink: 0,
+                          marginTop: "1px",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <FileText size={16} />
+                      </div>
+
+                      {/* Document Details */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            color: isDark ? "#f3f4f6" : "#0f172a",
+                            fontFamily: "'Poppins', sans-serif",
+                            fontSize: "0.85rem",
+                            fontWeight: 600,
+                            lineHeight: 1.4,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {docTitle}
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            flexWrap: "wrap",
+                            marginTop: "4px",
+                          }}
+                        >
+                          {/* Status Pill */}
+                          {isPending ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                padding: "1px 7px",
+                                borderRadius: "999px",
+                                fontSize: "0.68rem",
+                                fontWeight: 600,
+                                fontFamily: "'Poppins', sans-serif",
+                                background: isDark ? "rgba(245, 158, 11, 0.15)" : "#fffbeb",
+                                border: isDark ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid #fde68a",
+                                color: isDark ? "#fbbf24" : "#b45309",
+                              }}
+                            >
+                              <Clock size={10} />
+                              Pending
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                padding: "1px 7px",
+                                borderRadius: "999px",
+                                fontSize: "0.68rem",
+                                fontWeight: 600,
+                                fontFamily: "'Poppins', sans-serif",
+                                background: isDark ? "rgba(16, 185, 129, 0.15)" : "#ecfdf5",
+                                border: isDark ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid #a7f3d0",
+                                color: isDark ? "#34d399" : "#047857",
+                              }}
+                            >
+                              <CheckCircle2 size={10} />
+                              Assessed
+                              {typeof doc.relevancyScore === "number" ? ` (${doc.relevancyScore}%)` : ""}
+                            </span>
+                          )}
+
+                          {/* Author or Year */}
+                          {(authors || year) && (
+                            <span
+                              style={{
+                                fontSize: "0.72rem",
+                                color: isDark ? "#64748b" : "#94a3b8",
+                                fontFamily: "'Poppins', sans-serif",
+                              }}
+                            >
+                              {[authors, year].filter(Boolean).join(" • ")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                padding: "16px 24px",
+                borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                background: isDark ? "rgba(255, 255, 255, 0.02)" : "#fafafa",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              {/* Selected Count Indicator */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: "0.8rem",
+                    color: isDark ? "#94a3b8" : "#64748b",
+                  }}
+                >
+                  Selected:
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: selectedDocs.size > 0 ? "#ea580c" : (isDark ? "#64748b" : "#9ca3af"),
+                    background: selectedDocs.size > 0
+                      ? (isDark ? "rgba(234, 88, 12, 0.18)" : "#fff7ed")
+                      : (isDark ? "rgba(255, 255, 255, 0.05)" : "#f1f5f9"),
+                    border: selectedDocs.size > 0
+                      ? (isDark ? "1px solid rgba(234, 88, 12, 0.35)" : "1px solid #fed7aa")
+                      : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+                    padding: "2px 10px",
+                    borderRadius: "999px",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {selectedDocs.size} of {documents.length}
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={() => !isProcessing && setShowSelectModal(false)}
+                  disabled={isProcessing}
+                  style={{
+                    background: "transparent",
+                    color: isDark ? "#cbd5e1" : "#64748b",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #cbd5e1",
+                    borderRadius: "10px",
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: 600,
+                    fontSize: "0.84rem",
+                    padding: "9px 18px",
+                    cursor: isProcessing ? "not-allowed" : "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isProcessing) {
+                      e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9";
+                      e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.25)" : "#94a3b8";
+                      e.currentTarget.style.color = isDark ? "#ffffff" : "#0f172a";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isProcessing) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#cbd5e1";
+                      e.currentTarget.style.color = isDark ? "#cbd5e1" : "#64748b";
+                    }
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleAssessSelected}
                   disabled={selectedDocs.size === 0 || isProcessing}
                   style={{
-                    background: "#ea580c",
-                    color: "#ffffff",
-                    border: "1px solid #ea580c",
-                    borderRadius: "8px",
+                    background: selectedDocs.size === 0
+                      ? (isDark ? "rgba(255, 255, 255, 0.08)" : "#e2e8f0")
+                      : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)",
+                    color: selectedDocs.size === 0
+                      ? (isDark ? "#64748b" : "#94a3b8")
+                      : "#ffffff",
+                    border: "none",
+                    borderRadius: "10px",
                     fontFamily: "'Poppins', sans-serif",
                     fontWeight: 700,
-                    fontSize: "0.85rem",
-                    padding: "8px 16px",
+                    fontSize: "0.84rem",
+                    padding: "9px 20px",
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
                     cursor: isProcessing ? "wait" : (selectedDocs.size === 0 ? "not-allowed" : "pointer"),
-                    opacity: selectedDocs.size === 0 ? 0.5 : 1,
-                    boxShadow: isProcessing
-                      ? "0 0 14px rgba(234, 88, 12, 0.5)"
-                      : "0 2px 8px rgba(234, 88, 12, 0.22)",
-                    transition: "all 180ms ease",
+                    boxShadow: selectedDocs.size > 0
+                      ? (isProcessing
+                          ? "0 0 16px rgba(234, 88, 12, 0.55)"
+                          : "0 4px 14px rgba(234, 88, 12, 0.3)")
+                      : "none",
+                    transition: "all 0.2s ease",
                   }}
                   onMouseEnter={(e) => {
                     if (!isProcessing && selectedDocs.size > 0) {
-                      e.currentTarget.style.background = "#c2410c";
-                      e.currentTarget.style.borderColor = "#c2410c";
+                      e.currentTarget.style.background = "linear-gradient(135deg, #c2410c 0%, #ea580c 100%)";
                       e.currentTarget.style.transform = "translateY(-1px)";
-                      e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                      e.currentTarget.style.boxShadow = "0 6px 18px rgba(234, 88, 12, 0.4)";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isProcessing && selectedDocs.size > 0) {
-                      e.currentTarget.style.background = "#ea580c";
-                      e.currentTarget.style.borderColor = "#ea580c";
+                      e.currentTarget.style.background = "linear-gradient(135deg, #ea580c 0%, #f97316 100%)";
                       e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
-                    }
-                  }}
-                  onMouseDown={(e) => {
-                    if (!isProcessing && selectedDocs.size > 0) {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+                      e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.3)";
                     }
                   }}
                 >
                   {isProcessing ? (
                     <>
-                      <svg width="14" height="14" viewBox="0 0 50 50">
+                      <svg width="15" height="15" viewBox="0 0 50 50">
                         <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="5" />
                         <circle cx="25" cy="25" r="20" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="50 70">
                           <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
@@ -1182,7 +1973,10 @@ export default function MetricWeightCustomization({
                       <span>Starting Assessment ({selectedDocs.size})...</span>
                     </>
                   ) : (
-                    `Assess Selected (${selectedDocs.size})`
+                    <>
+                      <Sparkles size={15} />
+                      <span>Assess Selected ({selectedDocs.size})</span>
+                    </>
                   )}
                 </button>
               </div>
@@ -1190,7 +1984,22 @@ export default function MetricWeightCustomization({
           </div>
         </div>
       )}
+
       <style>{`
+        @keyframes citewiseModalIn {
+          from {
+            opacity: 0;
+            transform: scale(0.96) translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        @keyframes citewiseFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
         @keyframes citewise-spin {
           100% { transform: rotate(360deg); }
         }

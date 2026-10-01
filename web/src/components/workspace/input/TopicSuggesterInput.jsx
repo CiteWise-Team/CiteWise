@@ -214,18 +214,13 @@ export default function TopicSuggesterInput({
               {loading && (
                 <div style={{ padding: "1.5rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <svg width="18" height="18" viewBox="0 0 50 50">
-                      <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.15)" strokeWidth="4" />
-                      <circle cx="25" cy="25" r="20" fill="none" stroke="#ea580c" strokeWidth="4" strokeLinecap="round" strokeDasharray="55 70">
-                        <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.95s" repeatCount="indefinite" />
-                      </circle>
-                    </svg>
+                    <span className="catalyst-btn-spinner-orange" />
                     <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#9a3412", fontFamily: "'Poppins', sans-serif" }}>
                       Loading gaps...
                     </span>
                   </div>
                   <div style={{ width: "140px", height: "4px", background: "#fed7aa", borderRadius: "999px", overflow: "hidden", position: "relative" }}>
-                    <div className="cw-loading-progress-fill" />
+                    <div className="catalyst-progress-beam" />
                   </div>
                 </div>
               )}
@@ -279,7 +274,7 @@ export default function TopicSuggesterInput({
             className="workflow-action-button"
           >
             {running ? (
-              <RiLoader4Line className="spinner-border spinner-border-sm spin-loader" style={{ animation: "spin 1s linear infinite" }} />
+              <span className="catalyst-btn-spinner" />
             ) : (
               <FaPlay size={12} className="me-1" />
             )}

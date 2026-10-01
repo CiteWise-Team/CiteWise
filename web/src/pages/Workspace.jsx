@@ -176,28 +176,21 @@ export default function GroupWorkflow() {
                 marginBottom: "1.25rem",
               }}
             >
-              <svg width="80" height="80" viewBox="0 0 50 50" style={{ position: "absolute", inset: 0 }}>
-                <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.12)" strokeWidth="3.5" />
-                <circle
-                  cx="25"
-                  cy="25"
-                  r="20"
-                  fill="none"
-                  stroke="#ea580c"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  strokeDasharray="55 70"
-                >
-                  <animateTransform
-                    attributeName="transform"
-                    type="rotate"
-                    from="0 25 25"
-                    to="360 25 25"
-                    dur="0.95s"
-                    repeatCount="indefinite"
-                  />
-                </circle>
-              </svg>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "80px",
+                  height: "80px",
+                  borderRadius: "50%",
+                  border: "3.5px solid rgba(234, 88, 12, 0.14)",
+                  borderTopColor: "#ea580c",
+                  borderRightColor: "#ea580c",
+                  animation: "cwSpinOrbit 0.95s linear infinite",
+                  boxSizing: "border-box",
+                  pointerEvents: "none",
+                }}
+              />
               <div
                 style={{
                   width: "44px",

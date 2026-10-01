@@ -1,258 +1,308 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useTheme } from "../../../context/ThemeContext";
-import { FileText, BookOpen, Layers, Compass, Sparkles } from "lucide-react";
 
 /**
  * WorkflowPartnerLoadingUI
- * A unified, modern loading state for CATalyst output panels (Extractor, Summarizer, Gap Extractor, Topic Suggester)
- * that partners seamlessly with the Input Panel's "Run Workflow" loading state.
+ * Reuses the EXACT loading UI from the AI Assessment panel (AIAssessmentPanel.jsx)
+ * with the rotating animated SVG spinner, matching gradient progress bar, percentage,
+ * and skeleton cards, seamlessly styled for CATalyst pages.
  */
 export default function WorkflowPartnerLoadingUI({
-  title = "Extracting sections with AI...",
+  title,
   description,
   stepType = "extractor",
 }) {
   const { isDark } = useTheme();
 
-  const stepMeta = {
+  // Progress and status text simulation matching AIAssessmentPanel
+  const [panelProgress, setPanelProgress] = useState(25);
+  const [panelStatusText, setPanelStatusText] = useState("");
+
+  const stepConfig = {
     extractor: {
-      icon: FileText,
-      defaultTitle: "Extracting sections with AI...",
-      defaultDesc: "AI is analyzing your uploaded research manuscript, extracting methodology, literature context, and section hierarchies. Your extracted paper results will appear here momentarily.",
-      previewType: "papers",
+      defaultTitle: "Extracting Document Content",
+      progressLabel: "Extraction progress",
+      stages: [
+        { progress: 25, text: "Reading manuscript structure & sections..." },
+        { progress: 52, text: "Extracting methodology, results & context..." },
+        { progress: 78, text: "Structuring section hierarchies with AI..." },
+        { progress: 94, text: "Finalizing extracted document report..." },
+      ],
     },
     summarizer: {
-      icon: BookOpen,
-      defaultTitle: "Summarizing sections with AI...",
-      defaultDesc: "AI is synthesizing your extracted literature sections into a structured, objective academic summary. Your summary will appear here once ready.",
-      previewType: "summary",
+      defaultTitle: "Summarizing Document Content",
+      progressLabel: "Summary progress",
+      stages: [
+        { progress: 25, text: "Reading extracted literature sections..." },
+        { progress: 52, text: "Synthesizing methodology & key findings..." },
+        { progress: 78, text: "Generating objective academic summary..." },
+        { progress: 94, text: "Finalizing summary report..." },
+      ],
     },
     gap: {
-      icon: Layers,
-      defaultTitle: "Analyzing research gaps with AI...",
-      defaultDesc: "AI is evaluating the extracted literature and methodology to detect unaddressed research gaps and future directions. Your detected gaps will appear here.",
-      previewType: "gaps",
+      defaultTitle: "Analyzing Research Gaps",
+      progressLabel: "Gap analysis progress",
+      stages: [
+        { progress: 25, text: "Evaluating methodology & literature coverage..." },
+        { progress: 52, text: "Detecting unaddressed research frontiers..." },
+        { progress: 78, text: "Formulating scientific gap hypotheses..." },
+        { progress: 94, text: "Finalizing detected research gaps..." },
+      ],
     },
     topic: {
-      icon: Compass,
-      defaultTitle: "Generating topic recommendations with AI...",
-      defaultDesc: "AI is formulating prospective thesis titles, research problem statements, and scope recommendations from your detected gaps. Your topic proposals will appear here.",
-      previewType: "topics",
+      defaultTitle: "Generating Topic Recommendations",
+      progressLabel: "Topic progress",
+      stages: [
+        { progress: 25, text: "Processing identified research gaps..." },
+        { progress: 52, text: "Formulating thesis titles & scopes..." },
+        { progress: 78, text: "Validating academic feasibility with AI..." },
+        { progress: 94, text: "Compiling topic recommendations..." },
+      ],
     },
   }[stepType] || {
-    icon: Sparkles,
-    defaultTitle: "Processing with AI...",
-    defaultDesc: "AI is processing your research data. Your results will appear here momentarily.",
-    previewType: "generic",
+    defaultTitle: "Analyzing Document Content",
+    progressLabel: "Assessment progress",
+    stages: [
+      { progress: 25, text: "Reading document content..." },
+      { progress: 52, text: "Analyzing key arguments & evidence..." },
+      { progress: 78, text: "Synthesizing document insights..." },
+      { progress: 94, text: "Finalizing assessment report..." },
+    ],
   };
 
-  const IconComponent = stepMeta.icon;
-  const effectiveTitle = title || stepMeta.defaultTitle;
-  const effectiveDesc = description || stepMeta.defaultDesc;
+  const effectiveTitle = title || stepConfig.defaultTitle;
+  const progressLabel = stepConfig.progressLabel;
+
+  useEffect(() => {
+    setPanelProgress(stepConfig.stages[0].progress);
+    setPanelStatusText(description || stepConfig.stages[0].text);
+
+    const t1 = setTimeout(() => {
+      setPanelProgress(stepConfig.stages[1].progress);
+      setPanelStatusText(description || stepConfig.stages[1].text);
+    }, 600);
+
+    const t2 = setTimeout(() => {
+      setPanelProgress(stepConfig.stages[2].progress);
+      setPanelStatusText(description || stepConfig.stages[2].text);
+    }, 1300);
+
+    const t3 = setTimeout(() => {
+      setPanelProgress(stepConfig.stages[3].progress);
+      setPanelStatusText(description || stepConfig.stages[3].text);
+    }, 2200);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [stepType, description]);
 
   return (
     <div
       style={{
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        textAlign: "center",
-        padding: "3.5rem 1.5rem",
-        minHeight: "420px",
         width: "100%",
+        minHeight: "360px",
+        padding: "2rem 1rem",
         boxSizing: "border-box",
-        fontFamily: "'Poppins', sans-serif",
-        animation: "fadeInToast 0.3s ease-out forwards",
       }}
     >
-      <style>{`
-        @keyframes partnerShimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        @keyframes partnerPulseBadge {
-          0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 0 20px rgba(234, 88, 12, 0.25);
-          }
-          50% {
-            transform: scale(1.06);
-            box-shadow: 0 0 32px rgba(234, 88, 12, 0.45);
-          }
-        }
-        @keyframes partnerProgressSweep {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-      `}</style>
-
-      {/* Animated Spinner with Glowing Center Icon */}
       <div
         style={{
-          position: "relative",
-          width: "80px",
-          height: "80px",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: "1.5rem",
+          padding: "2.5rem 1.5rem",
+          maxWidth: "460px",
+          width: "100%",
+          textAlign: "center",
+          boxSizing: "border-box",
         }}
       >
-        {/* Outer rotating SVG track & spinner */}
-        <svg width="80" height="80" viewBox="0 0 50 50" style={{ position: "absolute", inset: 0 }}>
-          <circle
-            cx="25"
-            cy="25"
-            r="20"
-            fill="none"
-            stroke={isDark ? "rgba(234, 88, 12, 0.16)" : "rgba(234, 88, 12, 0.12)"}
-            strokeWidth="3.5"
-          />
-          <circle
-            cx="25"
-            cy="25"
-            r="20"
-            fill="none"
-            stroke="#ea580c"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            strokeDasharray="55 70"
-          >
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              from="0 25 25"
-              to="360 25 25"
-              dur="0.9s"
-              repeatCount="indefinite"
-            />
-          </circle>
-        </svg>
-
-        {/* Center glowing badge */}
+        {/* Exact Animated SVG Spinner with Glowing Center from AIAssessmentPanel */}
         <div
           style={{
-            width: "46px",
-            height: "46px",
-            borderRadius: "50%",
-            background: isDark ? "rgba(234, 88, 12, 0.18)" : "rgba(234, 88, 12, 0.1)",
-            border: "2px solid #ea580c",
+            position: "relative",
+            width: "76px",
+            height: "76px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#ea580c",
-            animation: "partnerPulseBadge 2.2s infinite ease-in-out",
+            marginBottom: "1.25rem",
           }}
         >
-          <IconComponent size={22} strokeWidth={2.4} />
-        </div>
-      </div>
-
-      {/* Main Partner Title */}
-      <h3
-        style={{
-          margin: "0 0 0.5rem 0",
-          fontSize: "1.18rem",
-          fontWeight: 700,
-          color: isDark ? "#f9fafb" : "#111827",
-          letterSpacing: "0.01em",
-        }}
-      >
-        {effectiveTitle}
-      </h3>
-
-      {/* Explanation text */}
-      <p
-        style={{
-          margin: "0 0 1.75rem 0",
-          fontSize: "0.88rem",
-          color: isDark ? "#94a3b8" : "#64748b",
-          lineHeight: 1.6,
-          maxWidth: "460px",
-        }}
-      >
-        {effectiveDesc}
-      </p>
-
-      {/* Progress Bar Container with moving gradient pulse */}
-      <div
-        style={{
-          width: "280px",
-          maxWidth: "85%",
-          height: "6px",
-          background: isDark ? "rgba(255, 255, 255, 0.08)" : "#e5e7eb",
-          borderRadius: "999px",
-          overflow: "hidden",
-          position: "relative",
-          marginBottom: "2rem",
-          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.06)",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            bottom: 0,
-            width: "50%",
-            background: "linear-gradient(90deg, transparent, #ea580c, #fb923c, transparent)",
-            borderRadius: "999px",
-            animation: "partnerProgressSweep 1.6s infinite ease-in-out",
-          }}
-        />
-      </div>
-
-      {/* Shimmering Skeleton Cards Previewing incoming output cards */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "460px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          opacity: isDark ? 0.6 : 0.75,
-        }}
-      >
-        {[1, 2].map((idx) => (
+          <svg
+            width="76"
+            height="76"
+            viewBox="0 0 50 50"
+            style={{ position: "absolute", inset: 0 }}
+          >
+            <circle
+              cx="25"
+              cy="25"
+              r="20"
+              fill="none"
+              stroke="rgba(234, 88, 12, 0.12)"
+              strokeWidth="3.5"
+            />
+            <circle
+              cx="25"
+              cy="25"
+              r="20"
+              fill="none"
+              stroke="#ea580c"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeDasharray="55 70"
+            >
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                from="0 25 25"
+                to="360 25 25"
+                dur="0.95s"
+                repeatCount="indefinite"
+              />
+            </circle>
+          </svg>
           <div
-            key={idx}
             style={{
-              padding: "12px 16px",
-              borderRadius: "12px",
-              background: isDark
-                ? "linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 100%)"
-                : "linear-gradient(90deg, #f1f5f9 0%, #ffffff 50%, #f1f5f9 100%)",
-              backgroundSize: "200% 100%",
-              animation: "partnerShimmer 2s infinite linear",
-              border: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0",
+              width: "42px",
+              height: "42px",
+              borderRadius: "50%",
+              background: "rgba(234, 88, 12, 0.09)",
               display: "flex",
-              flexDirection: "column",
-              gap: "8px",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 0 16px rgba(234, 88, 12, 0.25)",
             }}
           >
-            <div
-              style={{
-                height: "12px",
-                width: idx === 1 ? "65%" : "80%",
-                borderRadius: "6px",
-                background: isDark ? "rgba(255, 255, 255, 0.08)" : "#e2e8f0",
-              }}
-            />
-            <div
-              style={{
-                height: "10px",
-                width: idx === 1 ? "90%" : "55%",
-                borderRadius: "5px",
-                background: isDark ? "rgba(255, 255, 255, 0.05)" : "#cbd5e1",
-              }}
-            />
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ea580c"
+              strokeWidth="2.3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
           </div>
-        ))}
+        </div>
+
+        {/* Title */}
+        <h3
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontSize: "1.2rem",
+            fontWeight: 700,
+            color: isDark ? "#ffffff" : "var(--cw-text-primary, #0f0e17)",
+            margin: "0 0 0.35rem 0",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {effectiveTitle}
+        </h3>
+
+        {/* Subtitle */}
+        <p
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontSize: "0.85rem",
+            color: isDark ? "#94a3b8" : "var(--cw-text-muted, #6b7280)",
+            lineHeight: 1.55,
+            margin: "0 0 1.5rem 0",
+            maxWidth: "400px",
+            minHeight: "1.55em",
+          }}
+        >
+          {panelStatusText}
+        </p>
+
+        {/* Moving Progress Bar & Percentage Count */}
+        <div
+          style={{
+            width: "280px",
+            maxWidth: "85%",
+            height: "8px",
+            background: isDark ? "rgba(255, 255, 255, 0.08)" : "var(--cw-border, #e5e7eb)",
+            borderRadius: "999px",
+            overflow: "hidden",
+            position: "relative",
+            boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.08)",
+            margin: "0 auto 0.6rem auto",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${panelProgress}%`,
+              background: "linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)",
+              borderRadius: "999px",
+              transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              boxShadow: "0 0 10px rgba(234, 88, 12, 0.45)",
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            width: "280px",
+            maxWidth: "85%",
+            margin: "0 auto",
+            fontSize: "0.75rem",
+            fontFamily: "'Poppins', sans-serif",
+          }}
+        >
+          <span style={{ color: isDark ? "#94a3b8" : "var(--cw-text-muted, #6b7280)" }}>
+            {progressLabel}
+          </span>
+          <span style={{ color: "#ea580c", fontWeight: 700 }}>
+            {panelProgress}%
+          </span>
+        </div>
+
+        {/* Shimmering skeleton cards beneath previewing layout */}
+        <div
+          className="cw-loading-skeleton-preview"
+          style={{
+            marginTop: "1.5rem",
+            width: "100%",
+            maxWidth: "380px",
+            display: "flex",
+            gap: "10px",
+          }}
+        >
+          <div
+            className="cw-loading-skeleton-card-left"
+            style={{
+              height: "48px",
+              borderRadius: "12px",
+              border: isDark ? "1px dashed rgba(255, 255, 255, 0.12)" : "1px dashed var(--cw-border, #e5e7eb)",
+            }}
+          />
+          <div
+            className="cw-loading-skeleton-card-right"
+            style={{
+              height: "48px",
+              borderRadius: "12px",
+              border: isDark ? "1px dashed rgba(255, 255, 255, 0.12)" : "1px dashed var(--cw-border, #e5e7eb)",
+            }}
+          />
+        </div>
       </div>
     </div>
   );

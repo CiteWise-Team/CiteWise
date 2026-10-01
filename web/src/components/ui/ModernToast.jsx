@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -100,9 +101,9 @@ export default function ModernToast({
     }
   }, [show, duration]);
 
-  if (!show) return null;
+  if (!show || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <>
       <style>{`
         @keyframes modernToastSlideIn {
@@ -258,6 +259,7 @@ export default function ModernToast({
           <X size={16} />
         </button>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

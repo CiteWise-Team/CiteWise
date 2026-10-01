@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useGroup } from "../../../context/GroupContext";
 import { getGapsByGroupAPI } from "../../../api/workflow.gap";
-import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
+import { RiLoader4Line } from "react-icons/ri";
+import { Layers } from "lucide-react";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 import WorkflowPartnerLoadingUI from "./WorkflowPartnerLoadingUI";
 
@@ -108,87 +109,32 @@ export default function GapOutput({
             style={{ overflowY: "auto", minHeight: 0, paddingRight: "4px" }}
           >
             {loading ? (
-              <div style={{ padding: "3rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-                {/* Guaranteed Animated SVG Spinner with glowing center */}
-                <div
-                  style={{
-                    position: "relative",
-                    width: "68px",
-                    height: "68px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: "1rem",
-                  }}
-                >
-                  <svg width="68" height="68" viewBox="0 0 50 50" style={{ position: "absolute", inset: 0 }}>
-                    <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.12)" strokeWidth="3.5" />
-                    <circle
-                      cx="25"
-                      cy="25"
-                      r="20"
-                      fill="none"
-                      stroke="#ea580c"
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                      strokeDasharray="55 70"
-                    >
-                      <animateTransform
-                        attributeName="transform"
-                        type="rotate"
-                        from="0 25 25"
-                        to="360 25 25"
-                        dur="0.95s"
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                  </svg>
-                  <div
-                    style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "50%",
-                      background: "rgba(234, 88, 12, 0.09)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 0 14px rgba(234, 88, 12, 0.25)",
-                    }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                  </div>
-                </div>
-
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.95rem", fontWeight: 700, color: "var(--cw-text-primary, #0f0e17)", margin: "0 0 0.25rem 0" }}>
-                  Loading Gaps
-                </p>
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "var(--cw-text-muted, #6b7280)", margin: "0 0 1rem 0" }}>
-                  Discovering research opportunities...
-                </p>
-
-                {/* Moving Progress Bar */}
-                <div
-                  style={{
-                    width: "180px",
-                    maxWidth: "80%",
-                    height: "6px",
-                    background: "var(--cw-border, #e5e7eb)",
-                    borderRadius: "999px",
-                    overflow: "hidden",
-                    position: "relative",
-                  }}
-                >
-                  <div className="cw-loading-progress-fill" />
-                </div>
+              <div style={{ padding: "2.5rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: "10px" }}>
+                <span className="catalyst-btn-spinner-orange" style={{ width: "24px", height: "24px", borderWidth: "2.5px" }} />
+                <span style={{ fontSize: "0.82rem", color: "var(--cw-text-muted, #6b7280)", fontWeight: 500, fontFamily: "'Poppins', sans-serif" }}>
+                  Loading gaps...
+                </span>
               </div>
             ) : items.length === 0 ? (
-              <div className="text-center mt-5">
-                <RiQuestionLine className="fs-1 mb-2" style={{ color: "#9ca3af" }} />
-                <p style={{ color: "#4b5563" }}>
-                  No gaps extracted yet.
-                </p>
+              <div className="text-center py-4 px-2 d-flex flex-column align-items-center justify-content-center">
+                <div
+                  className="d-inline-flex align-items-center justify-content-center mb-2 rounded-3"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                    background: "rgba(234, 88, 12, 0.08)",
+                    border: "1px dashed rgba(234, 88, 12, 0.35)",
+                    color: "#ea580c",
+                  }}
+                >
+                  <Layers size={20} strokeWidth={2} />
+                </div>
+                <div className="small fw-bold" style={{ color: "var(--cw-text-primary, #0f0e17)" }}>
+                  No gaps extracted yet
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--cw-text-muted, #6b7280)", marginTop: "4px" }}>
+                  Run workflow to discover gaps
+                </div>
               </div>
             ) : (
               items.map((item) => {
