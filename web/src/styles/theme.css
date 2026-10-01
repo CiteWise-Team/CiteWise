@@ -54,23 +54,79 @@
    Smooth Theme Switching Transition
    Prevents jarring brightness / darkness flashes when toggling modes
    ========================================================================== */
+
+/* Modern View Transitions API (Chrome, Edge, Safari) for 60fps GPU crossfade */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::view-transition-old(root) {
+  animation-name: cw-theme-fade-out;
+}
+
+::view-transition-new(root) {
+  animation-name: cw-theme-fade-in;
+}
+
+@keyframes cw-theme-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes cw-theme-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Fallback smooth transition for structural containers and surfaces */
 html.theme-transitioning,
-html.theme-transitioning *,
-html.theme-transitioning *::before,
-html.theme-transitioning *::after {
+html.theme-transitioning body,
+html.theme-transitioning #root,
+html.theme-transitioning .citewise-app-shell,
+html.theme-transitioning .workflow-workspace,
+html.theme-transitioning .workflow-main,
+html.theme-transitioning .workflow-header,
+html.theme-transitioning .workflow-content,
+html.theme-transitioning .workflow-card,
+html.theme-transitioning .workflow-card-header,
+html.theme-transitioning .workflow-input-card,
+html.theme-transitioning .workflow-result-card,
+html.theme-transitioning .workflow-sidebar,
+html.theme-transitioning .workflow-result-sidebar,
+html.theme-transitioning .navbar,
+html.theme-transitioning .cw-top-nav,
+html.theme-transitioning .cw-bottom-nav,
+html.theme-transitioning .cw-card,
+html.theme-transitioning .modal-content,
+html.theme-transitioning .dropdown-menu,
+html.theme-transitioning header,
+html.theme-transitioning nav,
+html.theme-transitioning aside,
+html.theme-transitioning main,
+html.theme-transitioning section,
+html.theme-transitioning div,
+html.theme-transitioning p,
+html.theme-transitioning h1,
+html.theme-transitioning h2,
+html.theme-transitioning h3,
+html.theme-transitioning h4,
+html.theme-transitioning h5,
+html.theme-transitioning h6,
+html.theme-transitioning span,
+html.theme-transitioning button,
+html.theme-transitioning input,
+html.theme-transitioning textarea {
   transition:
-    background-color 380ms cubic-bezier(0.4, 0, 0.2, 1),
-    background 380ms cubic-bezier(0.4, 0, 0.2, 1),
-    color 350ms cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 380ms cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 380ms cubic-bezier(0.4, 0, 0.2, 1),
-    stroke 350ms cubic-bezier(0.4, 0, 0.2, 1),
-    fill 350ms cubic-bezier(0.4, 0, 0.2, 1) !important;
-  transition-delay: 0s !important;
+    background-color 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 240ms cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 body {
-  transition: background-color 300ms ease, color 300ms ease;
+  transition: background-color 240ms cubic-bezier(0.4, 0, 0.2, 1), color 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ==========================================================================
@@ -161,6 +217,14 @@ body {
   border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
+.cw-nav-avatar-btn {
+  background-color: #ffffff;
+}
+
+[data-theme="dark"] .cw-nav-avatar-btn {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
 [data-theme="dark"] .landing-nav-clean-link {
   color: #d1d5db !important;
 }
@@ -215,7 +279,8 @@ body {
 
 [data-theme="dark"] .workflow-back-btn,
 [data-theme="dark"] .workflow-guide-button,
-[data-theme="dark"] .groups-guide-trigger-btn {
+[data-theme="dark"] .groups-guide-trigger-btn,
+[data-theme="dark"] .cw-primary-btn {
   background-color: #ea580c !important;
   border-color: #ea580c !important;
   color: #ffffff !important;
@@ -224,14 +289,16 @@ body {
 
 [data-theme="dark"] .workflow-back-btn svg,
 [data-theme="dark"] .workflow-guide-button svg,
-[data-theme="dark"] .groups-guide-trigger-btn svg {
+[data-theme="dark"] .groups-guide-trigger-btn svg,
+[data-theme="dark"] .cw-primary-btn svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
 }
 
 [data-theme="dark"] .workflow-back-btn:hover,
 [data-theme="dark"] .workflow-guide-button:hover,
-[data-theme="dark"] .groups-guide-trigger-btn:hover {
+[data-theme="dark"] .groups-guide-trigger-btn:hover,
+[data-theme="dark"] .cw-primary-btn:hover {
   border-color: #c2410c !important;
   color: #ffffff !important;
   background-color: #c2410c !important;
@@ -458,7 +525,7 @@ body {
 }
 
 /* Inputs, textareas, selects inside CiteWise */
-[data-theme="dark"] .citewise-app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+[data-theme="dark"] .citewise-app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
 [data-theme="dark"] .citewise-app-shell textarea,
 [data-theme="dark"] .citewise-app-shell select {
   background: #100f18 !important;
@@ -621,7 +688,7 @@ body {
 [data-theme="dark"] .workflow-result-kicker,
 [data-theme="dark"] .groups-guide-progress,
 [data-theme="dark"] .workflow-guide-progress,
-[data-theme="dark"] .workflow-card-header-actions span {
+[data-theme="dark"] .workflow-card-header-actions span:not(.workflow-card-collapse-icon):not(.cw-collapse-chevron) {
   color: #fb923c !important;
 }
 
@@ -722,7 +789,7 @@ body {
 }
 
 /* Input Fields & Textareas */
-[data-theme="dark"] .citewise-app-shell input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] .citewise-app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
 [data-theme="dark"] .citewise-app-shell textarea,
 [data-theme="dark"] .citewise-app-shell select {
   background: #100f18 !important;
@@ -765,9 +832,11 @@ body {
    ========================================================================== */
 .citewise-app-shell .workflow-header {
   border-bottom: 1px solid #e5e7eb !important;
+  margin-bottom: 0 !important;
 }
 [data-theme="dark"] .citewise-app-shell .workflow-header {
   border-bottom: 1px solid #2d3748 !important;
+  margin-bottom: 0 !important;
 }
 
 /* ==========================================================================
@@ -956,10 +1025,12 @@ body {
   border: 1px solid var(--cw-border, #e5e7eb) !important;
   border-radius: 12px !important;
   transition: all 0.2s ease !important;
+  cursor: pointer;
 }
 
 .citewise-gap-card:hover {
-  border-color: #f97316 !important;
+  border-color: #ea580c !important;
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.08) !important;
 }
 
 .citewise-gap-card.selected {
@@ -973,10 +1044,12 @@ body {
   background: #171624 !important;
   background-color: #171624 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  cursor: pointer;
 }
 
 [data-theme="dark"] .citewise-gap-card:hover {
-  border-color: rgba(249, 115, 22, 0.5) !important;
+  border-color: rgba(234, 88, 12, 0.6) !important;
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.18) !important;
 }
 
 [data-theme="dark"] .citewise-gap-card.selected {

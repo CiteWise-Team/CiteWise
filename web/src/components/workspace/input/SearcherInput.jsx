@@ -97,6 +97,8 @@ export default function SearcherInput({
   instructions: propInstructions,
   setInstructions: propSetInstructions,
   onRun,
+  isCollapsed = false,
+  onToggleCollapse,
 }) {
   // ✅ TEMP MOCK STATE (only used if props are not passed)
   const [localKeywords, setLocalKeywords] = useState([
@@ -128,13 +130,16 @@ export default function SearcherInput({
   };
 
   return (
-    <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
+    <div className={`h-100 rounded-4 workflow-input-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
       <WorkflowCardHeader
         title="Web Literature Search"
         subtitle="Define keywords and guidelines for web literature search."
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
       />
 
-      <div className="card-body d-flex flex-column gap-3 overflow-hidden">
+      {!isCollapsed && (
+        <div className="card-body d-flex flex-column gap-3 overflow-hidden">
         <div className="input-group">
           <input
             type="text"
@@ -176,6 +181,7 @@ export default function SearcherInput({
           Run Workflow
         </button>
       </div>
+      )}
     </div>
   );
 }

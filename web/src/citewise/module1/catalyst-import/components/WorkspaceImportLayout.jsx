@@ -7,6 +7,8 @@ import DragDropZone from "../../rrl-upload/components/DragDropZone";
 import SelectedFilesList from "../../rrl-upload/components/SelectedFilesList";
 import UploadAllButton from "../../rrl-upload/components/UploadAllButton";
 import { apiFetch } from "../../../../api/http";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import ModernToast from "../../../../components/ui/ModernToast";
 
 const MAX_FILE_MB = 20;
 const DUPLICATE_REMOVE_DELAY = 3000;
@@ -19,6 +21,10 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   // Group-scoped localStorage keys so each workspace keeps independent data.
   const STORAGE_SESSION_KEY  = `citewise.${groupId}.sessionId`;
   const STORAGE_CATALYST_KEY = `citewise.${groupId}.catalystData`;
+
+  // ── Panel Collapse States ──────────────────────────────────────
+  const [catalystCardOpen, setCatalystCardOpen] = useState(true);
+  const [rrlCardOpen, setRrlCardOpen] = useState(true);
 
   // ── CATalyst Import State ──────────────────────────────────────
   const [workspaceId, setWorkspaceId] = useState("");
@@ -562,6 +568,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
       {/* ✨ RRL card header with warm orange gradient */}
       <div
         className="workflow-card-header citewise-rrl-card-header"
+        onClick={() => setRrlCardOpen((o) => !o)}
         style={{
           display: "flex",
           alignItems: "center",
@@ -569,18 +576,21 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           padding: "1.125rem 1.5rem",
           gap: "1rem",
           background: "var(--cw-bg-surface-elevated, #f9fafb)",
-          borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+          borderBottom: rrlCardOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+          cursor: "pointer",
+          userSelect: "none",
         }}
       >
         <div>
           <span style={cardTitle}>RRL Document Upload</span>
-          <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
-            Upload PDF research papers to assess against your research gap.
-          </p>
         </div>
+        <span style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)", flexShrink: 0 }}>
+          {rrlCardOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </span>
       </div>
 
-      <div style={{ padding: "1.5rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      {rrlCardOpen && (
+        <div style={{ padding: "1.5rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
         {/* Drop zone + queue stacked vertically */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
@@ -711,6 +721,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 
@@ -718,137 +729,22 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
     <div style={{ width: "100%", margin: "0 auto", padding: 0, display: "flex", flexDirection: "column", gap: isMobile ? "16px" : "24px", boxSizing: "border-box", background: "transparent" }}>
       {styleInject}
 
-      {duplicateToast.show && (
-        <div style={{
-          position: "fixed",
-          top: isMobile ? "12px" : "24px",
-          right: isMobile ? "12px" : "24px",
-          left: isMobile ? "12px" : "auto",
-          zIndex: 10000,
-          background: "#ffffff",
-          backdropFilter: "blur(8px)",
-          border: "1px solid rgba(249, 115, 22, 0.4)",
-          borderRadius: "12px",
-          padding: "1rem 1.5rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.1), 0 0 15px rgba(249, 115, 22, 0.08)",
-          animation: "slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-          maxWidth: "400px",
-        }}>
-          <div style={{
-            background: "rgba(249, 115, 22, 0.1)",
-            border: "1px solid #f97316",
-            borderRadius: "50%",
-            width: "36px",
-            height: "36px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/>
-              <line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "0.9rem", color: "#f97316" }}>
-              Duplicate File Detected
-            </span>
-            <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "#374151", lineHeight: "1.4" }}>
-              {duplicateToast.message}
-            </span>
-          </div>
-        </div>
-      )}
+      <ModernToast
+        show={duplicateToast.show}
+        type="warning"
+        title="Duplicate File Detected"
+        message={duplicateToast.message}
+        onClose={() => setDuplicateToast(prev => ({ ...prev, show: false }))}
+      />
 
-      {showSuccessToast && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.6)",
-          backdropFilter: "blur(12px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 9999,
-          animation: "fadeInToast 0.3s ease-out forwards",
-        }}>
-          <div style={{
-            background: "var(--cw-bg-surface, #ffffff)",
-            border: "1px solid var(--cw-border, #e5e7eb)",
-            borderRadius: "24px",
-            padding: isMobile ? "2rem 1.25rem" : "2.5rem 3rem",
-            maxWidth: "480px",
-            width: "90%",
-            textAlign: "center",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.12), 0 0 40px rgba(249, 115, 22, 0.1)",
-            animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
-          }}>
-            <div style={{
-              width: "80px",
-              height: "80px",
-              borderRadius: "50%",
-              background: "rgba(249, 115, 22, 0.1)",
-              border: "2px solid #f97316",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 1.5rem",
-              boxShadow: "0 0 20px rgba(249, 115, 22, 0.15)",
-              animation: "pulseRing 2s infinite",
-            }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" style={{
-                  strokeDasharray: 50,
-                  strokeDashoffset: 50,
-                  animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
-                }} />
-              </svg>
-            </div>
-
-            <h3 style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: 800,
-              fontSize: "1.5rem",
-              color: "var(--cw-text-primary, #111827)",
-              margin: "0 0 0.5rem 0",
-              letterSpacing: "0.01em",
-            }}>
-              Upload Complete
-            </h3>
-
-            <p style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "0.95rem",
-              color: "var(--cw-text-secondary, #6b7280)",
-              lineHeight: "1.6",
-              margin: "0 0 1.75rem 0",
-            }}>
-              Your research literature has been successfully uploaded and is ready for AI Assessment.
-            </p>
-
-            <div style={{
-              width: "100%",
-              height: "4px",
-              background: "var(--cw-border, #e5e7eb)",
-              borderRadius: "2px",
-              overflow: "hidden",
-            }}>
-              <div style={{
-                height: "100%",
-                background: "linear-gradient(90deg, #f97316, #fb8c3a)",
-                width: "0%",
-                borderRadius: "2px",
-                animation: "fillProgress 2.2s linear forwards",
-              }} />
-            </div>
-          </div>
-        </div>
-      )}
+      <ModernToast
+        show={showSuccessToast}
+        type="success"
+        title="Upload Complete"
+        message="Your research literature has been successfully uploaded and is ready for AI Assessment."
+        onClose={() => setShowSuccessToast(false)}
+        duration={2200}
+      />
 
 
       {/* ── Two-column grid ─────────────────────────────────────── */}
@@ -865,51 +761,64 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
           {/* CATalyst Workspace card */}
           <div style={card} data-guide="citewise-catalyst-workspace">
-            <div className="workflow-card-header" style={{ ...cardHeader, ...(isMobile && { flexWrap: "wrap", padding: "1rem" }) }}>
-              <div>
+            <div
+              className="workflow-card-header"
+              onClick={() => setCatalystCardOpen((o) => !o)}
+              style={{
+                ...cardHeader,
+                borderBottom: catalystCardOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+                cursor: "pointer",
+                userSelect: "none",
+                ...(isMobile && { flexWrap: "wrap", padding: "1rem" }),
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <span style={cardTitle}>
                   CATalyst Workspace
                 </span>
-                {catalystData ? (
-                  <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
-                    Loaded — title, rationale and gaps imported.
-                  </p>
-                ) : (
-                  <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
-                    Import research questions, rationale, and gaps from CATalyst.
-                  </p>
-                )}
               </div>
-              {!catalystData && (
-                <ImportHeaderBar
-                  workspaceId={workspaceId}
-                  onWorkspaceIdChange={setWorkspaceId}
-                  onImport={handleImport}
-                  isLoading={isLoading}
-                />
-              )}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }} onClick={(e) => e.stopPropagation()}>
+                {!catalystData && (
+                  <ImportHeaderBar
+                    workspaceId={workspaceId}
+                    onWorkspaceIdChange={setWorkspaceId}
+                    onImport={handleImport}
+                    isLoading={isLoading}
+                  />
+                )}
+                <span
+                  style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)", cursor: "pointer" }}
+                  onClick={() => setCatalystCardOpen((o) => !o)}
+                >
+                  {catalystCardOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </span>
+              </div>
             </div>
 
-            {!catalystData && (
-              <div style={{ padding: isMobile ? "1.75rem 1rem" : "2.5rem 2rem", textAlign: "center" }}>
-                <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(249, 115, 22, 0.08)", border: "1px solid rgba(249, 115, 22, 0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                </div>
-                <p style={{ color: "#6b7280", fontFamily: "'Poppins', sans-serif", fontSize: "0.875rem", margin: 0 }}>
-                  Enter your CATalyst workspace ID above to load your research data.
-                </p>
-              </div>
-            )}
+            {catalystCardOpen && (
+              <>
+                {!catalystData && (
+                  <div style={{ padding: isMobile ? "1.75rem 1rem" : "2.5rem 2rem", textAlign: "center" }}>
+                    <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(249, 115, 22, 0.08)", border: "1px solid rgba(249, 115, 22, 0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                    </div>
+                    <p style={{ color: "#6b7280", fontFamily: "'Poppins', sans-serif", fontSize: "0.875rem", margin: 0 }}>
+                      Enter your CATalyst workspace ID above to load your research data.
+                    </p>
+                  </div>
+                )}
 
-            <DataDisplayGrid
-              catalystData={catalystData}
-              isLoading={isLoading}
-              error={error}
-              hasAttempted={hasAttempted}
-              sessionId={sessionId}
-            />
+                <DataDisplayGrid
+                  catalystData={catalystData}
+                  isLoading={isLoading}
+                  error={error}
+                  hasAttempted={hasAttempted}
+                  sessionId={sessionId}
+                />
+              </>
+            )}
           </div>
 
           {/* ✨ Gap Workshop in the left column (below CATalyst) */}

@@ -5,6 +5,7 @@ import SelectedFilesList from "./SelectedFilesList";
 import UploadAllButton from "./UploadAllButton";
 import UploadStatusBar from "./UploadStatusBar";
 import { apiFetch } from "../../../../api/http";
+import ModernToast from "../../../../components/ui/ModernToast";
 
 const MAX_FILE_MB = 20;
 const STORAGE_SESSION_KEY = "citewise.session_id";
@@ -447,61 +448,13 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           to { opacity: 1; transform: translateX(0) scale(1); }
         }
       `}} />
-      {duplicateToast.show && (
-        <div style={{
-          position: "fixed",
-          top: "24px",
-          right: "24px",
-          zIndex: 10000,
-          background: "#ffffff",
-          backdropFilter: "blur(8px)",
-          border: "1px solid rgba(249, 115, 22, 0.4)",
-          borderRadius: "12px",
-          padding: "1rem 1.5rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.1), 0 0 15px rgba(249, 115, 22, 0.08)",
-          animation: "slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-          maxWidth: "400px",
-        }}>
-          <div style={{
-            background: "rgba(249, 115, 22, 0.1)",
-            border: "1px solid #f97316",
-            borderRadius: "50%",
-            width: "36px",
-            height: "36px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/>
-              <line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            <span style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: 700,
-              fontSize: "0.9rem",
-              color: "#f97316",
-            }}>
-              Duplicate File Detected
-            </span>
-            <span style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "0.8rem",
-              color: "#374151",
-              lineHeight: "1.4",
-            }}>
-              {duplicateToast.message}
-            </span>
-          </div>
-        </div>
-      )}
+      <ModernToast
+        show={duplicateToast.show}
+        type="warning"
+        title="Duplicate File Detected"
+        message={duplicateToast.message}
+        onClose={() => setDuplicateToast(prev => ({ ...prev, show: false }))}
+      />
       {!hideHeader && (
         <div
           style={{

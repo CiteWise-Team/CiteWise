@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Component } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Component } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Compass, X } from "lucide-react";
 import { apiRequest } from "../api/http";
@@ -90,6 +90,11 @@ const CITEWISE_GUIDE_STEPS = {
       description: "Browse all uploaded papers, toggle approval status, and switch between documents.",
     },
     {
+      target: "citewise-metric-weights",
+      title: "Metric Weight Customization",
+      description: "Calibrate evaluation priorities across Gap Alignment, Methodology, Theory / Framework, and Citation Quality to customize document relevance scoring.",
+    },
+    {
       target: "citewise-assessment-panel",
       title: "AI Assessment & Scoring",
       description: "Review detailed AI assessment scores across relevance, methodology, and empirical evidence.",
@@ -113,18 +118,48 @@ const CITEWISE_GUIDE_STEPS = {
     },
     {
       target: "citewise-synthesis-controls",
-      title: "Synthesis Controls",
-      description: "Trigger AI introduction drafting, monitor generation progress, and calibrate options.",
+      title: "Synthesis Control",
+      description: "Initiate introduction drafting with AI, monitor live synthesis progress, and adjust synthesis options.",
     },
     {
-      target: "citewise-approved-sources",
-      title: "Approved Sources & References",
-      description: "Manage the verified literature sources cited within your generated academic introduction.",
+      target: "citewise-guide-ai",
+      title: "Guide the AI",
+      description: "Provide custom guidance, framing, or specific emphasis to steer the AI drafting your research introduction.",
+    },
+    {
+      target: "citewise-source-usage",
+      title: "How Your Sources Are Used",
+      description: "Inspect transparent source utilization tiers showing which references serve as Core, Supporting, or Background evidence.",
+    },
+    {
+      target: "citewise-version-history",
+      title: "Version History",
+      description: "Track and restore earlier draft revisions, or compare changes across your synthesis iterations.",
+    },
+    {
+      target: "citewise-source-documents",
+      title: "Source Documents",
+      description: "View all approved literature sources, manage citations, and override author or year metadata when needed.",
     },
     {
       target: "citewise-draft-editor",
-      title: "Introduction Draft Editor & Export",
-      description: "Read, edit in real-time, inspect citations, and export your introduction as DOCX, PDF, or Markdown.",
+      title: "Generated Introduction",
+      description: "Review your full synthesized introduction with in-text APA citations, section breakdowns, and references.",
+    },
+    {
+      target: "citewise-btn-paraphrase",
+      title: "Paraphrase",
+      description: "Polish and refine the academic tone to eliminate AI slop while keeping all citations and section titles intact.",
+    },
+    {
+      target: "citewise-btn-edit",
+      title: "Edit Draft",
+      description: "Directly edit your generated introduction and APA reference entries in real-time.",
+    },
+    {
+      target: "citewise-btn-export",
+      title: "Export Options",
+      description: "Export your finished research introduction with justified formatting as PDF, Word (.docx), or plain text.",
     },
     {
       target: "workflow-guide-button",
@@ -152,7 +187,7 @@ class ErrorBoundary extends Component {
     if (this.state.hasError) {
       return (
         <div style={{ padding: "4rem 2rem", textAlign: "center", color: "#111827", maxWidth: 600, margin: "0 auto" }}>
-          <h2 style={{ color: "#f97316", fontFamily: "'Poppins', sans-serif", fontSize: "1.5rem", marginBottom: "1rem" }}>
+          <h2 style={{ color: "#ea580c", fontFamily: "'Poppins', sans-serif", fontSize: "1.5rem", marginBottom: "1rem" }}>
             Something went wrong loading this section.
           </h2>
           <p style={{ color: "#6b7280", fontFamily: "'Poppins', sans-serif", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
@@ -161,26 +196,32 @@ class ErrorBoundary extends Component {
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
             style={{
-              background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+              background: "#ea580c",
               color: "#ffffff",
-              border: "none",
+              border: "1px solid #ea580c",
               borderRadius: "8px",
               padding: "0.75rem 1.5rem",
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
-              transition: "all 0.2s ease",
+              boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
+              transition: "all 180ms ease",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
-              e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.4)";
+              e.currentTarget.style.background = "#c2410c";
+              e.currentTarget.style.borderColor = "#c2410c";
+              e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
               e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
+              e.currentTarget.style.background = "#ea580c";
+              e.currentTarget.style.borderColor = "#ea580c";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
               e.currentTarget.style.transform = "translateY(0)";
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
             }}
           >
             Reload Module
@@ -217,19 +258,48 @@ export default function CiteWiseApp() {
   const [maxUnlockedStep, setMaxUnlockedStep] = useState(() => {
     const saved = localStorage.getItem(scopedKey(groupId, "maxUnlockedStep"));
     const parsed = saved !== null ? parseInt(saved, 10) : NaN;
+    const isSynthesisUnlocked = localStorage.getItem(scopedKey(groupId, "synthesisUnlocked"));
     const initialSession = localStorage.getItem(scopedKey(groupId, "sessionId"));
     const floor = initialSession ? Math.max(step, 1) : Math.max(step, 0);
-    const resolved = !Number.isNaN(parsed) ? Math.max(parsed, floor) : floor;
-    if (initialSession && localStorage.getItem(`citewise_draft_${initialSession}`)) {
-      return Math.max(resolved, 3);
+
+    if (!Number.isNaN(parsed)) {
+      if (isSynthesisUnlocked === "false") {
+        return Math.min(parsed, 1);
+      }
+      return Math.max(parsed, floor);
     }
-    return resolved;
+
+    if (isSynthesisUnlocked === "false") {
+      return 1;
+    }
+
+    if (initialSession && localStorage.getItem(`citewise_draft_${initialSession}`)) {
+      return Math.max(floor, 3);
+    }
+    return floor;
   });
 
   const [guideStep, setGuideStep] = useState(-1);
   const [spotlight, setSpotlight] = useState(null);
   const guideOpen = guideStep >= 0;
-  const currentGuideSteps = CITEWISE_GUIDE_STEPS[step] || CITEWISE_GUIDE_STEPS[0];
+
+  useEffect(() => {
+    const handleOpenGuide = () => {
+      setGuideStep(0);
+    };
+    window.addEventListener("open-page-guide", handleOpenGuide);
+    return () => window.removeEventListener("open-page-guide", handleOpenGuide);
+  }, []);
+
+  const allGuideSteps = CITEWISE_GUIDE_STEPS[step] || CITEWISE_GUIDE_STEPS[0];
+  const currentGuideSteps = useMemo(() => {
+    if (typeof document === "undefined" || !guideOpen) return allGuideSteps;
+    return allGuideSteps.filter((s) => {
+      if (!s.target) return true;
+      if (s.target === "workflow-stepper") return true;
+      return !!document.querySelector(`[data-guide="${s.target}"]`);
+    });
+  }, [step, guideOpen]);
 
   useEffect(() => {
     if (!guideOpen) {
@@ -245,7 +315,34 @@ export default function CiteWiseApp() {
       const mobileTarget = document.querySelector('[data-guide="workflow-stepper-mobile"]');
       if (mobileTarget) target = mobileTarget;
     }
-    if (!target) return undefined;
+    if (!target) {
+      setSpotlight(null);
+      return undefined;
+    }
+
+    // For specific targets, refine to the exact visual element for crisp, centered rounded highlights
+    if (targetKey === "workspace-header") {
+      const headerLeft = target.querySelector(".workflow-header-left");
+      if (headerLeft) target = headerLeft;
+    } else if (targetKey === "workflow-stepper" && !isMobileViewport) {
+      const card = target.querySelector(".workflow-progression-card") || (target.classList?.contains("workflow-progression-card") ? target : null);
+      if (card) target = card;
+    } else if (
+      targetKey === "citewise-active-doc" ||
+      targetKey === "citewise-quick-nav" ||
+      targetKey === "citewise-assessment-panel" ||
+      targetKey === "citewise-synthesis-controls" ||
+      targetKey === "citewise-guide-ai" ||
+      targetKey === "citewise-source-usage" ||
+      targetKey === "citewise-version-history" ||
+      targetKey === "citewise-source-documents"
+    ) {
+      const card = target.firstElementChild;
+      if (card) target = card;
+    } else if (targetKey === "citewise-draft-editor") {
+      const panel = target.firstElementChild;
+      if (panel) target = panel;
+    }
 
     if (targetKey === "workflow-guide-button" || targetKey === "workspace-header" || (targetKey === "workflow-stepper" && !isMobileViewport)) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -255,9 +352,10 @@ export default function CiteWiseApp() {
 
     const updateSpotlight = () => {
       const rect = target.getBoundingClientRect();
-      const padding = isMobileViewport ? 8 : 10;
+      const isButtonTarget = targetKey && targetKey.startsWith("citewise-btn-");
+      const padding = isButtonTarget ? 5 : (isMobileViewport ? 8 : 10);
       const computedStyle = window.getComputedStyle(target);
-      const elemRadius = parseInt(computedStyle.borderRadius, 10) || 16;
+      const elemRadius = parseInt(computedStyle.borderRadius, 10) || (isButtonTarget ? 8 : 16);
       const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
 
       const left = Math.max(4, rect.left - padding);
@@ -268,7 +366,7 @@ export default function CiteWiseApp() {
         left,
         width,
         height: rect.height + padding * 2,
-        borderRadius: Math.max(elemRadius + 4, 16),
+        borderRadius: isButtonTarget ? 10 : Math.max(elemRadius + 4, 16),
       });
     };
 
@@ -313,7 +411,7 @@ export default function CiteWiseApp() {
   }, [guideOpen]);
 
   function advanceGuide() {
-    if (guideStep === currentGuideSteps.length - 1) {
+    if (guideStep >= currentGuideSteps.length - 1) {
       setGuideStep(-1);
       return;
     }
@@ -322,9 +420,13 @@ export default function CiteWiseApp() {
 
   const currentTarget = currentGuideSteps[guideStep]?.target;
   const isNearGuideBtn = currentTarget === "workflow-guide-button";
-  const isDockedLeft = !isMobile && !isNearGuideBtn && (
+  const isActionBtn = currentTarget && currentTarget.startsWith("citewise-btn-");
+  const isDockedLeft = !isMobile && !isNearGuideBtn && !isActionBtn && (
     (spotlight && spotlight.left > (typeof window !== "undefined" ? window.innerWidth * 0.45 : 600))
   );
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+  const isAboveActionBtn = isActionBtn && spotlight && (spotlight.top + spotlight.height + 220 > vh);
 
   useEffect(() => {
     if (groupId) localStorage.setItem(scopedKey(groupId, "step"), step.toString());
@@ -366,9 +468,29 @@ export default function CiteWiseApp() {
     setStep(1);
   };
 
+  const handleLockStep3 = useCallback(() => {
+    setMaxUnlockedStep(1);
+    if (groupId) {
+      localStorage.setItem(scopedKey(groupId, "maxUnlockedStep"), "1");
+      localStorage.setItem(scopedKey(groupId, "synthesisUnlocked"), "false");
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    if (step > maxUnlockedStep) {
+      setStep(maxUnlockedStep);
+    }
+  }, [step, maxUnlockedStep]);
+
   const handleModuleStepChange = (nextStep, nextSessionId) => {
     if (nextSessionId) setSessionId(nextSessionId);
     if (typeof nextStep !== "number") return;
+    if (nextStep >= 2) {
+      if (groupId) {
+        localStorage.setItem(scopedKey(groupId, "synthesisUnlocked"), "true");
+        localStorage.setItem(scopedKey(groupId, "maxUnlockedStep"), Math.max(nextStep, 2).toString());
+      }
+    }
     setMaxUnlockedStep((prev) => Math.max(prev, nextStep));
     if (nextStep < 3) setStep(nextStep);
   };
@@ -394,7 +516,7 @@ export default function CiteWiseApp() {
         textAlign: "left",
       }}
     >
-      <Navbar appName="CiteWise" />
+      <Navbar appName="CiteWise" onGuideClick={() => setGuideStep(0)} />
 
       <main
         className="workflow-shell"
@@ -403,7 +525,7 @@ export default function CiteWiseApp() {
           paddingBottom: isMobile ? `calc(${MOBILE_TABBAR_HEIGHT}px + env(safe-area-inset-bottom) + 16px)` : undefined,
         }}
       >
-        {/* Workspace Page Header with Back button beside page title & Guide button on right */}
+        {/* Workspace Page Header with Back button beside page title */}
         <header
           className="workflow-header"
           data-guide="workspace-header"
@@ -426,23 +548,12 @@ export default function CiteWiseApp() {
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="groups-guide-trigger-btn workflow-guide-button"
-            data-guide="workflow-guide-button"
-            onClick={() => setGuideStep(0)}
-            aria-label="Open page guide"
-          >
-            <Compass size={16} />
-            <span>Guide</span>
-          </button>
         </header>
 
         <div className="workflow-content">
           {/* Workflow Progression Stepper Bar */}
           <div
             className="workflow-stepper"
-            data-guide="workflow-stepper"
             style={{
               margin: 0,
               boxSizing: "border-box",
@@ -471,6 +582,7 @@ export default function CiteWiseApp() {
                   groupId={groupId}
                   sessionId={sessionId}
                   onStepChange={handleModuleStepChange}
+                  onLockStep3={handleLockStep3}
                 />
               )}
 
@@ -502,18 +614,34 @@ export default function CiteWiseApp() {
             />
           )}
           <section
-            className={`workflow-guide-card${isDockedLeft ? " is-dock-left" : ""}${isNearGuideBtn ? " is-near-guide-button" : ""}`}
+            className={`workflow-guide-card${isDockedLeft ? " is-dock-left" : ""}${isNearGuideBtn ? " is-near-guide-button" : ""}${isActionBtn ? ` is-near-action-button${isAboveActionBtn ? " is-above-button" : ""}` : ""}`}
             style={
               isMobile
-                ? currentTarget === "workflow-stepper"
+                ? isActionBtn && spotlight
+                  ? {
+                      top: !isAboveActionBtn ? Math.round(spotlight.top + spotlight.height + 12) : "auto",
+                      bottom: isAboveActionBtn ? Math.max(16, Math.round(vh - spotlight.top + 12)) : "auto",
+                      left: "16px",
+                      right: "16px",
+                      width: "auto",
+                    }
+                  : currentTarget === "workflow-stepper"
                   ? { top: "16px", bottom: "auto", left: "16px", right: "16px", width: "auto" }
                   : { bottom: "80px", top: "auto", left: "16px", right: "16px", width: "auto" }
                 : isNearGuideBtn && spotlight
                 ? {
-                    top: Math.max(150, Math.round(spotlight.top + spotlight.height + 16)),
+                    top: Math.max(76, Math.round(spotlight.top + spotlight.height + 14)),
                     bottom: "auto",
-                    right: Math.max(16, Math.round((typeof window !== "undefined" ? window.innerWidth : 1200) - (spotlight.left + spotlight.width))),
+                    right: Math.max(16, Math.round(vw - (spotlight.left + spotlight.width))),
                     left: "auto",
+                  }
+                : isActionBtn && spotlight
+                ? {
+                    top: !isAboveActionBtn ? Math.round(spotlight.top + spotlight.height + 14) : "auto",
+                    bottom: isAboveActionBtn ? Math.max(16, Math.round(vh - spotlight.top + 14)) : "auto",
+                    right: Math.max(16, Math.min(vw - 390, Math.round(vw - (spotlight.left + spotlight.width) - 10))),
+                    left: "auto",
+                    "--guide-arrow-right": `${Math.max(20, Math.min(340, Math.round(vw - (spotlight.left + spotlight.width / 2) - Math.max(16, Math.min(vw - 390, Math.round(vw - (spotlight.left + spotlight.width) - 10))) - 7)))}px`,
                   }
                 : undefined
             }
@@ -537,13 +665,15 @@ export default function CiteWiseApp() {
             <h2 id="citewise-guide-title">{currentGuideSteps[guideStep]?.title}</h2>
             <p>{currentGuideSteps[guideStep]?.description}</p>
             <div className="workflow-guide-actions">
-              <button
-                type="button"
-                className="workflow-guide-skip"
-                onClick={() => setGuideStep(-1)}
-              >
-                Skip Tour
-              </button>
+              {guideStep < currentGuideSteps.length - 1 && (
+                <button
+                  type="button"
+                  className="workflow-guide-skip"
+                  onClick={() => setGuideStep(-1)}
+                >
+                  Skip Tour
+                </button>
+              )}
               <div className="workflow-guide-nav-buttons">
                 {guideStep > 0 && (
                   <button
@@ -555,7 +685,7 @@ export default function CiteWiseApp() {
                   </button>
                 )}
                 <button type="button" className="workflow-guide-next" onClick={advanceGuide}>
-                  {guideStep === currentGuideSteps.length - 1 ? "Finish" : "Next"}
+                  {guideStep >= currentGuideSteps.length - 1 ? "Finish" : "Next"}
                 </button>
               </div>
             </div>

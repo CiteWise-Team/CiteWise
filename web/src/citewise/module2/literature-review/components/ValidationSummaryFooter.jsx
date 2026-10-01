@@ -112,33 +112,40 @@ export default function ValidationSummaryFooter({
                         alignItems: "center",
                         gap: "10px",
                         background: canProceed
-                            ? "linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+                            ? "#ea580c"
                             : (isDark ? "rgba(255, 255, 255, 0.08)" : "#f3f4f6"),
-                        border: canProceed ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none"),
+                        border: canProceed ? "1px solid #ea580c" : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e5e7eb"),
                         borderRadius: "8px",
-                        padding: isMobile ? "12px 14px" : "14px 28px",
+                        padding: isMobile ? "10px 14px" : "12px 24px",
                         cursor: canProceed ? "pointer" : "not-allowed",
-                        transition: "background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease",
+                        transition: "all 180ms ease",
                         opacity: canProceed ? 1 : 0.6,
-                        boxShadow: canProceed ? "0 4px 12px rgba(249, 115, 22, 0.25)" : "none",
+                        boxShadow: canProceed ? "0 2px 8px rgba(234, 88, 12, 0.22)" : "none",
                     }}
                     onMouseEnter={(e) => {
                         if (canProceed) {
-                            e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
-                            e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.4)";
+                            e.currentTarget.style.background = "#c2410c";
+                            e.currentTarget.style.borderColor = "#c2410c";
+                            e.currentTarget.style.transform = "translateY(-1px)";
+                            e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
                         }
                     }}
                     onMouseLeave={(e) => {
                         if (canProceed) {
-                            e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
-                            e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
+                            e.currentTarget.style.background = "#ea580c";
+                            e.currentTarget.style.borderColor = "#ea580c";
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
                         }
                     }}
                     onMouseDown={(e) => {
-                        if (canProceed) e.currentTarget.style.transform = "scale(0.97)";
+                        if (canProceed) {
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+                        }
                     }}
                     onMouseUp={(e) => {
-                        if (canProceed) e.currentTarget.style.transform = "scale(1)";
+                        if (canProceed) e.currentTarget.style.transform = "translateY(-1px)";
                     }}
                 >
                     {/* Arrow icon */}
