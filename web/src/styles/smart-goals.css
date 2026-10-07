@@ -2683,16 +2683,16 @@ html[data-theme="dark"] .smart-goals-page .smart-goals-pending-mark {
 
 .smart-goals-step-item {
   position: relative;
+  display: flex;
   min-width: 0;
+  align-items: center;
 }
 
 .smart-goals-step-item:not(:last-child)::after {
-  position: absolute;
-  z-index: 0;
-  top: 27px;
-  right: calc(-50% + 27px);
-  left: calc(50% + 27px);
+  flex: 1 1 auto;
+  min-width: 12px;
   height: 2px;
+  margin: 0 12px 0 4px;
   background: var(--sg-border);
   content: "";
   transition: background var(--sg-motion-standard) var(--sg-ease-state);
@@ -2706,7 +2706,8 @@ html[data-theme="dark"] .smart-goals-page .smart-goals-pending-mark {
   position: relative;
   z-index: 1;
   display: flex;
-  width: 100%;
+  flex: 0 1 auto;
+  width: auto;
   min-width: 0;
   min-height: 54px;
   align-items: center;
@@ -3749,9 +3750,7 @@ html[data-theme="dark"] .smart-goals-page .smart-goals-pending-mark {
   }
 
   .smart-goals-step-item:not(:last-child)::after {
-    top: 19px;
-    right: calc(-50% + 19px);
-    left: calc(50% + 19px);
+    margin: 0 4px;
   }
 
   .smart-goals-page .smart-goals-step {
