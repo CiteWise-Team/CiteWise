@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTheme } from "../../../../context/ThemeContext";
 
 export default function QuickNavigationList({
@@ -10,6 +11,7 @@ export default function QuickNavigationList({
   onBatchApprove, // ✨ NEW: optional callback for batch approve
 }) {
   const { isDark } = useTheme();
+  const [open, setOpen] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, index: null, name: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -95,6 +97,37 @@ export default function QuickNavigationList({
     setSelectedForApproval(new Set());
   };
 
+  const unapprovedInDocuments = documents
+    .map((doc, idx) => (!doc.approved ? idx : null))
+    .filter((idx) => idx !== null);
+
+  const targetIndices = (activeFilter !== "all" || searchQuery.trim())
+    ? filteredDocs
+        .map(({ doc, originalIndex }) => (!doc.approved ? originalIndex : null))
+        .filter((idx) => idx !== null)
+    : unapprovedInDocuments;
+
+  const isAllSelected =
+    targetIndices.length > 0 &&
+    targetIndices.every((idx) => selectedForApproval.has(idx));
+
+  const handleSelectAllToggle = () => {
+    if (targetIndices.length === 0) return;
+    if (isAllSelected) {
+      setSelectedForApproval((prev) => {
+        const next = new Set(prev);
+        targetIndices.forEach((idx) => next.delete(idx));
+        return next;
+      });
+    } else {
+      setSelectedForApproval((prev) => {
+        const next = new Set(prev);
+        targetIndices.forEach((idx) => next.add(idx));
+        return next;
+      });
+    }
+  };
+
   // ✨ Approve everything the user circle-selected
   const handleApproveSelected = () => {
     if (selectedForApproval.size === 0) return;
@@ -124,8 +157,8 @@ export default function QuickNavigationList({
         display: "flex",
         flexDirection: "column",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
-        height: "500px",
-        maxHeight: "540px",
+        height: open ? "500px" : "auto",
+        maxHeight: open ? "540px" : "none",
         boxSizing: "border-box",
         overflow: "hidden",
       }}
@@ -133,30 +166,20 @@ export default function QuickNavigationList({
       {/* Panel Header matching Data Import panels */}
       <div
         className="workflow-card-header"
+        onClick={() => setOpen((o) => !o)}
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "1.125rem 1.5rem",
           background: "var(--cw-bg-surface-elevated, #f9fafb)",
-          borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+          borderBottom: open ? "1px solid var(--cw-border, #e5e7eb)" : "none",
           flexShrink: 0,
+          cursor: "pointer",
+          userSelect: "none",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                style={{
-                  width: "16px",
-                  height: "2px",
-                  background: "#f97316",
-                  borderRadius: "1px",
-                }}
-              />
-            ))}
-          </div>
+        <div style={{ display: "flex", alignItems: "center" }}>
           <span
             className="workflow-card-header-title"
             style={{
@@ -170,32 +193,42 @@ export default function QuickNavigationList({
             Quick Navigation
           </span>
         </div>
-        <span
-          className="workflow-card-header-subtitle"
-          style={{
-            fontSize: "11px",
-            color: "var(--cw-text-muted, #6b7280)",
-            fontFamily: "'Poppins', sans-serif",
-            fontWeight: 500,
-          }}
-        >
-          {filteredDocs.length} of {totalCount} papers
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span
+            className="workflow-card-header-subtitle"
+            style={{
+              fontSize: "11px",
+              color: "var(--cw-text-muted, #6b7280)",
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 500,
+            }}
+          >
+            {filteredDocs.length} of {totalCount} papers
+          </span>
+          <span
+            className="cw-collapse-chevron"
+            style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}
+          >
+            {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
+        </div>
       </div>
 
-      {/* Main card body with controls, scroll list, and actions */}
-      <div
-        style={{
-          padding: "16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-          flex: 1,
-          minHeight: 0,
-          overflow: "hidden",
-          boxSizing: "border-box",
-        }}
-      >
+      {open && (
+        <>
+          {/* Main card body with controls, scroll list, and actions */}
+          <div
+            style={{
+              padding: "16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              flex: 1,
+              minHeight: 0,
+              overflow: "hidden",
+              boxSizing: "border-box",
+            }}
+          >
         {/* Pinned Top Controls */}
         <div style={{ display: "flex", flexDirection: "column", gap: "10px", flexShrink: 0 }}>
           {/* Search Input Bar */}
@@ -269,35 +302,168 @@ export default function QuickNavigationList({
                   type="button"
                   onClick={() => setActiveFilter(tab.id)}
                   style={{
-                    background: isSelected ? "#f97316" : (isDark ? "#171624" : "#ffffff"),
+                    background: isSelected ? "#ea580c" : (isDark ? "#171624" : "#ffffff"),
                     color: isSelected ? "#ffffff" : (isDark ? "#cbd5e1" : "#6b7280"),
-                    border: `1px solid ${isSelected ? "#f97316" : (isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb")}`,
-                    borderRadius: "12px",
-                    padding: "3px 8px",
+                    border: `1px solid ${isSelected ? "#ea580c" : (isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb")}`,
+                    borderRadius: "8px",
+                    padding: "4px 10px",
                     fontSize: "11px",
                     fontFamily: "'Poppins', sans-serif",
                     fontWeight: isSelected ? 600 : 500,
                     cursor: "pointer",
-                    transition: "all 0.15s ease",
+                    transition: "all 180ms ease",
                     whiteSpace: "nowrap",
+                    boxShadow: isSelected ? "0 2px 8px rgba(234, 88, 12, 0.22)" : "none",
                   }}
                   onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.borderColor = "#f97316";
-                      e.currentTarget.style.color = "#f97316";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    if (isSelected) {
+                      e.currentTarget.style.background = "#c2410c";
+                      e.currentTarget.style.borderColor = "#c2410c";
+                      e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                    } else {
+                      e.currentTarget.style.borderColor = "#ea580c";
+                      e.currentTarget.style.color = "#ea580c";
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (!isSelected) {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    if (isSelected) {
+                      e.currentTarget.style.background = "#ea580c";
+                      e.currentTarget.style.borderColor = "#ea580c";
+                      e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                    } else {
                       e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb";
                       e.currentTarget.style.color = isDark ? "#cbd5e1" : "#6b7280";
                     }
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >
                   {tab.label}
                 </button>
               );
             })}
+          </div>
+
+          {/* Selection Toolbar Row: Select All & count */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "8px",
+              padding: "2px 2px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "11px",
+                fontFamily: "'Poppins', sans-serif",
+                color: isDark ? "#94a3b8" : "#6b7280",
+                fontWeight: 500,
+              }}
+            >
+              {selectionCount > 0 ? (
+                <span>
+                  <strong style={{ color: "#ea580c" }}>{selectionCount}</strong> of {totalCount} selected
+                </span>
+              ) : approvedCount === totalCount && totalCount > 0 ? (
+                <span style={{ color: "#16a34a", fontWeight: 600 }}>All papers approved</span>
+              ) : (
+                <span>
+                  {unapprovedInDocuments.length} paper{unapprovedInDocuments.length !== 1 ? "s" : ""} to approve
+                </span>
+              )}
+            </span>
+
+            <button
+              type="button"
+              onClick={handleSelectAllToggle}
+              disabled={totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                background: isAllSelected
+                  ? (isDark ? "rgba(234, 88, 12, 0.22)" : "#fff7ed")
+                  : (isDark ? "#171624" : "#ffffff"),
+                color: isAllSelected
+                  ? "#ea580c"
+                  : (isDark ? "#e2e8f0" : "#374151"),
+                border: `1px solid ${
+                  isAllSelected
+                    ? "#ea580c"
+                    : (isDark ? "rgba(255, 255, 255, 0.14)" : "#d1d5db")
+                }`,
+                borderRadius: "6px",
+                padding: "3px 8px",
+                fontSize: "11px",
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: 600,
+                cursor: totalCount === 0 || (approvedCount === totalCount && selectionCount === 0) ? "not-allowed" : "pointer",
+                opacity: totalCount === 0 || (approvedCount === totalCount && selectionCount === 0) ? 0.6 : 1,
+                transition: "all 160ms ease",
+                boxShadow: isAllSelected ? "0 1px 4px rgba(234, 88, 12, 0.18)" : "none",
+                whiteSpace: "nowrap",
+              }}
+              onMouseEnter={(e) => {
+                if (totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)) return;
+                e.currentTarget.style.borderColor = "#ea580c";
+                e.currentTarget.style.color = "#ea580c";
+                e.currentTarget.style.background = isDark ? "rgba(234, 88, 12, 0.16)" : "#fff7ed";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={(e) => {
+                if (totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)) return;
+                e.currentTarget.style.borderColor = isAllSelected
+                  ? "#ea580c"
+                  : (isDark ? "rgba(255, 255, 255, 0.14)" : "#d1d5db");
+                e.currentTarget.style.color = isAllSelected
+                  ? "#ea580c"
+                  : (isDark ? "#e2e8f0" : "#374151");
+                e.currentTarget.style.background = isAllSelected
+                  ? (isDark ? "rgba(234, 88, 12, 0.22)" : "#fff7ed")
+                  : (isDark ? "#171624" : "#ffffff");
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+              onMouseDown={(e) => {
+                if (totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)) return;
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+              title={
+                approvedCount === totalCount && selectionCount === 0
+                  ? "All uploaded papers are already approved"
+                  : isAllSelected
+                  ? "Deselect all papers"
+                  : "Select all uploaded papers for approval"
+              }
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {isAllSelected ? (
+                  <>
+                    <polyline points="9 11 12 14 22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </>
+                ) : (
+                  <>
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <polyline points="9 11 12 14 17 9" />
+                  </>
+                )}
+              </svg>
+              <span>{isAllSelected ? "Deselect All" : "Select All"}</span>
+            </button>
           </div>
         </div>
 
@@ -635,9 +801,31 @@ export default function QuickNavigationList({
                 color: isDark ? "#94a3b8" : "#9ca3af",
                 fontStyle: "italic",
                 textAlign: "center",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "5px",
               }}
             >
-              Click the circle next to one or more papers to select them.
+              <span>Click circles or use</span>
+              <button
+                type="button"
+                onClick={handleSelectAllToggle}
+                disabled={targetIndices.length === 0}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: targetIndices.length === 0 ? (isDark ? "#6b7280" : "#9ca3af") : "#ea580c",
+                  fontSize: "0.68rem",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 600,
+                  cursor: targetIndices.length === 0 ? "default" : "pointer",
+                  padding: 0,
+                  textDecoration: targetIndices.length === 0 ? "none" : "underline",
+                }}
+              >
+                Select All
+              </button>
             </div>
           )}
 
@@ -652,39 +840,42 @@ export default function QuickNavigationList({
               justifyContent: "center",
               gap: "8px",
               padding: "11px 16px",
-              borderRadius: "10px",
-              border: "none",
+              borderRadius: "8px",
+              border: selectionCount === 0 ? (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb") : "1px solid #ea580c",
               background:
                 selectionCount === 0
                   ? (isDark ? "rgba(255, 255, 255, 0.06)" : "#f3f4f6")
-                  : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                  : "#ea580c",
               color: selectionCount === 0 ? (isDark ? "#6b7280" : "#9ca3af") : "#ffffff",
               fontFamily: "'Poppins', sans-serif",
               fontSize: "0.85rem",
               fontWeight: 700,
               letterSpacing: "0.02em",
               cursor: selectionCount === 0 ? "not-allowed" : "pointer",
-              transition: "all 0.2s ease",
+              transition: "all 180ms ease",
               boxShadow:
                 selectionCount === 0
                   ? "none"
-                  : "0 4px 12px rgba(249, 115, 22, 0.25)",
+                  : "0 2px 8px rgba(234, 88, 12, 0.22)",
             }}
             onMouseEnter={(e) => {
               if (selectionCount === 0) return;
-              e.currentTarget.style.background =
-                "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
-              e.currentTarget.style.boxShadow =
-                "0 6px 16px rgba(249, 115, 22, 0.4)";
+              e.currentTarget.style.background = "#c2410c";
+              e.currentTarget.style.borderColor = "#c2410c";
+              e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
               e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
               if (selectionCount === 0) return;
-              e.currentTarget.style.background =
-                "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
-              e.currentTarget.style.boxShadow =
-                "0 4px 12px rgba(249, 115, 22, 0.25)";
+              e.currentTarget.style.background = "#ea580c";
+              e.currentTarget.style.borderColor = "#ea580c";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
               e.currentTarget.style.transform = "translateY(0)";
+            }}
+            onMouseDown={(e) => {
+              if (selectionCount === 0) return;
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
             }}
             title={
               selectionCount === 0
@@ -810,27 +1001,33 @@ export default function QuickNavigationList({
                   setDeleteConfirm({ show: false, index: null, name: "" });
                 }}
                 style={{
-                  background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  border: "none",
-                  borderRadius: "10px",
+                  background: "#ea580c",
+                  border: "1px solid #ea580c",
+                  borderRadius: "8px",
                   color: "#ffffff",
                   padding: "0.75rem 1rem",
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: "0.85rem",
                   fontWeight: 700,
                   cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.3)",
+                  transition: "all 180ms ease",
+                  boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
+                  e.currentTarget.style.background = "#c2410c";
+                  e.currentTarget.style.borderColor = "#c2410c";
                   e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.45)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
+                  e.currentTarget.style.background = "#ea580c";
+                  e.currentTarget.style.borderColor = "#ea580c";
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.3)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
                 }}
               >
                 Remove File
@@ -838,6 +1035,8 @@ export default function QuickNavigationList({
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
       <style>{`
         .citewise-queue-scroll::-webkit-scrollbar {

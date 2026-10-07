@@ -51,7 +51,13 @@ function uid() {
 // A gap: { id, text, source: 'catalyst' | 'user' | 'combined', note, selected }
 
 export function getGaps(sessionId) {
-  return read(sessionId, "gaps", []);
+  const gaps = read(sessionId, "gaps", []);
+  return gaps.map((g) => {
+    if (g.note && /^combined from/i.test(g.note.trim())) {
+      return { ...g, note: "" };
+    }
+    return g;
+  });
 }
 
 export function setGaps(sessionId, gaps) {
@@ -119,7 +125,7 @@ export function combineGaps(sessionId, ids) {
       id: uid(),
       text: combinedText,
       source: "combined",
-      note: `Combined from ${chosen.length} gaps`,
+      note: "",
       selected: true,
     },
   ];

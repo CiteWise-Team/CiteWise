@@ -75,7 +75,7 @@
 import { useState, useEffect } from "react";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function SearcherOutput({ results: propResults }) {
+export default function SearcherOutput({ results: propResults, isCollapsed = false, onToggleCollapse }) {
   // ✅ TEMP MOCK RESULTS
   const mockResults = [
     {
@@ -111,10 +111,12 @@ export default function SearcherOutput({ results: propResults }) {
   const active = results.find((r) => r.id === activeId);
 
   return (
-    <div className="h-100 d-flex flex-column rounded-4 workflow-result-card" style={{ minHeight: 0 }}>
+    <div className={`h-100 d-flex flex-column rounded-4 workflow-result-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
       <WorkflowCardHeader
         title="Search Results"
         subtitle="Review discovered web literature and sources."
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
         rightContent={
           results.length > 0 ? (
             <span
@@ -136,7 +138,8 @@ export default function SearcherOutput({ results: propResults }) {
         }
       />
 
-      <div className="workflow-result-content p-0 d-flex flex-grow-1 overflow-hidden cw-m-split">
+      {!isCollapsed && (
+        <div className="workflow-result-content p-0 d-flex flex-grow-1 overflow-hidden cw-m-split">
         {/* Left list */}
         <div style={{ width: "320px" }} className="border-end overflow-auto">
           {results.map((r) => (
@@ -169,6 +172,7 @@ export default function SearcherOutput({ results: propResults }) {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

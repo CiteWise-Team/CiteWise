@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Target } from "lucide-react";
+import { ArrowRight, BadgeCheck, ChevronDown, ChevronUp, Edit3, Loader2, Sparkles, Target } from "lucide-react";
 import SynthesisControlPanel from "./SynthesisControlPanel";
 import ApprovedSourceList from "./ApprovedSourceList";
 import GeneratedDraftDisplay from "./GeneratedDraftDisplay";
@@ -10,6 +10,11 @@ import DraftVersionHistory from "./DraftVersionHistory";
 import * as store from "../../../lib/citewiseStore";
 import { apiFetch } from "../../../../api/http";
 import useIsMobile from "../../../../hooks/useIsMobile";
+import { useTheme } from "../../../../context/ThemeContext";
+import { splitDraftSections } from "../utils/draftUtils";
+import ExportFileNameModal from "./ExportFileNameModal";
+import ModernToast from "../../../../components/ui/ModernToast";
+export { splitDraftSections };
 
 const crcTable = Array.from({ length: 256 }, (_, index) => {
   let c = index;
@@ -112,8 +117,17 @@ const createDocxBlob = (text) => {
   const paragraphs = String(text || "")
     .split(/\n/)
     .map((line) => {
-      const content = line.trim() ? escapeXml(line) : "";
-      return `<w:p><w:r><w:t xml:space="preserve">${content}</w:t></w:r></w:p>`;
+      const trimmed = line.trim();
+      const content = trimmed ? escapeXml(trimmed) : "";
+      if (!content) {
+        return `<w:p/>`;
+      }
+      const isHeading = /^#{1,6}\s+/.test(trimmed) || /^(References|Background|Rationale|Research Gap)$/i.test(trimmed);
+      const cleanContent = escapeXml(trimmed.replace(/^#{1,6}\s+/, ""));
+      if (isHeading) {
+        return `<w:p><w:pPr><w:jc w:val="left"/><w:spacing w:before="240" w:after="120"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">${cleanContent}</w:t></w:r></w:p>`;
+      }
+      return `<w:p><w:pPr><w:jc w:val="both"/><w:spacing w:after="160" w:line="360" w:lineRule="auto"/></w:pPr><w:r><w:rPr><w:sz w:val="22"/></w:rPr><w:t xml:space="preserve">${content}</w:t></w:r></w:p>`;
     })
     .join("");
 
@@ -159,7 +173,8 @@ const downloadBlob = (blob, filename) => {
 
 export default function SynthesisDraftModule({ sessionId, groupId, onStepChange, onProceedToSmartGoals }) {
   const isMobile = useIsMobile();
-  const styles = getStyles(isMobile);
+  const { isDark } = useTheme();
+  const styles = getStyles(isMobile, isDark);
   const [approvedDocuments, setApprovedDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generationStatus, setGenerationStatus] = useState("idle");
@@ -171,8 +186,28 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
   const [citationIntegrity, setCitationIntegrity] = useState(null);
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [selectedSmartGoalsVersion, setSelectedSmartGoalsVersion] = useState(null);
+  const [exportModalState, setExportModalState] = useState({
+    isOpen: false,
+    format: null,
+    defaultName: "citewise_synthesis",
+  });
+  const [toastState, setToastState] = useState({
+    show: false,
+    type: "success",
+    title: "",
+    message: "",
+    duration: 3800,
+  });
+
+  const showToast = (type, title, message, duration = 3800) => {
+    setToastState({ show: true, type, title, message, duration });
+  };
+  const [draftPanelOpen, setDraftPanelOpen] = useState(true);
+  const [isEditingDraft, setIsEditingDraft] = useState(false);
+  const [isParaphrasingDraft, setIsParaphrasingDraft] = useState(false);
+  const [paraphrasedDraft, setParaphrasedDraft] = useState(null);
+  const [hoveredHeaderButton, setHoveredHeaderButton] = useState(null);
 
   const DRAFT_STORAGE_KEY = `citewise_draft_${sessionId}`;
   const DOCS_STORAGE_KEY = `citewise_approved_docs_${sessionId}`;
@@ -410,8 +445,11 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
       setReferences(mergedReferences);
       setCitationsUsed(Array.isArray(payload.citationsUsed) ? payload.citationsUsed : []);
       setCitationIntegrity(payload.citationIntegrity ?? null);
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 2200);
+      showToast(
+        "success",
+        "Synthesis Successful",
+        "Your academic literature synthesis has been generated with integrated scholarly citations."
+      );
 
       store.addDraftVersion(sessionId, {
         content: mergedContent,
@@ -437,6 +475,7 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
       }
       setStatusText(errorMsg);
       setGenerationStatus(generatedContent ? "complete" : "idle");
+      showToast("error", "Synthesis Failed", errorMsg);
     }
   };
 
@@ -495,6 +534,7 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
       console.warn('[handleSaveEdit] DB sync failed (non-fatal):', err.message);
     }
 
+    setIsEditingDraft(false);
     store.addDraftVersion(sessionId, {
       content: editedContent,
       references: newRefs,
@@ -525,25 +565,171 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
     });
   };
 
-  const handleExport = async (format) => {
+  const handleSetCurrentAsFinal = () => {
+    if (!generatedContent?.trim()) return;
+    const findCurrent = () => store.getDraftVersions(sessionId).find((v) => v.content === generatedContent);
+    let version = findCurrent();
+    if (!version) {
+      store.addDraftVersion(sessionId, {
+        content: generatedContent,
+        references,
+        label: `Final v${store.getDraftVersions(sessionId).length + 1}`,
+        source: "edited",
+      });
+      version = findCurrent();
+    }
+    handleSelectSmartGoalsVersion(version);
+    showToast("success", "Final Version Set", `${version?.label || "Current draft"} will be used for SMART Goals.`);
+  };
+
+  const isCurrentDraftFinal = !!generatedContent && selectedSmartGoalsVersion?.content === generatedContent;
+  const canSetFinal = generationStatus === "complete" && !!generatedContent && !isEditingDraft && !paraphrasedDraft;
+
+  const handleParaphraseDraft = async () => {
+    if (isParaphrasingDraft || paraphrasedDraft || !generatedContent) return;
+    setIsParaphrasingDraft(true);
+    try {
+      // 1. FRONTEND ONLY: Separate section titles from research body content
+      const segments = splitDraftSections(generatedContent);
+
+      // 2. Paraphrase only the body prose segments; leave part titles untouched
+      const paraphrasedSegments = await Promise.all(
+        segments.map(async (seg) => {
+          if (seg.type !== "body" || !seg.text.trim()) {
+            return seg.text;
+          }
+          const { res, data } = await apiFetch("/api/v1/synthesis/paraphrase", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: seg.text.trim() }),
+          });
+          if (res.ok && data.success && data.text) {
+            return data.text.trim();
+          }
+          return seg.text;
+        })
+      );
+
+      // 3. Reconstruct draft preserving original section headers verbatim
+      let reconstructed = "";
+      for (let i = 0; i < segments.length; i++) {
+        const seg = segments[i];
+        const textVal = paraphrasedSegments[i] || seg.text;
+        if (seg.type === "header") {
+          reconstructed += (reconstructed ? "\n\n" : "") + textVal + "\n\n";
+        } else {
+          reconstructed += textVal;
+        }
+      }
+
+      const finalOutput = reconstructed.trim();
+      if (finalOutput && finalOutput !== generatedContent) {
+        setParaphrasedDraft(finalOutput);
+        if (!draftPanelOpen) setDraftPanelOpen(true);
+        showToast("success", "Paraphrase Ready", "Review the revisions and accept or discard changes.");
+      } else {
+        showToast("warning", "No Changes Detected", "Paraphrasing completed with no detectable alterations to the current text.");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("error", "Paraphrasing Failed", "Could not complete paraphrasing. Please check the network connection.");
+    } finally {
+      setIsParaphrasingDraft(false);
+    }
+  };
+
+  const handlePromptExport = (format) => {
     setExportDropdownOpen(false);
+    setExportModalState({
+      isOpen: true,
+      format,
+      defaultName: "citewise_synthesis",
+    });
+  };
+
+  const handleConfirmExport = async (customFileName) => {
+    const format = exportModalState.format;
+    const cleanName = (customFileName || exportModalState.defaultName || "citewise_synthesis")
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, "_");
+    setExportModalState((prev) => ({ ...prev, isOpen: false }));
+    await executeExport(format, cleanName);
+  };
+
+  const executeExport = async (format, fileName = "citewise_synthesis") => {
     const referencesText = references.join("\n\n");
     const fullText = `${generatedContent}\n\nReferences\n${referencesText}`;
 
     if (format === "TXT") {
+      // Justify plain text lines to fixed column width (80 cols) where feasible
+      const justifyPlainText = (text, colWidth = 80) => {
+        const paras = text.split(/\r?\n\r?\n/);
+        return paras
+          .map((para) => {
+            const trimmed = para.trim();
+            if (!trimmed) return "";
+            if (/^#{1,6}\s+/.test(trimmed) || /^(References|Background|Rationale|Research Gap)$/i.test(trimmed)) {
+              return trimmed;
+            }
+            const words = trimmed.split(/\s+/).filter(Boolean);
+            const lines = [];
+            let currentLine = [];
+            let currentLen = 0;
+
+            for (const word of words) {
+              const nextLen = currentLen === 0 ? word.length : currentLen + 1 + word.length;
+              if (nextLen <= colWidth) {
+                currentLine.push(word);
+                currentLen = nextLen;
+              } else {
+                lines.push(currentLine);
+                currentLine = [word];
+                currentLen = word.length;
+              }
+            }
+            if (currentLine.length > 0) lines.push(currentLine);
+
+            return lines
+              .map((lineWords, idx) => {
+                if (idx === lines.length - 1 || lineWords.length <= 1) {
+                  return lineWords.join(" ");
+                }
+                const totalChars = lineWords.reduce((s, w) => s + w.length, 0);
+                const totalSpacesNeeded = colWidth - totalChars;
+                const gaps = lineWords.length - 1;
+                const baseSpaces = Math.floor(totalSpacesNeeded / gaps);
+                const extraSpaces = totalSpacesNeeded % gaps;
+
+                let justifiedLine = "";
+                for (let g = 0; g < gaps; g++) {
+                  justifiedLine += lineWords[g];
+                  const spacesCount = baseSpaces + (g < extraSpaces ? 1 : 0);
+                  justifiedLine += " ".repeat(spacesCount);
+                }
+                justifiedLine += lineWords[gaps];
+                return justifiedLine;
+              })
+              .join("\n");
+          })
+          .join("\n\n");
+      };
+
+      const justifiedText = justifyPlainText(fullText, 80);
       const element = document.createElement("a");
-      const file = new Blob([fullText], { type: "text/plain" });
+      const file = new Blob([justifiedText], { type: "text/plain;charset=utf-8" });
       element.href = URL.createObjectURL(file);
-      element.download = `citewise_synthesis.txt`;
+      element.download = `${fileName}.txt`;
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
+      showToast("success", "Export Complete", `Exported "${fileName}.txt" successfully.`);
       return;
     }
 
     if (format === "DOCX") {
       const blob = createDocxBlob(fullText);
-      downloadBlob(blob, "citewise_synthesis.docx");
+      downloadBlob(blob, `${fileName}.docx`);
+      showToast("success", "Export Complete", `Exported "${fileName}.docx" successfully.`);
       return;
     }
 
@@ -557,33 +743,81 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
         const pageHeight = doc.internal.pageSize.getHeight();
         const usableWidth = pageWidth - margin * 2;
 
-        doc.setFont("Times", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-
-        const lines = doc.splitTextToSize(fullText, usableWidth);
-        const lineHeight = 12;
+        const bodyFontSize = 10;
+        const headingFontSize = 12;
+        const lineHeight = 15;
         let cursorY = margin;
 
-        for (let i = 0; i < lines.length; i++) {
-          if (cursorY + lineHeight > pageHeight - margin) {
-            doc.addPage();
-            cursorY = margin;
+        const rawParas = fullText.split(/\r?\n\r?\n/);
+
+        for (let pIdx = 0; pIdx < rawParas.length; pIdx++) {
+          const para = rawParas[pIdx].trim();
+          if (!para) continue;
+
+          const isHeading = /^#{1,6}\s+/.test(para) || /^(References|Background|Rationale|Research Gap)$/i.test(para);
+
+          if (isHeading) {
+            doc.setFont("Times", "bold");
+            doc.setFontSize(headingFontSize);
+            const headingText = para.replace(/^#{1,6}\s+/, "");
+            if (cursorY + lineHeight * 2 > pageHeight - margin) {
+              doc.addPage();
+              cursorY = margin;
+            }
+            if (cursorY > margin) cursorY += 8;
+            doc.text(headingText, margin, cursorY);
+            cursorY += lineHeight + 4;
+            continue;
           }
-          doc.text(lines[i], margin, cursorY);
-          cursorY += lineHeight;
+
+          // Justified body paragraph
+          doc.setFont("Times", "normal");
+          doc.setFontSize(bodyFontSize);
+
+          const lines = doc.splitTextToSize(para, usableWidth);
+
+          for (let i = 0; i < lines.length; i++) {
+            if (cursorY + lineHeight > pageHeight - margin) {
+              doc.addPage();
+              cursorY = margin;
+            }
+
+            const line = lines[i].trim();
+            const isLastLine = i === lines.length - 1;
+
+            if (isLastLine) {
+              doc.text(line, margin, cursorY);
+            } else {
+              const words = line.split(/\s+/).filter(Boolean);
+              if (words.length <= 1) {
+                doc.text(line, margin, cursorY);
+              } else {
+                const wordsWidth = words.reduce((acc, w) => acc + doc.getTextWidth(w), 0);
+                const gap = (usableWidth - wordsWidth) / (words.length - 1);
+                let curX = margin;
+                for (let w = 0; w < words.length; w++) {
+                  doc.text(words[w], curX, cursorY);
+                  curX += doc.getTextWidth(words[w]) + gap;
+                }
+              }
+            }
+            cursorY += lineHeight;
+          }
+          cursorY += 6;
         }
 
-        doc.save("citewise_synthesis.pdf");
+        doc.save(`${fileName}.pdf`);
+        showToast("success", "Export Complete", `Exported "${fileName}.pdf" successfully.`);
       } catch (err) {
         console.error("PDF generation failed:", err);
         const element = document.createElement("a");
         const file = new Blob([fullText], { type: "text/plain" });
         element.href = URL.createObjectURL(file);
-        element.download = `citewise_synthesis.pdf.txt`;
+        element.download = `${fileName}.pdf.txt`;
         document.body.appendChild(element);
         element.click();
         document.body.removeChild(element);
+        showToast("warning", "PDF Fallback", "Standard PDF generation failed. Downloaded text format instead.");
       } finally {
         setIsExportingPdf(false);
       }
@@ -596,6 +830,7 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
     const referencesText = references.join("\n\n");
     const fullText = `${generatedContent}\n\nReferences\n${referencesText}`;
     navigator.clipboard.writeText(fullText);
+    showToast("success", "Copied to Clipboard", "Introduction text and APA references copied to clipboard.");
   };
 
   return (
@@ -614,148 +849,393 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
         @keyframes fillProgress { to { width: 100%; } }
       `}</style>
 
-      {showSuccessToast && (
-        <div style={styles.toastOverlay}>
-          <div style={styles.toastContainer}>
-            <div style={styles.toastIcon}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline
-                  points="20 6 9 17 4 12"
-                  style={{
-                    strokeDasharray: 50,
-                    strokeDashoffset: 50,
-                    animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
-                  }}
-                />
-              </svg>
-            </div>
-            <h3 style={styles.toastTitle}>Synthesis Complete</h3>
-            <p style={styles.toastMessage}>Your literature synthesis has been generated with APA citations.</p>
-            <div style={styles.toastProgressTrack}>
-              <div style={styles.toastProgressFill} />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modern Floating Toast Notification */}
+      <ModernToast
+        show={toastState.show}
+        type={toastState.type}
+        title={toastState.title}
+        message={toastState.message}
+        duration={toastState.duration}
+        onClose={() => setToastState((prev) => ({ ...prev, show: false }))}
+      />
 
       <div style={styles.gridContainer}>
         <div style={styles.leftColumn}>
           <div style={{ order: 0, minWidth: 0 }} data-guide="citewise-synthesis-controls">
-          <SynthesisControlPanel
-            generationStatus={generationStatus}
-            generationProgress={generationProgress}
-            statusText={statusText}
-            onSynthesize={startSynthesis}
-            onRegenerate={resetGeneration}
-            hasApprovedDocuments={approvedDocuments.length > 0}
-            approvedCount={approvedDocuments.length}
-          />
+            <SynthesisControlPanel
+              generationStatus={generationStatus}
+              generationProgress={generationProgress}
+              statusText={statusText}
+              onSynthesize={startSynthesis}
+              onRegenerate={resetGeneration}
+              hasApprovedDocuments={approvedDocuments.length > 0}
+              approvedCount={approvedDocuments.length}
+            />
           </div>
-          <div style={styles.leftColumnRest} data-guide="citewise-approved-sources">
-          <InstructionsPanel sessionId={sessionId} />
-          <SourceUsageTransparency
-            sessionId={sessionId}
-            documents={approvedDocuments}
-          />
-          <DraftVersionHistory
-            sessionId={sessionId}
-            currentContent={generatedContent}
-            onRestore={handleRestoreVersion}
-            selectedSmartGoalsVersionId={selectedSmartGoalsVersion?.id}
-            onSelectForSmartGoals={handleSelectSmartGoalsVersion}
-          />
-          <ApprovedSourceList 
-            sessionId={sessionId}
-            documents={approvedDocuments} 
-            loading={loading} 
-            onUpdateSources={(newDocs) => {
-              setApprovedDocuments(newDocs);
-              localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(newDocs));
-              const currentUsage = store.getRrlUsage(sessionId) || {};
-              store.setRrlUsage(sessionId, {
-                ...currentUsage,
-                selectedDocumentIds: newDocs.map(d => String(d.id))
-              });
-            }}
-            onOverrideComplete={() => {
-              if (approvedDocuments.length > 0 && sessionId && generationStatus === "complete") {
-                fastUpdateCitations(generatedContent || undefined);
-              }
-            }}
-          />
-          </div>
-        </div>
-
-        <div style={styles.rightColumn} data-guide="citewise-draft-editor">
-          <div style={styles.rightPanel}>
-            <div className="workflow-card-header" style={styles.rightPanelHeader}>
-              <div>
-                <span style={styles.rightPanelTitle}>Generated Introduction</span>
-                <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
-                  Review, edit, and export your literature synthesis draft.
-                </p>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => onProceedToSmartGoals?.(selectedSmartGoalsVersion)}
-                  disabled={!selectedSmartGoalsVersion || !groupId}
-                  title={selectedSmartGoalsVersion ? `Use ${selectedSmartGoalsVersion.label} for SMART Goals` : "Select a final version from Version History first"}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 7,
-                    minHeight: 36,
-                    padding: "0 11px",
-                    border: "1px solid #b5d7d0",
-                    borderRadius: 7,
-                    color: selectedSmartGoalsVersion ? "#176d62" : "#8b989b",
-                    background: selectedSmartGoalsVersion ? "#edf7f4" : "#f5f7f7",
-                    fontFamily: "'Poppins', sans-serif",
-                    fontSize: 11,
-                    fontWeight: 650,
-                    cursor: selectedSmartGoalsVersion && groupId ? "pointer" : "not-allowed",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  <Target size={15} />
-                  Proceed to SMART Goals
-                  <ArrowRight size={14} />
-                </button>
-                <ExportDraftDropdown 
-                  isOpen={exportDropdownOpen}
-                  onToggle={setExportDropdownOpen}
-                  onExport={handleExport}
-                  onCopy={copyToClipboard}
-                  isEnabled={generationStatus === "complete"}
-                  isExportingPdf={isExportingPdf}
-                />
-              </div>
+          <div style={styles.leftColumnRest}>
+            <div data-guide="citewise-guide-ai">
+              <InstructionsPanel sessionId={sessionId} />
             </div>
-            <div style={styles.rightPanelContent}>
-              <GeneratedDraftDisplay
-                generationStatus={generationStatus}
-                content={generatedContent}
-                references={references}
-                onSaveEdit={handleSaveEdit}
-                citationIntegrity={citationIntegrity}
+            <div data-guide="citewise-source-usage">
+              <SourceUsageTransparency
+                sessionId={sessionId}
+                documents={approvedDocuments}
+              />
+            </div>
+            <div data-guide="citewise-version-history">
+              <DraftVersionHistory
+                sessionId={sessionId}
+                currentContent={generatedContent}
+                onRestore={handleRestoreVersion}
+                selectedSmartGoalsVersionId={selectedSmartGoalsVersion?.id}
+                onSelectForSmartGoals={handleSelectSmartGoalsVersion}
+              />
+            </div>
+            <div data-guide="citewise-source-documents">
+              <ApprovedSourceList 
+                sessionId={sessionId}
+                documents={approvedDocuments} 
+                loading={loading} 
+                onUpdateSources={(newDocs) => {
+                  setApprovedDocuments(newDocs);
+                  localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(newDocs));
+                  const currentUsage = store.getRrlUsage(sessionId) || {};
+                  store.setRrlUsage(sessionId, {
+                    ...currentUsage,
+                    selectedDocumentIds: newDocs.map(d => String(d.id))
+                  });
+                }}
+                onOverrideComplete={() => {
+                  if (approvedDocuments.length > 0 && sessionId && generationStatus === "complete") {
+                    fastUpdateCitations(generatedContent || undefined);
+                  }
+                }}
               />
             </div>
           </div>
         </div>
+
+        <div style={styles.rightColumn} data-guide="citewise-draft-editor">
+          <div style={{ ...styles.rightPanel, height: draftPanelOpen ? "100%" : "auto", minHeight: draftPanelOpen ? (isMobile ? "320px" : "500px") : "0" }}>
+            <div
+              className="workflow-card-header"
+              onClick={() => setDraftPanelOpen((o) => !o)}
+              style={{
+                ...styles.rightPanelHeader,
+                borderBottom: draftPanelOpen ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+                cursor: "pointer",
+                userSelect: "none",
+                flexWrap: "nowrap",
+              }}
+            >
+              <div style={{ minWidth: 0, flex: "1 1 auto", marginRight: "8px" }}>
+                <span style={styles.rightPanelTitle}>Generated Introduction</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "auto", justifyContent: "flex-end", flexShrink: 0 }}>
+                <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "auto", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    onClick={() => onProceedToSmartGoals?.(selectedSmartGoalsVersion)}
+                    disabled={!selectedSmartGoalsVersion || !groupId}
+                    title={selectedSmartGoalsVersion ? `Use ${selectedSmartGoalsVersion.label} for SMART Goals` : "Select a final version from Version History first"}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 7,
+                      minHeight: 32,
+                      padding: "0 11px",
+                      border: isDark ? "1px solid rgba(94, 234, 212, 0.35)" : "1px solid #b5d7d0",
+                      borderRadius: 8,
+                      color: selectedSmartGoalsVersion
+                        ? (isDark ? "#5eead4" : "#176d62")
+                        : (isDark ? "#6b7280" : "#8b989b"),
+                      background: selectedSmartGoalsVersion
+                        ? (isDark ? "rgba(20, 118, 107, 0.22)" : "#edf7f4")
+                        : (isDark ? "rgba(255, 255, 255, 0.04)" : "#f5f7f7"),
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: 11,
+                      fontWeight: 650,
+                      cursor: selectedSmartGoalsVersion && groupId ? "pointer" : "not-allowed",
+                      opacity: selectedSmartGoalsVersion && groupId ? 1 : 0.45,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <Target size={15} />
+                    Proceed to SMART Goals
+                    <ArrowRight size={14} />
+                  </button>
+
+                  {/* Set as Final Icon Button */}
+                  <div data-guide="citewise-btn-set-final" style={{ position: "relative", display: "inline-flex" }}>
+                    <button
+                      type="button"
+                      title={isCurrentDraftFinal ? "Final version selected" : "Set as final"}
+                      aria-label="Set as final"
+                      aria-pressed={isCurrentDraftFinal}
+                      disabled={!canSetFinal}
+                      onClick={handleSetCurrentAsFinal}
+                      onMouseEnter={() => setHoveredHeaderButton("final")}
+                      onMouseLeave={() => setHoveredHeaderButton(null)}
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "8px",
+                        padding: 0,
+                        background: isCurrentDraftFinal
+                          ? (isDark ? "rgba(20, 118, 107, 0.22)" : "#e8f5f1")
+                          : (isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)"),
+                        color: !canSetFinal
+                          ? (isDark ? "#4b5563" : "#cbd5e1")
+                          : isCurrentDraftFinal || hoveredHeaderButton === "final"
+                            ? (isDark ? "#5eead4" : "#14766b")
+                            : (isDark ? "#cbd5e1" : "#4b5563"),
+                        border: isCurrentDraftFinal
+                          ? `1px solid ${isDark ? "rgba(94, 234, 212, 0.45)" : "#75b9aa"}`
+                          : (isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)"),
+                        cursor: canSetFinal ? "pointer" : "not-allowed",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: canSetFinal ? 1 : 0.45,
+                        transition: "all 0.18s ease",
+                        transform: hoveredHeaderButton === "final" && canSetFinal ? "scale(1.06)" : "scale(1)",
+                      }}
+                    >
+                      <BadgeCheck size={15} />
+                    </button>
+                    {hoveredHeaderButton === "final" && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "calc(100% + 10px)",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          background: isDark ? "#1e293b" : "#0f172a",
+                          color: "#ffffff",
+                          fontSize: "0.74rem",
+                          fontWeight: 600,
+                          fontFamily: "'Poppins', sans-serif",
+                          padding: "5px 10px",
+                          borderRadius: "6px",
+                          whiteSpace: "nowrap",
+                          pointerEvents: "none",
+                          boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.6)" : "0 8px 20px rgba(0,0,0,0.25)",
+                          border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid rgba(0, 0, 0, 0.1)",
+                          zIndex: 9999,
+                        }}
+                      >
+                        {isCurrentDraftFinal ? "Final version selected" : "Set as final"}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Paraphrase Icon Button */}
+                  <div data-guide="citewise-btn-paraphrase" style={{ position: "relative", display: "inline-flex" }}>
+                    <button
+                      type="button"
+                      title="Paraphrase"
+                      aria-label="Paraphrase"
+                      disabled={generationStatus !== "complete" || !generatedContent || isParaphrasingDraft || !!paraphrasedDraft}
+                      onClick={() => handleParaphraseDraft()}
+                      onMouseEnter={() => setHoveredHeaderButton("paraphrase")}
+                      onMouseLeave={() => setHoveredHeaderButton(null)}
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "8px",
+                        padding: 0,
+                        background: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
+                        color: (generationStatus !== "complete" || !generatedContent || isParaphrasingDraft || !!paraphrasedDraft)
+                          ? (isDark ? "#4b5563" : "#cbd5e1")
+                          : (hoveredHeaderButton === "paraphrase")
+                            ? "#ea580c"
+                            : (isDark ? "#cbd5e1" : "#4b5563"),
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)",
+                        cursor: (generationStatus !== "complete" || !generatedContent || isParaphrasingDraft || !!paraphrasedDraft)
+                          ? "not-allowed"
+                          : "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: (generationStatus !== "complete" || !generatedContent || isParaphrasingDraft || !!paraphrasedDraft) ? 0.45 : 1,
+                        transition: "all 0.18s ease",
+                        transform: hoveredHeaderButton === "paraphrase" && generationStatus === "complete" && !!generatedContent && !isParaphrasingDraft && !paraphrasedDraft ? "scale(1.06)" : "scale(1)",
+                      }}
+                    >
+                      {isParaphrasingDraft ? (
+                        <span
+                          className="cw-spinning"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "15px",
+                            height: "15px",
+                            transformOrigin: "center center",
+                            animation: "cw-spin 0.85s linear infinite",
+                          }}
+                        >
+                          <Loader2 size={15} />
+                        </span>
+                      ) : (
+                        <Sparkles size={15} />
+                      )}
+                    </button>
+                    {hoveredHeaderButton === "paraphrase" && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "calc(100% + 10px)",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          background: isDark ? "#1e293b" : "#0f172a",
+                          color: "#ffffff",
+                          fontSize: "0.74rem",
+                          fontWeight: 600,
+                          fontFamily: "'Poppins', sans-serif",
+                          padding: "5px 10px",
+                          borderRadius: "6px",
+                          whiteSpace: "nowrap",
+                          pointerEvents: "none",
+                          boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.6)" : "0 8px 20px rgba(0,0,0,0.25)",
+                          border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid rgba(0, 0, 0, 0.1)",
+                          zIndex: 9999,
+                        }}
+                      >
+                        {isParaphrasingDraft ? "Paraphrasing..." : "Paraphrase"}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Edit Draft Icon Button */}
+                  <div data-guide="citewise-btn-edit" style={{ position: "relative", display: "inline-flex" }}>
+                    <button
+                      type="button"
+                      title={isEditingDraft ? "Cancel Editing" : "Edit Draft"}
+                      aria-label="Edit Draft"
+                      disabled={generationStatus !== "complete" || !generatedContent || !!paraphrasedDraft}
+                      onClick={() => {
+                        if (generationStatus === "complete" && !!generatedContent && !paraphrasedDraft) {
+                          if (!draftPanelOpen) setDraftPanelOpen(true);
+                          setIsEditingDraft((prev) => !prev);
+                        }
+                      }}
+                      onMouseEnter={() => setHoveredHeaderButton("edit")}
+                      onMouseLeave={() => setHoveredHeaderButton(null)}
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "8px",
+                        padding: 0,
+                        background: isEditingDraft
+                          ? (isDark ? "rgba(249, 115, 22, 0.22)" : "#fff7ed")
+                          : (isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)"),
+                        color: (generationStatus !== "complete" || !generatedContent || !!paraphrasedDraft)
+                          ? (isDark ? "#4b5563" : "#cbd5e1")
+                          : isEditingDraft || (hoveredHeaderButton === "edit")
+                            ? "#ea580c"
+                            : (isDark ? "#cbd5e1" : "#4b5563"),
+                        border: isEditingDraft
+                          ? "1px solid #ea580c"
+                          : (isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)"),
+                        cursor: (generationStatus !== "complete" || !generatedContent || !!paraphrasedDraft)
+                          ? "not-allowed"
+                          : "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: (generationStatus !== "complete" || !generatedContent || !!paraphrasedDraft) ? 0.45 : 1,
+                        transition: "all 0.18s ease",
+                        transform: hoveredHeaderButton === "edit" && generationStatus === "complete" && !!generatedContent && !paraphrasedDraft ? "scale(1.06)" : "scale(1)",
+                      }}
+                    >
+                      <Edit3 size={15} />
+                    </button>
+                    {hoveredHeaderButton === "edit" && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "calc(100% + 10px)",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          background: isDark ? "#1e293b" : "#0f172a",
+                          color: "#ffffff",
+                          fontSize: "0.74rem",
+                          fontWeight: 600,
+                          fontFamily: "'Poppins', sans-serif",
+                          padding: "5px 10px",
+                          borderRadius: "6px",
+                          whiteSpace: "nowrap",
+                          pointerEvents: "none",
+                          boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.6)" : "0 8px 20px rgba(0,0,0,0.25)",
+                          border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid rgba(0, 0, 0, 0.1)",
+                          zIndex: 9999,
+                        }}
+                      >
+                        {isEditingDraft ? "Cancel Editing" : "Edit Draft"}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Export Draft Dropdown Icon Button */}
+                  <div data-guide="citewise-btn-export" style={{ position: "relative", display: "inline-flex" }}>
+                    <ExportDraftDropdown 
+                      isOpen={exportDropdownOpen}
+                      onToggle={setExportDropdownOpen}
+                      onExport={handlePromptExport}
+                      onCopy={copyToClipboard}
+                      isEnabled={generationStatus === "complete" && !!generatedContent}
+                      isExportingPdf={isExportingPdf}
+                    />
+                  </div>
+                </div>
+                <span style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}>
+                  {draftPanelOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </span>
+              </div>
+            </div>
+            {draftPanelOpen && (
+              <div style={styles.rightPanelContent}>
+                <GeneratedDraftDisplay
+                  generationStatus={generationStatus}
+                  generationProgress={generationProgress}
+                  statusText={statusText}
+                  content={generatedContent}
+                  references={references}
+                  onSaveEdit={handleSaveEdit}
+                  citationIntegrity={citationIntegrity}
+                  isEditing={isEditingDraft}
+                  setIsEditing={setIsEditingDraft}
+                  paraphrasedDraft={paraphrasedDraft}
+                  setParaphrasedDraft={setParaphrasedDraft}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Export File Name Modal */}
+      <ExportFileNameModal
+        isOpen={exportModalState.isOpen}
+        format={exportModalState.format}
+        defaultFileName={exportModalState.defaultName}
+        onClose={() => setExportModalState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmExport}
+        isExporting={isExportingPdf}
+      />
     </div>
   );
 }
 
-const getStyles = (isMobile) => ({
+const getStyles = (isMobile, isDark) => ({
   container: {
     display: "flex",
     flexDirection: "column",
     fontFamily: "'Poppins', sans-serif",
     flex: 1,
-    color: "#111827",
+    color: isDark ? "var(--cw-text-primary, #f9fafb)" : "#111827",
     position: "relative",
   },
   gridContainer: {
@@ -766,8 +1246,9 @@ const getStyles = (isMobile) => ({
     flex: 1,
     display: isMobile ? "flex" : "grid",
     flexDirection: "column",
-    gridTemplateColumns: "320px minmax(0, 1fr)",
-    gap: isMobile ? "16px" : "24px",
+    gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "420px minmax(0, 1fr)",
+    gap: isMobile ? "16px" : "14px",
+    alignItems: isMobile ? "stretch" : "start",
     minHeight: 0,
     background: "transparent",
   },
@@ -776,13 +1257,14 @@ const getStyles = (isMobile) => ({
     : {
         display: "flex",
         flexDirection: "column",
-        gap: "24px",
+        gap: isMobile ? "16px" : "14px",
+        minHeight: 0,
       },
   leftColumnRest: {
     order: 2,
     display: "flex",
     flexDirection: "column",
-    gap: isMobile ? "16px" : "20px",
+    gap: isMobile ? "16px" : "14px",
     minWidth: 0,
   },
   rightColumn: {
@@ -791,24 +1273,30 @@ const getStyles = (isMobile) => ({
     order: 1,
   },
   rightPanel: {
-    background: "#ffffff",
-    border: "1px solid #e5e7eb",
+    background: isDark ? "var(--cw-bg-surface, #15141f)" : "#ffffff",
+    border: isDark ? "1px solid var(--cw-border, rgba(255, 255, 255, 0.1))" : "1px solid #e5e7eb",
     borderRadius: "16px",
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden",
+    overflow: "visible",
+    position: "relative",
     height: "100%",
     minHeight: isMobile ? "320px" : "500px",
-    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
+    boxShadow: isDark ? "0 4px 16px rgba(0, 0, 0, 0.35)" : "0 4px 16px rgba(0, 0, 0, 0.05)",
   },
   rightPanelHeader: {
     padding: isMobile ? "12px 14px" : "1.125rem 1.5rem",
     gap: "12px",
-    borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+    borderBottom: isDark ? "1px solid var(--cw-border, rgba(255, 255, 255, 0.1))" : "1px solid var(--cw-border, #e5e7eb)",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    background: "var(--cw-bg-surface-elevated, #f9fafb)",
+    background: isDark ? "var(--cw-bg-surface-elevated, #1e2638)" : "var(--cw-bg-surface-elevated, #f9fafb)",
+    borderTopLeftRadius: "16px",
+    borderTopRightRadius: "16px",
+    overflow: "visible",
+    position: "relative",
+    zIndex: 50,
   },
   rightPanelTitle: {
     fontFamily: "'Poppins', sans-serif",
@@ -820,70 +1308,9 @@ const getStyles = (isMobile) => ({
   rightPanelContent: {
     flex: 1,
     padding: isMobile ? "14px" : "24px",
-    background: "#ffffff",
+    background: isDark ? "var(--cw-bg-surface, #15141f)" : "#ffffff",
     overflowY: "auto",
-  },
-  toastOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(255, 255, 255, 0.9)",
-    backdropFilter: "blur(12px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 9999,
-    animation: "fadeInToast 0.3s ease-out forwards",
-  },
-  toastContainer: {
-    background: "#ffffff",
-    border: "1px solid #e5e7eb",
-    borderRadius: "24px",
-    padding: isMobile ? "2rem 1.25rem" : "2.5rem 3rem",
-    maxWidth: "480px",
-    width: "90%",
-    textAlign: "center",
-    boxShadow: "0 24px 60px rgba(0, 0, 0, 0.12), 0 0 40px rgba(34, 197, 94, 0.1)",
-    animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
-  },
-  toastIcon: {
-    width: "80px",
-    height: "80px",
-    borderRadius: "50%",
-    background: "rgba(34, 197, 94, 0.1)",
-    border: "2px solid #22c55e",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    margin: "0 auto 1.5rem",
-    boxShadow: "0 0 20px rgba(34, 197, 94, 0.15)",
-    animation: "pulseRing 2s infinite",
-  },
-  toastProgressTrack: {
-    width: "100%",
-    height: "4px",
-    background: "#e5e7eb",
-    borderRadius: "2px",
-    overflow: "hidden",
-  },
-  toastProgressFill: {
-    height: "100%",
-    background: "linear-gradient(90deg, #22c55e, #4ade80)",
-    width: "0%",
-    borderRadius: "2px",
-    animation: "fillProgress 2.2s linear forwards",
-  },
-  toastTitle: {
-    fontFamily: "'Poppins', sans-serif",
-    fontWeight: 800,
-    fontSize: "1.5rem",
-    color: "#111827",
-    margin: "0 0 0.5rem 0",
-  },
-  toastMessage: {
-    fontFamily: "'Poppins', sans-serif",
-    fontSize: "0.95rem",
-    color: "#6b7280",
-    lineHeight: "1.6",
-    margin: 0,
+    borderBottomLeftRadius: "16px",
+    borderBottomRightRadius: "16px",
   },
 });

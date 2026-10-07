@@ -5,7 +5,7 @@
 // specific excerpts that are eye-catching / most relevant. These choices flow
 // straight into the synthesis payload.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import * as store from "../../../lib/citewiseStore";
 import { useTheme } from "../../../../context/ThemeContext";
 
@@ -13,6 +13,17 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
   const { isDark } = useTheme();
   const [usage, setUsage] = useState(() => store.getRrlUsageFor(sessionId, documentId));
   const [customHighlightText, setCustomHighlightText] = useState("");
+  const highlightInputRef = useRef(null);
+
+  const handleAddHighlight = () => {
+    if (customHighlightText.trim()) {
+      setUsage(store.addCustomExcerpt(sessionId, documentId, customHighlightText.trim()));
+      setCustomHighlightText("");
+      if (highlightInputRef.current) {
+        highlightInputRef.current.style.height = "38px";
+      }
+    }
+  };
 
   useEffect(() => {
     setUsage(store.getRrlUsageFor(sessionId, documentId));
@@ -48,7 +59,7 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "15px", color: "#f97316" }}>
+        <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "15px", color: "#ea580c" }}>
           How this source should be used
         </span>
       </div>
@@ -65,18 +76,53 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
             <button
               key={opt.key}
               onClick={() => setUsageChoice(opt.key)}
+              className={`cw-usage-toggle-btn ${active ? "is-active" : "is-inactive"}`}
               style={{
-                background: active ? "#f97316" : (isDark ? "#1f1d2e" : "#ffffff"),
+                background: active ? "#ea580c" : (isDark ? "#1f1d2e" : "#ffffff"),
                 color: active ? "#ffffff" : (isDark ? "#cbd5e1" : "#374151"),
-                border: `1px solid ${active ? "#f97316" : (isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb")}`,
-                borderRadius: "999px",
-                padding: "5px 12px",
+                border: `1px solid ${active ? "#ea580c" : (isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb")}`,
+                borderRadius: "8px",
+                padding: "6px 14px",
                 cursor: "pointer",
                 fontFamily: "'Poppins', sans-serif",
-                fontSize: "0.76rem",
+                fontSize: "0.78rem",
                 fontWeight: 600,
-                transition: "all 0.2s ease",
-                boxShadow: active ? "0 2px 6px rgba(249, 115, 22, 0.25)" : "none",
+                transition: "all 180ms ease",
+                boxShadow: active ? "0 2px 8px rgba(234, 88, 12, 0.22)" : "0 1px 2px rgba(0, 0, 0, 0.04)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                if (active) {
+                  e.currentTarget.style.background = "#c2410c";
+                  e.currentTarget.style.borderColor = "#c2410c";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                } else {
+                  e.currentTarget.style.borderColor = "#ea580c";
+                  e.currentTarget.style.color = "#ea580c";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(234, 88, 12, 0.15)";
+                  if (isDark) {
+                    e.currentTarget.style.background = "rgba(234, 88, 12, 0.12)";
+                  }
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                if (active) {
+                  e.currentTarget.style.background = "#ea580c";
+                  e.currentTarget.style.borderColor = "#ea580c";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                } else {
+                  e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb";
+                  e.currentTarget.style.color = isDark ? "#cbd5e1" : "#374151";
+                  e.currentTarget.style.background = isDark ? "#1f1d2e" : "#ffffff";
+                  e.currentTarget.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.04)";
+                }
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = active
+                  ? "0 2px 6px rgba(234, 88, 12, 0.2)"
+                  : "0 1px 2px rgba(0, 0, 0, 0.06)";
               }}
             >
               {opt.label}
@@ -113,9 +159,9 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
                     gap: 8,
                     alignItems: "flex-start",
                     background: on
-                      ? (isDark ? "rgba(249, 115, 22, 0.18)" : "#fff7ef")
+                      ? (isDark ? "rgba(234, 88, 12, 0.18)" : "#fff7ef")
                       : (isDark ? "#1a1928" : "#ffffff"),
-                    border: `1px solid ${on ? "#f97316" : (isDark ? "rgba(255, 255, 255, 0.1)" : "#e5e7eb")}`,
+                    border: `1px solid ${on ? "#ea580c" : (isDark ? "rgba(255, 255, 255, 0.1)" : "#e5e7eb")}`,
                     borderRadius: "8px",
                     padding: "8px 10px",
                     cursor: "pointer",
@@ -126,7 +172,7 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
                     type="checkbox"
                     checked={on}
                     onChange={() => toggleExcerpt(idx)}
-                    style={{ marginTop: 2, width: 15, height: 15, accentColor: "#f97316", cursor: "pointer" }}
+                    style={{ marginTop: 2, width: 15, height: 15, accentColor: "#ea580c", cursor: "pointer" }}
                   />
                   <span style={{ fontSize: "0.78rem", color: isDark ? "#e2e8f0" : "#1f2937", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5, fontStyle: "italic" }}>
                     "{quote.length > 160 ? quote.slice(0, 160) + "…" : quote}"
@@ -156,28 +202,45 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
         <p style={{ margin: "0 0 10px", fontSize: "0.74rem", color: isDark ? "#94a3b8" : "#6b7280", fontFamily: "'Poppins', sans-serif", lineHeight: 1.5 }}>
           Paste or type any specific text from the PDF you want the AI to emphasize.
         </p>
-        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
           <textarea
+            ref={highlightInputRef}
             value={customHighlightText}
-            onChange={(e) => setCustomHighlightText(e.target.value)}
-            placeholder="Paste highlight here..."
+            onChange={(e) => {
+              setCustomHighlightText(e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = `${Math.min(Math.max(e.target.scrollHeight, 38), 180)}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleAddHighlight();
+              }
+            }}
+            placeholder="Paste or type any specific highlight here…"
+            rows={1}
             style={{
               flex: 1,
-              minHeight: 60,
-              resize: "vertical",
-              fontSize: "0.78rem",
+              minHeight: "38px",
+              height: "38px",
+              maxHeight: "180px",
               background: isDark ? "#100f18" : "#ffffff",
               border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e5e7eb",
-              borderRadius: "10px",
+              borderRadius: "8px",
               color: isDark ? "#f9fafb" : "#111827",
-              padding: "0.6rem 0.75rem",
+              padding: "0.5rem 0.85rem",
               fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.85rem",
+              lineHeight: 1.45,
+              resize: "none",
+              overflowY: "auto",
               outline: "none",
               boxSizing: "border-box",
+              transition: "border-color 0.15s ease, box-shadow 0.15s ease",
             }}
             onFocus={(e) => {
-              e.currentTarget.style.borderColor = "#f97316";
-              e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
+              e.currentTarget.style.borderColor = "#ea580c";
+              e.currentTarget.style.boxShadow = "0 0 0 2px rgba(234, 88, 12, 0.15)";
             }}
             onBlur={(e) => {
               e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb";
@@ -185,29 +248,44 @@ export default function RrlUsagePanel({ sessionId, documentId, excerpts = [] }) 
             }}
           />
           <button
-            onClick={() => {
-              if (customHighlightText.trim()) {
-                setUsage(store.addCustomExcerpt(sessionId, documentId, customHighlightText.trim()));
-                setCustomHighlightText("");
-              }
-            }}
+            onClick={handleAddHighlight}
             disabled={!customHighlightText.trim()}
             style={{
-              padding: "6px 12px",
-              fontSize: "0.76rem",
-              background: customHighlightText.trim()
-                ? "#f97316"
-                : (isDark ? "rgba(255, 255, 255, 0.06)" : "#f3f4f6"),
-              color: customHighlightText.trim()
-                ? "#ffffff"
-                : (isDark ? "#6b7280" : "#9ca3af"),
-              border: "none",
+              background: customHighlightText.trim() ? "#ea580c" : (isDark ? "rgba(255, 255, 255, 0.06)" : "#f3f4f6"),
+              color: customHighlightText.trim() ? "#ffffff" : (isDark ? "#6b7280" : "#9ca3af"),
+              border: `1px solid ${customHighlightText.trim() ? "#ea580c" : (isDark ? "rgba(255, 255, 255, 0.1)" : "#e5e7eb")}`,
               borderRadius: "8px",
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: 700,
+              padding: "0 18px",
+              height: "38px",
               cursor: customHighlightText.trim() ? "pointer" : "not-allowed",
-              transition: "all 0.2s ease",
-              boxShadow: customHighlightText.trim() ? "0 2px 6px rgba(249, 115, 22, 0.25)" : "none",
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.82rem",
+              fontWeight: 700,
+              flexShrink: 0,
+              transition: "all 180ms ease",
+              boxShadow: customHighlightText.trim() ? "0 2px 8px rgba(234, 88, 12, 0.22)" : "none",
+            }}
+            onMouseEnter={(e) => {
+              if (customHighlightText.trim()) {
+                e.currentTarget.style.background = "#c2410c";
+                e.currentTarget.style.borderColor = "#c2410c";
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (customHighlightText.trim()) {
+                e.currentTarget.style.background = "#ea580c";
+                e.currentTarget.style.borderColor = "#ea580c";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+              }
+            }}
+            onMouseDown={(e) => {
+              if (customHighlightText.trim()) {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+              }
             }}
           >
             Add

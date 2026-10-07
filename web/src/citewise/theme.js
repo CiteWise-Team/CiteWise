@@ -15,7 +15,7 @@ export const theme = {
 
   // Accents (CiteWise brand orange)
   accent: "#ea580c",
-  accentHover: "#f97316",
+  accentHover: "#c2410c",
   accentSoft: "rgba(234, 88, 12, 0.12)",
   accentBorder: "rgba(234, 88, 12, 0.35)",
 
@@ -80,13 +80,15 @@ export const ui = {
   primaryBtn: {
     background: theme.accent,
     color: "#fff",
-    border: "none",
-    borderRadius: "10px",
+    border: "1px solid #ea580c",
+    borderRadius: "8px",
     padding: "0.6rem 1rem",
     cursor: "pointer",
     fontFamily: theme.font,
-    fontSize: "0.85rem",
+    fontSize: "0.82rem",
     fontWeight: 700,
+    boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
+    transition: "all 180ms ease",
   },
   ghostBtn: {
     background: "transparent",
