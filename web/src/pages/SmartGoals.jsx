@@ -1,25 +1,58 @@
 import { useEffect, useState } from "react";
 import {
+  ArrowRight,
   BookOpen,
   Check,
   ChevronLeft,
   Clipboard,
   Compass,
   Download,
+  Eye,
   FileCheck2,
   Info,
   LoaderCircle,
   Pencil,
+  PenLine,
   Plus,
   RotateCcw,
   Sparkles,
   Target,
   Trash2,
+  X,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../api/http";
 import Navbar from "../components/Navbar";
+import { useTheme } from "../context/ThemeContext";
 import "../styles/smart-goals.css";
+
+function formatDraftTime(iso) {
+  if (!iso) return "Saved draft";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "Saved draft";
+  }
+}
+
+function getWordCount(text) {
+  return text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+}
+
+function readSavedIntroduction(groupId) {
+  try {
+    const raw = localStorage.getItem(`citewise.${groupId}.smartGoalsIntroduction`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 const GOAL_FIELDS = [
   ["objective", "Objective"],
@@ -192,6 +225,25 @@ function renderReviewText(value) {
 export default function SmartGoals() {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isDark } = useTheme();
+
+  const [selectedIntroduction, setSelectedIntroduction] = useState(() => {
+    if (location.state?.selectedIntroduction) return location.state.selectedIntroduction;
+    return readSavedIntroduction(groupId);
+  });
+  const [isSelectingIntroduction, setIsSelectingIntroduction] = useState(() => {
+    const existing = location.state?.selectedIntroduction || readSavedIntroduction(groupId);
+    return !existing;
+  });
+  const [savedIntroductions, setSavedIntroductions] = useState([]);
+  const [isLoadingDrafts, setIsLoadingDrafts] = useState(true);
+  const [selectedDraftId, setSelectedDraftId] = useState(() => {
+    const existing = location.state?.selectedIntroduction || readSavedIntroduction(groupId);
+    return existing?.id || null;
+  });
+  const [previewingDraft, setPreviewingDraft] = useState(null);
+
   const [groupData, setGroupData] = useState({});
   const [researchTitle, setResearchTitle] = useState("");
   const [selectedGap, setSelectedGap] = useState("");
@@ -204,6 +256,98 @@ export default function SmartGoals() {
   const [isSaving, setIsSaving] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    if (!groupId) return;
+
+    async function loadWorkspaceDrafts() {
+      setIsLoadingDrafts(true);
+      try {
+        let sid = localStorage.getItem(`citewise.${groupId}.sessionId`);
+        if (!sid) {
+          try {
+            const res = await apiRequest(`/v1/documents/session-for-group/${groupId}`);
+            sid = res?.data?.sessionId;
+            if (sid) localStorage.setItem(`citewise.${groupId}.sessionId`, sid);
+          } catch (err) {
+            console.warn("[SmartGoals] Could not resolve session for group:", err);
+          }
+        }
+
+        let versions = [];
+        if (sid) {
+          try {
+            const raw = localStorage.getItem(`citewise.draftVersions.${sid}`);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) versions = parsed;
+            }
+          } catch (err) {
+            console.warn("[SmartGoals] Failed parsing draft versions:", err);
+          }
+
+          try {
+            const activeRaw = localStorage.getItem(`citewise_draft_${sid}`);
+            if (activeRaw) {
+              const parsedActive = JSON.parse(activeRaw);
+              if (parsedActive?.content?.trim()) {
+                const alreadyPresent = versions.some(
+                  (v) => v.content?.trim() === parsedActive.content.trim()
+                );
+                if (!alreadyPresent) {
+                  versions.unshift({
+                    id: "active-synthesis-draft",
+                    label: "Current Synthesis Draft",
+                    content: parsedActive.content,
+                    references: Array.isArray(parsedActive.references) ? parsedActive.references : [],
+                    timestamp: parsedActive.timestamp || new Date().toISOString(),
+                    source: "current",
+                  });
+                }
+              }
+            }
+          } catch (err) {
+            console.warn("[SmartGoals] Failed parsing active draft:", err);
+          }
+        }
+
+        if (!active) return;
+        setSavedIntroductions(versions);
+        if (versions.length > 0) {
+          setSelectedDraftId((prev) => prev || (selectedIntroduction ? selectedIntroduction.id : versions[0].id));
+        }
+      } finally {
+        if (active) setIsLoadingDrafts(false);
+      }
+    }
+
+    loadWorkspaceDrafts();
+    return () => {
+      active = false;
+    };
+  }, [groupId, selectedIntroduction]);
+
+  function handleConfirmIntroSelection(draftToUse) {
+    const chosen = draftToUse || savedIntroductions.find((d) => d.id === selectedDraftId) || savedIntroductions[0];
+    if (chosen) {
+      setSelectedIntroduction(chosen);
+      try {
+        localStorage.setItem(`citewise.${groupId}.smartGoalsIntroduction`, JSON.stringify(chosen));
+      } catch (err) {
+        console.warn("[SmartGoals] Could not persist selected introduction:", err);
+      }
+    }
+    setIsSelectingIntroduction(false);
+  }
+
+  function handleSkipIntroSelection() {
+    setSelectedIntroduction(null);
+    try {
+      localStorage.removeItem(`citewise.${groupId}.smartGoalsIntroduction`);
+    } catch {}
+    setIsSelectingIntroduction(false);
+  }
 
   useEffect(() => {
     let active = true;
@@ -376,9 +520,13 @@ export default function SmartGoals() {
     setIsSaving(true);
     setError("");
     try {
+      const payloadGeneration = {
+        ...generation,
+        introductionVersion: selectedIntroduction?.label || generation.introductionVersion || null,
+      };
       await apiRequest("/api/v1/smart-goals/save", {
         method: "POST",
-        body: JSON.stringify({ groupId, generation }),
+        body: JSON.stringify({ groupId, generation: payloadGeneration }),
       });
       navigate("/groups");
     } catch (saveError) {
@@ -400,6 +548,249 @@ export default function SmartGoals() {
   const approvedPapers = readApprovedPapers(groupId);
   const approvedPaperCount = approvedPapers.length || generation?.approvedSourceCount || 0;
   const canGenerate = Boolean(researchTitle.trim() && selectedGap.trim());
+
+  if (isSelectingIntroduction) {
+    return (
+      <div className="smart-goals-page">
+        <Navbar />
+        <main className="smart-goals-shell">
+          <header className="workflow-header smart-goals-page-header">
+            <div className="workflow-header-left">
+              <button
+                className="workflow-back-btn"
+                type="button"
+                onClick={() => {
+                  if (selectedIntroduction || generation?.goals?.length) {
+                    setIsSelectingIntroduction(false);
+                  } else {
+                    navigate("/groups");
+                  }
+                }}
+                aria-label="Back"
+                title="Back"
+              >
+                <ChevronLeft size={20} strokeWidth={2.5} aria-hidden="true" />
+              </button>
+              <div className="workflow-title-block">
+                <h1>Select Introduction Draft</h1>
+                <p className="workflow-description">Choose which synthesized introduction from this workspace will guide your SMART research objectives.</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => navigate(`/citewise/${groupId}`)}
+                className="smart-goals-secondary-action"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, padding: "8px 14px", borderRadius: 8 }}
+                title="Open CiteWise workspace to draft or edit introductions"
+              >
+                <PenLine size={15} />
+                <span>Open CiteWise (Step 2)</span>
+              </button>
+            </div>
+          </header>
+
+          {isLoadingDrafts ? (
+            <div style={{ textAlign: "center", padding: "64px 20px" }}>
+              <LoaderCircle className="smart-goals-spinner" size={32} style={{ margin: "0 auto 16px", color: "#ea580c" }} />
+              <p style={{ color: "#64748b", fontFamily: "'Poppins', sans-serif", fontSize: "0.95rem" }}>
+                Loading saved introduction drafts for this workspace...
+              </p>
+            </div>
+          ) : savedIntroductions.length === 0 ? (
+            <div className="smart-goals-intro-empty-card">
+              <div className="smart-goals-intro-empty-icon">
+                <BookOpen size={36} />
+              </div>
+              <h2>No Saved Introductions Found</h2>
+              <p>
+                This workspace doesn't have any synthesized introduction drafts in CiteWise yet.
+                Drafting an introduction in Step 2 helps ground your SMART research goals in verified literature citations and empirical evidence.
+              </p>
+              <div className="smart-goals-intro-empty-actions">
+                <button
+                  type="button"
+                  className="smart-goals-generate"
+                  onClick={() => navigate(`/citewise/${groupId}`)}
+                  style={{ padding: "10px 22px", borderRadius: 10, fontSize: "0.92rem", fontWeight: 700 }}
+                >
+                  <PenLine size={16} />
+                  <span>Draft Introduction in CiteWise</span>
+                </button>
+                <button
+                  type="button"
+                  className="smart-goals-secondary-action"
+                  onClick={handleSkipIntroSelection}
+                  style={{ padding: "10px 20px", borderRadius: 10, fontSize: "0.92rem" }}
+                >
+                  <ArrowRight size={16} />
+                  <span>Continue to SMART Goals Without Draft</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="smart-goals-intro-selection-layout">
+              <div className="smart-goals-intro-banner">
+                <div className="smart-goals-intro-banner-icon">
+                  <Sparkles size={18} />
+                </div>
+                <div className="smart-goals-intro-banner-text">
+                  <strong>Select an introduction draft from this workspace</strong>
+                  <span>
+                    Your research objectives will align with the empirical findings, theoretical framework, and literature scope of the chosen introduction.
+                  </span>
+                </div>
+              </div>
+
+              <div className="smart-goals-intro-grid" role="radiogroup" aria-label="Saved introductions">
+                {savedIntroductions.map((draft) => {
+                  const isSelected = selectedDraftId === draft.id;
+                  const wordCount = getWordCount(draft.content);
+                  const refCount = Array.isArray(draft.references) ? draft.references.length : 0;
+                  const isFinal = /final/i.test(draft.label || "") || /final/i.test(draft.source || "");
+
+                  return (
+                    <article
+                      key={draft.id}
+                      className={`smart-goals-intro-card${isSelected ? " is-selected" : ""}`}
+                      onClick={() => setSelectedDraftId(draft.id)}
+                      role="radio"
+                      aria-checked={isSelected}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedDraftId(draft.id);
+                        }
+                      }}
+                    >
+                      <div className="smart-goals-intro-card-header">
+                        <div className="smart-goals-intro-radio-box">
+                          <span className={`smart-goals-intro-radio${isSelected ? " is-checked" : ""}`}>
+                            {isSelected && <Check size={13} strokeWidth={3} />}
+                          </span>
+                          <div>
+                            <h3 className="smart-goals-intro-card-title">{draft.label || "Untitled Draft"}</h3>
+                            <span className="smart-goals-intro-card-meta">{formatDraftTime(draft.timestamp)}</span>
+                          </div>
+                        </div>
+
+                        <div className="smart-goals-intro-badge-row">
+                          {isFinal && <span className="smart-goals-intro-pill is-final">Final</span>}
+                          <span className="smart-goals-intro-pill is-words">{wordCount} words</span>
+                          {refCount > 0 && <span className="smart-goals-intro-pill is-refs">{refCount} citations</span>}
+                        </div>
+                      </div>
+
+                      <div className="smart-goals-intro-card-body">
+                        <p className="smart-goals-intro-excerpt">
+                          {draft.content ? draft.content.slice(0, 240).trim() + "..." : "No preview text available."}
+                        </p>
+                      </div>
+
+                      <div className="smart-goals-intro-card-footer">
+                        <button
+                          type="button"
+                          className="smart-goals-intro-preview-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewingDraft(draft);
+                          }}
+                        >
+                          <Eye size={14} />
+                          <span>Read full draft</span>
+                        </button>
+                        {isSelected && (
+                          <span className="smart-goals-intro-selected-indicator">
+                            <Check size={14} /> Selected for SMART Goals
+                          </span>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="smart-goals-intro-action-bar">
+                <div className="smart-goals-intro-action-stats">
+                  <strong>{savedIntroductions.length}</strong>
+                  <span>{savedIntroductions.length === 1 ? "draft available" : "drafts available"} in this workspace</span>
+                </div>
+
+                <div className="smart-goals-intro-action-buttons">
+                  <button
+                    type="button"
+                    className="smart-goals-secondary-action"
+                    onClick={handleSkipIntroSelection}
+                  >
+                    <span>Continue without draft</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="smart-goals-generate"
+                    disabled={!selectedDraftId}
+                    onClick={() => handleConfirmIntroSelection()}
+                  >
+                    <Check size={16} />
+                    <span>Use Selected Introduction & Proceed</span>
+                    <ArrowRight size={15} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+
+        {previewingDraft && (
+          <div className="smart-goals-modal-overlay" onClick={() => setPreviewingDraft(null)}>
+            <div className="smart-goals-modal-container" onClick={(e) => e.stopPropagation()}>
+              <div className="smart-goals-modal-header">
+                <div>
+                  <h3>{previewingDraft.label || "Introduction Draft Preview"}</h3>
+                  <small>{formatDraftTime(previewingDraft.timestamp)} · {getWordCount(previewingDraft.content)} words</small>
+                </div>
+                <button type="button" className="smart-goals-modal-close" onClick={() => setPreviewingDraft(null)}>
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="smart-goals-modal-body">
+                <div className="smart-goals-modal-text">
+                  {previewingDraft.content}
+                </div>
+                {previewingDraft.references?.length > 0 && (
+                  <div className="smart-goals-modal-references">
+                    <h4>References ({previewingDraft.references.length})</h4>
+                    <ul>
+                      {previewingDraft.references.map((ref, idx) => (
+                        <li key={idx}>{ref.raw || ref.title || (typeof ref === "string" ? ref : JSON.stringify(ref))}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <div className="smart-goals-modal-footer">
+                <button type="button" className="smart-goals-secondary-action" onClick={() => setPreviewingDraft(null)}>
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="smart-goals-generate"
+                  onClick={() => {
+                    handleConfirmIntroSelection(previewingDraft);
+                    setPreviewingDraft(null);
+                  }}
+                >
+                  <Check size={16} />
+                  <span>Select this draft & Proceed</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="smart-goals-page">
@@ -455,6 +846,58 @@ export default function SmartGoals() {
             {activeStage === "plan" ? (
               <>
                 <div className="workflow-card-header smart-goals-side-header">
+                  <div>
+                    <h2>Selected Introduction</h2>
+                    <p>{selectedIntroduction ? "Literature synthesis draft." : "No draft currently linked."}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="smart-goals-edit-button"
+                    onClick={() => setIsSelectingIntroduction(true)}
+                    title={selectedIntroduction ? "Change selected introduction" : "Select an introduction"}
+                  >
+                    <RotateCcw size={13} />
+                    <span>{selectedIntroduction ? "Change" : "Select"}</span>
+                  </button>
+                </div>
+
+                {selectedIntroduction ? (
+                  <div style={{ padding: "12px 14px", borderRadius: 8, background: isDark ? "#20282a" : "#ffffff", border: isDark ? "1px solid #394447" : "1px solid #e2e8f0", marginBottom: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                      <strong style={{ fontSize: 13, color: isDark ? "#f1f5f9" : "#0f172a" }}>{selectedIntroduction.label || "Introduction"}</strong>
+                      <span className="smart-goals-count-pill" style={{ fontSize: 11 }}>{getWordCount(selectedIntroduction.content)}w</span>
+                    </div>
+                    <p style={{ margin: "0 0 8px", fontSize: 12, lineHeight: 1.5, color: isDark ? "#94a3b8" : "#64748b", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {selectedIntroduction.content}
+                    </p>
+                    <button
+                      type="button"
+                      className="smart-goals-intro-preview-btn"
+                      style={{ padding: 0 }}
+                      onClick={() => setPreviewingDraft(selectedIntroduction)}
+                    >
+                      <Eye size={12} />
+                      <span>View full draft</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ padding: "12px 14px", borderRadius: 8, background: isDark ? "#20282a" : "#f8fafc", border: isDark ? "1px dashed #394447" : "1px dashed #cbd5e1", marginBottom: 16, textAlign: "center" }}>
+                    <p style={{ margin: "0 0 8px", fontSize: 12, color: isDark ? "#94a3b8" : "#64748b" }}>
+                      No introduction linked yet.
+                    </p>
+                    <button
+                      type="button"
+                      className="smart-goals-secondary-action"
+                      style={{ fontSize: 12, padding: "4px 10px" }}
+                      onClick={() => setIsSelectingIntroduction(true)}
+                    >
+                      <Plus size={13} />
+                      <span>Select Draft</span>
+                    </button>
+                  </div>
+                )}
+
+                <div className="workflow-card-header smart-goals-side-header">
                   <div><h2>Approved Evidence</h2><p>RRL papers supporting your objectives.</p></div>
                   <span className="smart-goals-approved-pill">{approvedPaperCount} {approvedPaperCount === 1 ? "paper" : "papers"} approved</span>
                 </div>
@@ -498,6 +941,12 @@ export default function SmartGoals() {
                   <p>{researchTitle || groupData.title || "Not specified"}</p>
                   <span className="smart-goals-eyebrow">RESEARCH GAP</span>
                   <p>{selectedGap || "Not specified"}</p>
+                  {selectedIntroduction && (
+                    <>
+                      <span className="smart-goals-eyebrow">LINKED INTRODUCTION</span>
+                      <p>{selectedIntroduction.label} ({getWordCount(selectedIntroduction.content)} words)</p>
+                    </>
+                  )}
                 </div>
               </details>
             )}
@@ -514,6 +963,48 @@ export default function SmartGoals() {
                 </div>
                 <p className="smart-goals-panel-description">Generate 3–4 evidence-backed objectives with clear SMART criteria.</p>
                 <form onSubmit={handleGenerate}>
+                  {/* Linked Introduction Context Card */}
+                  <div className="smart-goals-linked-intro-card">
+                    <div className="smart-goals-linked-intro-head">
+                      <div className="smart-goals-linked-intro-info">
+                        <span className="smart-goals-eyebrow">STEP 2 INTRODUCTION CONTEXT</span>
+                        <h4>{selectedIntroduction ? selectedIntroduction.label : "No introduction draft linked"}</h4>
+                        {selectedIntroduction ? (
+                          <small>{formatDraftTime(selectedIntroduction.timestamp)} · {getWordCount(selectedIntroduction.content)} words · {Array.isArray(selectedIntroduction.references) ? selectedIntroduction.references.length : 0} citations</small>
+                        ) : (
+                          <small>You can link a synthesized introduction to anchor your objectives to literature.</small>
+                        )}
+                      </div>
+                      <div className="smart-goals-linked-intro-actions">
+                        {selectedIntroduction && (
+                          <button
+                            type="button"
+                            className="smart-goals-secondary-action"
+                            style={{ padding: "5px 12px", fontSize: "0.8rem" }}
+                            onClick={() => setPreviewingDraft(selectedIntroduction)}
+                          >
+                            <Eye size={13} />
+                            <span>Preview</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="smart-goals-secondary-action"
+                          style={{ padding: "5px 12px", fontSize: "0.8rem" }}
+                          onClick={() => setIsSelectingIntroduction(true)}
+                        >
+                          <RotateCcw size={13} />
+                          <span>{selectedIntroduction ? "Change draft" : "Select draft"}</span>
+                        </button>
+                      </div>
+                    </div>
+                    {selectedIntroduction?.content && (
+                      <p className="smart-goals-linked-intro-excerpt">
+                        {selectedIntroduction.content.slice(0, 220).trim()}...
+                      </p>
+                    )}
+                  </div>
+
                   <div className="smart-goals-plan-fields">
                     <label className="smart-goals-field">
                       <span>Research topic / title <small>Required · Step 1</small></span>
@@ -674,6 +1165,43 @@ export default function SmartGoals() {
           </section>
         </div>
       </main>
+
+      {/* Full draft reader modal */}
+      {previewingDraft && (
+        <div className="smart-goals-modal-overlay" onClick={() => setPreviewingDraft(null)}>
+          <div className="smart-goals-modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="smart-goals-modal-header">
+              <div>
+                <h3>{previewingDraft.label || "Introduction Draft Preview"}</h3>
+                <small>{formatDraftTime(previewingDraft.timestamp)} · {getWordCount(previewingDraft.content)} words</small>
+              </div>
+              <button type="button" className="smart-goals-modal-close" onClick={() => setPreviewingDraft(null)} aria-label="Close preview">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="smart-goals-modal-body">
+              <div className="smart-goals-modal-text">
+                {previewingDraft.content}
+              </div>
+              {previewingDraft.references?.length > 0 && (
+                <div className="smart-goals-modal-references">
+                  <h4>References ({previewingDraft.references.length})</h4>
+                  <ul>
+                    {previewingDraft.references.map((ref, idx) => (
+                      <li key={idx}>{ref.raw || ref.title || (typeof ref === "string" ? ref : JSON.stringify(ref))}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="smart-goals-modal-footer">
+              <button type="button" className="smart-goals-secondary-action" onClick={() => setPreviewingDraft(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
