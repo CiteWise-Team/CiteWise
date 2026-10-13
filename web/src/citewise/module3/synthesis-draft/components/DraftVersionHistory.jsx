@@ -85,7 +85,7 @@ function computeLineDiff(textA, textB) {
   return diff;
 }
 
-export default function DraftVersionHistory({ sessionId, currentContent, onRestore }) {
+export default function DraftVersionHistory({ sessionId, currentContent, onRestore, selectedSmartGoalsVersionId, onSelectForSmartGoals }) {
   const { isDark } = useTheme();
   const [versions, setVersions] = useState(() => store.getDraftVersions(sessionId));
   const [compare, setCompare] = useState(null); // { a, b }
@@ -177,7 +177,7 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
     }
     const rect = e.currentTarget.getBoundingClientRect();
     const menuWidth = 160;
-    const menuHeight = 145;
+    const menuHeight = 185;
 
     // Position at the right side of the 3 dots button
     let left = rect.right + 8;
@@ -278,6 +278,7 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
               >
                 {versions.map((v) => {
                   const isCurrent = v.content === currentContent;
+                  const isSelectedForSmartGoals = selectedSmartGoalsVersionId === v.id;
                   return (
                     <div
                       key={v.id}
@@ -298,6 +299,7 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
                           </div>
                           <div style={{ fontSize: "0.7rem", color: isDark ? "#9ca3af" : "#6b7280", fontFamily: "'Poppins', sans-serif", marginTop: 2 }}>
                             {v.source === "edited" ? "Manual edit" : "Generated"} · {fmt(v.timestamp)}
+                            {isSelectedForSmartGoals && <span style={{ color: isDark ? "#5eead4" : "#14766b", fontWeight: 700 }}> · Final for SMART Goals</span>}
                           </div>
                         </div>
 
@@ -460,6 +462,52 @@ export default function DraftVersionHistory({ sessionId, currentContent, onResto
           >
             <GitCompare size={15} />
             <span>{pickA?.id === activeMenu.version.id ? "Selected" : "Compare"}</span>
+          </button>
+
+          {/* Set as final for SMART Goals */}
+          <button
+            type="button"
+            aria-pressed={selectedSmartGoalsVersionId === activeMenu.version.id}
+            onClick={() => {
+              onSelectForSmartGoals?.(activeMenu.version);
+              setActiveMenu(null);
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+              padding: "8px 12px",
+              borderRadius: "8px",
+              border: "none",
+              background: selectedSmartGoalsVersionId === activeMenu.version.id
+                ? (isDark ? "rgba(20, 118, 107, 0.22)" : "#e8f5f1")
+                : "transparent",
+              color: selectedSmartGoalsVersionId === activeMenu.version.id
+                ? (isDark ? "#5eead4" : "#14766b")
+                : (isDark ? "#f3f4f6" : "#1f2937"),
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.82rem",
+              fontWeight: selectedSmartGoalsVersionId === activeMenu.version.id ? 600 : 500,
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "background 0.15s ease, color 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              if (!(selectedSmartGoalsVersionId === activeMenu.version.id)) {
+                e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.09)" : "rgba(0, 0, 0, 0.05)";
+                e.currentTarget.style.color = isDark ? "#ffffff" : "#111827";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!(selectedSmartGoalsVersionId === activeMenu.version.id)) {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = isDark ? "#f3f4f6" : "#1f2937";
+              }
+            }}
+          >
+            <Check size={15} />
+            <span>{selectedSmartGoalsVersionId === activeMenu.version.id ? "Final selected" : "Set as final"}</span>
           </button>
 
           {/* Divider */}

@@ -62,6 +62,11 @@ export default function GroupCard({
     navigate(`/workspace/${group_id}`);
   }
 
+  function handleOpenSmartGoals() {
+    enterGroup({ id: group_id, name, color });
+    navigate(`/smart-goals/${group_id}`, { state: { groupName: name } });
+  }
+
   function handleCardKeyDown(event) {
     if (event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {
@@ -273,9 +278,9 @@ export default function GroupCard({
                   title="SMART Goals Generation"
                   description="Translate your research direction into clear, measurable thesis goals."
                   active={false}
-                  disabled
-                  statusText=""
-                  onClick={() => {}}
+                  disabled={!step1Done}
+                  statusText={step1Done ? "Ready to start →" : "Locked"}
+                  onClick={handleOpenSmartGoals}
                 />
               </div>
             </div>

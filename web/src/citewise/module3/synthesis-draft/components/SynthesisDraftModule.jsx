@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp, Sparkles, Edit3, Loader2 } from "lucide-react";
+import { ArrowRight, BadgeCheck, ChevronDown, ChevronUp, Edit3, Loader2, Sparkles, Target } from "lucide-react";
 import SynthesisControlPanel from "./SynthesisControlPanel";
 import ApprovedSourceList from "./ApprovedSourceList";
 import GeneratedDraftDisplay from "./GeneratedDraftDisplay";
@@ -171,7 +171,7 @@ const downloadBlob = (blob, filename) => {
   URL.revokeObjectURL(url);
 };
 
-export default function SynthesisDraftModule({ sessionId, onStepChange }) {
+export default function SynthesisDraftModule({ sessionId, groupId, onStepChange, onProceedToSmartGoals }) {
   const isMobile = useIsMobile();
   const { isDark } = useTheme();
   const styles = getStyles(isMobile, isDark);
@@ -186,6 +186,7 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
   const [citationIntegrity, setCitationIntegrity] = useState(null);
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [selectedSmartGoalsVersion, setSelectedSmartGoalsVersion] = useState(null);
   const [exportModalState, setExportModalState] = useState({
     isOpen: false,
     format: null,
@@ -553,6 +554,37 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
   };
 
+  const handleSelectSmartGoalsVersion = (version) => {
+    if (!version?.id || !version.content?.trim()) return;
+    setSelectedSmartGoalsVersion({
+      id: version.id,
+      label: version.label || "Selected introduction",
+      content: version.content,
+      references: Array.isArray(version.references) ? version.references : [],
+      timestamp: version.timestamp || null,
+    });
+  };
+
+  const handleSetCurrentAsFinal = () => {
+    if (!generatedContent?.trim()) return;
+    const findCurrent = () => store.getDraftVersions(sessionId).find((v) => v.content === generatedContent);
+    let version = findCurrent();
+    if (!version) {
+      store.addDraftVersion(sessionId, {
+        content: generatedContent,
+        references,
+        label: `Final v${store.getDraftVersions(sessionId).length + 1}`,
+        source: "edited",
+      });
+      version = findCurrent();
+    }
+    handleSelectSmartGoalsVersion(version);
+    showToast("success", "Final Version Set", `${version?.label || "Current draft"} will be used for SMART Goals.`);
+  };
+
+  const isCurrentDraftFinal = !!generatedContent && selectedSmartGoalsVersion?.content === generatedContent;
+  const canSetFinal = generationStatus === "complete" && !!generatedContent && !isEditingDraft && !paraphrasedDraft;
+
   const handleParaphraseDraft = async () => {
     if (isParaphrasingDraft || paraphrasedDraft || !generatedContent) return;
     setIsParaphrasingDraft(true);
@@ -855,6 +887,8 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
                 sessionId={sessionId}
                 currentContent={generatedContent}
                 onRestore={handleRestoreVersion}
+                selectedSmartGoalsVersionId={selectedSmartGoalsVersion?.id}
+                onSelectForSmartGoals={handleSelectSmartGoalsVersion}
               />
             </div>
             <div data-guide="citewise-source-documents">
@@ -899,6 +933,103 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "auto", justifyContent: "flex-end", flexShrink: 0 }}>
                 <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "auto", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    onClick={() => onProceedToSmartGoals?.(selectedSmartGoalsVersion)}
+                    disabled={!selectedSmartGoalsVersion || !groupId}
+                    title={selectedSmartGoalsVersion ? `Use ${selectedSmartGoalsVersion.label} for SMART Goals` : "Select a final version from Version History first"}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 7,
+                      minHeight: 32,
+                      padding: "0 11px",
+                      border: isDark ? "1px solid rgba(94, 234, 212, 0.35)" : "1px solid #b5d7d0",
+                      borderRadius: 8,
+                      color: selectedSmartGoalsVersion
+                        ? (isDark ? "#5eead4" : "#176d62")
+                        : (isDark ? "#6b7280" : "#8b989b"),
+                      background: selectedSmartGoalsVersion
+                        ? (isDark ? "rgba(20, 118, 107, 0.22)" : "#edf7f4")
+                        : (isDark ? "rgba(255, 255, 255, 0.04)" : "#f5f7f7"),
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: 11,
+                      fontWeight: 650,
+                      cursor: selectedSmartGoalsVersion && groupId ? "pointer" : "not-allowed",
+                      opacity: selectedSmartGoalsVersion && groupId ? 1 : 0.45,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <Target size={15} />
+                    Proceed to SMART Goals
+                    <ArrowRight size={14} />
+                  </button>
+
+                  {/* Set as Final Icon Button */}
+                  <div data-guide="citewise-btn-set-final" style={{ position: "relative", display: "inline-flex" }}>
+                    <button
+                      type="button"
+                      title={isCurrentDraftFinal ? "Final version selected" : "Set as final"}
+                      aria-label="Set as final"
+                      aria-pressed={isCurrentDraftFinal}
+                      disabled={!canSetFinal}
+                      onClick={handleSetCurrentAsFinal}
+                      onMouseEnter={() => setHoveredHeaderButton("final")}
+                      onMouseLeave={() => setHoveredHeaderButton(null)}
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "8px",
+                        padding: 0,
+                        background: isCurrentDraftFinal
+                          ? (isDark ? "rgba(20, 118, 107, 0.22)" : "#e8f5f1")
+                          : (isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)"),
+                        color: !canSetFinal
+                          ? (isDark ? "#4b5563" : "#cbd5e1")
+                          : isCurrentDraftFinal || hoveredHeaderButton === "final"
+                            ? (isDark ? "#5eead4" : "#14766b")
+                            : (isDark ? "#cbd5e1" : "#4b5563"),
+                        border: isCurrentDraftFinal
+                          ? `1px solid ${isDark ? "rgba(94, 234, 212, 0.45)" : "#75b9aa"}`
+                          : (isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)"),
+                        cursor: canSetFinal ? "pointer" : "not-allowed",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: canSetFinal ? 1 : 0.45,
+                        transition: "all 0.18s ease",
+                        transform: hoveredHeaderButton === "final" && canSetFinal ? "scale(1.06)" : "scale(1)",
+                      }}
+                    >
+                      <BadgeCheck size={15} />
+                    </button>
+                    {hoveredHeaderButton === "final" && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "calc(100% + 10px)",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          background: isDark ? "#1e293b" : "#0f172a",
+                          color: "#ffffff",
+                          fontSize: "0.74rem",
+                          fontWeight: 600,
+                          fontFamily: "'Poppins', sans-serif",
+                          padding: "5px 10px",
+                          borderRadius: "6px",
+                          whiteSpace: "nowrap",
+                          pointerEvents: "none",
+                          boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.6)" : "0 8px 20px rgba(0,0,0,0.25)",
+                          border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid rgba(0, 0, 0, 0.1)",
+                          zIndex: 9999,
+                        }}
+                      >
+                        {isCurrentDraftFinal ? "Final version selected" : "Set as final"}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Paraphrase Icon Button */}
                   <div data-guide="citewise-btn-paraphrase" style={{ position: "relative", display: "inline-flex" }}>
                     <button

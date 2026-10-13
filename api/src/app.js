@@ -15,6 +15,7 @@ import catalystCwRoutes  from './modules/citewise/catalyst.routes.js';
 import rrlRoutes         from './modules/citewise/rrl.routes.js';
 import documentsRoutes   from './modules/citewise/documents.routes.js';
 import synthesisRoutes   from './modules/citewise/synthesis.routes.js';
+import smartGoalsRoutes  from './modules/citewise/smartGoals.routes.js';
 
 const app = express();
 
@@ -41,7 +42,9 @@ app.use(
       // Allow requests with no origin (e.g. same-server health checks)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
+      // Allow configured origins or any Vercel preview deployment (*.vercel.app)
+      const isVercelPreview = /^https:\/\/[a-zA-Z0-9-_.]+\.vercel\.app$/.test(origin);
+      if (allowedOrigins.includes(origin) || isVercelPreview) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS'), false);
@@ -113,6 +116,7 @@ app.use('/api/catalyst', catalystCwRoutes);
 app.use('/api/rrl',      rrlRoutes);
 app.use('/api/v1/documents', documentsRoutes);
 app.use('/api/v1/synthesis', synthesisRoutes);
+app.use('/api/v1/smart-goals', smartGoalsRoutes);
 
 app.use(errorHandler);
 
