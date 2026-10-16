@@ -11,6 +11,15 @@ import * as store from "../../../lib/citewiseStore";
 import { useTheme } from "../../../../context/ThemeContext";
 import ModernToast from "../../../../components/ui/ModernToast";
 
+// Poll quickly while an assessment runs: at the old 5 s interval a result
+// could sit finished on the server for up to 5 s before the UI noticed. The
+// give-up limits keep the same wall-clock budget as before (250 s, and 15 s
+// for a pending document that has no insight yet).
+const INSIGHTS_POLL_MS = 1500;
+const MAX_INSIGHT_POLLS = Math.ceil(250000 / INSIGHTS_POLL_MS);
+const PENDING_NOT_FOUND_POLLS = Math.ceil(15000 / INSIGHTS_POLL_MS);
+const ACTIVE_DOCUMENTS_POLL_MS = 2000;
+
 export default function ValidationDashboardLayout({ groupId, sessionId: propSessionId, onStepChange, onLockStep3 }) {
   const STORAGE_SESSION_KEY = groupId ? `citewise.${groupId}.sessionId` : "citewise.session_id";
   const LOW_RELEVANCE_APPROVAL_THRESHOLD = 60;
@@ -230,7 +239,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       if (cancelled) return;
       await fetchDocuments();
       if (cancelled) return;
-      timer = setTimeout(tick, documentsActiveRef.current ? 5000 : 30000);
+      timer = setTimeout(tick, documentsActiveRef.current ? ACTIVE_DOCUMENTS_POLL_MS : 30000);
     };
 
     tick();
@@ -281,13 +290,13 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
         if (response.status === 202) {
           pollAttemptsRef.current += 1;
-          if (pollAttemptsRef.current >= 50) {
+          if (pollAttemptsRef.current >= MAX_INSIGHT_POLLS) {
             setIsInsightsLoading(false);
             setInsightsPollExhausted(true);
             setInsightsErrorMsg("Assessment took too long.");
             return;
           }
-          pollTimeout = setTimeout(fetchInsightsData, 5000);
+          pollTimeout = setTimeout(fetchInsightsData, INSIGHTS_POLL_MS);
           return;
         }
 
@@ -301,19 +310,19 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         }
 
         if (response.status === 404) {
-          if (activeDoc.rawStatus === 'pending' && pollAttemptsRef.current > 3) {
+          if (activeDoc.rawStatus === 'pending' && pollAttemptsRef.current > PENDING_NOT_FOUND_POLLS) {
             setIsInsightsLoading(false);
             setInsightsPollExhausted(true);
             return;
           }
 
           pollAttemptsRef.current += 1;
-          if (pollAttemptsRef.current >= 50) {
+          if (pollAttemptsRef.current >= MAX_INSIGHT_POLLS) {
             setIsInsightsLoading(false);
             setInsightsPollExhausted(true);
             return;
           }
-          pollTimeout = setTimeout(fetchInsightsData, 5000);
+          pollTimeout = setTimeout(fetchInsightsData, INSIGHTS_POLL_MS);
           return;
         }
 

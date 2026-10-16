@@ -5,6 +5,60 @@ import { Sparkles, AlertTriangle, Loader2 } from "lucide-react";
 import { useTheme } from "../../../../context/ThemeContext";
 import { splitDraftSections } from "../utils/draftUtils";
 import ModernToast from "../../../../components/ui/ModernToast";
+import PagePreviewModal from "../../../shared/components/PagePreviewModal";
+
+function sourcePageLabel(source) {
+  if (!source?.pageNumber) return "page unknown";
+  return source.confidence === "low" ? `p. ~${source.pageNumber} (best match)` : `p. ${source.pageNumber}`;
+}
+
+// Splits the draft into text and clickable citation parts using the trace the
+// backend computed for the generated text. Citations are found in order, so
+// manual edits elsewhere in the draft do not break the links.
+function renderWithCitations(content, citationTrace, onOpen, isDark) {
+  if (!content || !citationTrace?.length) return content;
+  const nodes = [];
+  let cursor = 0;
+  citationTrace.forEach((entry, i) => {
+    const at = content.indexOf(entry.citation, cursor);
+    if (at < 0) return;
+    nodes.push(content.slice(cursor, at));
+    const parts = entry.citation.slice(1, -1).split(";");
+    nodes.push("(");
+    parts.forEach((part, j) => {
+      if (j > 0) nodes.push(";");
+      const [, lead, label, trail] = part.match(/^(\s*)(.*?)(\s*)$/s);
+      const source = entry.sources.find((src) => src.citation === label);
+      nodes.push(lead);
+      nodes.push(
+        source ? (
+          <button
+            key={`cite-${i}-${j}`}
+            type="button"
+            onClick={() => onOpen(source)}
+            title={`${source.fileName || "Source"} — ${sourcePageLabel(source)}${source.passage ? `\n"${source.passage}"` : ""}`}
+            style={{
+              font: "inherit",
+              color: "inherit",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              borderBottom: `1px dashed ${isDark ? "#fb923c" : "#f97316"}`,
+            }}
+          >
+            {label}
+          </button>
+        ) : label
+      );
+      nodes.push(trail);
+    });
+    nodes.push(")");
+    cursor = at + entry.citation.length;
+  });
+  nodes.push(content.slice(cursor));
+  return nodes;
+}
 
 export default function GeneratedDraftDisplay({ 
   generationStatus, 
@@ -14,6 +68,8 @@ export default function GeneratedDraftDisplay({
   references, 
   onSaveEdit, 
   citationIntegrity,
+  citationTrace = [],
+  sessionId,
   isEditing,
   setIsEditing,
   paraphrasedDraft,
@@ -27,6 +83,7 @@ export default function GeneratedDraftDisplay({
   const [draft, setDraft] = useState(content || "");
   const [draftRefs, setDraftRefs] = useState((references || []).join("\n\n"));
   const textareaRef = useRef(null);
+  const [preview, setPreview] = useState(null);
   const [toastState, setToastState] = useState({
     show: false,
     type: "success",
@@ -731,9 +788,61 @@ export default function GeneratedDraftDisplay({
         />
       ) : (
         <div style={{ whiteSpace: "pre-wrap", color: isDark ? "var(--cw-text-primary, #f9fafb)" : "#1f2937" }}>
-          {content || "No content generated yet."}
+          {content ? renderWithCitations(content, citationTrace, setPreview, isDark) : "No content generated yet."}
         </div>
       )}
+
+      {!editing && !activeParaphrasedDraft && content && citationTrace?.length > 0 && (
+        <details style={{ marginTop: "28px" }}>
+          <summary style={{ cursor: "pointer", fontSize: "0.85rem", fontWeight: 700, color: "#ea580c", fontFamily: "'Poppins', sans-serif" }}>
+            Where each citation comes from
+          </summary>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
+            {citationTrace.flatMap((entry, i) => entry.sources.map((src, j) => (
+              <div
+                key={`${i}-${j}`}
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  alignItems: "flex-start",
+                  padding: "10px 12px",
+                  borderRadius: "8px",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
+                  background: isDark ? "rgba(255, 255, 255, 0.03)" : "#f9fafb",
+                  fontSize: "0.8rem",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, color: isDark ? "#f9fafb" : "#111827" }}>
+                    ({src.citation}) <span style={{ fontWeight: 500, color: isDark ? "#9ca3af" : "#6b7280" }}>· {src.fileName || "Source"} · {sourcePageLabel(src)}</span>
+                  </div>
+                  {src.passage && (
+                    <div style={{ marginTop: "4px", fontStyle: "italic", color: isDark ? "#cbd5e1" : "#4b5563", lineHeight: 1.5 }}>
+                      “{src.passage}”
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreview(src)}
+                  style={{ flexShrink: 0, background: "none", border: "none", padding: 0, color: "#f97316", fontWeight: 600, fontSize: "0.75rem", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "2px", fontFamily: "'Poppins', sans-serif" }}
+                >
+                  View page
+                </button>
+              </div>
+            )))}
+          </div>
+        </details>
+      )}
+
+      <PagePreviewModal
+        open={Boolean(preview)}
+        onClose={() => setPreview(null)}
+        documentId={preview?.documentId}
+        sessionId={sessionId}
+        pageNumber={preview?.pageNumber}
+        quote={preview?.passage}
+      />
 
       {/* Display references if they exist or if editing */}
       {(references && references.length > 0 || editing) && !activeParaphrasedDraft && (

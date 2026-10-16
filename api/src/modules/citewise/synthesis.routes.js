@@ -12,6 +12,8 @@ import {
   buildReferenceList,
   reconcileInTextCitations,
 } from './helpers/citationMetadata.js';
+import { ensurePageOffsets } from './helpers/documentPages.js';
+import { buildCitationTrace } from './helpers/citationTrace.js';
 
 const router = express.Router();
 
@@ -175,6 +177,9 @@ async function asyncSynthesisJob({
       + 'When a source provides emphasizedExcerpts or customHighlights, treat those passages as the user\'s highlighted, highest-priority evidence. '
       + citationRules;
 
+    // Kept server-side (not sent to n8n) to trace each citation to its page.
+    const traceSources = [];
+
     // Resolve full text lazily from R2 if r2_text_key is available
     const resolvedApprovedDocuments = await Promise.all(
       usableDocs.map(async ({ doc, insight, tier, emphasizedExcerpts, customExcerpts }) => {
@@ -221,6 +226,22 @@ async function asyncSynthesisJob({
         }));
         const excerpts = [...userCustomHighlights, ...dbExcerpts];
         const userEmphasizedExcerpts = excerpts.filter((e) => e.emphasized);
+
+        traceSources.push({
+          documentId:  doc.id,
+          fileName:    doc.file_name ?? null,
+          citation:    meta.citation,
+          fullText,
+          pageOffsets: await ensurePageOffsets(doc, fullText),
+          excerpts: [
+            ...userCustomHighlights,
+            ...(insight?.evidenceExcerpts ?? []).map((e) => ({
+              quoteText:    e.quote_text,
+              pageNumber:   e.page_number,
+              pageVerified: e.page_verified ?? false,
+            })),
+          ],
+        });
         const scores = {
           gapAlignment:  insight?.gap_alignment_score ?? null,
           methodology:   insight?.methodology_score    ?? null,
@@ -391,6 +412,14 @@ async function asyncSynthesisJob({
         id: d.doc.id,
       }));
 
+    // Tracing is a convenience for the reader; never let it fail a draft.
+    let citationTrace = [];
+    try {
+      citationTrace = buildCitationTrace(contentText, traceSources);
+    } catch (traceErr) {
+      console.warn(`[synthesis-async] citation trace failed for session ${sessionId}:`, traceErr.message);
+    }
+
     const citationIntegrity = {
       correctedCount:  citationFixes.length,
       corrections:     citationFixes,
@@ -434,6 +463,7 @@ async function asyncSynthesisJob({
       metrics_json:                JSON.stringify({
         ...(n8nData.metrics ?? {}),
         citationIntegrity,
+        citationTrace,
       }),
     }).eq('session_id', sessionId);
 
@@ -634,6 +664,7 @@ router.get('/status', async (req, res) => {
     },
     citationsUsed,
     citationIntegrity: metrics.citationIntegrity ?? null,
+    citationTrace: metrics.citationTrace ?? [],
     validationStatus: draft.validation_status,
     validationFlags,
     metrics,

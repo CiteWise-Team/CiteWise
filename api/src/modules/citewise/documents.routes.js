@@ -7,6 +7,10 @@ import requireAuth from '../../common/middlewares/auth.middleware.js';
 import { scoringPipeline } from './rrl.routes.js';
 import { extractCitationMetadata } from './helpers/citationMetadata.js';
 import { deriveSessionId } from './helpers/sessionId.js';
+import { loadFullText, ensurePageOffsets } from './helpers/documentPages.js';
+import { buildSearchIndex, locateQuote, pageForOffset, pageRange } from './helpers/pageText.js';
+import { summarizeTimings } from './helpers/assessmentTiming.js';
+import { getPresignedDownloadUrl } from '../../common/config/r2Client.js';
 
 const router = express.Router();
 
@@ -148,7 +152,9 @@ router.get('/:id/insights', async (req, res) => {
   const docId     = Number(req.params.id);
   const sessionId = req.headers['x-session-id'];
 
-  const { data: docInfo } = await supabase.from('uploaded_documents').select('session_id, scoring_status, scoring_error_message, file_name, metric_weights_json').eq('id', docId).maybeSingle();
+  // select('*') rather than a column list so the page/timing columns are
+  // picked up when present without breaking on an unmigrated database.
+  const { data: docInfo } = await supabase.from('uploaded_documents').select('*').eq('id', docId).maybeSingle();
   
   if (!docInfo || (sessionId && docInfo.session_id !== sessionId)) return res.status(404).json({ success: false, message: 'Not found' });
   if (docInfo.scoring_status === 'EXTRACTING' || docInfo.scoring_status === 'PENDING' || docInfo.scoring_status === 'PROCESSING') {
@@ -183,6 +189,12 @@ router.get('/:id/insights', async (req, res) => {
     recommendationStatus: insight.recommendation_status,
     confidenceLevel:      insight.confidence_level,
     relevanceLevel:       insight.relevance_level,
+    pageCount:            docInfo.page_count ?? null,
+    timing: {
+      assessmentMs:     docInfo.scoring_duration_ms ?? null,
+      extractionMs:     docInfo.extraction_ms ?? null,
+      extractionMethod: docInfo.extraction_method ?? null,
+    },
     mismatchFlags:        parseJson(insight.mismatch_flags_json),
     weaknessFlags:        parseJson(insight.weakness_flags_json),
     validationFlags:      parseJson(insight.validation_flags_json),
@@ -190,10 +202,73 @@ router.get('/:id/insights', async (req, res) => {
       criterion:     e.criterion,
       quoteText:     e.quote_text,
       pageNumber:    e.page_number,
+      pageVerified:  e.page_verified ?? null,
       relevanceLevel:e.relevance_level,
       evidenceType:  e.evidence_type,
       displayOrder:  e.display_order,
     })),
+  });
+});
+
+// GET /api/v1/documents/assessment-timings
+// How long assessments take for a given number of pages, and the largest page
+// count that still finishes within the 15 s target.
+router.get('/assessment-timings', async (_req, res) => {
+  const { data, error } = await supabase
+    .from('assessment_timings')
+    .select('page_count, extraction_method, extraction_ms, ai_ms, assessment_ms, total_ms, status, reused_ai_response, created_at')
+    .order('created_at', { ascending: false })
+    .limit(5000);
+  if (error) return res.status(500).json({ success: false, message: error.message });
+  return res.json({ success: true, data: summarizeTimings(data) });
+});
+
+// GET /api/v1/documents/:id/page?page=N&quote=...
+// Everything needed to preview the PDF page an excerpt or citation came from.
+// When a quote is given, its located page overrides `page`.
+router.get('/:id/page', async (req, res) => {
+  const docId = Number(req.params.id);
+  const sessionId = req.headers['x-session-id'];
+  if (!sessionId) return res.status(400).json({ success: false, message: 'Session ID is required' });
+
+  const { data: doc } = await supabase.from('uploaded_documents').select('*').eq('id', docId).maybeSingle();
+  if (!doc || doc.session_id !== sessionId) return res.status(404).json({ success: false, message: 'Not found' });
+
+  const fullText = await loadFullText(doc);
+  const pageOffsets = await ensurePageOffsets(doc, fullText);
+  const quote = String(req.query.quote ?? '').slice(0, 4000);
+  let pageNumber = Number.parseInt(req.query.page, 10) || null;
+
+  let hit = null;
+  if (pageOffsets && quote.trim()) {
+    hit = locateQuote(buildSearchIndex(fullText), quote);
+    if (hit) pageNumber = pageForOffset(pageOffsets, hit.start);
+  }
+
+  const range = pageRange(fullText, pageOffsets, pageNumber);
+  const pageText = range ? fullText.slice(range.start, range.end).trim() || null : null;
+  let highlight = null;
+  if (hit && range && pageText) {
+    const lead = fullText.slice(range.start, range.end).length - fullText.slice(range.start, range.end).trimStart().length;
+    const start = hit.start - range.start - lead;
+    const end = Math.min(hit.end, range.end) - range.start - lead;
+    if (start >= 0 && end > start) highlight = { start, end };
+  }
+
+  const pdfUrl = doc.r2_file_key ? await getPresignedDownloadUrl(doc.r2_file_key, 900) : null;
+
+  return res.json({
+    success: true,
+    data: {
+      documentId: doc.id,
+      fileName:   doc.file_name,
+      pageNumber,
+      pageCount:  doc.page_count ?? pageOffsets?.length ?? null,
+      located:    Boolean(hit),
+      pdfUrl,
+      pageText,
+      highlight,
+    },
   });
 });
 

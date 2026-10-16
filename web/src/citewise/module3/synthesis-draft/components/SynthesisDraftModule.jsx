@@ -184,6 +184,7 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
   const [references, setReferences] = useState([]);
   const [citationsUsed, setCitationsUsed] = useState([]);
   const [citationIntegrity, setCitationIntegrity] = useState(null);
+  const [citationTrace, setCitationTrace] = useState([]);
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [selectedSmartGoalsVersion, setSelectedSmartGoalsVersion] = useState(null);
@@ -220,6 +221,7 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
           const draft = JSON.parse(savedDraft);
           setGeneratedContent(draft.content || "");
           setReferences(draft.references || []);
+          setCitationTrace(Array.isArray(draft.citationTrace) ? draft.citationTrace : []);
           if (draft.content && draft.content.length > 0) {
             setGenerationStatus("complete");
             onStepChange?.(3);
@@ -237,12 +239,13 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
       const draftToSave = {
         content: generatedContent,
         references: references,
+        citationTrace,
         timestamp: new Date().toISOString(),
       };
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
       console.log("Saved draft to localStorage");
     }
-  }, [generatedContent, references, sessionId]);
+  }, [generatedContent, references, citationTrace, sessionId]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -445,6 +448,7 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
       setReferences(mergedReferences);
       setCitationsUsed(Array.isArray(payload.citationsUsed) ? payload.citationsUsed : []);
       setCitationIntegrity(payload.citationIntegrity ?? null);
+      setCitationTrace(Array.isArray(payload.citationTrace) ? payload.citationTrace : []);
       showToast(
         "success",
         "Synthesis Successful",
@@ -461,6 +465,7 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
       const draftToSave = {
         content: mergedContent,
         references: mergedReferences,
+        citationTrace: Array.isArray(payload.citationTrace) ? payload.citationTrace : [],
         timestamp: new Date().toISOString(),
       };
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
@@ -1205,6 +1210,8 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
                   references={references}
                   onSaveEdit={handleSaveEdit}
                   citationIntegrity={citationIntegrity}
+                  citationTrace={citationTrace}
+                  sessionId={sessionId}
                   isEditing={isEditingDraft}
                   setIsEditing={setIsEditingDraft}
                   paraphrasedDraft={paraphrasedDraft}
