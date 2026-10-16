@@ -94,36 +94,24 @@ export function pageRange(text, pageOffsets, pageNumber) {
   return { start, end: Math.max(start, Math.min(end, text.length)) };
 }
 
-// Lowercase alphanumeric projection of `text` plus a map from each projected
-// character back to its index in the original. Ligatures are unfolded (NFKC)
-// and words broken by an end-of-line hyphen are rejoined, since quotes copied
-// by the AI rarely preserve either.
+// Lowercase letters and digits of `text`, with every space, punctuation mark
+// and hyphen dropped, plus a map from each kept character back to its index in
+// the original. Matching on this ignores how words happen to be spaced, which
+// varies between extractors: pdf-parse glues italic words to their neighbours
+// ("usingdenserepresentations"), PDFs split words at line-break hyphens
+// ("in- dicate"), and ligatures are unfolded (NFKC).
 export function buildSearchIndex(text) {
   const src = String(text ?? '');
   let norm = '';
   const map = [];
-  let pendingSpace = false;
   for (let i = 0; i < src.length; i++) {
     const ch = src[i];
-    if (ch === '-' && /[a-z]/i.test(src[i - 1] ?? '')) {
-      let j = i + 1;
-      while (j < src.length && /[ \t]/.test(src[j])) j++;
-      if (src[j] === '\n' || src[j] === '\r') {
-        while (j < src.length && /\s/.test(src[j])) j++;
-        i = j - 1;
-        continue;
-      }
-    }
     const folded = ch.charCodeAt(0) < 128 ? ch.toLowerCase() : ch.normalize('NFKC').toLowerCase();
     for (const f of folded) {
       const c = f.charCodeAt(0);
       if ((c >= 97 && c <= 122) || (c >= 48 && c <= 57)) {
-        if (pendingSpace && norm.length) { norm += ' '; map.push(i); }
-        pendingSpace = false;
         norm += f;
         map.push(i);
-      } else {
-        pendingSpace = true;
       }
     }
   }
@@ -141,36 +129,23 @@ function locateNormalized(index, needle) {
   return { start: index.map[at], end: index.map[at + needle.length - 1] + 1 };
 }
 
-const METHOD_RANK = { exact: 0, partial: 1, fuzzy: 2 };
+const EDGE_CHARS = 40;
+const WINDOW_CHARS = 24;
 
 // Find where `quote` sits inside `text`. Returns original-text indices, or null.
-//   exact      – the whole quote appears (modulo punctuation/whitespace/case)
-//   partial    – the opening or closing words appear verbatim
-//   fuzzy      – most of its 5-word shingles appear close together
-// The AI often copies a PDF line-break hyphen as "in- dicate"; the index has
-// already rejoined those words, so the quote is also tried with them rejoined.
+//   exact      – the whole quote appears (ignoring case, spacing, punctuation)
+//   partial    – its opening or closing ~40 characters appear verbatim
+//   fuzzy      – most of its 24-character windows appear close together
 export function locateQuote(index, quote) {
-  const asIs = locateQuoteOnce(index, quote);
-  if (asIs?.method === 'exact') return asIs;
-  const rejoined = String(quote ?? '').replace(/(\p{L})-\s+(\p{L})/gu, '$1$2');
-  if (rejoined === quote) return asIs;
-  const joined = locateQuoteOnce(index, rejoined);
-  if (!joined) return asIs;
-  if (!asIs) return joined;
-  return METHOD_RANK[joined.method] <= METHOD_RANK[asIs.method] ? joined : asIs;
-}
-
-function locateQuoteOnce(index, quote) {
   const q = normalizeForSearch(quote);
   if (q.length < 12) return null;
 
   const exact = locateNormalized(index, q);
   if (exact) return { ...exact, method: 'exact' };
 
-  const words = q.split(' ');
-  if (words.length >= 10) {
-    const head = locateNormalized(index, words.slice(0, 8).join(' '));
-    const tail = locateNormalized(index, words.slice(-8).join(' '));
+  if (q.length >= EDGE_CHARS * 1.5) {
+    const head = locateNormalized(index, q.slice(0, EDGE_CHARS));
+    const tail = locateNormalized(index, q.slice(-EDGE_CHARS));
     if (head && tail && tail.start >= head.start && tail.start - head.start < quote.length * 3) {
       return { start: head.start, end: tail.end, method: 'partial' };
     }
@@ -178,14 +153,15 @@ function locateQuoteOnce(index, quote) {
     if (tail) return { start: tail.start, end: tail.end, method: 'partial' };
   }
 
-  if (words.length < 6) return null;
+  if (q.length < WINDOW_CHARS * 2) return null;
   const hits = [];
-  for (let i = 0; i + 5 <= words.length; i++) {
-    const found = locateNormalized(index, words.slice(i, i + 5).join(' '));
+  let windows = 0;
+  for (let i = 0; i + WINDOW_CHARS <= q.length; i += WINDOW_CHARS / 2) {
+    windows++;
+    const found = locateNormalized(index, q.slice(i, i + WINDOW_CHARS));
     if (found) hits.push(found.start);
   }
-  const shingles = words.length - 4;
-  if (hits.length / shingles < 0.5) return null;
+  if (hits.length / windows < 0.5) return null;
   hits.sort((a, b) => a - b);
   const median = hits[hits.length >> 1];
   return { start: median, end: median + 1, method: 'fuzzy' };

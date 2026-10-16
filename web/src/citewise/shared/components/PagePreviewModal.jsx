@@ -7,6 +7,7 @@ import { X, FileText, ExternalLink, Loader2 } from "lucide-react";
 import { apiFetch } from "../../../api/http";
 import { useTheme } from "../../../context/ThemeContext";
 import PdfPageHighlight from "./PdfPageHighlight";
+import { excerptParagraph } from "../utils/excerptParagraph";
 
 export default function PagePreviewModal({ open, onClose, documentId, sessionId, pageNumber, quote }) {
   const { isDark } = useTheme();
@@ -79,22 +80,23 @@ export default function PagePreviewModal({ open, onClose, documentId, sessionId,
     if (!data?.pageText) {
       return <p style={{ color: muted, fontSize: "13px", fontStyle: "italic" }}>No extracted text is available for this page.</p>;
     }
-    const { pageText, highlight } = data;
-    const parts = highlight
-      ? [pageText.slice(0, highlight.start), pageText.slice(highlight.start, highlight.end), pageText.slice(highlight.end)]
-      : [pageText];
+    const paragraph = excerptParagraph(data.pageText, data.highlight);
+    if (!paragraph) {
+      return <p style={{ color: muted, fontSize: "13px", fontStyle: "italic" }}>The excerpt could not be located in this page's text.</p>;
+    }
+    const { text, highlight } = paragraph;
     return (
-      <div style={{ whiteSpace: "pre-wrap", fontSize: "13px", lineHeight: 1.7, color: isDark ? "#e2e8f0" : "#1f2937" }}>
-        {parts[0]}
-        {highlight && (
-          <mark
-            ref={(el) => el?.scrollIntoView({ block: "center" })}
-            style={{ background: isDark ? "rgba(249, 115, 22, 0.35)" : "#fed7aa", color: "inherit", borderRadius: "3px", padding: "0 2px" }}
-          >
-            {parts[1]}
+      <div style={{ fontSize: "13px", lineHeight: 1.75, color: isDark ? "#e2e8f0" : "#1f2937" }}>
+        <div style={{ fontWeight: 700, fontSize: "12px", color: "#f97316", marginBottom: "8px", letterSpacing: "0.02em" }}>
+          Page {page}
+        </div>
+        <p style={{ margin: 0, textAlign: "justify" }}>
+          {text.slice(0, highlight.start)}
+          <mark style={{ background: isDark ? "rgba(249, 115, 22, 0.35)" : "#fed7aa", color: "inherit", borderRadius: "3px", padding: "0 2px" }}>
+            {text.slice(highlight.start, highlight.end)}
           </mark>
-        )}
-        {parts[2]}
+          {text.slice(highlight.end)}
+        </p>
       </div>
     );
   };
@@ -151,7 +153,7 @@ export default function PagePreviewModal({ open, onClose, documentId, sessionId,
 
         <div style={{ display: "flex", gap: "8px", padding: "10px 18px" }}>
           {tab("pdf", "PDF page", !data?.pdfUrl)}
-          {tab("text", "Text on this page", !data?.pageText)}
+          {tab("text", "Excerpt paragraph", !data?.pageText)}
         </div>
 
         <div style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "0 18px 18px" }}>
