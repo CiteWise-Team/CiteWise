@@ -1,4 +1,5 @@
 // Port of SemanticChunkingService.java
+import { pageForOffset } from './pageText.js';
 
 const STOPWORDS = new Set([
   'a','an','and','are','as','at','be','but','by','for','from','has','have','he',
@@ -52,10 +53,18 @@ function scoreChunk(text, signals) {
 function splitIntoParagraphs(text) {
   const chunks = [];
   let order = 0;
-  for (const part of text.split(PARAGRAPH_SPLIT)) {
-    const cleaned = part.replace(/\s+/g, ' ').trim();
-    if (cleaned.length >= 120) chunks.push({ order: order++, text: cleaned, score: 0 });
+  const separator = new RegExp(PARAGRAPH_SPLIT.source, 'g');
+  let start = 0;
+  const pushPart = (end) => {
+    const cleaned = text.slice(start, end).replace(/\s+/g, ' ').trim();
+    if (cleaned.length >= 120) chunks.push({ order: order++, text: cleaned, score: 0, start, end });
+  };
+  let m;
+  while ((m = separator.exec(text)) !== null) {
+    pushPart(m.index);
+    start = m.index + m[0].length;
   }
+  pushPart(text.length);
   return chunks;
 }
 
@@ -73,7 +82,7 @@ function splitSlidingWindow(text, chunkSize, overlap) {
   while (start < text.length) {
     const end = Math.min(text.length, start + chunkSize);
     const slice = text.slice(start, end).replace(/\s+/g, ' ').trim();
-    if (slice.length > 80) chunks.push({ order: order++, text: slice, score: 0 });
+    if (slice.length > 80) chunks.push({ order: order++, text: slice, score: 0, start, end });
     if (end === text.length) break;
     start = Math.max(0, end - overlap);
   }
@@ -85,10 +94,18 @@ export function selectRelevantChunks(fullText, baseline, opts = {}) {
   const maxChunks = opts.maxChunks ?? 16;
   const chunkSize = opts.chunkSize ?? 1000;
   const overlap   = opts.overlap   ?? 100;
+  const pageOffsets = opts.pageOffsets ?? null;
 
   if (!fullText || !fullText.trim()) return '';
 
   const trimmed = fullText.trim();
+  const lead = fullText.length - fullText.trimStart().length;
+  const pageHint = (chunk) => {
+    if (!pageOffsets?.length || chunk.start == null) return '';
+    const first = pageForOffset(pageOffsets, lead + chunk.start);
+    const last = pageForOffset(pageOffsets, lead + Math.max(chunk.start, chunk.end - 1));
+    return first === last ? ` | page=${first}` : ` | pages=${first}-${last}`;
+  };
   const titleText    = baseline?.project_title || baseline?.projectTitle || '';
   const rationaleText= baseline?.rationale || '';
   const gapsRaw      = baseline?.research_gaps;
@@ -113,7 +130,7 @@ export function selectRelevantChunks(fullText, baseline, opts = {}) {
   const buf = [];
   let total = 0;
   for (let i = 0; i < selected.length; i++) {
-    const header = `[CHUNK ${i + 1} | original_order=${selected[i].order} | relevance_hint=${selected[i].score}]`;
+    const header = `[CHUNK ${i + 1} | original_order=${selected[i].order} | relevance_hint=${selected[i].score}${pageHint(selected[i])}]`;
     const payload = `${header}\n${selected[i].text}\n\n`;
     if (total + payload.length > maxChars) {
       if (total === 0) buf.push(payload.slice(0, maxChars));

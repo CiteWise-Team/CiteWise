@@ -11,36 +11,36 @@ import requireAuth from '../../common/middlewares/auth.middleware.js';
 import { 
   uploadPdfToR2, 
   uploadTextToR2, 
-  getTextFromR2,
   isR2Configured, 
   getPresignedDownloadUrl 
 } from '../../common/config/r2Client.js';
 
 
 // --- Background Extraction Queue ---
-// Limits parallel LlamaParse requests to avoid rate limit/timeouts on free tiers
+// Limits parallel LlamaParse requests to avoid rate limit/timeouts on free tiers.
+// A worker pool rather than fixed batches: a slot frees up as soon as its job
+// finishes instead of waiting for the slowest job in the batch plus a cooldown.
+const EXTRACTION_CONCURRENCY = 3;
 const extractionQueue = [];
-let isProcessingQueue = false;
+let activeExtractions = 0;
 
-async function processExtractionQueue() {
-  if (isProcessingQueue) return;
-  isProcessingQueue = true;
-  while (extractionQueue.length > 0) {
-    const batch = extractionQueue.splice(0, 3); // Process 3 at a time
-    await Promise.all(batch.map(item => 
-      asyncExtractPipeline(item.docId, item.sessionId, item.buffer, item.fileName, item.hash)
-        .catch(err => console.error(`[Queue Error] doc ${item.docId}:`, err))
-    ));
-    // Brief cooldown between batches
-    if (extractionQueue.length > 0) {
-      await new Promise(r => setTimeout(r, 2000));
-    }
+function processExtractionQueue() {
+  while (activeExtractions < EXTRACTION_CONCURRENCY && extractionQueue.length > 0) {
+    const item = extractionQueue.shift();
+    activeExtractions++;
+    asyncExtractPipeline(item.docId, item.sessionId, item.buffer, item.fileName, item.hash)
+      .catch(err => console.error(`[Queue Error] doc ${item.docId}:`, err))
+      .finally(() => {
+        activeExtractions--;
+        processExtractionQueue();
+      });
   }
-  isProcessingQueue = false;
 }
 // -----------------------------------
 import { selectRelevantChunks } from './helpers/chunking.js';
 import { parseAIResponse } from './helpers/rubricScoring.js';
+import { extractPdfPages, joinPages, buildSearchIndex, resolveExcerptPage } from './helpers/pageText.js';
+import { loadFullText, ensurePageOffsets, updateDocumentFields, recordAssessmentTiming } from './helpers/documentPages.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
@@ -141,11 +141,14 @@ async function parsePdfWithLlamaParse(buffer, fileName) {
   const jobId = uploadData.id;
 
   console.info(`[LlamaParse] Uploaded ${fileName}, Job ID: ${jobId}. Polling...`);
+  // Poll every second (was 2s): the job usually finishes between polls, so the
+  // interval is pure added latency on every scanned PDF.
+  const POLL_MS = 1000;
   let status = 'PENDING';
   let attempts = 0;
   while (status === 'PENDING' || status === 'RUNNING') {
-    if (attempts++ > 150) throw new Error('LlamaParse job timed out (waited 5 minutes)');
-    await new Promise(r => setTimeout(r, 2000));
+    if (attempts++ > 300) throw new Error('LlamaParse job timed out (waited 5 minutes)');
+    await new Promise(r => setTimeout(r, POLL_MS));
     const statusRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}`, {
       headers: { 'Authorization': `Bearer ${apiKey}` }
     });
@@ -154,73 +157,100 @@ async function parsePdfWithLlamaParse(buffer, fileName) {
     if (status === 'ERROR' || status === 'FAILED') throw new Error('LlamaParse job failed during processing');
   }
 
-  console.info(`[LlamaParse] Job ${jobId} SUCCESS. Fetching markdown...`);
+  // The JSON result keeps LlamaParse's per-page split, which is what lets an
+  // excerpt from a scanned PDF be traced to its page.
+  console.info(`[LlamaParse] Job ${jobId} SUCCESS. Fetching per-page result...`);
+  const jsonRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}/result/json`, {
+    headers: { 'Authorization': `Bearer ${apiKey}` }
+  });
+  if (jsonRes.ok) {
+    const jsonData = await jsonRes.json().catch(() => null);
+    const pages = Array.isArray(jsonData?.pages) ? jsonData.pages : null;
+    if (pages?.length) {
+      const ordered = [...pages].sort((a, b) => (a.page ?? 0) - (b.page ?? 0));
+      const joined = joinPages(ordered.map(p => String(p.md ?? p.text ?? '')));
+      if (joined.text.trim()) return joined;
+    }
+  }
+
+  console.info(`[LlamaParse] Job ${jobId}: per-page result unavailable, fetching markdown...`);
   const resultRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}/result/markdown`, {
     headers: { 'Authorization': `Bearer ${apiKey}` }
   });
   if (!resultRes.ok) throw new Error('Failed to fetch markdown result');
   const resultData = await resultRes.json();
-  return resultData.markdown;
+  return { text: resultData.markdown, pageOffsets: null, pageCount: null };
 }
 
-
-async function parsePdfHybrid(buffer, fileName) {
-  try {
-    console.info(`[pdf-parse] Attempting fast local extraction for ${fileName}...`);
-    const data = await pdfParse(buffer);
-    const text = data.text || '';
-    const cleanText = text.replace(/\s+/g, ' ').trim();
-    
-    // Heuristic: if text is > 1000 chars, it's likely a native PDF, bypass LlamaParse
-    if (cleanText.length > 1000) {
-      console.info(`[pdf-parse] SUCCESS. Extracted ${cleanText.length} chars locally for ${fileName}.`);
-      return text;
-    }
-    console.info(`[pdf-parse] Text too short (${cleanText.length} chars) for ${fileName}, likely scanned. Falling back to LlamaParse.`);
-  } catch (err) {
-    console.warn(`[pdf-parse] Local parsing failed for ${fileName}: ${err.message}. Falling back to LlamaParse.`);
-  }
-
-  return await parsePdfWithLlamaParse(buffer, fileName);
+function logTiming(doc, sessionId, startedAt, { aiMs, reusedAiResponse, status, errorMessage }) {
+  const assessmentMs = Date.now() - startedAt;
+  const extractionMs = Number.isFinite(doc?.extraction_ms) ? doc.extraction_ms : null;
+  return recordAssessmentTiming({
+    document_id:        doc.id,
+    session_id:         sessionId,
+    page_count:         doc.page_count ?? null,
+    character_count:    doc.character_count ?? null,
+    extraction_method:  doc.extraction_method ?? null,
+    extraction_ms:      extractionMs,
+    ai_ms:              aiMs,
+    assessment_ms:      assessmentMs,
+    total_ms:           extractionMs != null ? extractionMs + assessmentMs : null,
+    reused_ai_response: reusedAiResponse,
+    status,
+    error_message:      errorMessage ?? null,
+  });
 }
 
 // Fire-and-forget n8n scoring for one uploaded document (exported so /assess can reuse)
 export async function scoringPipeline(docId, sessionId) {
+  const startedAt = Date.now();
+  let doc = null;
+  let aiMs = null;
+  let reusedAiResponse = false;
   try {
     // Fetch document row
-    const { data: doc, error: docErr } = await supabase
+    const { data: docRow, error: docErr } = await supabase
       .from('uploaded_documents').select('*').eq('id', docId).single();
+    doc = docRow;
     if (docErr || !doc) { console.warn(`[scoring] doc ${docId} not found`); return; }
 
     if (doc.scoring_status === 'PROCESSING') { console.info(`[scoring] doc ${docId} already processing`); return; }
-    
+
+    // These reads are independent; running them together instead of one after
+    // another trims several database/R2 round-trips off every assessment.
+    const [{ data: existing }, { data: baselines }, fullText] = await Promise.all([
+      supabase.from('document_insights').select('*').eq('document_id', docId).maybeSingle(),
+      supabase
+        .from('research_baselines')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: false })
+        .limit(1),
+      loadFullText(doc),
+      supabase.from('uploaded_documents').update({
+        scoring_status:     'PROCESSING',
+        scoring_started_at: new Date(startedAt).toISOString(),
+        scoring_error_message: null,
+      }).eq('id', docId),
+    ]);
+
     let rawJson = null;
-    const { data: existing } = await supabase.from('document_insights').select('*').eq('document_id', docId).maybeSingle();
     if (existing) {
       if (existing.raw_ai_response_json) {
         console.info(`[scoring] doc ${docId} already has insight. Reusing raw_ai_response_json for new weights.`);
         rawJson = existing.raw_ai_response_json;
+        reusedAiResponse = true;
       } else {
         console.info(`[scoring] doc ${docId} already has insight but no raw json. Will re-fetch.`);
       }
-      // Delete existing insight so we can insert the newly calculated one
-      await supabase.from('document_insights').delete().eq('id', existing.id);
     }
 
-    // Mark PROCESSING
-    await supabase.from('uploaded_documents').update({
-      scoring_status:     'PROCESSING',
-      scoring_started_at: new Date().toISOString(),
-      scoring_error_message: null,
-    }).eq('id', docId);
+    const [pageOffsets] = await Promise.all([
+      ensurePageOffsets(doc, fullText),
+      // Delete existing insight so we can insert the newly calculated one
+      existing ? supabase.from('document_insights').delete().eq('id', existing.id) : null,
+    ]);
 
-    // Load baseline
-    const { data: baselines } = await supabase
-      .from('research_baselines')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
-      .limit(1);
     const baseline = baselines?.[0] ?? null;
     if (!baseline) {
       console.warn(`[scoring] no baseline for session ${sessionId}, skipping doc ${docId}`);
@@ -228,17 +258,8 @@ export async function scoringPipeline(docId, sessionId) {
         scoring_status: 'FAILED', scoring_error_message: 'Missing semantic baseline',
         scoring_completed_at: new Date().toISOString(),
       }).eq('id', docId);
+      await logTiming(doc, sessionId, startedAt, { aiMs, reusedAiResponse, status: 'FAILED', errorMessage: 'Missing semantic baseline' });
       return;
-    }
-
-    let fullText = doc.parsed_text;
-    if (doc.r2_text_key) {
-      try {
-        const r2Content = await getTextFromR2(doc.r2_text_key);
-        if (r2Content?.trim()) fullText = r2Content;
-      } catch (r2Err) {
-        console.warn(`[scoring] Failed to fetch full text from R2 for doc ${docId}, falling back to inline text:`, r2Err.message);
-      }
     }
 
     const selectedText = selectRelevantChunks(fullText, baseline, {
@@ -246,6 +267,7 @@ export async function scoringPipeline(docId, sessionId) {
       maxChunks: parseInt(process.env.CITEWISE_SCORING_MAX_CHUNKS)       || 6,
       chunkSize: parseInt(process.env.CITEWISE_SCORING_CHUNK_SIZE)        || 1000,
       overlap:   parseInt(process.env.CITEWISE_SCORING_CHUNK_OVERLAP)     || 100,
+      pageOffsets,
     });
 
     if (!selectedText || !selectedText.trim()) {
@@ -255,6 +277,7 @@ export async function scoringPipeline(docId, sessionId) {
         scoring_error_message: 'The PDF contains no extractable text (e.g. scanned image or empty document). Please upload a readable, text-based PDF.',
         scoring_completed_at:  new Date().toISOString(),
       }).eq('id', docId);
+      await logTiming(doc, sessionId, startedAt, { aiMs, reusedAiResponse, status: 'FAILED', errorMessage: 'No extractable text' });
       return;
     }
 
@@ -289,6 +312,7 @@ export async function scoringPipeline(docId, sessionId) {
       const webhookUrl = process.env.CITEWISE_N8N_SCORING_WEBHOOK_URL || 'http://localhost:5678/webhook/citewise-evaluator-fixed';
       console.info(`[scoring] calling n8n for doc ${docId} (${selectedText.length} chars)`);
 
+      const aiStartedAt = Date.now();
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -302,6 +326,7 @@ export async function scoringPipeline(docId, sessionId) {
       }
 
       rawJson = await response.text();
+      aiMs = Date.now() - aiStartedAt;
       if (!rawJson?.trim()) throw new Error('n8n returned empty body');
     }
 
@@ -333,16 +358,30 @@ export async function scoringPipeline(docId, sessionId) {
     if (insErr) throw new Error(`Failed to save insight: ${insErr.message}`);
 
     if (insight.evidenceExcerpts?.length) {
-      const rows = insight.evidenceExcerpts.map(e => ({
-        document_insight_id: savedInsight.id,
-        quote_text:     e.quoteText,
-        page_number:    e.pageNumber,
-        relevance_level:e.relevanceLevel,
-        criterion:      e.criterion,
-        evidence_type:  e.evidenceType,
-        display_order:  e.displayOrder,
-      }));
-      const { error: exErr } = await supabase.from('evidence_excerpts').insert(rows);
+      // The scorer's pageNumber is a guess (n8n defaults it to 1), so locate
+      // each quote in the extracted text and take the page from there.
+      const searchIndex = pageOffsets ? buildSearchIndex(fullText) : null;
+      const rows = insight.evidenceExcerpts.map(e => {
+        const { pageNumber, pageVerified } = resolveExcerptPage({
+          index: searchIndex, pageOffsets, quote: e.quoteText, aiPage: e.pageNumber,
+        });
+        return {
+          document_insight_id: savedInsight.id,
+          quote_text:     e.quoteText,
+          page_number:    pageNumber,
+          page_verified:  pageVerified,
+          relevance_level:e.relevanceLevel,
+          criterion:      e.criterion,
+          evidence_type:  e.evidenceType,
+          display_order:  e.displayOrder,
+        };
+      });
+      let { error: exErr } = await supabase.from('evidence_excerpts').insert(rows);
+      if (exErr && /page_verified/i.test(exErr.message ?? '')) {
+        // Database not migrated yet: keep the excerpts, drop the flag.
+        ({ error: exErr } = await supabase.from('evidence_excerpts')
+          .insert(rows.map(({ page_verified, ...row }) => row)));
+      }
       if (exErr) console.warn(`[scoring] excerpt insert error for doc ${docId}:`, exErr.message);
     }
 
@@ -352,7 +391,13 @@ export async function scoringPipeline(docId, sessionId) {
       scoring_error_message: null,
     }).eq('id', docId);
 
-    console.info(`[scoring] ✅ doc ${docId} complete – recommendation=${insight.recommendationStatus}`);
+    const assessmentMs = Date.now() - startedAt;
+    await Promise.all([
+      updateDocumentFields(docId, { scoring_duration_ms: assessmentMs }, 'timing'),
+      logTiming(doc, sessionId, startedAt, { aiMs, reusedAiResponse, status: 'COMPLETE' }),
+    ]);
+
+    console.info(`[scoring] ✅ doc ${docId} complete in ${assessmentMs} ms (${doc.page_count ?? '?'} pages, AI ${aiMs ?? 'reused'} ms) – recommendation=${insight.recommendationStatus}`);
 
     // Fire-and-forget AI metadata extraction so synthesis has reliable
     // citation metadata (author, year, title) without the user having to
@@ -365,6 +410,7 @@ export async function scoringPipeline(docId, sessionId) {
       scoring_completed_at: new Date().toISOString(),
       scoring_error_message: err.message?.slice(0, 280),
     }).eq('id', docId);
+    if (doc) await logTiming(doc, sessionId, startedAt, { aiMs, reusedAiResponse, status, errorMessage: err.message?.slice(0, 280) });
     console.error(`[scoring] doc ${docId} FAILED:`, err.message);
   }
 }
@@ -472,7 +518,9 @@ async function extractMetadataPipeline(docId, fileName, parsedText) {
 export async function asyncExtractPipeline(docId, sessionId, buffer, fileName, hash) {
   try {
     console.info(`[asyncExtract] Starting background LlamaParse for doc ${docId} (${fileName})...`);
-    const markdown = await parsePdfWithLlamaParse(buffer, fileName);
+    const extractStartedAt = Date.now();
+    const { text: markdown, pageOffsets, pageCount } = await parsePdfWithLlamaParse(buffer, fileName);
+    const extractionMs = Date.now() - extractStartedAt;
     if (!markdown?.trim()) {
       throw new Error('LlamaParse returned empty extracted text');
     }
@@ -491,7 +539,14 @@ export async function asyncExtractPipeline(docId, sessionId, buffer, fileName, h
       scoring_error_message: null,
     }).eq('id', docId);
 
-    console.info(`[asyncExtract] ✅ doc ${docId} text extraction complete (${charCount} chars). Transitioned to PENDING.`);
+    await updateDocumentFields(docId, {
+      extraction_method: 'llamaparse',
+      extraction_ms:     extractionMs,
+      page_offsets_json: pageOffsets,
+      ...(pageCount ? { page_count: pageCount } : {}),
+    }, 'asyncExtract');
+
+    console.info(`[asyncExtract] ✅ doc ${docId} text extraction complete (${charCount} chars, ${pageCount ?? '?'} pages, ${extractionMs} ms). Transitioned to PENDING.`);
   } catch (err) {
     console.error(`[asyncExtract] doc ${docId} extraction failed:`, err.message);
     await supabase.from('uploaded_documents').update({
@@ -557,42 +612,46 @@ router.post('/upload', acceptUploads, async (req, res) => {
       continue;
     }
 
-    // Offload raw PDF binary to Cloudflare R2
+    // Offload raw PDF binary to Cloudflare R2 while extracting text locally;
+    // neither depends on the other.
     const r2FileKey = `raw/${sessionId}/${hash}.pdf`;
-    try {
-      await uploadPdfToR2(file.buffer, r2FileKey, mimeType);
-    } catch (r2Err) {
-      console.warn(`[upload] R2 PDF upload skipped/failed for ${fileName}:`, r2Err.message);
-    }
+    const timedExtract = async () => {
+      const t = Date.now();
+      try {
+        return { ...(await extractPdfPages(pdfParse, file.buffer)), ms: Date.now() - t };
+      } catch {
+        return { text: '', pageOffsets: null, pageCount: null, ms: Date.now() - t };
+      }
+    };
+    const [, extraction] = await Promise.all([
+      uploadPdfToR2(file.buffer, r2FileKey, mimeType).catch((r2Err) => {
+        console.warn(`[upload] R2 PDF upload skipped/failed for ${fileName}:`, r2Err.message);
+      }),
+      timedExtract(),
+    ]);
 
     // Attempt fast local extraction
     let localText = '';
     let requiresLlamaParse = false;
-    try {
-      const data = await pdfParse(file.buffer);
-      const text = (data.text || '').replace(/\s+/g, ' ').trim();
-      if (text.length > 1000) {
-        localText = data.text || '';
-      } else {
-        requiresLlamaParse = true;
-      }
-    } catch (err) {
+    const flatText = (extraction.text || '').replace(/\s+/g, ' ').trim();
+    if (flatText.length > 1000) {
+      localText = extraction.text;
+    } else {
       requiresLlamaParse = true;
     }
 
     // Path A: Native text extracted locally (<300ms)
     if (!requiresLlamaParse && localText.trim()) {
       const r2TextKey = `text/${sessionId}/${hash}.md`;
-      try {
-        await uploadTextToR2(localText, r2TextKey);
-      } catch (r2TextErr) {
-        console.warn(`[upload] R2 text upload skipped/failed for ${fileName}:`, r2TextErr.message);
-      }
 
       const previewText = localText.slice(0, 4000);
       const charCount = localText.trim().length;
 
-      const { data: saved, error: saveErr } = await supabase
+      const [, { data: saved, error: saveErr }] = await Promise.all([
+        uploadTextToR2(localText, r2TextKey).catch((r2TextErr) => {
+          console.warn(`[upload] R2 text upload skipped/failed for ${fileName}:`, r2TextErr.message);
+        }),
+        supabase
         .from('uploaded_documents')
         .insert({
           session_id:     sessionId,
@@ -608,12 +667,20 @@ router.post('/upload', acceptUploads, async (req, res) => {
           scoring_status: 'PENDING',
         })
         .select()
-        .single();
+        .single(),
+      ]);
 
       if (saveErr) {
         results.push({ success: false, fileName, sizeBytes, message: `Save failed: ${saveErr.message}`, characterCount: 0 });
         continue;
       }
+
+      void updateDocumentFields(saved.id, {
+        page_count:        extraction.pageCount,
+        page_offsets_json: extraction.pageOffsets,
+        extraction_method: 'local',
+        extraction_ms:     extraction.ms,
+      }, 'upload');
 
       accepted++;
       results.push({
@@ -650,6 +717,10 @@ router.post('/upload', acceptUploads, async (req, res) => {
     if (saveErr) {
       results.push({ success: false, fileName, sizeBytes, message: `Save failed: ${saveErr.message}`, characterCount: 0 });
       continue;
+    }
+
+    if (extraction.pageCount) {
+      void updateDocumentFields(saved.id, { page_count: extraction.pageCount }, 'upload');
     }
 
     accepted++;

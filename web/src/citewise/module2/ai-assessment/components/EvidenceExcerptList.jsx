@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from "../../../../context/ThemeContext";
+import PagePreviewModal from "../../../shared/components/PagePreviewModal";
 
 // Map relevance level to theme colors
 const RELEVANCE_COLORS = {
@@ -16,7 +17,14 @@ const getRelevanceDisplay = (level) => {
     : "Unknown";
 };
 
-const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType }) => {
+// "verified" pages were confirmed by finding the quote in the PDF text; the
+// rest are the AI's own estimate.
+const pageLabel = (page, pageVerified) => {
+  if (!page) return "Page not located";
+  return pageVerified === false ? `Page ~${page} (estimated)` : `Page ${page}`;
+};
+
+const ExcerptItem = ({ index, quote, page, pageVerified, relevance, criterion, evidenceType, onViewPage }) => {
   const { isDark } = useTheme();
   const relevanceDisplay = getRelevanceDisplay(relevance);
   const color = RELEVANCE_COLORS[relevanceDisplay] || "#6b7280";
@@ -92,7 +100,7 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
               color: isDark ? "#94a3b8" : "#9ca3af",
             }}
           >
-            Page {page}
+            {pageLabel(page, pageVerified)}
           </span>
           <span style={{ color: isDark ? "rgba(255, 255, 255, 0.2)" : "#d1d5db", fontSize: "11px" }}>·</span>
           <span
@@ -112,14 +120,38 @@ const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType })
               {relevanceDisplay}
             </span>
           </span>
+          {onViewPage && (
+            <>
+              <span style={{ color: isDark ? "rgba(255, 255, 255, 0.2)" : "#d1d5db", fontSize: "11px" }}>·</span>
+              <button
+                type="button"
+                onClick={onViewPage}
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: "#f97316",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  textUnderlineOffset: "2px",
+                }}
+              >
+                View page
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-const EvidenceExcerptList = ({ excerpts }) => {
+const EvidenceExcerptList = ({ excerpts, documentId, sessionId }) => {
   const { isDark } = useTheme();
+  const [preview, setPreview] = useState(null);
 
   // Empty state
   if (!excerpts || excerpts.length === 0) {
@@ -182,7 +214,8 @@ const EvidenceExcerptList = ({ excerpts }) => {
   const items = excerpts.map((excerpt, idx) => ({
     id: idx,
     quote: excerpt.quoteText || excerpt.quote || "",
-    page: excerpt.pageNumber || excerpt.page || "N/A",
+    page: excerpt.pageNumber || excerpt.page || null,
+    pageVerified: excerpt.pageVerified ?? null,
     relevance: excerpt.relevanceLevel || excerpt.relevance || "Unknown",
     criterion: excerpt.criterion || null,
     evidenceType: excerpt.evidenceType || null,
@@ -233,12 +266,22 @@ const EvidenceExcerptList = ({ excerpts }) => {
             index={i + 1}
             quote={item.quote}
             page={item.page}
+            pageVerified={item.pageVerified}
             relevance={item.relevance}
             criterion={item.criterion}
             evidenceType={item.evidenceType}
+            onViewPage={documentId && sessionId ? () => setPreview(item) : null}
           />
         ))}
       </div>
+      <PagePreviewModal
+        open={Boolean(preview)}
+        onClose={() => setPreview(null)}
+        documentId={documentId}
+        sessionId={sessionId}
+        pageNumber={preview?.page}
+        quote={preview?.quote}
+      />
     </div>
   );
 };

@@ -161,7 +161,7 @@ const AIAssessmentPanel = ({
             setInsights(null);
             setError(null);
             setLoading(true);
-            pollTimeout = setTimeout(fetchInsights, 5000);
+            pollTimeout = setTimeout(fetchInsights, 1500);
           }
           return;
         }
@@ -233,6 +233,7 @@ const AIAssessmentPanel = ({
             criterion: e.criterion || null,
             quoteText: e.quoteText || e.quote || e.text || "",
             pageNumber: e.pageNumber ?? e.page ?? null,
+            pageVerified: e.pageVerified ?? null,
             relevanceLevel: e.relevanceLevel || e.relevance || null,
             evidenceType: e.evidenceType || e.type || null,
             displayOrder: e.displayOrder ?? null,
@@ -251,6 +252,8 @@ const AIAssessmentPanel = ({
       mismatchFlags: Array.isArray(resolvedInsights.mismatchFlags) ? resolvedInsights.mismatchFlags : [],
       weaknessFlags: Array.isArray(resolvedInsights.weaknessFlags) ? resolvedInsights.weaknessFlags : [],
       validationFlags: Array.isArray(resolvedInsights.validationFlags) ? resolvedInsights.validationFlags : [],
+      pageCount: resolvedInsights.pageCount ?? null,
+      timing: resolvedInsights.timing ?? null,
     };
   };
 
@@ -712,7 +715,16 @@ const AIAssessmentPanel = ({
       </div>
       {isPanelOpen && (
         <div className="cw-panel-content" style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
-          <EvidenceExcerptList excerpts={mappedData.excerpts} />
+          <EvidenceExcerptList excerpts={mappedData.excerpts} documentId={documentId} sessionId={sessionId} />
+          {(mappedData.timing?.assessmentMs != null || mappedData.pageCount != null) && (
+            <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '11px', color: 'var(--cw-text-muted, #6b7280)', marginTop: '10px' }}>
+              {[
+                mappedData.pageCount != null ? `${mappedData.pageCount} page${mappedData.pageCount === 1 ? '' : 's'}` : null,
+                mappedData.timing?.extractionMs != null ? `extracted in ${(mappedData.timing.extractionMs / 1000).toFixed(1)} s${mappedData.timing.extractionMethod === 'llamaparse' ? ' (OCR)' : ''}` : null,
+                mappedData.timing?.assessmentMs != null ? `assessed in ${(mappedData.timing.assessmentMs / 1000).toFixed(1)} s` : null,
+              ].filter(Boolean).join(' · ')}
+            </div>
+          )}
           <div style={{ height: '35px' }} />
           <SemanticScoreDashboard
             scores={mappedData.scores}
