@@ -85,6 +85,13 @@ describe('locateQuote / resolveExcerptPage', () => {
     expect(text.slice(hit.start, hit.end)).toMatch(/^The proposed[\s\S]*baseline system$/);
   });
 
+  it('ignores word spacing (pdf-parse glues italic words: "ingdenserepresentations")', () => {
+    const doc = joinPages(['retrieval can be practically implemented us-\ning dense representations alone, where em-\nbeddings are learned']);
+    const hit = locateQuote(buildSearchIndex(doc.text), 'retrieval can be practically implemented us- ingdenserepresentations alone, where em- beddings are learned');
+    expect(hit?.method).toBe('exact');
+    expect(doc.text.slice(hit.start, hit.end)).toMatch(/^retrieval[\s\S]*learned$/);
+  });
+
   it('unfolds ligatures', () => {
     expect(resolveExcerptPage({ index, pageOffsets, quote: 'traceability for scanned documents and the final evaluation', aiPage: 1 }))
       .toEqual({ pageNumber: 3, pageVerified: true });
