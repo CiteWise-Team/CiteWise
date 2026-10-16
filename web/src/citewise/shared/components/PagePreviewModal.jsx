@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { X, FileText, ExternalLink, Loader2 } from "lucide-react";
 import { apiFetch } from "../../../api/http";
 import { useTheme } from "../../../context/ThemeContext";
+import PdfPageHighlight from "./PdfPageHighlight";
 
 export default function PagePreviewModal({ open, onClose, documentId, sessionId, pageNumber, quote }) {
   const { isDark } = useTheme();
@@ -160,12 +161,13 @@ export default function PagePreviewModal({ open, onClose, documentId, sessionId,
             </div>
           )}
           {error && <p style={{ color: "#dc2626", fontSize: "13px" }}>{error}</p>}
-          {data && view === "pdf" && pdfSrc && (
-            <iframe
-              key={pdfSrc}
-              title="PDF page"
-              src={pdfSrc}
-              style={{ width: "100%", height: "68vh", border, borderRadius: "8px", background: "#fff" }}
+          {data && view === "pdf" && data.pdfUrl && (
+            <PdfPageHighlight
+              documentId={data.documentId}
+              sessionId={sessionId}
+              pageNumber={page}
+              quote={quote}
+              isDark={isDark}
             />
           )}
           {data && view === "text" && renderText()}

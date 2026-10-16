@@ -415,6 +415,53 @@ export async function scoringPipeline(docId, sessionId) {
   }
 }
 
+// Auto-assessment of documents added after the workspace was assessed.
+// Without it a new upload sat PENDING (and the dashboard on its loading
+// screen) until the user pressed Reassess. It reuses the metric weights of
+// the session's most recently assessed document. A session with no assessed
+// document yet is left alone so the user can pick weights before the first run.
+const AUTO_ASSESS_CONCURRENCY = 4;
+const autoAssessQueue = [];
+let activeAutoAssessments = 0;
+
+function processAutoAssessQueue() {
+  while (activeAutoAssessments < AUTO_ASSESS_CONCURRENCY && autoAssessQueue.length > 0) {
+    const { docId, sessionId } = autoAssessQueue.shift();
+    activeAutoAssessments++;
+    scoringPipeline(docId, sessionId)
+      .catch(err => console.error(`[autoAssess] doc ${docId}:`, err))
+      .finally(() => {
+        activeAutoAssessments--;
+        processAutoAssessQueue();
+      });
+  }
+}
+
+export async function autoAssessIfSessionAssessed(docId, sessionId) {
+  try {
+    const { data: previous, error } = await supabase
+      .from('uploaded_documents')
+      .select('id, metric_weights_json')
+      .eq('session_id', sessionId)
+      .eq('scoring_status', 'COMPLETE')
+      .neq('id', docId)
+      .order('scoring_completed_at', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    if (!previous?.length) return;
+
+    const weights = previous[0].metric_weights_json;
+    if (weights) {
+      await supabase.from('uploaded_documents').update({ metric_weights_json: weights }).eq('id', docId);
+    }
+    console.info(`[autoAssess] doc ${docId}: session already assessed, scoring with weights from doc ${previous[0].id}`);
+    autoAssessQueue.push({ docId, sessionId });
+    processAutoAssessQueue();
+  } catch (err) {
+    console.warn(`[autoAssess] could not queue doc ${docId}:`, err.message);
+  }
+}
+
 // ── AI metadata extraction pipeline ─────────────────────────────────────
 // Called after scoring completes. Sends the first 4 000 chars of the parsed
 // text to the n8n metadata extractor webhook, which uses an AI model to
@@ -547,6 +594,7 @@ export async function asyncExtractPipeline(docId, sessionId, buffer, fileName, h
     }, 'asyncExtract');
 
     console.info(`[asyncExtract] ✅ doc ${docId} text extraction complete (${charCount} chars, ${pageCount ?? '?'} pages, ${extractionMs} ms). Transitioned to PENDING.`);
+    await autoAssessIfSessionAssessed(docId, sessionId);
   } catch (err) {
     console.error(`[asyncExtract] doc ${docId} extraction failed:`, err.message);
     await supabase.from('uploaded_documents').update({
@@ -681,6 +729,7 @@ router.post('/upload', acceptUploads, async (req, res) => {
         extraction_method: 'local',
         extraction_ms:     extraction.ms,
       }, 'upload');
+      void autoAssessIfSessionAssessed(saved.id, sessionId);
 
       accepted++;
       results.push({

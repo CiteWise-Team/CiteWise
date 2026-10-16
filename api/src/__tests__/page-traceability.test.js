@@ -79,6 +79,12 @@ describe('locateQuote / resolveExcerptPage', () => {
     expect(r).toEqual({ pageNumber: 2, pageVerified: true });
   });
 
+  it('matches quotes that kept a line-break hyphen ("attribu- tion")', () => {
+    const hit = locateQuote(index, 'The proposed framework improves source attribu- tion accuracy by 23 percent compared with the baseline system.');
+    expect(hit?.method).toBe('exact');
+    expect(text.slice(hit.start, hit.end)).toMatch(/^The proposed[\s\S]*baseline system$/);
+  });
+
   it('unfolds ligatures', () => {
     expect(resolveExcerptPage({ index, pageOffsets, quote: 'traceability for scanned documents and the final evaluation', aiPage: 1 }))
       .toEqual({ pageNumber: 3, pageVerified: true });
