@@ -141,11 +141,26 @@ function locateNormalized(index, needle) {
   return { start: index.map[at], end: index.map[at + needle.length - 1] + 1 };
 }
 
+const METHOD_RANK = { exact: 0, partial: 1, fuzzy: 2 };
+
 // Find where `quote` sits inside `text`. Returns original-text indices, or null.
 //   exact      – the whole quote appears (modulo punctuation/whitespace/case)
 //   partial    – the opening or closing words appear verbatim
 //   fuzzy      – most of its 5-word shingles appear close together
+// The AI often copies a PDF line-break hyphen as "in- dicate"; the index has
+// already rejoined those words, so the quote is also tried with them rejoined.
 export function locateQuote(index, quote) {
+  const asIs = locateQuoteOnce(index, quote);
+  if (asIs?.method === 'exact') return asIs;
+  const rejoined = String(quote ?? '').replace(/(\p{L})-\s+(\p{L})/gu, '$1$2');
+  if (rejoined === quote) return asIs;
+  const joined = locateQuoteOnce(index, rejoined);
+  if (!joined) return asIs;
+  if (!asIs) return joined;
+  return METHOD_RANK[joined.method] <= METHOD_RANK[asIs.method] ? joined : asIs;
+}
+
+function locateQuoteOnce(index, quote) {
   const q = normalizeForSearch(quote);
   if (q.length < 12) return null;
 

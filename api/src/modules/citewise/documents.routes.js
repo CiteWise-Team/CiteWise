@@ -10,7 +10,7 @@ import { deriveSessionId } from './helpers/sessionId.js';
 import { loadFullText, ensurePageOffsets } from './helpers/documentPages.js';
 import { buildSearchIndex, locateQuote, pageForOffset, pageRange } from './helpers/pageText.js';
 import { summarizeTimings } from './helpers/assessmentTiming.js';
-import { getPresignedDownloadUrl } from '../../common/config/r2Client.js';
+import { getPresignedDownloadUrl, getBufferFromR2 } from '../../common/config/r2Client.js';
 
 const router = express.Router();
 
@@ -265,11 +265,35 @@ router.get('/:id/page', async (req, res) => {
       pageNumber,
       pageCount:  doc.page_count ?? pageOffsets?.length ?? null,
       located:    Boolean(hit),
+      hasPdf:     Boolean(pdfUrl),
       pdfUrl,
       pageText,
       highlight,
     },
   });
+});
+
+// GET /api/v1/documents/:id/pdf
+// The original PDF, served through the API so the in-app viewer can render
+// and highlight it without the R2 bucket needing CORS rules.
+router.get('/:id/pdf', async (req, res) => {
+  const docId = Number(req.params.id);
+  const sessionId = req.headers['x-session-id'];
+  if (!sessionId) return res.status(400).json({ success: false, message: 'Session ID is required' });
+
+  const { data: doc } = await supabase
+    .from('uploaded_documents').select('id, session_id, r2_file_key, file_name').eq('id', docId).maybeSingle();
+  if (!doc || doc.session_id !== sessionId) return res.status(404).json({ success: false, message: 'Not found' });
+
+  const buffer = doc.r2_file_key ? await getBufferFromR2(doc.r2_file_key) : null;
+  if (!buffer) return res.status(404).json({ success: false, message: 'The original PDF is not stored for this document' });
+
+  res.set({
+    'Content-Type': 'application/pdf',
+    'Content-Length': buffer.length,
+    'Cache-Control': 'private, max-age=900',
+  });
+  return res.send(buffer);
 });
 
   // POST /api/v1/documents/assess-batch
