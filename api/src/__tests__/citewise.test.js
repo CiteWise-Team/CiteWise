@@ -126,6 +126,65 @@ describe('Citation Safety – Placeholder Extraction & Restoration', () => {
     const restored = restorePlaceholders(protectedText, citations);
     expect(restored).toBe(para);
   });
+
+  it('protects and restores academic section headers verbatim across full drafts', () => {
+    const fullDraft = [
+      '## 1. Background',
+      'Recent breakthroughs in AI (Vaswani et al., 2017) transformed synthesis.',
+      '',
+      '### Rationale:',
+      'Existing tools lack provenance verification (Brown et al., 2020).',
+      '',
+      '## Research Gap',
+      'Bridging source transparency remains unsolved (Hu et al., 2021).',
+    ].join('\n');
+
+    const CITATION_RE = /\((?:[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?)(?:\s*;\s*[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?))*)\)/g;
+    const citations = [];
+    let protectedText = fullDraft.replace(CITATION_RE, (match) => {
+      citations.push(match);
+      return `«CIT${citations.length - 1}»`;
+    });
+
+    const HEADER_RE = /^(?:#{1,6}\s+)?(?:\d+[\.\)]\s+)?(?:\*{1,3}|_{1,3})?(Background|Rationale|Research\s+Gap)(?:\*{1,3}|_{1,3})?:?\s*$/gim;
+    const headers = [];
+    protectedText = protectedText.replace(HEADER_RE, (match) => {
+      headers.push(match);
+      return `«HDR${headers.length - 1}»`;
+    });
+
+    expect(headers).toEqual(['## 1. Background', '### Rationale:', '## Research Gap']);
+    expect(citations).toHaveLength(3);
+    expect(protectedText).toContain('«HDR0»');
+    expect(protectedText).toContain('«HDR1»');
+    expect(protectedText).toContain('«HDR2»');
+
+    // Simulate LLM output with potential whitespace variations in delimiters
+    const simulatedLlm = [
+      '«HDR0»',
+      'AI advances «CIT0» revolutionized literature synthesis.',
+      '',
+      '« HDR1 »',
+      'Tools still lack empirical verification « CIT1 ».',
+      '',
+      '«HDR2»',
+      'Transparency remains an urgent gap «CIT2».',
+    ].join('\n');
+
+    const PLACEHOLDER_RE = /«\s*CIT(\d+)\s*»/g;
+    let restored = simulatedLlm.replace(PLACEHOLDER_RE, (_, idx) => citations[Number(idx)] ?? '');
+    const HDR_PLACEHOLDER_RE = /«\s*HDR(\d+)\s*»/g;
+    restored = restored.replace(HDR_PLACEHOLDER_RE, (_, idx) => headers[Number(idx)] ?? '');
+
+    expect(restored).toContain('## 1. Background');
+    expect(restored).toContain('### Rationale:');
+    expect(restored).toContain('## Research Gap');
+    expect(restored).toContain('(Vaswani et al., 2017)');
+    expect(restored).toContain('(Brown et al., 2020)');
+    expect(restored).toContain('(Hu et al., 2021)');
+    expect(restored).not.toContain('«HDR');
+    expect(restored).not.toContain('«CIT');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

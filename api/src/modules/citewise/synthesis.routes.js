@@ -913,7 +913,9 @@ router.post('/save-draft', async (req, res) => {
 // citation regardless of how aggressively it rewrites the surrounding prose.
 router.post('/paraphrase', async (req, res) => {
   const { text } = req.body;
-  if (!text) return res.status(400).json({ success: false, message: 'Text is required' });
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ success: false, message: 'Text is required' });
+  }
 
   // ── Step 1: extract APA citations and replace with opaque placeholders ───
   // Matches: (Author, YYYY), (Author et al., YYYY), (Author & Author, YYYY),
@@ -921,16 +923,29 @@ router.post('/paraphrase', async (req, res) => {
   const CITATION_RE = /\((?:[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?)(?:\s*;\s*[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?))*)\)/g;
 
   const citations = [];   // ordered list of original citation strings
-  const protectedText = text.replace(CITATION_RE, (match) => {
+  let protectedText = text.replace(CITATION_RE, (match) => {
     const idx = citations.length;
     citations.push(match);
     return `«CIT${idx}»`;
   });
 
-  // ── Step 2: call n8n paraphraser with the citation-safe text ────────────
+  // ── Step 1b: extract and protect academic section headers verbatim ───────
+  // Preserves Background, Rationale, Research Gap titles so the entire draft
+  // can be paraphrased in a single cohesive pass without losing headings.
+  const HEADER_RE = /^(?:#{1,6}\s+)?(?:\d+[\.\)]\s+)?(?:\*{1,3}|_{1,3})?(Background|Rationale|Research\s+Gap)(?:\*{1,3}|_{1,3})?:?\s*$/gim;
+  const headers = [];     // ordered list of original header lines
+  protectedText = protectedText.replace(HEADER_RE, (match) => {
+    const idx = headers.length;
+    headers.push(match);
+    return `«HDR${idx}»`;
+  });
+
+  // ── Step 2: call n8n paraphraser with the citation & header-safe text ────
   const baseUrl = (process.env.N8N_BASE_URL || '').replace(/\/$/, '');
   const webhookUrl = process.env.CITEWISE_N8N_PARAPHRASE_WEBHOOK_URL
     || (baseUrl ? `${baseUrl}/webhook/citewise-paraphraser-lb` : 'http://localhost:5678/webhook/citewise-paraphraser-lb');
+
+  const readTimeoutMs = parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS, 10) || 120000;
 
   let paraphrased;
   try {
@@ -938,12 +953,24 @@ router.post('/paraphrase', async (req, res) => {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', Connection: 'close' },
       body:    JSON.stringify({ text: protectedText }),
-      timeout: parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS) || 120000,
+      signal:  AbortSignal.timeout(readTimeoutMs),
     });
+
     const raw = await n8nRes.text();
     if (!raw?.trim()) throw new Error('Paraphraser webhook returned empty response');
 
-    let root = JSON.parse(raw);
+    let root;
+    try {
+      root = JSON.parse(raw);
+    } catch {
+      throw new Error(`Paraphraser returned non-JSON response: ${raw.slice(0, 160)}`);
+    }
+
+    if (!n8nRes.ok) {
+      const errMsg = (root && (root.message || root.error || root.errorMessage)) || `HTTP ${n8nRes.status}`;
+      throw new Error(`Paraphraser failed: ${errMsg}`);
+    }
+
     if (Array.isArray(root) && root.length) root = root[0];
 
     for (const f of ['output', 'body', 'data', 'json', 'result', 'paraphrasedText']) {
@@ -961,9 +988,13 @@ router.post('/paraphrase', async (req, res) => {
     return res.status(502).json({ success: false, message: `Paraphrase failed: ${err.message}` });
   }
 
-  // ── Step 3: reattach original citations verbatim ─────────────────────────
-  const PLACEHOLDER_RE = /«CIT(\d+)»/g;
-  const restored = paraphrased.replace(PLACEHOLDER_RE, (_, idx) => citations[Number(idx)] ?? '');
+  // ── Step 3: reattach original citations and section headers verbatim ─────
+  // Tolerates optional whitespace inside delimiters (e.g., « CIT0 »)
+  const PLACEHOLDER_RE = /«\s*CIT(\d+)\s*»/g;
+  let restored = paraphrased.replace(PLACEHOLDER_RE, (_, idx) => citations[Number(idx)] ?? '');
+
+  const HDR_PLACEHOLDER_RE = /«\s*HDR(\d+)\s*»/g;
+  restored = restored.replace(HDR_PLACEHOLDER_RE, (_, idx) => headers[Number(idx)] ?? '');
 
   // Warn about any citations the LLM dropped entirely (no placeholder left).
   const placeholdersInResult = new Set(

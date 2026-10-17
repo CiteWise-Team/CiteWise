@@ -594,41 +594,18 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
     if (isParaphrasingDraft || paraphrasedDraft || !generatedContent) return;
     setIsParaphrasingDraft(true);
     try {
-      // 1. FRONTEND ONLY: Separate section titles from research body content
-      const segments = splitDraftSections(generatedContent);
+      const { res, data } = await apiFetch("/api/v1/synthesis/paraphrase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: generatedContent }),
+      });
 
-      // 2. Paraphrase only the body prose segments; leave part titles untouched
-      const paraphrasedSegments = await Promise.all(
-        segments.map(async (seg) => {
-          if (seg.type !== "body" || !seg.text.trim()) {
-            return seg.text;
-          }
-          const { res, data } = await apiFetch("/api/v1/synthesis/paraphrase", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: seg.text.trim() }),
-          });
-          if (res.ok && data.success && data.text) {
-            return data.text.trim();
-          }
-          return seg.text;
-        })
-      );
-
-      // 3. Reconstruct draft preserving original section headers verbatim
-      let reconstructed = "";
-      for (let i = 0; i < segments.length; i++) {
-        const seg = segments[i];
-        const textVal = paraphrasedSegments[i] || seg.text;
-        if (seg.type === "header") {
-          reconstructed += (reconstructed ? "\n\n" : "") + textVal + "\n\n";
-        } else {
-          reconstructed += textVal;
-        }
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || `Paraphrase failed (HTTP ${res.status})`);
       }
 
-      const finalOutput = reconstructed.trim();
-      if (finalOutput && finalOutput !== generatedContent) {
+      const finalOutput = data.text?.trim();
+      if (finalOutput && finalOutput !== generatedContent.trim()) {
         setParaphrasedDraft(finalOutput);
         if (!draftPanelOpen) setDraftPanelOpen(true);
         showToast("success", "Paraphrase Ready", "Review the revisions and accept or discard changes.");
@@ -636,8 +613,8 @@ export default function SynthesisDraftModule({ sessionId, groupId, onStepChange,
         showToast("warning", "No Changes Detected", "Paraphrasing completed with no detectable alterations to the current text.");
       }
     } catch (err) {
-      console.error(err);
-      showToast("error", "Paraphrasing Failed", "Could not complete paraphrasing. Please check the network connection.");
+      console.error("[paraphraseDraft] error:", err);
+      showToast("error", "Paraphrasing Failed", err.message || "Could not complete paraphrasing. Please try again.");
     } finally {
       setIsParaphrasingDraft(false);
     }
