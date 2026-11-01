@@ -400,7 +400,9 @@ async function asyncSynthesisJob({
       return false;
     });
 
-    const referencesText = n8nData.referencesText ?? ((citedMetas.length > 0 ? buildReferenceList(citedMetas) : buildReferenceList(allCitationMetas)) || '');
+    const referencesText = citedMetas.length > 0
+      ? buildReferenceList(citedMetas)
+      : (n8nData.referencesText || buildReferenceList(allCitationMetas) || '');
 
     const omittedDocuments = usableDocs
       .filter(d => {
@@ -497,15 +499,33 @@ router.post('/generate', async (req, res) => {
 
   // Sync approved IDs from client payload to database if provided
   const parseId = (id) => (isNaN(Number(id)) ? id : Number(id));
-  const payloadDocIds = (approvedDocumentIds || []).map(parseId).filter(Boolean);
-  const rrlDocIds = Object.keys(rrlUsage || {})
-    .filter((id) => rrlUsage[id]?.usage !== 'exclude')
+  const isDocKey = (k) => k !== 'selectedDocumentIds' && typeof rrlUsage[k] === 'object' && rrlUsage[k] !== null;
+
+  const excludedDocIds = Object.keys(rrlUsage || {})
+    .filter((id) => isDocKey(id) && rrlUsage[id]?.usage === 'exclude')
     .map(parseId)
     .filter(Boolean);
-  const allApprovedIds = [...new Set([...payloadDocIds, ...rrlDocIds])];
+  const excludedSet = new Set(excludedDocIds.map(String));
+
+  const payloadDocIds = (approvedDocumentIds || [])
+    .map(parseId)
+    .filter(Boolean)
+    .filter((id) => !excludedSet.has(String(id)));
+
+  const rrlDocIds = Object.keys(rrlUsage || {})
+    .filter((id) => isDocKey(id) && rrlUsage[id]?.usage && rrlUsage[id]?.usage !== 'exclude')
+    .map(parseId)
+    .filter(Boolean);
+
+  const allApprovedIds = [...new Set([...payloadDocIds, ...rrlDocIds])].filter(
+    (id) => !excludedSet.has(String(id))
+  );
 
   if (allApprovedIds.length > 0) {
     await supabase.from('uploaded_documents').update({ approved: true, session_id: sessionId }).in('id', allApprovedIds);
+  }
+  if (excludedDocIds.length > 0) {
+    await supabase.from('uploaded_documents').update({ approved: false }).in('id', excludedDocIds).eq('session_id', sessionId);
   }
 
   // Load approved documents
@@ -514,20 +534,24 @@ router.post('/generate', async (req, res) => {
     .eq('session_id', sessionId).eq('approved', true);
   if (docsErr) return res.status(500).json({ success: false, message: docsErr.message });
 
+  if (approvedDocs && approvedDocs.length > 0) {
+    approvedDocs = approvedDocs.filter((d) => !excludedSet.has(String(d.id)));
+  }
+
   if (allApprovedIds.length > 0) {
     const existingIds = new Set((approvedDocs || []).map((d) => String(d.id)));
-    const missingIds = allApprovedIds.filter((id) => !existingIds.has(String(id)));
+    const missingIds = allApprovedIds.filter((id) => !existingIds.has(String(id)) && !excludedSet.has(String(id)));
     if (missingIds.length > 0) {
       const { data: docsById } = await supabase.from('uploaded_documents').select('*').in('id', missingIds);
       if (docsById && docsById.length > 0) {
-        approvedDocs = [...(approvedDocs || []), ...docsById];
+        approvedDocs = [...(approvedDocs || []), ...docsById.filter((d) => !excludedSet.has(String(d.id)))];
       }
     }
   }
 
   if (Array.isArray(approvedDocumentIds)) {
     const allowed = new Set(approvedDocumentIds.map(String));
-    approvedDocs = (approvedDocs || []).filter(d => allowed.has(String(d.id)));
+    approvedDocs = (approvedDocs || []).filter((d) => allowed.has(String(d.id)) && !excludedSet.has(String(d.id)));
   }
 
   const docsWithText = (approvedDocs ?? []).filter(d => d.parsed_text?.trim() || d.r2_text_key);
@@ -818,14 +842,37 @@ router.post('/titles', async (req, res) => {
 // post-paraphrase text can be reconciled and persisted rather than reverting
 // to the stale database copy (fixes state-desync issue).
 router.post('/update-citations', async (req, res) => {
-  const { sessionId, contentText: clientContentText } = req.body;
+  const { sessionId, contentText: clientContentText, rrlUsage, approvedDocumentIds } = req.body;
   if (!sessionId) return res.status(400).json({ success: false, message: 'sessionId is required' });
 
   const { data: draft } = await supabase.from('generated_draft').select('*').eq('session_id', sessionId).maybeSingle();
   if (!draft) return res.status(404).json({ success: false, message: 'No draft found' });
 
-  const { data: approvedDocs } = await supabase.from('uploaded_documents').select('*').eq('session_id', sessionId).eq('approved', true);
+  let { data: approvedDocs } = await supabase.from('uploaded_documents').select('*').eq('session_id', sessionId).eq('approved', true);
   if (!approvedDocs) return res.status(500).json({ success: false, message: 'Failed to load documents' });
+
+  const parseId = (id) => (isNaN(Number(id)) ? id : Number(id));
+  const isDocKey = (k) => k !== 'selectedDocumentIds' && typeof rrlUsage[k] === 'object' && rrlUsage[k] !== null;
+
+  const excludedIds = new Set(
+    Object.keys(rrlUsage || {})
+      .filter((id) => isDocKey(id) && rrlUsage[id]?.usage === 'exclude')
+      .map(String)
+  );
+
+  approvedDocs = approvedDocs.filter((doc) => !excludedIds.has(String(doc.id)));
+
+  if (Array.isArray(approvedDocumentIds)) {
+    const allowed = new Set(approvedDocumentIds.map(String));
+    approvedDocs = approvedDocs.filter((doc) => allowed.has(String(doc.id)));
+  }
+
+  if (excludedIds.size > 0) {
+    const excludedDocIds = [...excludedIds].map(parseId).filter(Boolean);
+    if (excludedDocIds.length > 0) {
+      await supabase.from('uploaded_documents').update({ approved: false }).in('id', excludedDocIds).eq('session_id', sessionId);
+    }
+  }
 
   const allCitationMetas = approvedDocs.map((doc) =>
     extractCitationMetadata(doc.file_name, doc.parsed_text, doc.citation_metadata_json)
@@ -855,9 +902,9 @@ router.post('/update-citations', async (req, res) => {
     return false;
   });
 
-  const referencesText = draft.references_text || (citedMetas.length > 0
+  const referencesText = citedMetas.length > 0
     ? buildReferenceList(citedMetas)
-    : buildReferenceList(allCitationMetas));
+    : buildReferenceList(allCitationMetas);
 
   await supabase.from('generated_draft').update({
     content_text:    contentText,

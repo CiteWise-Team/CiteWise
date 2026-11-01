@@ -400,6 +400,36 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     });
   }, [documents]);
 
+  const getActiveApprovedDocs = useCallback((docsList, sessionId) => {
+    const currentUsage = store.getRrlUsage(sessionId) || {};
+    return (docsList || []).filter((d) => {
+      if (!d.approved) return false;
+      const usage = currentUsage[d.id]?.usage || currentUsage[String(d.id)]?.usage;
+      return usage !== "exclude";
+    });
+  }, []);
+
+  useEffect(() => {
+    const unsub = store.subscribe(({ name, sessionId }) => {
+      if (name === "rrlUsage" && (!sessionId || sessionId === resolvedSessionId)) {
+        const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
+        const activeApproved = getActiveApprovedDocs(documents, resolvedSessionId);
+        localStorage.setItem(storageKey, JSON.stringify(activeApproved));
+        sessionStorage.setItem(storageKey, JSON.stringify(activeApproved));
+
+        if (activeApproved.length === 0) {
+          if (groupId) {
+            localStorage.setItem(`citewise.${groupId}.synthesisUnlocked`, "false");
+            localStorage.setItem(`citewise.${groupId}.maxUnlockedStep`, "1");
+          }
+          localStorage.setItem(`citewise_proceeded_synthesis_${resolvedSessionId}`, "false");
+          onLockStep3?.();
+        }
+      }
+    });
+    return unsub;
+  }, [resolvedSessionId, documents, groupId, onLockStep3, getActiveApprovedDocs]);
+
   const applyApprovalToggle = async (index, targetApprovalState) => {
     const docToToggle = documents[index];
     if (!docToToggle) return;
@@ -409,7 +439,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     );
     setDocuments(updatedDocs);
 
-    const approvedList = updatedDocs.filter((d) => d.approved === true);
+    const approvedList = getActiveApprovedDocs(updatedDocs, resolvedSessionId);
     const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
     localStorage.setItem(storageKey, JSON.stringify(approvedList));
     sessionStorage.setItem(storageKey, JSON.stringify(approvedList));
@@ -482,7 +512,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
     setDocuments(updatedDocs);
 
-    const approvedList = updatedDocs.filter((d) => d.approved === true);
+    const approvedList = getActiveApprovedDocs(updatedDocs, resolvedSessionId);
     const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
     localStorage.setItem(storageKey, JSON.stringify(approvedList));
     sessionStorage.setItem(storageKey, JSON.stringify(approvedList));
@@ -543,7 +573,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     setDocuments(updatedDocs);
 
     const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
-    const updatedApproved = updatedDocs.filter((d) => d.approved);
+    const updatedApproved = getActiveApprovedDocs(updatedDocs, resolvedSessionId);
     localStorage.setItem(storageKey, JSON.stringify(updatedApproved));
     sessionStorage.setItem(storageKey, JSON.stringify(updatedApproved));
 
@@ -601,13 +631,13 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   };
 
   const handleProceed = () => {
-    const currentlyApproved = documents.filter(doc => doc.approved === true);
+    const currentlyApproved = getActiveApprovedDocs(documents, resolvedSessionId);
     const currentDocKeys = new Set(
       documents.map((doc) => doc.id || doc.name || doc.fileName).filter(Boolean)
     );
 
     console.log("=== PROCEED TO SYNTHESIS ===");
-    console.log("Currently approved in Module 2:", currentlyApproved.map(d => d.name));
+    console.log("Currently approved (excluding excluded sources) in Module 2:", currentlyApproved.map(d => d.name));
 
     const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
 

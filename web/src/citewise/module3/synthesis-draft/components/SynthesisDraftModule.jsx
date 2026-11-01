@@ -263,7 +263,12 @@
           try {
             initialDocs = JSON.parse(storedApproved);
             if (Array.isArray(initialDocs) && initialDocs.length > 0) {
-              setApprovedDocuments(initialDocs);
+              const rrlUsage = store.getRrlUsage(sessionId) || {};
+              const activeInitialDocs = initialDocs.filter((d) => {
+                const usage = rrlUsage[d.id]?.usage || rrlUsage[String(d.id)]?.usage;
+                return usage !== "exclude";
+              });
+              setApprovedDocuments(activeInitialDocs);
             }
           } catch (err) {
             console.error("Error parsing stored approved docs:", err);
@@ -279,15 +284,15 @@
 
           if (response.ok && Array.isArray(data)) {
             const rrlUsage = store.getRrlUsage(sessionId) || {};
-            const rrlExcludedIds = new Set(Object.keys(rrlUsage).filter(id => rrlUsage[id]?.usage === 'exclude'));
 
-            const apiApproved = data.filter(doc => {
+            const apiApproved = data.filter((doc) => {
               const isApproved = doc.approved === true || doc.approved === 1 || doc.approved === "true";
-              return isApproved && !rrlExcludedIds.has(String(doc.id));
+              const isExcluded = rrlUsage[doc.id]?.usage === "exclude" || rrlUsage[String(doc.id)]?.usage === "exclude";
+              return isApproved && !isExcluded;
             });
 
-            const merged = apiApproved.map(doc => {
-              const localDoc = (initialDocs || []).find(d => String(d.id) === String(doc.id) || String(d.name) === String(doc.fileName));
+            const merged = apiApproved.map((doc) => {
+              const localDoc = (initialDocs || []).find((d) => String(d.id) === String(doc.id) || String(d.name) === String(doc.fileName));
               return {
                 id: doc.id,
                 name: doc.fileName || doc.name || localDoc?.name || "Untitled.pdf",
@@ -316,8 +321,15 @@
         if (e.key === DOCS_STORAGE_KEY && e.newValue) {
           try {
             const newDocs = JSON.parse(e.newValue);
-            console.log("Storage updated - replacing approved documents:", newDocs);
-            setApprovedDocuments(newDocs);
+            const rrlUsage = store.getRrlUsage(sessionId) || {};
+            const activeDocs = Array.isArray(newDocs)
+              ? newDocs.filter((d) => {
+                  const usage = rrlUsage[d.id]?.usage || rrlUsage[String(d.id)]?.usage;
+                  return usage !== "exclude";
+                })
+              : [];
+            console.log("Storage updated - replacing approved documents:", activeDocs);
+            setApprovedDocuments(activeDocs);
           } catch (err) {
             console.error("Error parsing storage update:", err);
           }
@@ -326,7 +338,37 @@
 
       window.addEventListener('storage', handleStorageChange);
       return () => window.removeEventListener('storage', handleStorageChange);
-    }, [DOCS_STORAGE_KEY]);
+    }, [DOCS_STORAGE_KEY, sessionId]);
+
+    useEffect(() => {
+      const unsub = store.subscribe(({ name, sessionId: eventSessionId }) => {
+        if (name === "rrlUsage" && (!eventSessionId || eventSessionId === sessionId)) {
+          const rrlUsage = store.getRrlUsage(sessionId) || {};
+          const stored = localStorage.getItem(DOCS_STORAGE_KEY) || sessionStorage.getItem(DOCS_STORAGE_KEY);
+          let baseDocs = [];
+          if (stored) {
+            try {
+              baseDocs = JSON.parse(stored);
+            } catch {}
+          }
+          if (Array.isArray(baseDocs) && baseDocs.length > 0) {
+            const activeDocs = baseDocs.filter((d) => {
+              const usage = rrlUsage[d.id]?.usage || rrlUsage[String(d.id)]?.usage;
+              return usage !== "exclude";
+            });
+            setApprovedDocuments(activeDocs);
+          } else {
+            setApprovedDocuments((prevDocs) =>
+              prevDocs.filter((d) => {
+                const usage = rrlUsage[d.id]?.usage || rrlUsage[String(d.id)]?.usage;
+                return usage !== "exclude";
+              })
+            );
+          }
+        }
+      });
+      return unsub;
+    }, [sessionId, DOCS_STORAGE_KEY]);
 
     const startSynthesis = async () => {
       if (approvedDocuments.length === 0) {
@@ -366,13 +408,18 @@
         const synthesisUrl = chosenGap
           ? `/api/v1/synthesis/generate?sessionId=${encodeURIComponent(sessionId)}&chosenGap=${encodeURIComponent(chosenGap)}`
           : `/api/v1/synthesis/generate?sessionId=${encodeURIComponent(sessionId)}`;
+        const rrlUsage = store.getRrlUsage(sessionId) || {};
+        const activeApprovedDocs = approvedDocuments.filter((d) => {
+          const usage = rrlUsage[d.id]?.usage || rrlUsage[String(d.id)]?.usage;
+          return usage !== "exclude";
+        });
         const requestBody = {
           userInstructions: store.getInstructions(sessionId),
           weights: store.getScorePrefs(sessionId).weights,
           gaps: (store.getGaps(sessionId) || []).map((g) => g.text),
           primaryFocusGap: chosenGap,
-          rrlUsage: store.getRrlUsage(sessionId),
-          approvedDocumentIds: approvedDocuments.map((d) => d.id).filter(Boolean),
+          rrlUsage,
+          approvedDocumentIds: activeApprovedDocs.map((d) => d.id).filter(Boolean),
         };
         const { res: response, data: initialPayload } = await apiFetch(synthesisUrl, {
           method: "POST",
@@ -494,7 +541,16 @@
     };
 
     const fastUpdateCitations = async (currentContent) => {
-      const bodyPayload = { sessionId };
+      const rrlUsage = store.getRrlUsage(sessionId) || {};
+      const activeApprovedDocs = approvedDocuments.filter((d) => {
+        const usage = rrlUsage[d.id]?.usage || rrlUsage[String(d.id)]?.usage;
+        return usage !== "exclude";
+      });
+      const bodyPayload = { 
+        sessionId,
+        rrlUsage,
+        approvedDocumentIds: activeApprovedDocs.map((d) => d.id).filter(Boolean),
+      };
       if (currentContent) bodyPayload.contentText = currentContent;
 
       try {
@@ -882,10 +938,17 @@
                     setApprovedDocuments(newDocs);
                     localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(newDocs));
                     const currentUsage = store.getRrlUsage(sessionId) || {};
-                    store.setRrlUsage(sessionId, {
-                      ...currentUsage,
-                      selectedDocumentIds: newDocs.map(d => String(d.id))
+                    const nextUsage = { ...currentUsage };
+                    newDocs.forEach((d) => {
+                      if (nextUsage[d.id]?.usage === "exclude") {
+                        nextUsage[d.id] = { ...nextUsage[d.id], usage: "auto" };
+                      }
+                      if (nextUsage[String(d.id)]?.usage === "exclude") {
+                        nextUsage[String(d.id)] = { ...nextUsage[String(d.id)], usage: "auto" };
+                      }
                     });
+                    nextUsage.selectedDocumentIds = newDocs.map(d => String(d.id));
+                    store.setRrlUsage(sessionId, nextUsage);
                   }}
                   onOverrideComplete={() => {
                     if (approvedDocuments.length > 0 && sessionId && generationStatus === "complete") {
