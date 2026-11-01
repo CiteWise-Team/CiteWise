@@ -36,6 +36,20 @@ const METRIC_DETAILS = {
   },
 };
 
+// ✨ Message shown when the user tries to turn off the last active metric
+const MIN_ACTIVE_MESSAGE = "At least one rubric criterion must remain active.";
+
+// ✨ If saved prefs have every metric off (bad/test data), fall back to defaults
+function ensureOneEnabled(p) {
+  const anyOn = store.SCORE_COMPONENTS.some((c) => p?.enabled?.[c.key]);
+  if (anyOn) return p;
+  const defaults = store.getScorePrefs("__defaults__never__");
+  return {
+    ...defaults,
+    weights: normalizeWeights(defaults.weights, defaults.enabled),
+  };
+}
+
 /**
  * Distribute an integer amount `total` among items according to their weights.
  * Uses the Largest Remainder Method (Hamilton method) to guarantee the output
@@ -117,7 +131,7 @@ export default function MetricWeightCustomization({
 }) {
   const { isDark } = useTheme();
   const [prefs, setPrefs] = useState(() => {
-    const initial = store.getScorePrefs(sessionId);
+    const initial = ensureOneEnabled(store.getScorePrefs(sessionId));
     return { ...initial, weights: normalizeWeights(initial.weights, initial.enabled) };
   });
   const [locked, setLocked] = useState({});
@@ -128,6 +142,22 @@ export default function MetricWeightCustomization({
   const [modalFilter, setModalFilter] = useState("all"); // 'all' | 'pending' | 'assessed'
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasChanged, setHasChanged] = useState(false);
+
+  // ✨ Warning alert state
+  const [warning, setWarning] = useState("");
+  const warningTimerRef = useRef(null);
+
+  const showWarning = (msg) => {
+    setWarning(msg);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    warningTimerRef.current = setTimeout(() => setWarning(""), 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    };
+  }, []);
 
   // Synchronized active loading progression
   const [processProgress, setProcessProgress] = useState(25);
@@ -184,10 +214,15 @@ export default function MetricWeightCustomization({
     };
   }, [isProcessing, documents.length]);
 
+  // ✨ Load prefs and repair them if every metric was saved as off
   useEffect(() => {
     const loaded = store.getScorePrefs(sessionId);
-    const normalized = normalizeWeights(loaded.weights, loaded.enabled);
-    setPrefs({ ...loaded, weights: normalized });
+    const fixed = ensureOneEnabled(loaded);
+    const normalized = normalizeWeights(fixed.weights, fixed.enabled);
+    const next = { ...fixed, weights: normalized };
+    setPrefs(next);
+    // Save the repaired version if the stored data was all-off
+    if (fixed !== loaded) store.setScorePrefs(sessionId, next);
   }, [sessionId]);
 
   const persist = (next) => {
@@ -255,6 +290,15 @@ export default function MetricWeightCustomization({
   };
 
   const toggleEnabled = (key) => {
+    // ✨ Don't allow disabling the last active metric
+    if (prefs.enabled[key]) {
+      const activeCount = store.SCORE_COMPONENTS.filter((c) => prefs.enabled[c.key]).length;
+      if (activeCount <= 1) {
+        showWarning(MIN_ACTIVE_MESSAGE);
+        return;
+      }
+    }
+
     const nextEnabled = { ...prefs.enabled, [key]: !prefs.enabled[key] };
     const enabledKeys = store.SCORE_COMPONENTS.filter((c) => nextEnabled[c.key]).map((c) => c.key);
     const nextWeights = { ...prefs.weights };
@@ -376,6 +420,14 @@ export default function MetricWeightCustomization({
 
   const triggerBatchAssess = async (docIds, overwriteWeights, onlyApplyWeights = false) => {
     if (!docIds.length) return;
+
+    // ✨ Safety net: never assess with every metric off
+    const anyActive = store.SCORE_COMPONENTS.some((c) => prefs.enabled[c.key]);
+    if (!anyActive) {
+      showWarning(MIN_ACTIVE_MESSAGE);
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const panelWeights = {
@@ -814,6 +866,61 @@ export default function MetricWeightCustomization({
                 </>
               )}
             </p>
+          )}
+
+          {/* ✨ Warning alert (e.g. last active metric can't be turned off) */}
+          {warning && (
+            <div
+              role="alert"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                background: isDark ? "rgba(220, 38, 38, 0.12)" : "#fef2f2",
+                border: isDark ? "1px solid rgba(248, 113, 113, 0.4)" : "1px solid #fecaca",
+                color: isDark ? "#fecaca" : "#991b1b",
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: isHero ? "0.85rem" : "0.78rem",
+                fontWeight: 600,
+                animation: "citewiseFadeIn 0.2s ease-out forwards",
+              }}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0 }}
+              >
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span style={{ flex: 1 }}>{warning}</span>
+              <button
+                type="button"
+                onClick={() => setWarning("")}
+                aria-label="Dismiss warning"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "inherit",
+                  cursor: "pointer",
+                  padding: "2px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
           )}
 
           {/* Metric Items: Vertically aligned inside the single card */}

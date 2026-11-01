@@ -34,6 +34,43 @@ const panelHeaderStyle = {
   borderBottom: '1px solid var(--cw-border, #e5e7eb)',
 };
 
+// ── NEW: Modal Styles ─────────────────────────────────────────
+const modalStyles = {
+  overlay: {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 9999
+  },
+  content: {
+    backgroundColor: 'var(--cw-bg-surface, #1e293b)', 
+    padding: '24px',
+    borderRadius: '12px',
+    maxWidth: '420px',
+    width: '90%',
+    border: '1px solid var(--cw-border, #334155)',
+    boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+    fontFamily: "'Poppins', sans-serif"
+  },
+  title: {
+    color: '#f97316', margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 700
+  },
+  text: {
+    color: 'var(--cw-text-primary, #e2e8f0)', fontSize: '0.9rem', lineHeight: 1.5, margin: '0 0 20px 0'
+  },
+  actions: {
+    display: 'flex', justifyContent: 'flex-end', gap: '10px'
+  },
+  cancelBtn: {
+    padding: '8px 16px', borderRadius: '6px', border: '1px solid #475569', 
+    backgroundColor: 'transparent', color: '#cbd5e1', cursor: 'pointer', fontWeight: 600
+  },
+  confirmBtn: {
+    padding: '8px 16px', borderRadius: '6px', border: 'none', 
+    backgroundColor: '#f97316', color: 'white', fontWeight: 700, cursor: 'pointer'
+  }
+};
+
 const AIAssessmentPanel = ({
   documentId,
   sessionId,
@@ -70,8 +107,13 @@ const AIAssessmentPanel = ({
   const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
   const resolvedError = useExternal ? externalError : error;
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  
   // Re-render the recomputed overall score when the user changes weight prefs.
   const [prefsVersion, setPrefsVersion] = useState(0);
+
+  // ── NEW: Modal Warning State ─────────────────────────────────
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   // Synchronized active loading progression
   const [panelProgress, setPanelProgress] = useState(25);
@@ -139,7 +181,6 @@ const AIAssessmentPanel = ({
   useEffect(() => {
     if (!documentId || useExternal) return;
 
-    // Immediately load from cache when documentId changes
     if (insightsCache.has(documentId)) {
       setInsights(insightsCache.get(documentId));
       setLoading(false);
@@ -192,38 +233,7 @@ const AIAssessmentPanel = ({
     };
   }, [documentId, refreshKey, useExternal]);
 
-  const handleAssess = async () => {
-    if (!documentId || isAssessing) return;
-
-    setIsAssessing(true);
-    setError(null);
-
-    try {
-      if (externalAssess) {
-        await externalAssess();
-        return;
-      }
-
-      const { res: response } = await apiFetch(`/api/v1/documents/${documentId}/assess`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to start assessment');
-      }
-
-      insightsCache.delete(documentId);
-      setInsights(null);
-      setLoading(true);
-      setRefreshKey((prev) => prev + 1);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsAssessing(false);
-    }
-  };
-
-  // Helper to map API data to the format expected by the new child components
+  // Helper to map API data
   const getMappedData = () => {
     if (!resolvedInsights) return null;
     const responseScores = resolvedInsights.scores || {};
@@ -259,7 +269,6 @@ const AIAssessmentPanel = ({
 
   const mappedData = getMappedData();
 
-  // Recompute overall from user weight prefs
   void prefsVersion;
   if (mappedData) {
     const prefs = store.getScorePrefs(sessionId);
@@ -269,7 +278,59 @@ const AIAssessmentPanel = ({
     }
   }
 
-  // --- Helper: Panel header with both buttons ---
+  // ── NEW: Extracted Assessment Logic ─────────────────────────
+  const executeAssess = async () => {
+    setIsAssessing(true);
+    setError(null);
+
+    try {
+      if (externalAssess) {
+        await externalAssess();
+        return;
+      }
+
+      const { res: response } = await apiFetch(`/api/v1/documents/${documentId}/assess`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start assessment');
+      }
+
+      insightsCache.delete(documentId);
+      setInsights(null);
+      setLoading(true);
+      setRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsAssessing(false);
+    }
+  };
+
+  // ── NEW: Intercept handler with Relevance Check ─────────────
+  const handleAssess = async () => {
+    if (!documentId || isAssessing) return;
+
+    // Check for low relevance (e.g., below 20%)
+    const currentScore = mappedData?.scores?.overall ?? 100;
+    const relevanceText = mappedData?.relevanceLevel || "Unknown";
+    
+    // We trigger warning if score is low OR relevance text indicates "Low"
+    const isLowRelevance = currentScore < 20 || relevanceText.toLowerCase().includes('low');
+
+    if (isLowRelevance && mappedData) {
+      // Show modal and save the action
+      setPendingAction(() => executeAssess);
+      setShowWarningModal(true);
+      return;
+    }
+
+    // Proceed directly if not low
+    executeAssess();
+  };
+
+  // --- Helper: Panel header ---
   const PanelHeader = () => (
     <div
       style={{
@@ -301,7 +362,7 @@ const AIAssessmentPanel = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleAssess();
+              handleAssess(); // This now triggers the modal if needed
             }}
             disabled={isAssessing}
             style={{
@@ -394,26 +455,10 @@ const AIAssessmentPanel = ({
         {isPanelOpen && (
           <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', flexDirection: 'column', gap: '12px' }}>
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#9ca3af"
-                strokeWidth="1"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p
-                style={{
-                  fontFamily: "'Poppins', sans-serif",
-                  fontSize: '13px',
-                  color: '#6b7280',
-                  margin: 0,
-                }}
-              >
+              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '13px', color: '#6b7280', margin: 0 }}>
                 Select a document to view AI insights.
               </p>
             </div>
@@ -441,82 +486,16 @@ const AIAssessmentPanel = ({
         </div>
         {isPanelOpen && (
           <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '320px' }}>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '2.5rem 1.5rem',
-              maxWidth: '460px',
-              width: '100%',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-            }}
-          >
-            {/* Guaranteed Animated SVG Spinner with glowing center */}
-            <div
-              style={{
-                position: 'relative',
-                width: '76px',
-                height: '76px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
-            >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.5rem', maxWidth: '460px', width: '100%', textAlign: 'center', boxSizing: 'border-box' }}>
+            <div style={{ position: 'relative', width: '76px', height: '76px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
               <svg width="76" height="76" viewBox="0 0 50 50" style={{ position: 'absolute', inset: 0 }}>
-                <circle
-                  cx="25"
-                  cy="25"
-                  r="20"
-                  fill="none"
-                  stroke="rgba(234, 88, 12, 0.12)"
-                  strokeWidth="3.5"
-                />
-                <circle
-                  cx="25"
-                  cy="25"
-                  r="20"
-                  fill="none"
-                  stroke="#ea580c"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  strokeDasharray="55 70"
-                >
-                  <animateTransform
-                    attributeName="transform"
-                    type="rotate"
-                    from="0 25 25"
-                    to="360 25 25"
-                    dur="0.95s"
-                    repeatCount="indefinite"
-                  />
+                <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.12)" strokeWidth="3.5" />
+                <circle cx="25" cy="25" r="20" fill="none" stroke="#ea580c" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="55 70">
+                  <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.95s" repeatCount="indefinite" />
                 </circle>
               </svg>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  background: 'rgba(234, 88, 12, 0.09)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 0 16px rgba(234, 88, 12, 0.25)',
-                }}
-              >
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#ea580c"
-                  strokeWidth="2.3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+              <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(234, 88, 12, 0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 16px rgba(234, 88, 12, 0.25)' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
                   <line x1="16" y1="13" x2="8" y2="13" />
@@ -526,74 +505,22 @@ const AIAssessmentPanel = ({
               </div>
             </div>
 
-            <h3
-              style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: '1.2rem',
-                fontWeight: 700,
-                color: 'var(--cw-text-primary, #0f0e17)',
-                margin: '0 0 0.35rem 0',
-                letterSpacing: '-0.01em',
-              }}
-            >
+            <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '1.2rem', fontWeight: 700, color: 'var(--cw-text-primary, #0f0e17)', margin: '0 0 0.35rem 0', letterSpacing: '-0.01em' }}>
               {isAssessing ? 'Running AI Assessment' : 'Analyzing Document Content'}
             </h3>
-            <p
-              style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: '0.85rem',
-                color: 'var(--cw-text-muted, #6b7280)',
-                lineHeight: 1.55,
-                margin: '0 0 1.5rem 0',
-                maxWidth: '400px',
-                minHeight: '1.55em',
-              }}
-            >
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.85rem', color: 'var(--cw-text-muted, #6b7280)', lineHeight: 1.55, margin: '0 0 1.5rem 0', maxWidth: '400px', minHeight: '1.55em' }}>
               {panelStatusText}
             </p>
 
-            {/* Moving Progress Bar & Percentage Count */}
-            <div
-              style={{
-                width: '280px',
-                maxWidth: '85%',
-                height: '8px',
-                background: 'var(--cw-border, #e5e7eb)',
-                borderRadius: '999px',
-                overflow: 'hidden',
-                position: 'relative',
-                boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.08)',
-                margin: '0 auto 0.6rem auto',
-              }}
-            >
-              <div
-                style={{
-                  height: '100%',
-                  width: `${panelProgress}%`,
-                  background: 'linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)',
-                  borderRadius: '999px',
-                  transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 0 10px rgba(234, 88, 12, 0.45)',
-                }}
-              />
+            <div style={{ width: '280px', maxWidth: '85%', height: '8px', background: 'var(--cw-border, #e5e7eb)', borderRadius: '999px', overflow: 'hidden', position: 'relative', boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.08)', margin: '0 auto 0.6rem auto' }}>
+              <div style={{ height: '100%', width: `${panelProgress}%`, background: 'linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)', borderRadius: '999px', transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 10px rgba(234, 88, 12, 0.45)' }} />
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                width: '280px',
-                maxWidth: '85%',
-                margin: '0 auto',
-                fontSize: '0.75rem',
-                fontFamily: "'Poppins', sans-serif",
-              }}
-            >
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '280px', maxWidth: '85%', margin: '0 auto', fontSize: '0.75rem', fontFamily: "'Poppins', sans-serif" }}>
               <span style={{ color: 'var(--cw-text-muted, #6b7280)' }}>Assessment progress</span>
               <span style={{ color: '#ea580c', fontWeight: 700 }}>{panelProgress}%</span>
             </div>
 
-            {/* Shimmering skeleton cards beneath previewing layout */}
             <div className="cw-loading-skeleton-preview" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px', display: 'flex', gap: '10px' }}>
               <div className="cw-loading-skeleton-card-left" style={{ height: '48px' }} />
               <div className="cw-loading-skeleton-card-right" style={{ height: '48px' }} />
@@ -609,49 +536,14 @@ const AIAssessmentPanel = ({
   if (resolvedError) {
     return (
       <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
-        <div
-          className="workflow-card-header cw-panel-header"
-          onClick={() => setIsPanelOpen((o) => !o)}
-          style={{
-            ...panelHeaderStyle,
-            cursor: 'pointer',
-            userSelect: 'none',
-            borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none',
-          }}
-        >
+        <div className="workflow-card-header cw-panel-header" onClick={() => setIsPanelOpen((o) => !o)} style={{ ...panelHeaderStyle, cursor: 'pointer', userSelect: 'none', borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none' }}>
           <PanelHeader />
         </div>
         {isPanelOpen && (
           <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
-            <div
-              style={{
-                background: 'rgba(220, 38, 38, 0.06)',
-                border: '1px solid rgba(220, 38, 38, 0.25)',
-                borderRadius: '8px',
-                padding: '16px',
-                textAlign: 'center',
-              }}
-            >
-              <h3
-                style={{
-                  fontFamily: "'Poppins', sans-serif",
-                  fontSize: '16px',
-                  color: '#dc2626',
-                  margin: '0 0 8px 0',
-                }}
-              >
-                Analysis Error
-              </h3>
-              <p
-                style={{
-                  fontFamily: "'Poppins', sans-serif",
-                  fontSize: '13px',
-                  color: '#374151',
-                  margin: 0,
-                }}
-              >
-                {resolvedError}
-              </p>
+            <div style={{ background: 'rgba(220, 38, 38, 0.06)', border: '1px solid rgba(220, 38, 38, 0.25)', borderRadius: '8px', padding: '16px', textAlign: 'center' }}>
+              <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: '#dc2626', margin: '0 0 8px 0' }}>Analysis Error</h3>
+              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '13px', color: '#374151', margin: 0 }}>{resolvedError}</p>
             </div>
           </div>
         )}
@@ -669,29 +561,12 @@ const AIAssessmentPanel = ({
     }
     return (
       <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
-        <div
-          className="workflow-card-header cw-panel-header"
-          onClick={() => setIsPanelOpen((o) => !o)}
-          style={{
-            ...panelHeaderStyle,
-            cursor: 'pointer',
-            userSelect: 'none',
-            borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none',
-          }}
-        >
+        <div className="workflow-card-header cw-panel-header" onClick={() => setIsPanelOpen((o) => !o)} style={{ ...panelHeaderStyle, cursor: 'pointer', userSelect: 'none', borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none' }}>
           <PanelHeader />
         </div>
         {isPanelOpen && (
           <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
-            <p
-              style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: '13px',
-                color: '#6b7280',
-              }}
-            >
-              {waitingMessage}
-            </p>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '13px', color: '#6b7280' }}>{waitingMessage}</p>
           </div>
         )}
       </div>
@@ -700,50 +575,73 @@ const AIAssessmentPanel = ({
 
   // --- Success state ---
   return (
-    <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
-      <div
-        className="workflow-card-header cw-panel-header"
-        onClick={() => setIsPanelOpen((o) => !o)}
-        style={{
-          ...panelHeaderStyle,
-          cursor: 'pointer',
-          userSelect: 'none',
-          borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none',
-        }}
-      >
-        <PanelHeader />
+    <>
+      <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+        <div className="workflow-card-header cw-panel-header" onClick={() => setIsPanelOpen((o) => !o)} style={{ ...panelHeaderStyle, cursor: 'pointer', userSelect: 'none', borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none' }}>
+          <PanelHeader />
+        </div>
+        {isPanelOpen && (
+          <div className="cw-panel-content" style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
+            <EvidenceExcerptList excerpts={mappedData.excerpts} documentId={documentId} sessionId={sessionId} />
+            {(mappedData.timing?.assessmentMs != null || mappedData.pageCount != null) && (
+              <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '11px', color: 'var(--cw-text-muted, #6b7280)', marginTop: '10px' }}>
+                {[
+                  mappedData.pageCount != null ? `${mappedData.pageCount} page${mappedData.pageCount === 1 ? '' : 's'}` : null,
+                  mappedData.timing?.extractionMs != null ? `extracted in ${(mappedData.timing.extractionMs / 1000).toFixed(1)} s${mappedData.timing.extractionMethod === 'llamaparse' ? ' (OCR)' : ''}` : null,
+                  mappedData.timing?.assessmentMs != null ? `assessed in ${(mappedData.timing.assessmentMs / 1000).toFixed(1)} s` : null,
+                ].filter(Boolean).join(' · ')}
+              </div>
+            )}
+            <div style={{ height: '35px' }} />
+            <SemanticScoreDashboard
+              scores={mappedData.scores}
+              recommendationStatus={mappedData.recommendationStatus}
+              confidenceLevel={mappedData.confidenceLevel}
+              relevanceLevel={mappedData.relevanceLevel}
+              mismatchFlags={mappedData.mismatchFlags}
+              weaknessFlags={mappedData.weaknessFlags}
+              validationFlags={mappedData.validationFlags}
+              metricWeights={metricWeights}
+            />
+            <RrlUsagePanel
+              sessionId={sessionId}
+              documentId={documentId}
+              excerpts={mappedData.excerpts}
+            />
+          </div>
+        )}
       </div>
-      {isPanelOpen && (
-        <div className="cw-panel-content" style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
-          <EvidenceExcerptList excerpts={mappedData.excerpts} documentId={documentId} sessionId={sessionId} />
-          {(mappedData.timing?.assessmentMs != null || mappedData.pageCount != null) && (
-            <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '11px', color: 'var(--cw-text-muted, #6b7280)', marginTop: '10px' }}>
-              {[
-                mappedData.pageCount != null ? `${mappedData.pageCount} page${mappedData.pageCount === 1 ? '' : 's'}` : null,
-                mappedData.timing?.extractionMs != null ? `extracted in ${(mappedData.timing.extractionMs / 1000).toFixed(1)} s${mappedData.timing.extractionMethod === 'llamaparse' ? ' (OCR)' : ''}` : null,
-                mappedData.timing?.assessmentMs != null ? `assessed in ${(mappedData.timing.assessmentMs / 1000).toFixed(1)} s` : null,
-              ].filter(Boolean).join(' · ')}
+
+      {/* ── NEW: Warning Modal ───────────────────────────────────── */}
+      {showWarningModal && (
+        <div style={modalStyles.overlay}>
+          <div style={modalStyles.content}>
+            <h3 style={modalStyles.title}>⚠️ Low Relevance Warning</h3>
+            <p style={modalStyles.text}>
+              This source has a <strong>low relevance score</strong> or has been flagged as Low Relevance. 
+              Are you sure you want to include it in your synthesis and proceed?
+            </p>
+            <div style={modalStyles.actions}>
+              <button 
+                style={modalStyles.cancelBtn} 
+                onClick={() => setShowWarningModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                style={modalStyles.confirmBtn} 
+                onClick={() => {
+                  setShowWarningModal(false);
+                  if (pendingAction) pendingAction();
+                }}
+              >
+                Yes, Proceed Anyway
+              </button>
             </div>
-          )}
-          <div style={{ height: '35px' }} />
-          <SemanticScoreDashboard
-            scores={mappedData.scores}
-            recommendationStatus={mappedData.recommendationStatus}
-            confidenceLevel={mappedData.confidenceLevel}
-            relevanceLevel={mappedData.relevanceLevel}
-            mismatchFlags={mappedData.mismatchFlags}
-            weaknessFlags={mappedData.weaknessFlags}
-            validationFlags={mappedData.validationFlags}
-            metricWeights={metricWeights}
-          />
-          <RrlUsagePanel
-            sessionId={sessionId}
-            documentId={documentId}
-            excerpts={mappedData.excerpts}
-          />
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
