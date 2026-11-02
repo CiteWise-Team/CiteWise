@@ -55,3 +55,42 @@ export const splitDraftSections = (fullText) => {
 
   return segments;
 };
+
+/**
+ * Polls the asynchronous paraphrase status endpoint until completion, failure, or timeout.
+ * 
+ * @param {Function} apiFetch - http apiFetch function
+ * @param {string} jobId - Unique job ID returned from POST /paraphrase
+ * @param {string} sessionId - Active research session ID
+ * @param {number} maxAttempts - Maximum polling attempts (default: 60)
+ * @param {number} intervalMs - Delay in ms between polls (default: 2000)
+ * @returns {Promise<Object>} Final completed payload with .text and .droppedCitations
+ */
+export async function pollParaphraseStatus(apiFetch, jobId, sessionId, maxAttempts = 60, intervalMs = 2000) {
+  const queryParams = new URLSearchParams();
+  if (jobId) queryParams.set("jobId", jobId);
+  if (sessionId) queryParams.set("sessionId", sessionId);
+
+  const statusUrl = `/api/v1/synthesis/paraphrase/status?${queryParams.toString()}`;
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    attempts++;
+
+    const { res: statusRes, data: statusData } = await apiFetch(statusUrl);
+    if (!statusRes.ok || !statusData) {
+      continue;
+    }
+
+    if (statusData.status === "FAILED") {
+      throw new Error(statusData.message || "Paraphrasing failed");
+    }
+
+    if (statusData.status === "COMPLETE" && statusData.text) {
+      return statusData;
+    }
+  }
+
+  throw new Error("Paraphrasing timed out. Please try again.");
+}

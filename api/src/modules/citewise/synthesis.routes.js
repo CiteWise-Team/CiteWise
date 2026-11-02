@@ -950,52 +950,51 @@ router.post('/save-draft', async (req, res) => {
   return res.json({ success: true, draftId: draft.id });
 });
 
-// POST /api/v1/synthesis/paraphrase
-// Paraphrases text to remove AI slop using an n8n workflow load balancer.
-//
-// Citation-safety strategy: APA parenthetical citations are extracted from the
-// input text and replaced with stable numeric placeholders BEFORE the text is
-// sent to the LLM. After the LLM returns, placeholders are swapped back for the
-// original citation strings verbatim — the LLM can therefore never corrupt a
-// citation regardless of how aggressively it rewrites the surrounding prose.
-router.post('/paraphrase', async (req, res) => {
-  const { text } = req.body;
-  if (!text || typeof text !== 'string' || !text.trim()) {
-    return res.status(400).json({ success: false, message: 'Text is required' });
+// In-memory store for async paraphrase jobs with periodic TTL cleanup
+const paraphraseJobs = new Map();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, job] of paraphraseJobs.entries()) {
+    if (now - job.createdAt > 30 * 60 * 1000) {
+      paraphraseJobs.delete(id);
+    }
   }
+}, 5 * 60 * 1000).unref();
 
-  // ── Step 1: extract APA citations and replace with opaque placeholders ───
-  // Matches: (Author, YYYY), (Author et al., YYYY), (Author & Author, YYYY),
-  // multi-source "(A, YYYY; B, YYYY)", and "n.d." variants.
-  const CITATION_RE = /\((?:[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?)(?:\s*;\s*[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?))*)\)/g;
+// Async background paraphrase worker
+async function executeParaphraseJob(jobId, text, sessionId) {
+  const job = paraphraseJobs.get(jobId);
+  if (!job) return;
 
-  const citations = [];   // ordered list of original citation strings
-  let protectedText = text.replace(CITATION_RE, (match) => {
-    const idx = citations.length;
-    citations.push(match);
-    return `«CIT${idx}»`;
-  });
-
-  // ── Step 1b: extract and protect academic section headers verbatim ───────
-  // Preserves Background, Rationale, Research Gap titles so the entire draft
-  // can be paraphrased in a single cohesive pass without losing headings.
-  const HEADER_RE = /^(?:#{1,6}\s+)?(?:\d+[\.\)]\s+)?(?:\*{1,3}|_{1,3})?(Background|Rationale|Research\s+Gap)(?:\*{1,3}|_{1,3})?:?\s*$/gim;
-  const headers = [];     // ordered list of original header lines
-  protectedText = protectedText.replace(HEADER_RE, (match) => {
-    const idx = headers.length;
-    headers.push(match);
-    return `«HDR${idx}»`;
-  });
-
-  // ── Step 2: call n8n paraphraser with the citation & header-safe text ────
-  const baseUrl = (process.env.N8N_BASE_URL || '').replace(/\/$/, '');
-  const webhookUrl = process.env.CITEWISE_N8N_PARAPHRASE_WEBHOOK_URL
-    || (baseUrl ? `${baseUrl}/webhook/citewise-paraphraser-lb` : 'http://localhost:5678/webhook/citewise-paraphraser-lb');
-
-  const readTimeoutMs = parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS, 10) || 120000;
-
-  let paraphrased;
   try {
+    // ── Step 1: extract APA citations and replace with opaque placeholders ───
+    const CITATION_RE = /\((?:[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?)(?:\s*;\s*[A-Z][^()]{1,120}?,\s*(?:n\.d\.|[12]\d{3}[a-z]?))*)\)/g;
+
+    const citations = [];
+    let protectedText = text.replace(CITATION_RE, (match) => {
+      const idx = citations.length;
+      citations.push(match);
+      return `«CIT${idx}»`;
+    });
+
+    // ── Step 1b: extract and protect academic section headers verbatim ───────
+    const HEADER_RE = /^(?:#{1,6}\s+)?(?:\d+[\.\)]\s+)?(?:\*{1,3}|_{1,3})?(Background|Rationale|Research\s+Gap)(?:\*{1,3}|_{1,3})?:?\s*$/gim;
+    const headers = [];
+    protectedText = protectedText.replace(HEADER_RE, (match) => {
+      const idx = headers.length;
+      headers.push(match);
+      return `«HDR${idx}»`;
+    });
+
+    // ── Step 2: call n8n paraphraser with the citation & header-safe text ────
+    const baseUrl = (process.env.N8N_BASE_URL || '').replace(/\/$/, '');
+    const webhookUrl = process.env.CITEWISE_N8N_PARAPHRASE_WEBHOOK_URL
+      || (baseUrl ? `${baseUrl}/webhook/citewise-paraphraser-lb` : 'http://localhost:5678/webhook/citewise-paraphraser-lb');
+
+    const readTimeoutMs = parseInt(process.env.CITEWISE_N8N_READ_TIMEOUT_MS, 10) || 120000;
+
+    let paraphrased;
     const n8nRes = await fetch(webhookUrl, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', Connection: 'close' },
@@ -1028,35 +1027,213 @@ router.post('/paraphrase', async (req, res) => {
     }
     if (!paraphrased && root.paraphrasedText) paraphrased = root.paraphrasedText;
     if (!paraphrased) {
-      return res.status(502).json({ success: false, message: 'Could not extract paraphrased text from n8n response' });
+      throw new Error('Could not extract paraphrased text from n8n response');
+    }
+
+    // ── Step 3: reattach original citations and section headers verbatim ─────
+    const PLACEHOLDER_RE = /«\s*CIT(\d+)\s*»/g;
+    let restored = paraphrased.replace(PLACEHOLDER_RE, (_, idx) => citations[Number(idx)] ?? '');
+
+    const HDR_PLACEHOLDER_RE = /«\s*HDR(\d+)\s*»/g;
+    restored = restored.replace(HDR_PLACEHOLDER_RE, (_, idx) => headers[Number(idx)] ?? '');
+
+    const placeholdersInResult = new Set(
+      [...paraphrased.matchAll(PLACEHOLDER_RE)].map(m => Number(m[1]))
+    );
+    const dropped = citations
+      .map((c, i) => ({ c, i }))
+      .filter(({ i }) => !placeholdersInResult.has(i))
+      .map(({ c }) => c);
+
+    if (dropped.length) {
+      console.warn(`[paraphrase] LLM dropped ${dropped.length} citation(s):`, dropped.join(' '));
+    }
+
+    job.status = 'COMPLETE';
+    job.text = restored;
+    job.droppedCitations = dropped;
+    job.updatedAt = Date.now();
+
+    // Multi-dyno persistence in Supabase
+    if (sessionId) {
+      try {
+        const { data: existingDraft } = await supabase
+          .from('generated_draft')
+          .select('metrics_json')
+          .eq('session_id', sessionId)
+          .maybeSingle();
+
+        const currentMetrics = existingDraft?.metrics_json
+          ? (typeof existingDraft.metrics_json === 'string' ? JSON.parse(existingDraft.metrics_json) : existingDraft.metrics_json)
+          : {};
+
+        currentMetrics.paraphraseJob = {
+          jobId,
+          status: 'COMPLETE',
+          text: restored,
+          droppedCitations: dropped,
+          updatedAt: Date.now(),
+        };
+
+        await supabase
+          .from('generated_draft')
+          .update({ metrics_json: JSON.stringify(currentMetrics) })
+          .eq('session_id', sessionId);
+      } catch (dbErr) {
+        console.warn(`[paraphrase] Failed to cache paraphrase in Supabase:`, dbErr.message);
+      }
     }
   } catch (err) {
-    console.error('[paraphrase] n8n call failed:', err.message);
-    return res.status(502).json({ success: false, message: `Paraphrase failed: ${err.message}` });
+    console.error('[paraphrase] job failed:', err.message);
+    job.status = 'FAILED';
+    job.error = err.message || 'Paraphrase failed';
+    job.updatedAt = Date.now();
+
+    if (sessionId) {
+      try {
+        const { data: existingDraft } = await supabase
+          .from('generated_draft')
+          .select('metrics_json')
+          .eq('session_id', sessionId)
+          .maybeSingle();
+
+        const currentMetrics = existingDraft?.metrics_json
+          ? (typeof existingDraft.metrics_json === 'string' ? JSON.parse(existingDraft.metrics_json) : existingDraft.metrics_json)
+          : {};
+
+        currentMetrics.paraphraseJob = {
+          jobId,
+          status: 'FAILED',
+          error: job.error,
+          updatedAt: Date.now(),
+        };
+
+        await supabase
+          .from('generated_draft')
+          .update({ metrics_json: JSON.stringify(currentMetrics) })
+          .eq('session_id', sessionId);
+      } catch (dbErr) {
+        console.warn(`[paraphrase] Failed to cache failed job in Supabase:`, dbErr.message);
+      }
+    }
+  }
+}
+
+// POST /api/v1/synthesis/paraphrase
+// Asynchronous endpoint: immediately returns HTTP 202 Accepted and runs the LLM request in background.
+router.post('/paraphrase', async (req, res) => {
+  const { text, sessionId } = req.body || {};
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ success: false, message: 'Text is required' });
   }
 
-  // ── Step 3: reattach original citations and section headers verbatim ─────
-  // Tolerates optional whitespace inside delimiters (e.g., « CIT0 »)
-  const PLACEHOLDER_RE = /«\s*CIT(\d+)\s*»/g;
-  let restored = paraphrased.replace(PLACEHOLDER_RE, (_, idx) => citations[Number(idx)] ?? '');
+  const jobId = uuidv4();
+  const job = {
+    jobId,
+    sessionId: sessionId || null,
+    status: 'PARAPHRASING',
+    text: null,
+    droppedCitations: [],
+    error: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
 
-  const HDR_PLACEHOLDER_RE = /«\s*HDR(\d+)\s*»/g;
-  restored = restored.replace(HDR_PLACEHOLDER_RE, (_, idx) => headers[Number(idx)] ?? '');
+  paraphraseJobs.set(jobId, job);
 
-  // Warn about any citations the LLM dropped entirely (no placeholder left).
-  const placeholdersInResult = new Set(
-    [...paraphrased.matchAll(PLACEHOLDER_RE)].map(m => Number(m[1]))
-  );
-  const dropped = citations
-    .map((c, i) => ({ c, i }))
-    .filter(({ i }) => !placeholdersInResult.has(i))
-    .map(({ c }) => c);
+  // Dispatch background job immediately without blocking response
+  setImmediate(() => {
+    executeParaphraseJob(jobId, text, sessionId);
+  });
 
-  if (dropped.length) {
-    console.warn(`[paraphrase] LLM dropped ${dropped.length} citation(s):`, dropped.join(' '));
-  }
-
-  return res.json({ success: true, text: restored, droppedCitations: dropped });
+  return res.status(202).json({
+    success: true,
+    status: 'PARAPHRASING',
+    jobId,
+    sessionId: sessionId || null,
+    message: 'Paraphrase job started in background.',
+  });
 });
+
+// GET /api/v1/synthesis/paraphrase/status?jobId=...&sessionId=...
+// Fast status endpoint for polling paraphrase progress
+async function getParaphraseStatus(req, res) {
+  const { jobId, sessionId } = req.query;
+
+  if (!jobId && !sessionId) {
+    return res.status(400).json({ success: false, message: 'jobId or sessionId is required' });
+  }
+
+  let job = null;
+  if (jobId && paraphraseJobs.has(jobId)) {
+    job = paraphraseJobs.get(jobId);
+  } else if (sessionId) {
+    for (const j of paraphraseJobs.values()) {
+      if (j.sessionId === sessionId) {
+        if (!job || j.createdAt > job.createdAt) {
+          job = j;
+        }
+      }
+    }
+  }
+
+  // Fallback to Supabase metrics if not in memory (multi-dyno)
+  if (!job && sessionId) {
+    try {
+      const { data: draft } = await supabase
+        .from('generated_draft')
+        .select('metrics_json')
+        .eq('session_id', sessionId)
+        .maybeSingle();
+
+      const metrics = draft?.metrics_json
+        ? (typeof draft.metrics_json === 'string' ? JSON.parse(draft.metrics_json) : draft.metrics_json)
+        : {};
+
+      if (metrics.paraphraseJob && (!jobId || metrics.paraphraseJob.jobId === jobId)) {
+        job = metrics.paraphraseJob;
+      }
+    } catch (err) {
+      console.warn(`[paraphrase-status] Supabase fallback query failed:`, err.message);
+    }
+  }
+
+  if (!job) {
+    return res.status(404).json({ success: false, status: 'NOT_FOUND', message: 'Paraphrase job not found.' });
+  }
+
+  if (job.status === 'PARAPHRASING') {
+    return res.json({
+      success: true,
+      status: 'PARAPHRASING',
+      jobId: job.jobId,
+      sessionId: job.sessionId,
+      message: 'Paraphrase in progress.',
+    });
+  }
+
+  if (job.status === 'FAILED') {
+    return res.json({
+      success: false,
+      status: 'FAILED',
+      jobId: job.jobId,
+      sessionId: job.sessionId,
+      message: job.error || 'Paraphrase failed.',
+    });
+  }
+
+  return res.json({
+    success: true,
+    status: 'COMPLETE',
+    jobId: job.jobId,
+    sessionId: job.sessionId,
+    text: job.text,
+    droppedCitations: job.droppedCitations || [],
+    message: 'Paraphrase completed successfully.',
+  });
+}
+
+router.get('/paraphrase/status', getParaphraseStatus);
+router.get('/paraphrase-status', getParaphraseStatus);
 
 export default router;

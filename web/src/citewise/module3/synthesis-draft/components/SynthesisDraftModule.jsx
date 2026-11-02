@@ -11,7 +11,8 @@
   import { apiFetch } from "../../../../api/http";
   import useIsMobile from "../../../../hooks/useIsMobile";
   import { useTheme } from "../../../../context/ThemeContext";
-  import { splitDraftSections } from "../utils/draftUtils";
+  import { splitDraftSections, pollParaphraseStatus } from "../utils/draftUtils";
+  import { exportDraftToPdf } from "../utils/pdfExport";
   import ExportFileNameModal from "./ExportFileNameModal";
   import ModernToast from "../../../../components/ui/ModernToast";
   export { splitDraftSections };
@@ -653,14 +654,19 @@
         const { res, data } = await apiFetch("/api/v1/synthesis/paraphrase", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: generatedContent }),
+          body: JSON.stringify({ text: generatedContent, sessionId }),
         });
 
         if (!res.ok || !data?.success) {
           throw new Error(data?.message || `Paraphrase failed (HTTP ${res.status})`);
         }
 
-        const finalOutput = data.text?.trim();
+        let resultPayload = data;
+        if (res.status === 202 || data?.status === "PARAPHRASING") {
+          resultPayload = await pollParaphraseStatus(apiFetch, data.jobId, sessionId);
+        }
+
+        const finalOutput = (resultPayload.text || resultPayload.data?.text)?.trim();
         if (finalOutput && finalOutput !== generatedContent.trim()) {
           setParaphrasedDraft(finalOutput);
           if (!draftPanelOpen) setDraftPanelOpen(true);
@@ -774,77 +780,7 @@
       if (format === "PDF") {
         setIsExportingPdf(true);
         try {
-          const { jsPDF } = await import("jspdf");
-          const doc = new jsPDF({ unit: "pt", format: "letter" });
-          const margin = 72;
-          const pageWidth = doc.internal.pageSize.getWidth();
-          const pageHeight = doc.internal.pageSize.getHeight();
-          const usableWidth = pageWidth - margin * 2;
-
-          const bodyFontSize = 10;
-          const headingFontSize = 12;
-          const lineHeight = 15;
-          let cursorY = margin;
-
-          const rawParas = fullText.split(/\r?\n\r?\n/);
-
-          for (let pIdx = 0; pIdx < rawParas.length; pIdx++) {
-            const para = rawParas[pIdx].trim();
-            if (!para) continue;
-
-            const isHeading = /^#{1,6}\s+/.test(para) || /^(References|Background|Rationale|Research Gap)$/i.test(para);
-
-            if (isHeading) {
-              doc.setFont("Times", "bold");
-              doc.setFontSize(headingFontSize);
-              const headingText = para.replace(/^#{1,6}\s+/, "");
-              if (cursorY + lineHeight * 2 > pageHeight - margin) {
-                doc.addPage();
-                cursorY = margin;
-              }
-              if (cursorY > margin) cursorY += 8;
-              doc.text(headingText, margin, cursorY);
-              cursorY += lineHeight + 4;
-              continue;
-            }
-
-            // Justified body paragraph
-            doc.setFont("Times", "normal");
-            doc.setFontSize(bodyFontSize);
-
-            const lines = doc.splitTextToSize(para, usableWidth);
-
-            for (let i = 0; i < lines.length; i++) {
-              if (cursorY + lineHeight > pageHeight - margin) {
-                doc.addPage();
-                cursorY = margin;
-              }
-
-              const line = lines[i].trim();
-              const isLastLine = i === lines.length - 1;
-
-              if (isLastLine) {
-                doc.text(line, margin, cursorY);
-              } else {
-                const words = line.split(/\s+/).filter(Boolean);
-                if (words.length <= 1) {
-                  doc.text(line, margin, cursorY);
-                } else {
-                  const wordsWidth = words.reduce((acc, w) => acc + doc.getTextWidth(w), 0);
-                  const gap = (usableWidth - wordsWidth) / (words.length - 1);
-                  let curX = margin;
-                  for (let w = 0; w < words.length; w++) {
-                    doc.text(words[w], curX, cursorY);
-                    curX += doc.getTextWidth(words[w]) + gap;
-                  }
-                }
-              }
-              cursorY += lineHeight;
-            }
-            cursorY += 6;
-          }
-
-          doc.save(`${fileName}.pdf`);
+          await exportDraftToPdf(fullText, fileName);
           showToast("success", "Export Complete", `Exported "${fileName}.pdf" successfully.`);
         } catch (err) {
           console.error("PDF generation failed:", err);

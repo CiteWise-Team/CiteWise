@@ -3,7 +3,7 @@ import { diffWords } from 'diff';
 import { apiFetch } from "../../../../api/http";
 import { Sparkles, AlertTriangle, Loader2 } from "lucide-react";
 import { useTheme } from "../../../../context/ThemeContext";
-import { splitDraftSections } from "../utils/draftUtils";
+import { splitDraftSections, pollParaphraseStatus } from "../utils/draftUtils";
 import ModernToast from "../../../../components/ui/ModernToast";
 import PagePreviewModal from "../../../shared/components/PagePreviewModal";
 
@@ -460,14 +460,19 @@ export default function GeneratedDraftDisplay({
       const { res, data } = await apiFetch("/api/v1/synthesis/paraphrase", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: draft }),
+        body: JSON.stringify({ text: draft, sessionId }),
       });
 
       if (!res.ok || !data?.success) {
         throw new Error(data?.message || `Paraphrase failed (HTTP ${res.status})`);
       }
 
-      const finalOutput = data.text?.trim();
+      let resultPayload = data;
+      if (res.status === 202 || data?.status === "PARAPHRASING") {
+        resultPayload = await pollParaphraseStatus(apiFetch, data.jobId, sessionId);
+      }
+
+      const finalOutput = (resultPayload.text || resultPayload.data?.text)?.trim();
       if (finalOutput && finalOutput !== draft.trim()) {
         setParaphrasedDraft(finalOutput);
         showToast("success", "Paraphrase Ready", "Review the suggested revisions and accept or discard changes.");
