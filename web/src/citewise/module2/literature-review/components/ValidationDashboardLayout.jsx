@@ -310,19 +310,14 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
         }
 
         if (response.status === 404) {
-          if (activeDoc.rawStatus === 'pending' && pollAttemptsRef.current > PENDING_NOT_FOUND_POLLS) {
-            setIsInsightsLoading(false);
-            setInsightsPollExhausted(true);
+          setIsInsightsLoading(false);
+          setActiveInsights(null);
+          if (activeDoc.rawStatus === 'pending') {
+            setInsightsPollExhausted(false);
+            setInsightsErrorMsg(null);
             return;
           }
-
-          pollAttemptsRef.current += 1;
-          if (pollAttemptsRef.current >= MAX_INSIGHT_POLLS) {
-            setIsInsightsLoading(false);
-            setInsightsPollExhausted(true);
-            return;
-          }
-          pollTimeout = setTimeout(fetchInsightsData, INSIGHTS_POLL_MS);
+          setInsightsPollExhausted(true);
           return;
         }
 

@@ -197,12 +197,19 @@ const AIAssessmentPanel = ({
       try {
         const { res: response, data } = await apiFetch(`/api/v1/documents/${documentId}/insights`);
 
+        if (response.status === 202) {
+          if (isMounted) {
+            setLoading(true);
+            pollTimeout = setTimeout(fetchInsights, 1500);
+          }
+          return;
+        }
+
         if (response.status === 404) {
           if (isMounted) {
             setInsights(null);
             setError(null);
-            setLoading(true);
-            pollTimeout = setTimeout(fetchInsights, 1500);
+            setLoading(false);
           }
           return;
         }

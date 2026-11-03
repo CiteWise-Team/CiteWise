@@ -218,8 +218,8 @@ export async function scoringPipeline(docId, sessionId) {
 
     // These reads are independent; running them together instead of one after
     // another trims several database/R2 round-trips off every assessment.
-    const [{ data: existing }, { data: baselines }, fullText] = await Promise.all([
-      supabase.from('document_insights').select('*').eq('document_id', docId).maybeSingle(),
+    const [{ data: existingList }, { data: baselines }, fullText] = await Promise.all([
+      supabase.from('document_insights').select('*').eq('document_id', docId).order('id', { ascending: false }).limit(1),
       supabase
         .from('research_baselines')
         .select('*')
@@ -234,6 +234,7 @@ export async function scoringPipeline(docId, sessionId) {
       }).eq('id', docId),
     ]);
 
+    const existing = existingList?.[0] ?? null;
     let rawJson = null;
     if (existing) {
       if (existing.raw_ai_response_json) {
@@ -247,8 +248,8 @@ export async function scoringPipeline(docId, sessionId) {
 
     const [pageOffsets] = await Promise.all([
       ensurePageOffsets(doc, fullText),
-      // Delete existing insight so we can insert the newly calculated one
-      existing ? supabase.from('document_insights').delete().eq('id', existing.id) : null,
+      // Delete existing insights so we can insert the newly calculated one
+      supabase.from('document_insights').delete().eq('document_id', docId),
     ]);
 
     const baseline = baselines?.[0] ?? null;

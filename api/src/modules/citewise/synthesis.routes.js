@@ -119,7 +119,8 @@ async function asyncSynthesisJob({
 
     // Load insights + determine tiers
     const tieredDocs = await Promise.all(approvedDocs.map(async (doc) => {
-      const { data: insight } = await supabase.from('document_insights').select('*').eq('document_id', doc.id).maybeSingle();
+      const { data: insights } = await supabase.from('document_insights').select('*').eq('document_id', doc.id).order('id', { ascending: false }).limit(1);
+      const insight = insights?.[0] ?? null;
       const { data: excerpts } = insight
         ? await supabase.from('evidence_excerpts').select('*').eq('document_insight_id', insight.id).order('display_order')
         : { data: [] };

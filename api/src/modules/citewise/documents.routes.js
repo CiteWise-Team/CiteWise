@@ -44,9 +44,14 @@ function parseJson(str, fallback = []) {
 
 // Helper: load full insight + excerpts for a document id
 async function loadInsight(docId) {
-  const { data: insight } = await supabase
-    .from('document_insights').select('*').eq('document_id', docId).maybeSingle();
-  if (!insight) return null;
+  const { data: insights, error } = await supabase
+    .from('document_insights')
+    .select('*')
+    .eq('document_id', docId)
+    .order('id', { ascending: false })
+    .limit(1);
+  if (error || !insights || insights.length === 0) return null;
+  const insight = insights[0];
   const { data: excerpts } = await supabase
     .from('evidence_excerpts').select('*').eq('document_insight_id', insight.id).order('display_order');
   return { ...insight, evidenceExcerpts: excerpts ?? [] };
@@ -157,11 +162,12 @@ router.get('/:id/insights', async (req, res) => {
   const { data: docInfo } = await supabase.from('uploaded_documents').select('*').eq('id', docId).maybeSingle();
   
   if (!docInfo || (sessionId && docInfo.session_id !== sessionId)) return res.status(404).json({ success: false, message: 'Not found' });
-  if (docInfo.scoring_status === 'EXTRACTING' || docInfo.scoring_status === 'PENDING' || docInfo.scoring_status === 'PROCESSING') {
-    return res.status(202).json({ success: true, message: 'Processing', status: docInfo.scoring_status });
+  const status = (docInfo.scoring_status || '').toUpperCase();
+  if (status === 'EXTRACTING' || status === 'PENDING' || status === 'PROCESSING') {
+    return res.status(202).json({ success: true, message: 'Processing', status });
   }
   
-  if (docInfo.scoring_status === 'FAILED') {
+  if (status === 'FAILED') {
     return res.status(400).json({ success: false, message: docInfo.scoring_error_message || 'Assessment failed' });
   }
 
@@ -373,9 +379,8 @@ router.post('/:id/assess', async (req, res) => {
   if (sessionId && doc.session_id !== sessionId) return res.status(404).json({ success: false, message: 'Document not found', data: null });
   if (!doc.parsed_text?.trim()) return res.status(400).json({ success: false, message: 'Document text is empty', data: null });
 
-  // Delete existing insight so scoring pipeline will re-run
-  const { data: existing } = await supabase.from('document_insights').select('id').eq('document_id', docId).maybeSingle();
-  if (existing) await supabase.from('document_insights').delete().eq('id', existing.id);
+  // Delete existing insights so scoring pipeline will re-run
+  await supabase.from('document_insights').delete().eq('document_id', docId);
 
   // Reset scoring status
   await supabase.from('uploaded_documents').update({ scoring_status: 'PENDING', scoring_error_message: null }).eq('id', docId);
@@ -522,8 +527,7 @@ router.delete('/:id', async (req, res) => {
   const { data: doc } = await supabase.from('uploaded_documents').select('*').eq('id', docId).maybeSingle();
   if (!doc || (sessionId && doc.session_id !== sessionId)) return res.status(404).json({ success: false, message: 'Not found' });
 
-  const { data: insight } = await supabase.from('document_insights').select('id').eq('document_id', docId).maybeSingle();
-  if (insight) await supabase.from('document_insights').delete().eq('id', insight.id);
+  await supabase.from('document_insights').delete().eq('document_id', docId);
 
   await supabase.from('uploaded_documents').delete().eq('id', docId);
   // Every other route here answers with this envelope; a bare 204 left the
