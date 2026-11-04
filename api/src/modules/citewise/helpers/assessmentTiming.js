@@ -1,7 +1,7 @@
 // Summarises logged assessment timings into per-page-count figures and the
 // page threshold that still fits the target time.
 
-export const TARGET_MS = 15000;
+export const TARGET_MS = 30000;
 
 const BUCKETS = [
   [1, 5], [6, 10], [11, 20], [21, 30], [31, 50], [51, 100], [101, 200], [201, Infinity],
@@ -41,6 +41,7 @@ function summarizeGroup(rows, targetMs) {
   const buckets = BUCKETS.map(([lo, hi]) => {
     const inBucket = timed.filter((r) => r.pages >= lo && r.pages <= hi);
     const sorted = inBucket.map((r) => r.ms).sort((a, b) => a - b);
+    const avgMs = mean(inBucket.map((r) => r.row.assessment_ms));
     return {
       pages: hi === Infinity ? `${lo}+` : `${lo}-${hi}`,
       maxPages: hi === Infinity ? null : hi,
@@ -49,7 +50,8 @@ function summarizeGroup(rows, targetMs) {
       p90TotalMs: percentile(sorted, 0.9),
       avgExtractionMs: mean(inBucket.map((r) => r.row.extraction_ms)),
       avgAiMs: mean(inBucket.map((r) => r.row.ai_ms)),
-      avgAssessmentMs: mean(inBucket.map((r) => r.row.assessment_ms)),
+      avgAssessmentMs: avgMs,
+      avgAssessmentSeconds: avgMs != null ? Number((avgMs / 1000).toFixed(2)) : null,
       withinTarget: sorted.length ? percentile(sorted, 0.9) <= targetMs : null,
     };
   }).filter((b) => b.runs > 0);
@@ -64,7 +66,7 @@ function summarizeGroup(rows, targetMs) {
 
   const fit = linearFit(timed.map((r) => ({ x: r.pages, y: r.ms })));
   let estimatedMaxPages = null;
-  if (fit && fit.slope > 0) {
+  if (fit && fit.slope > 0 && targetMs > fit.intercept) {
     estimatedMaxPages = Math.max(0, Math.floor((targetMs - fit.intercept) / fit.slope));
   }
 

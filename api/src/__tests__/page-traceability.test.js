@@ -181,11 +181,16 @@ describe('summarizeTimings', () => {
   it('derives the page threshold from a linear fit and the observed buckets', () => {
     // 4 s fixed + 0.5 s per page -> 15 s at 22 pages
     const rows = [2, 4, 8, 10, 15, 18, 25, 30, 40].map((p) => row(p, 4000 + 500 * p));
-    const s = summarizeTimings(rows);
-    expect(s.overall.fit).toEqual({ fixedMs: 4000, msPerPage: 500 });
-    expect(s.overall.estimatedMaxPages).toBe(22);
-    expect(s.overall.observedMaxPages).toBe(20);
-    expect(s.methods.local.runs).toBe(9);
+    const s15 = summarizeTimings(rows, 15000);
+    expect(s15.overall.fit).toEqual({ fixedMs: 4000, msPerPage: 500 });
+    expect(s15.overall.estimatedMaxPages).toBe(22);
+    expect(s15.overall.observedMaxPages).toBe(20);
+    expect(s15.methods.local.runs).toBe(9);
+
+    // Default Dual SLA target of 30s -> (30000 - 4000) / 500 = 52 pages
+    const s30 = summarizeTimings(rows);
+    expect(s30.targetMs).toBe(30000);
+    expect(s30.overall.estimatedMaxPages).toBe(52);
   });
 
   it('ignores weight-only re-scores and failed runs', () => {

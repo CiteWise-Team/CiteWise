@@ -77,6 +77,10 @@ router.get('/session/:sessionId', async (req, res) => {
       parsed_text,
       r2_file_key,
       r2_text_key,
+      page_count,
+      scoring_duration_ms,
+      scoring_started_at,
+      scoring_completed_at,
       document_insights (
         id,
         overall_score,
@@ -119,6 +123,11 @@ router.get('/session/:sessionId', async (req, res) => {
         title,
         sizeBytes:            doc.size_bytes,
         scoringStatus:        (doc.scoring_status ?? 'complete').toLowerCase(),
+        pageCount:            doc.page_count ?? null,
+        assessmentDurationSeconds: doc.assessment_duration_seconds != null
+          ? Number(doc.assessment_duration_seconds)
+          : (doc.scoring_duration_ms != null ? Number((doc.scoring_duration_ms / 1000).toFixed(2)) : null),
+        scoringDurationMs:    doc.scoring_duration_ms ?? null,
         relevancyScore:       relevancy,
         gapAlignmentScore:    g,
         methodologyScore:     m,
@@ -137,6 +146,11 @@ router.get('/session/:sessionId', async (req, res) => {
       title,
       sizeBytes:    doc.size_bytes,
       scoringStatus:(doc.scoring_status ?? 'pending').toLowerCase(),
+      pageCount:    doc.page_count ?? null,
+      assessmentDurationSeconds: doc.assessment_duration_seconds != null
+        ? Number(doc.assessment_duration_seconds)
+        : (doc.scoring_duration_ms != null ? Number((doc.scoring_duration_ms / 1000).toFixed(2)) : null),
+      scoringDurationMs: doc.scoring_duration_ms ?? null,
       relevancyScore: null,
       gapAlignmentScore: null,
       methodologyScore: null,
@@ -197,9 +211,12 @@ router.get('/:id/insights', async (req, res) => {
     relevanceLevel:       insight.relevance_level,
     pageCount:            docInfo.page_count ?? null,
     timing: {
-      assessmentMs:     docInfo.scoring_duration_ms ?? null,
-      extractionMs:     docInfo.extraction_ms ?? null,
-      extractionMethod: docInfo.extraction_method ?? null,
+      assessmentMs:      docInfo.scoring_duration_ms ?? null,
+      assessmentSeconds: docInfo.assessment_duration_seconds != null
+        ? Number(docInfo.assessment_duration_seconds)
+        : (docInfo.scoring_duration_ms != null ? Number((docInfo.scoring_duration_ms / 1000).toFixed(2)) : null),
+      extractionMs:      docInfo.extraction_ms ?? null,
+      extractionMethod:  docInfo.extraction_method ?? null,
     },
     mismatchFlags:        parseJson(insight.mismatch_flags_json),
     weaknessFlags:        parseJson(insight.weakness_flags_json),
