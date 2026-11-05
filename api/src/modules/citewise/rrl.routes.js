@@ -40,7 +40,7 @@ function processExtractionQueue() {
 import { selectRelevantChunks } from './helpers/chunking.js';
 import { parseAIResponse } from './helpers/rubricScoring.js';
 import { extractPdfPages, joinPages, buildSearchIndex, resolveExcerptPage } from './helpers/pageText.js';
-import { loadFullText, ensurePageOffsets, updateDocumentFields, recordAssessmentTiming } from './helpers/documentPages.js';
+import { loadFullText, ensurePageOffsets, ensurePageCount, updateDocumentFields, recordAssessmentTiming } from './helpers/documentPages.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
@@ -184,20 +184,22 @@ async function parsePdfWithLlamaParse(buffer, fileName) {
 
 function logTiming(doc, sessionId, startedAt, { aiMs, reusedAiResponse, status, errorMessage }) {
   const assessmentMs = Date.now() - startedAt;
+  const assessmentDurationSeconds = Number((assessmentMs / 1000).toFixed(2));
   const extractionMs = Number.isFinite(doc?.extraction_ms) ? doc.extraction_ms : null;
   return recordAssessmentTiming({
-    document_id:        doc.id,
-    session_id:         sessionId,
-    page_count:         doc.page_count ?? null,
-    character_count:    doc.character_count ?? null,
-    extraction_method:  doc.extraction_method ?? null,
-    extraction_ms:      extractionMs,
-    ai_ms:              aiMs,
-    assessment_ms:      assessmentMs,
-    total_ms:           extractionMs != null ? extractionMs + assessmentMs : null,
-    reused_ai_response: reusedAiResponse,
+    document_id:                 doc.id,
+    session_id:                  sessionId,
+    page_count:                  doc.page_count ?? null,
+    character_count:             doc.character_count ?? null,
+    extraction_method:           doc.extraction_method ?? null,
+    extraction_ms:               extractionMs,
+    ai_ms:                       aiMs,
+    assessment_ms:               assessmentMs,
+    assessment_duration_seconds: assessmentDurationSeconds,
+    total_ms:                    extractionMs != null ? extractionMs + assessmentMs : null,
+    reused_ai_response:          reusedAiResponse,
     status,
-    error_message:      errorMessage ?? null,
+    error_message:               errorMessage ?? null,
   });
 }
 
@@ -252,13 +254,26 @@ export async function scoringPipeline(docId, sessionId) {
       supabase.from('document_insights').delete().eq('document_id', docId),
     ]);
 
+    if (doc.page_count == null) {
+      await ensurePageCount(doc);
+    }
+
     const baseline = baselines?.[0] ?? null;
     if (!baseline) {
       console.warn(`[scoring] no baseline for session ${sessionId}, skipping doc ${docId}`);
+      const finishedAt = Date.now();
+      const assessmentMs = finishedAt - startedAt;
+      const assessmentSeconds = Number((assessmentMs / 1000).toFixed(2));
       await supabase.from('uploaded_documents').update({
         scoring_status: 'FAILED', scoring_error_message: 'Missing semantic baseline',
-        scoring_completed_at: new Date().toISOString(),
+        scoring_completed_at: new Date(finishedAt).toISOString(),
       }).eq('id', docId);
+      await updateDocumentFields(docId, {
+        page_count:                  doc.page_count ?? null,
+        scoring_duration_ms:         assessmentMs,
+        assessment_duration_seconds: assessmentSeconds,
+        scoring_duration_seconds:    assessmentSeconds,
+      }, 'timing');
       await logTiming(doc, sessionId, startedAt, { aiMs, reusedAiResponse, status: 'FAILED', errorMessage: 'Missing semantic baseline' });
       return;
     }
@@ -273,11 +288,20 @@ export async function scoringPipeline(docId, sessionId) {
 
     if (!selectedText || !selectedText.trim()) {
       console.warn(`[scoring] doc ${docId} has no extractable text, skipping n8n and marking as FAILED.`);
+      const finishedAt = Date.now();
+      const assessmentMs = finishedAt - startedAt;
+      const assessmentSeconds = Number((assessmentMs / 1000).toFixed(2));
       await supabase.from('uploaded_documents').update({
         scoring_status:        'FAILED',
         scoring_error_message: 'The PDF contains no extractable text (e.g. scanned image or empty document). Please upload a readable, text-based PDF.',
-        scoring_completed_at:  new Date().toISOString(),
+        scoring_completed_at:  new Date(finishedAt).toISOString(),
       }).eq('id', docId);
+      await updateDocumentFields(docId, {
+        page_count:                  doc.page_count ?? null,
+        scoring_duration_ms:         assessmentMs,
+        assessment_duration_seconds: assessmentSeconds,
+        scoring_duration_seconds:    assessmentSeconds,
+      }, 'timing');
       await logTiming(doc, sessionId, startedAt, { aiMs, reusedAiResponse, status: 'FAILED', errorMessage: 'No extractable text' });
       return;
     }
@@ -386,33 +410,50 @@ export async function scoringPipeline(docId, sessionId) {
       if (exErr) console.warn(`[scoring] excerpt insert error for doc ${docId}:`, exErr.message);
     }
 
+    const finishedAt = Date.now();
+    const assessmentMs = finishedAt - startedAt;
+    const assessmentSeconds = Number((assessmentMs / 1000).toFixed(2));
+
     await supabase.from('uploaded_documents').update({
       scoring_status:      'COMPLETE',
-      scoring_completed_at: new Date().toISOString(),
+      scoring_completed_at: new Date(finishedAt).toISOString(),
       scoring_error_message: null,
     }).eq('id', docId);
 
-    const assessmentMs = Date.now() - startedAt;
     await Promise.all([
-      updateDocumentFields(docId, { scoring_duration_ms: assessmentMs }, 'timing'),
+      updateDocumentFields(docId, {
+        page_count:                  doc.page_count ?? null,
+        scoring_duration_ms:         assessmentMs,
+        assessment_duration_seconds: assessmentSeconds,
+        scoring_duration_seconds:    assessmentSeconds,
+      }, 'timing'),
       logTiming(doc, sessionId, startedAt, { aiMs, reusedAiResponse, status: 'COMPLETE' }),
     ]);
 
-    console.info(`[scoring] ✅ doc ${docId} complete in ${assessmentMs} ms (${doc.page_count ?? '?'} pages, AI ${aiMs ?? 'reused'} ms) – recommendation=${insight.recommendationStatus}`);
+    console.info(`[scoring] ✅ doc ${docId} complete in ${assessmentSeconds} s (${assessmentMs} ms, ${doc.page_count ?? '?'} pages, AI ${aiMs ?? 'reused'} ms) – recommendation=${insight.recommendationStatus}`);
 
     // Fire-and-forget AI metadata extraction so synthesis has reliable
     // citation metadata (author, year, title) without the user having to
     // rename their PDF files.
     setImmediate(() => extractMetadataPipeline(docId, doc.file_name, doc.parsed_text));
   } catch (err) {
+    const finishedAt = Date.now();
+    const assessmentMs = finishedAt - startedAt;
+    const assessmentSeconds = Number((assessmentMs / 1000).toFixed(2));
     const status = err.message?.toLowerCase().includes('timed out') ? 'TIMEOUT' : 'FAILED';
     await supabase.from('uploaded_documents').update({
       scoring_status:      status,
-      scoring_completed_at: new Date().toISOString(),
+      scoring_completed_at: new Date(finishedAt).toISOString(),
       scoring_error_message: err.message?.slice(0, 280),
     }).eq('id', docId);
+    await updateDocumentFields(docId, {
+      page_count:                  doc?.page_count ?? null,
+      scoring_duration_ms:         assessmentMs,
+      assessment_duration_seconds: assessmentSeconds,
+      scoring_duration_seconds:    assessmentSeconds,
+    }, 'timing');
     if (doc) await logTiming(doc, sessionId, startedAt, { aiMs, reusedAiResponse, status, errorMessage: err.message?.slice(0, 280) });
-    console.error(`[scoring] doc ${docId} FAILED:`, err.message);
+    console.error(`[scoring] doc ${docId} FAILED after ${assessmentSeconds} s:`, err.message);
   }
 }
 
@@ -724,7 +765,7 @@ router.post('/upload', acceptUploads, async (req, res) => {
         continue;
       }
 
-      void updateDocumentFields(saved.id, {
+      await updateDocumentFields(saved.id, {
         page_count:        extraction.pageCount,
         page_offsets_json: extraction.pageOffsets,
         extraction_method: 'local',
@@ -770,7 +811,7 @@ router.post('/upload', acceptUploads, async (req, res) => {
     }
 
     if (extraction.pageCount) {
-      void updateDocumentFields(saved.id, { page_count: extraction.pageCount }, 'upload');
+      await updateDocumentFields(saved.id, { page_count: extraction.pageCount }, 'upload');
     }
 
     accepted++;

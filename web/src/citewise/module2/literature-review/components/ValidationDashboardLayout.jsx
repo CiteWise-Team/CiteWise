@@ -13,11 +13,9 @@ import ModernToast from "../../../../components/ui/ModernToast";
 
 // Poll quickly while an assessment runs: at the old 5 s interval a result
 // could sit finished on the server for up to 5 s before the UI noticed. The
-// give-up limits keep the same wall-clock budget as before (250 s, and 15 s
-// for a pending document that has no insight yet).
+// give-up limit keeps the same 250 s wall-clock budget.
 const INSIGHTS_POLL_MS = 1500;
 const MAX_INSIGHT_POLLS = Math.ceil(250000 / INSIGHTS_POLL_MS);
-const PENDING_NOT_FOUND_POLLS = Math.ceil(15000 / INSIGHTS_POLL_MS);
 const ACTIVE_DOCUMENTS_POLL_MS = 2000;
 
 export default function ValidationDashboardLayout({ groupId, sessionId: propSessionId, onStepChange, onLockStep3 }) {

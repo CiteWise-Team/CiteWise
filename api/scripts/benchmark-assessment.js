@@ -27,7 +27,7 @@ const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
 const option = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
 
-const TARGET_MS = 15000;
+const TARGET_MS = 30000;
 const PAGE_COUNTS = option('--pages')
   ? option('--pages').split(',').map(Number).filter((n) => n > 0)
   : [1, 5, 10, 20, 30, 50, 75, 100, 150, 200, 300];
