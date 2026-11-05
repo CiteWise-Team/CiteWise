@@ -176,11 +176,37 @@
     const isMobile = useIsMobile();
     const { isDark } = useTheme();
     const styles = getStyles(isMobile, isDark);
+
+    const DRAFT_STORAGE_KEY = `citewise_draft_${sessionId}`;
+    const DOCS_STORAGE_KEY = `citewise_approved_docs_${sessionId}`;
+    const GENERATING_STORAGE_KEY = `citewise_synthesis_generating_${sessionId}`;
+
     const [approvedDocuments, setApprovedDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [generationStatus, setGenerationStatus] = useState("idle");
-    const [generationProgress, setGenerationProgress] = useState(0);
-    const [statusText, setStatusText] = useState("Ready to Generate");
+    const [generationStatus, setGenerationStatus] = useState(() => {
+      if (sessionId && typeof window !== "undefined") {
+        if (sessionStorage.getItem(`citewise_synthesis_generating_${sessionId}`) === "true") {
+          return "generating";
+        }
+      }
+      return "idle";
+    });
+    const [generationProgress, setGenerationProgress] = useState(() => {
+      if (sessionId && typeof window !== "undefined") {
+        if (sessionStorage.getItem(`citewise_synthesis_generating_${sessionId}`) === "true") {
+          return 25;
+        }
+      }
+      return 0;
+    });
+    const [statusText, setStatusText] = useState(() => {
+      if (sessionId && typeof window !== "undefined") {
+        if (sessionStorage.getItem(`citewise_synthesis_generating_${sessionId}`) === "true") {
+          return "Synthesizing... Please wait";
+        }
+      }
+      return "Ready to Generate";
+    });
     const [generatedContent, setGeneratedContent] = useState("");
     const [references, setReferences] = useState([]);
     const [citationsUsed, setCitationsUsed] = useState([]);
@@ -211,28 +237,204 @@
     const [paraphrasedDraft, setParaphrasedDraft] = useState(null);
     const [hoveredHeaderButton, setHoveredHeaderButton] = useState(null);
 
-    const DRAFT_STORAGE_KEY = `citewise_draft_${sessionId}`;
-    const DOCS_STORAGE_KEY = `citewise_approved_docs_${sessionId}`;
+    const startProgressSimulation = (initialProgress = 10) => {
+      setGenerationProgress(initialProgress);
+      const steps = [
+        { progress: 25, text: "Extracting key themes..." },
+        { progress: 45, text: "Mapping semantic connections..." },
+        { progress: 65, text: "Synthesizing literature review..." },
+        { progress: 85, text: "Generating APA citations..." },
+      ];
+      let stepIdx = steps.findIndex((s) => s.progress > initialProgress);
+      if (stepIdx === -1) stepIdx = 0;
 
-    useEffect(() => {
-      if (sessionId) {
-        const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
-        if (savedDraft) {
-          try {
-            const draft = JSON.parse(savedDraft);
-            setGeneratedContent(draft.content || "");
-            setReferences(draft.references || []);
-            setCitationTrace(Array.isArray(draft.citationTrace) ? draft.citationTrace : []);
-            if (draft.content && draft.content.length > 0) {
-              setGenerationStatus("complete");
-              onStepChange?.(3);
-            }
-            console.log("Loaded saved draft from localStorage");
-          } catch (err) {
-            console.error("Error loading saved draft:", err);
-          }
+      const timer = setInterval(() => {
+        if (stepIdx < steps.length) {
+          setGenerationProgress(steps[stepIdx].progress);
+          setStatusText(steps[stepIdx].text);
+          stepIdx++;
+        }
+      }, 1400);
+
+      return timer;
+    };
+
+    const pollStatusUntilComplete = async (sessionIdToPoll, isCancelledFn = () => false) => {
+      const statusUrl = `/api/v1/synthesis/status?sessionId=${encodeURIComponent(sessionIdToPoll)}`;
+      let pollAttempts = 0;
+      const maxAttempts = 100;
+
+      while (pollAttempts < maxAttempts) {
+        if (isCancelledFn()) return null;
+        await new Promise((r) => setTimeout(r, 2500));
+        if (isCancelledFn()) return null;
+        pollAttempts++;
+
+        const { res: statusRes, data: statusData } = await apiFetch(statusUrl);
+        if (!statusRes.ok || !statusData) {
+          continue;
+        }
+
+        if (statusData.status === "FAILED") {
+          throw new Error(statusData.message || "Synthesis generation failed");
+        }
+
+        if (statusData.status === "PASSED" || (statusData.contentText && statusData.status !== "GENERATING")) {
+          return statusData;
         }
       }
+
+      throw new Error("Draft synthesis timed out. Please check your AI workflows.");
+    };
+
+    const applySynthesisPayload = (payload, shouldToast = true) => {
+      if (!payload) return;
+      const refsArray = (payload.referencesText || "")
+        .split("\n")
+        .map((ref) => ref.trim())
+        .filter((ref) => ref.length > 0);
+
+      const newContent = payload.contentText || "";
+
+      setGeneratedContent((prevContent) => {
+        if (prevContent && prevContent !== newContent) {
+          store.addDraftVersion(sessionId, {
+            content: prevContent,
+            references: references || [],
+            label: `Replaced v${store.getDraftVersions(sessionId).length + 1}`,
+            source: "generated",
+          });
+        }
+        return newContent;
+      });
+
+      setGenerationProgress(100);
+      setStatusText("Synthesis Complete!");
+      setGenerationStatus("complete");
+      onStepChange?.(3);
+      setReferences(refsArray);
+      setCitationsUsed(Array.isArray(payload.citationsUsed) ? payload.citationsUsed : []);
+      setCitationIntegrity(payload.citationIntegrity ?? null);
+      setCitationTrace(Array.isArray(payload.citationTrace) ? payload.citationTrace : []);
+
+      if (shouldToast) {
+        showToast(
+          "success",
+          "Synthesis Successful",
+          "Your academic literature synthesis has been generated with integrated scholarly citations."
+        );
+      }
+
+      store.addDraftVersion(sessionId, {
+        content: newContent,
+        references: refsArray,
+        label: `Generated v${store.getDraftVersions(sessionId).length + 1}`,
+        source: "generated",
+      });
+
+      const draftToSave = {
+        content: newContent,
+        references: refsArray,
+        citationTrace: Array.isArray(payload.citationTrace) ? payload.citationTrace : [],
+        timestamp: new Date().toISOString(),
+      };
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
+    };
+
+    useEffect(() => {
+      if (!sessionId) return;
+
+      const isGeneratingFlag = sessionStorage.getItem(GENERATING_STORAGE_KEY) === "true";
+
+      // 1. Initial load from localStorage
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft);
+          setGeneratedContent(draft.content || "");
+          setReferences(draft.references || []);
+          setCitationTrace(Array.isArray(draft.citationTrace) ? draft.citationTrace : []);
+          if (!isGeneratingFlag && draft.content && draft.content.length > 0) {
+            setGenerationStatus("complete");
+            onStepChange?.(3);
+          }
+          console.log("Loaded saved draft from localStorage");
+        } catch (err) {
+          console.error("Error loading saved draft:", err);
+        }
+      }
+
+      // 2. Check server status to detect active synthesis or pull freshest draft
+      let isCancelled = false;
+      let resumeProgressTimer = null;
+
+      const checkServerStatus = async () => {
+        try {
+          const statusUrl = `/api/v1/synthesis/status?sessionId=${encodeURIComponent(sessionId)}`;
+          const { res: statusRes, data: statusData } = await apiFetch(statusUrl);
+
+          if (isCancelled) return;
+
+          if (statusRes.ok && statusData) {
+            if (statusData.status === "GENERATING") {
+              // Active synthesis in-flight on backend! Keep/show loading screen
+              sessionStorage.setItem(GENERATING_STORAGE_KEY, "true");
+              setGenerationStatus("generating");
+              setStatusText("Synthesizing... Please wait");
+              resumeProgressTimer = startProgressSimulation(35);
+
+              try {
+                const finalPayload = await pollStatusUntilComplete(sessionId, () => isCancelled);
+                if (isCancelled || !finalPayload) return;
+                clearInterval(resumeProgressTimer);
+                sessionStorage.removeItem(GENERATING_STORAGE_KEY);
+                applySynthesisPayload(finalPayload, true);
+              } catch (pollErr) {
+                if (isCancelled) return;
+                clearInterval(resumeProgressTimer);
+                sessionStorage.removeItem(GENERATING_STORAGE_KEY);
+                console.error("Synthesis poll error:", pollErr);
+                setGenerationProgress(0);
+                setStatusText(pollErr.message || "Synthesis failed");
+                setGenerationStatus(savedDraft ? "complete" : "idle");
+                showToast("error", "Synthesis Failed", pollErr.message || "Synthesis failed");
+              }
+              return;
+            }
+
+            // Server is not generating
+            sessionStorage.removeItem(GENERATING_STORAGE_KEY);
+
+            if (statusData.status === "PASSED" || (statusData.contentText && statusData.status !== "FAILED")) {
+              applySynthesisPayload(statusData, false);
+            } else if (isGeneratingFlag) {
+              setGenerationStatus(savedDraft ? "complete" : "idle");
+              setStatusText(savedDraft ? "Synthesis Complete!" : "Ready to Generate");
+            }
+          } else {
+            sessionStorage.removeItem(GENERATING_STORAGE_KEY);
+            if (isGeneratingFlag) {
+              setGenerationStatus(savedDraft ? "complete" : "idle");
+              setStatusText(savedDraft ? "Synthesis Complete!" : "Ready to Generate");
+            }
+          }
+        } catch (err) {
+          console.warn("[SynthesisDraftModule] Error verifying synthesis status:", err);
+          if (!isCancelled) {
+            sessionStorage.removeItem(GENERATING_STORAGE_KEY);
+            if (isGeneratingFlag) {
+              setGenerationStatus(savedDraft ? "complete" : "idle");
+            }
+          }
+        }
+      };
+
+      checkServerStatus();
+
+      return () => {
+        isCancelled = true;
+        if (resumeProgressTimer) clearInterval(resumeProgressTimer);
+      };
     }, [sessionId]);
 
     useEffect(() => {
@@ -381,24 +583,10 @@
         return;
       }
 
+      sessionStorage.setItem(GENERATING_STORAGE_KEY, "true");
       setGenerationStatus("generating");
       setStatusText("Synthesizing... Please wait");
-      setGenerationProgress(10);
-
-      const steps = [
-        { progress: 25, text: "Extracting key themes..." },
-        { progress: 45, text: "Mapping semantic connections..." },
-        { progress: 65, text: "Synthesizing literature review..." },
-        { progress: 85, text: "Generating APA citations..." },
-      ];
-      let stepIdx = 0;
-      const interval = setInterval(() => {
-        if (stepIdx < steps.length) {
-          setGenerationProgress(steps[stepIdx].progress);
-          setStatusText(steps[stepIdx].text);
-          stepIdx++;
-        }
-      }, 1200);
+      const progressTimer = startProgressSimulation(10);
 
       try {
         const selectedGaps = store.getSelectedGaps(sessionId);
@@ -428,98 +616,27 @@
           body: JSON.stringify(requestBody),
         });
 
-        if (!response.ok || !initialPayload || initialPayload.success === false) {
-          clearInterval(interval);
+        const isAlreadyGenerating = response.status === 409 || /already in progress/i.test(initialPayload?.message || "");
+
+        if (!response.ok && !isAlreadyGenerating) {
+          clearInterval(progressTimer);
+          sessionStorage.removeItem(GENERATING_STORAGE_KEY);
           throw new Error(initialPayload?.message || `Synthesis failed (HTTP ${response.status})`);
         }
 
         let payload = initialPayload;
 
-        if (response.status === 202 || initialPayload.status === "GENERATING") {
-          const statusUrl = `/api/v1/synthesis/status?sessionId=${encodeURIComponent(sessionId)}`;
-          let pollAttempts = 0;
-          const maxAttempts = 80;
-
-          while (pollAttempts < maxAttempts) {
-            await new Promise((r) => setTimeout(r, 2500));
-            pollAttempts++;
-
-            const { res: statusRes, data: statusData } = await apiFetch(statusUrl);
-            if (!statusRes.ok || !statusData) {
-              continue;
-            }
-
-            if (statusData.status === "FAILED") {
-              clearInterval(interval);
-              throw new Error(statusData.message || "Synthesis generation failed");
-            }
-
-            if (statusData.status === "PASSED" || (statusData.contentText && statusData.status !== "GENERATING")) {
-              payload = statusData;
-              break;
-            }
-          }
-
-          if (pollAttempts >= maxAttempts) {
-            clearInterval(interval);
-            throw new Error("Draft synthesis timed out. Please check your AI workflows.");
-          }
+        if (response.status === 202 || isAlreadyGenerating || initialPayload?.status === "GENERATING") {
+          payload = await pollStatusUntilComplete(sessionId);
         }
 
-        clearInterval(interval);
-
-        const refsArray = (payload.referencesText || "")
-          .split("\n")
-          .map((ref) => ref.trim())
-          .filter((ref) => ref.length > 0);
-
-        const previousContent = generatedContent || "";
-        const newContent = payload.contentText || "";
-
-        const mergedContent = newContent;
-        const mergedReferences = refsArray;
-
-        if (previousContent && previousContent !== newContent) {
-          store.addDraftVersion(sessionId, {
-            content: previousContent,
-            references: references || [],
-            label: `Replaced v${store.getDraftVersions(sessionId).length + 1}`,
-            source: "generated",
-          });
-        }
-
-        setGenerationProgress(100);
-        setStatusText("Synthesis Complete!");
-        setGenerationStatus("complete");
-        onStepChange?.(3);
-        setGeneratedContent(mergedContent);
-        setReferences(mergedReferences);
-        setCitationsUsed(Array.isArray(payload.citationsUsed) ? payload.citationsUsed : []);
-        setCitationIntegrity(payload.citationIntegrity ?? null);
-        setCitationTrace(Array.isArray(payload.citationTrace) ? payload.citationTrace : []);
-        showToast(
-          "success",
-          "Synthesis Successful",
-          "Your academic literature synthesis has been generated with integrated scholarly citations."
-        );
-
-        store.addDraftVersion(sessionId, {
-          content: mergedContent,
-          references: mergedReferences,
-          label: `Generated v${store.getDraftVersions(sessionId).length + 1}`,
-          source: "generated",
-        });
-
-        const draftToSave = {
-          content: mergedContent,
-          references: mergedReferences,
-          citationTrace: Array.isArray(payload.citationTrace) ? payload.citationTrace : [],
-          timestamp: new Date().toISOString(),
-        };
-        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
+        clearInterval(progressTimer);
+        sessionStorage.removeItem(GENERATING_STORAGE_KEY);
+        applySynthesisPayload(payload, true);
 
       } catch (err) {
-        clearInterval(interval);
+        clearInterval(progressTimer);
+        sessionStorage.removeItem(GENERATING_STORAGE_KEY);
         console.error("Synthesis error:", err);
         setGenerationProgress(0);
         let errorMsg = err.message || "Synthesis failed";
@@ -533,6 +650,7 @@
     };
 
     const resetGeneration = () => {
+      sessionStorage.removeItem(GENERATING_STORAGE_KEY);
       setGenerationStatus("idle");
       setGenerationProgress(0);
       setGeneratedContent("");
