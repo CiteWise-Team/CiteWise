@@ -53,7 +53,7 @@ The Spring Boot Java backend that CiteWise originally used has been fully replac
 Open the SQL editor for project `sdtkvjedqygqyudwirsf` and run the contents of:
 
 ```
-db/migrations/001_init_citewise_tables.sql
+api/migrations/ (001 through 005, in order)
 ```
 
 This creates the 5 CiteWise tables without touching the existing CATalyst tables.
@@ -173,6 +173,29 @@ http://localhost:5173/
 
 ---
 
+## Assessment Performance (Dual SLA)
+
+AI assessment latency is **not** driven by PDF page count. `selectRelevantChunks` normalizes every document to roughly 4,000-4,700 characters (cap: 9,000 chars / 6 chunks) before it is sent to n8n, so latency is dominated by the remote LLM generating scores, rationales and verbatim excerpts.
+
+| Tier | Scope | Target | Measured (3-21 page real papers) |
+|------|-------|--------|----------------------------------|
+| Tier 1 | Local PDF extraction, page-offset indexing, chunk selection | <= 1.0 s | 69-497 ms |
+| Tier 2 | End-to-end multi-criteria AI assessment | <= 30.0 s | 18-31 s (mean ~24 s) |
+
+- `TARGET_MS = 30000` in `api/src/modules/citewise/helpers/assessmentTiming.js` and `api/scripts/benchmark-assessment.js`.
+- `CITEWISE_N8N_READ_TIMEOUT_MS` (default 120000) absorbs cold starts well beyond the SLA.
+- Each upload records `page_count`; each assessment records `assessment_duration_seconds` (receipt to completion) on `uploaded_documents` and in `assessment_timings`. These are returned as `pageCount` / `assessmentDurationSeconds` by `GET /api/v1/documents/session/:id` and `GET /api/v1/documents/:id/insights`.
+
+### Benchmark scripts
+
+```powershell
+node api/scripts/download-test-papers.js                          # fetch real arXiv papers into test-papers/
+node --env-file=api/.env api/scripts/run-assessment-benchmark.js  # live scoring benchmark (needs n8n + Supabase)
+node api/scripts/benchmark-assessment.js                          # synthetic extraction benchmark
+```
+
+---
+
 ## Database Tables
 
 ### CATalyst tables (existing — do not modify)
@@ -195,6 +218,11 @@ http://localhost:5173/
 | `document_insights` | AI rubric scores (gap alignment, methodology, theory, citation) |
 | `evidence_excerpts` | Supporting quote excerpts linked to each insight |
 | `generated_draft` | Final RAG-synthesized introduction + APA references |
+| `assessment_timings` | Per-run telemetry: `page_count`, `extraction_ms`, `ai_ms`, `total_ms`, `assessment_duration_seconds` (migrations 004-005) |
+
+### Migrations (`api/migrations/`)
+
+Run in order in the Supabase SQL editor: `001_r2_and_async_overhaul.sql`, `002_smart_goal_briefs.sql`, `003_smart_goal_generations.sql`, `004_page_traceability_and_timing.sql`, `005_literature_pages_and_assessment_duration.sql`. The API tolerates migration 005 not yet being applied (timing columns are skipped until it is).
 
 ---
 
