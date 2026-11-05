@@ -151,7 +151,7 @@ npm --prefix web run build       # production build
 ```
 http://localhost:5173/
 |
-+-- /                  Landing page
++-- /Landing page
 +-- /login /register   Auth
 +-- /groups            Group dashboard
 |     +-- [CiteWise]   Auto-imports the workspace into CiteWise
@@ -160,14 +160,14 @@ http://localhost:5173/
 +-- /smart-goals/:groupId   CATalyst 2.0 SMART Goals tracker
 |
 +-- /citewise          CiteWise flow (3 steps)
-      +-- Step 0: Data Import
+      +-- Step 1: Data Import
       |     Research title, rationale and gaps load from the chosen group.
       |     Upload RRL PDFs here (<= 20 MB each, PDF magic bytes checked).
-      +-- Step 1: AI Assessment & Literature Review
+      +-- Step 2: AI Assessment & Literature Review
       |     PDFs are scored by n8n against the baseline. Custom metric
       |     weights, batch / selected assessment, evidence page preview,
       |     approve / reject, citation override.
-      +-- Step 2: Generate Introduction
+      +-- Step 3: Generate Introduction
             Approved docs + CATalyst baseline go to n8n (RAG). Titles,
             guided instructions, paraphrase, version history, export, and
             hand-off to SMART Goals.
@@ -266,14 +266,6 @@ All routes except auth require `Authorization: Bearer <token>` (`requireAuth`). 
 | POST | `/api/v1/synthesis/update-citations` | Reconcile in-text citations and references |
 | POST | `/api/v1/synthesis/save-draft` | Save an edited draft |
 | GET | `/api/v1/synthesis/export` | Download draft (`?draftId=&format=`) |
-
-### SMART Goals
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/smart-goals/generate` | Generate SMART objectives from a draft |
-| POST | `/api/v1/smart-goals/save` | Save objectives |
-| GET | `/api/v1/smart-goals/saved/:groupId` | Load saved objectives |
 
 ---
 
