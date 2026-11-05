@@ -563,15 +563,21 @@ router.post('/generate', async (req, res) => {
   // Check for in-flight generation to prevent duplicate concurrent runs
   const { data: existingDraft } = await supabase
     .from('generated_draft')
-    .select('validation_status')
+    .select('id, validation_status, created_at')
     .eq('session_id', sessionId)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (existingDraft?.validation_status === 'GENERATING') {
-    return res.status(409).json({
-      success: false,
-      message: 'Synthesis is already in progress for this session. Please wait a moment.'
-    });
+    const elapsedMs = existingDraft.created_at ? Date.now() - new Date(existingDraft.created_at).getTime() : 0;
+    if (elapsedMs <= 180000) {
+      return res.status(409).json({
+        success: false,
+        status: 'GENERATING',
+        message: 'Synthesis is already in progress for this session. Please wait a moment.'
+      });
+    }
   }
 
   // Reset or create placeholder draft row in GENERATING status
@@ -641,6 +647,21 @@ router.get('/status', async (req, res) => {
   }
 
   if (draft.validation_status === 'GENERATING') {
+    const elapsedMs = draft.created_at ? Date.now() - new Date(draft.created_at).getTime() : 0;
+    if (elapsedMs > 180000) {
+      await supabase.from('generated_draft').update({
+        validation_status: 'FAILED',
+        metrics_json: JSON.stringify({ error: 'Synthesis generation timed out. Please try generating again.' }),
+      }).eq('id', draft.id);
+      return res.json({
+        success: false,
+        status: 'FAILED',
+        message: 'Synthesis generation timed out. Please try generating again.',
+        metrics: { error: 'Synthesis generation timed out. Please try generating again.' },
+        createdAt: draft.created_at,
+      });
+    }
+
     return res.json({
       success: true,
       status: 'GENERATING',
