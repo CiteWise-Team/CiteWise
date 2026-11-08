@@ -12,6 +12,8 @@ import ModernToast from "../../../../components/ui/ModernToast";
 
 const MAX_FILE_MB = 20;
 const DUPLICATE_REMOVE_DELAY = 3000;
+// ✨ NEW: how long finished files stay visible (green badge) before leaving the queue
+const DONE_REMOVE_DELAY = 2000;
 
 function buildFileKey(file) {
   return `${file.name.toLowerCase()}-${file.size}`;
@@ -51,6 +53,8 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   const [statusMessage, setStatusMessage] = useState("Ready to upload");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [duplicateToast, setDuplicateToast] = useState({ show: false, message: "" });
+  // ✨ NEW: how many documents already exist on the server for this session
+  const [uploadedCount, setUploadedCount] = useState(0);
 
   const triggerDuplicateToast = useCallback((filenames) => {
     if (!filenames?.length) return;
@@ -72,6 +76,10 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   const activeUploadsRef = useRef(new Set());
   const isProcessingQueueRef = useRef(false);
 
+  // ✨ CHANGED: this no longer copies server documents into the queue.
+  // The queue only holds files the user picked in THIS visit. The server list is only
+  // used to detect duplicates (name set) and to show a count. That removes the
+  // "Previously uploaded" rows and the duplicate rows next to fresh uploads.
   const fetchUploadedFiles = useCallback(async () => {
     if (!sessionId) return;
     try {
@@ -82,21 +90,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
         uploadedFileNamesRef.current = new Set(
           docs.map((d) => d.fileName?.toLowerCase()).filter(Boolean)
         );
-
-        setFileQueue((prev) => {
-          const existingIds = new Set(prev.map(p => p.docId));
-          const newServerDocs = docs.filter(d => !existingIds.has(d.id));
-          const appendQueue = newServerDocs.map(doc => ({
-            id: `server-${doc.id}`,
-            docId: doc.id,
-            key: `server-${doc.id}`,
-            name: doc.fileName || 'Unnamed PDF',
-            size: doc.sizeBytes || 0,
-            status: "uploaded",
-            message: "Previously uploaded",
-          }));
-          return [...appendQueue, ...prev];
-        });
+        setUploadedCount(docs.length);
       }
     } catch (err) {
       // ignore fetch errors
@@ -133,6 +127,22 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
     const timer = setTimeout(() => {
       setFileQueue((prev) => prev.filter((item) => item.status !== "duplicate"));
     }, DUPLICATE_REMOVE_DELAY);
+
+    return () => clearTimeout(timer);
+  }, [fileQueue]);
+
+  // ✨ NEW: clear finished files from the queue after a short success moment.
+  // "extracting" counts as done: the file is already on the server and nothing here
+  // ever flips it to "uploaded".
+  useEffect(() => {
+    const hasDone = fileQueue.some((i) => i.status === "uploaded" || i.status === "extracting");
+    if (!hasDone) return;
+
+    const timer = setTimeout(() => {
+      setFileQueue((prev) =>
+        prev.filter((i) => i.status !== "uploaded" && i.status !== "extracting")
+      );
+    }, DONE_REMOVE_DELAY);
 
     return () => clearTimeout(timer);
   }, [fileQueue]);
@@ -286,6 +296,10 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
       if (!match.success) {
         throw new Error(match.message || "Upload rejected");
       }
+
+      // ✨ NEW: remember the name immediately so a re-drop of the same file is caught
+      // as a duplicate even before the server list is refetched.
+      uploadedFileNamesRef.current.add(item.name.toLowerCase());
 
       const isExtracting = match.status === "EXTRACTING";
       setFileQueue((prev) =>
@@ -483,6 +497,9 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
           method: "DELETE",
           headers: { "X-Session-Id": sessionId.trim() },
         });
+        // keep the duplicate-name set and the count in sync after a delete
+        uploadedFileNamesRef.current.delete(itemToRemove.name.toLowerCase());
+        fetchUploadedFiles();
       } catch (e) {
         console.warn("Failed to delete from DB:", e);
       }
@@ -561,6 +578,16 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
   const totalCount = fileQueue.length;
   const readyCount = fileQueue.filter((item) => item.status === "queued").length;
+  // ✨ NEW: files still on their way (uploading / extracting), not finished ones
+  const inProgressCount = fileQueue.filter(
+    (item) => item.status === "uploading" || item.status === "extracting"
+  ).length;
+
+  // ✨ CHANGED: footer text reflects the real state instead of "totalCount - readyCount"
+  const footerLabel =
+    totalCount === 0
+      ? `${uploadedCount} document${uploadedCount === 1 ? "" : "s"} uploaded`
+      : `${readyCount} ready · ${inProgressCount} in progress`;
 
   // ── RRL Upload Card (stacked layout, warm orange header)
   const rrlUploadCard = (
@@ -667,7 +694,12 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
         {/* Upload button + status bar stacked */}
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <UploadAllButton onClick={handleUpload} isUploading={uploadState === "uploading"} />
+          {/* ✨ CHANGED: disabled when nothing is waiting to upload */}
+          <UploadAllButton
+            onClick={handleUpload}
+            isUploading={uploadState === "uploading"}
+            disabled={readyCount === 0}
+          />
           <div
             className="citewise-upload-status-bar"
             style={{
@@ -695,9 +727,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
                 minWidth: 0,
               }}
             >
-              {totalCount === 0
-                ? "No files"
-                : `${readyCount} ready · ${totalCount - readyCount} in progress`}
+              {footerLabel}
             </span>
             <span
               style={{

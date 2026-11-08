@@ -3,18 +3,19 @@ import theme, { ui } from "../../../theme";
 import * as store from "../../../lib/citewiseStore";
 import { apiFetch } from "../../../../api/http";
 import { useTheme } from "../../../../context/ThemeContext";
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  Lock, 
-  Unlock, 
-  X, 
-  Search, 
-  FileText, 
-  CheckCircle2, 
-  Clock, 
-  Check, 
-  Sparkles 
+import {
+  ChevronDown,
+  ChevronUp,
+  Lock,
+  Unlock,
+  X,
+  Search,
+  FileText,
+  CheckCircle2,
+  Clock,
+  Check,
+  Sparkles,
+  Trash2, // delete icon for the select modal
 } from "lucide-react";
 
 const METRIC_DETAILS = {
@@ -36,10 +37,10 @@ const METRIC_DETAILS = {
   },
 };
 
-// ✨ Message shown when the user tries to turn off the last active metric
+// Message shown when the user tries to turn off the last active metric
 const MIN_ACTIVE_MESSAGE = "At least one rubric criterion must remain active.";
 
-// ✨ If saved prefs have every metric off (bad/test data), fall back to defaults
+// If saved prefs have every metric off (bad/test data), fall back to defaults
 function ensureOneEnabled(p) {
   const anyOn = store.SCORE_COMPONENTS.some((c) => p?.enabled?.[c.key]);
   if (anyOn) return p;
@@ -66,7 +67,6 @@ function distributeInteger(total, items) {
   const weightSum = items.reduce((s, it) => s + (it.weight > 0 ? it.weight : 0), 0);
 
   if (weightSum <= 0) {
-    // Distribute equally with remainder to the first few items
     const base = Math.floor(total / items.length);
     let remainder = total % items.length;
     const res = {};
@@ -77,21 +77,15 @@ function distributeInteger(total, items) {
     return res;
   }
 
-  // Largest remainder calculation
   const mapped = items.map((item) => {
     const raw = (Math.max(0, item.weight) / weightSum) * total;
     const floor = Math.floor(raw);
-    return {
-      key: item.key,
-      floor,
-      frac: raw - floor,
-    };
+    return { key: item.key, floor, frac: raw - floor };
   });
 
   const allocated = mapped.reduce((s, it) => s + it.floor, 0);
   const remainder = total - allocated;
 
-  // Sort descending by fractional part to distribute remainder
   const sorted = [...mapped].sort((a, b) => b.frac - a.frac);
   const bonusKeys = new Set(sorted.slice(0, remainder).map((it) => it.key));
 
@@ -122,12 +116,13 @@ function normalizeWeights(weights, enabled) {
   return nextWeights;
 }
 
-export default function MetricWeightCustomization({ 
-  sessionId, 
-  documents = [], 
-  onWeightsChanged, 
-  onAssessmentTriggered, 
-  isHero = false 
+export default function MetricWeightCustomization({
+  sessionId,
+  documents = [],
+  onWeightsChanged,
+  onAssessmentTriggered,
+  onDeleteDocument, // (docId) => Promise — removes a document everywhere
+  isHero = false,
 }) {
   const { isDark } = useTheme();
   const [prefs, setPrefs] = useState(() => {
@@ -143,7 +138,11 @@ export default function MetricWeightCustomization({
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasChanged, setHasChanged] = useState(false);
 
-  // ✨ Warning alert state
+  // delete-file state for the select modal
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+
+  // Warning alert state
   const [warning, setWarning] = useState("");
   const warningTimerRef = useRef(null);
 
@@ -177,6 +176,16 @@ export default function MetricWeightCustomization({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showSelectModal, isProcessing]);
 
+  // Close the modal if the last document gets deleted
+  useEffect(() => {
+    if (showSelectModal && documents.length === 0) setShowSelectModal(false);
+  }, [documents.length, showSelectModal]);
+
+  // Forget any pending delete confirmation when the modal closes
+  useEffect(() => {
+    if (!showSelectModal) setConfirmDeleteId(null);
+  }, [showSelectModal]);
+
   useEffect(() => {
     if (!isHero && !autoOpenedRef.current && pendingDocs.length > 0) {
       autoOpenedRef.current = true;
@@ -190,7 +199,7 @@ export default function MetricWeightCustomization({
       return;
     }
     setProcessProgress(25);
-    setProcessStatusText(`Preparing ${documents.length} document${documents.length !== 1 ? 's' : ''} for AI assessment...`);
+    setProcessStatusText(`Preparing ${documents.length} document${documents.length !== 1 ? "s" : ""} for AI assessment...`);
 
     const t1 = setTimeout(() => {
       setProcessProgress(55);
@@ -214,14 +223,13 @@ export default function MetricWeightCustomization({
     };
   }, [isProcessing, documents.length]);
 
-  // ✨ Load prefs and repair them if every metric was saved as off
+  // Load prefs and repair them if every metric was saved as off
   useEffect(() => {
     const loaded = store.getScorePrefs(sessionId);
     const fixed = ensureOneEnabled(loaded);
     const normalized = normalizeWeights(fixed.weights, fixed.enabled);
     const next = { ...fixed, weights: normalized };
     setPrefs(next);
-    // Save the repaired version if the stored data was all-off
     if (fixed !== loaded) store.setScorePrefs(sessionId, next);
   }, [sessionId]);
 
@@ -254,14 +262,12 @@ export default function MetricWeightCustomization({
     const otherLockedKeys = otherKeys.filter((k) => locked[k]);
     const otherUnlockedKeys = otherKeys.filter((k) => !locked[k]);
 
-    // Total percentage locked among other enabled metrics
     const sumLocked = otherLockedKeys.reduce(
       (sum, k) => sum + Math.round((Number(prefs.weights[k]) || 0) * 100),
       0
     );
     const maxAllowed = Math.max(0, 100 - sumLocked);
 
-    // If there are no other unlocked metrics, targetKey cannot rebalance against anything
     if (otherUnlockedKeys.length === 0) {
       const nextWeights = { ...prefs.weights, [targetKey]: maxAllowed / 100 };
       persist({ ...prefs, weights: nextWeights });
@@ -290,7 +296,6 @@ export default function MetricWeightCustomization({
   };
 
   const toggleEnabled = (key) => {
-    // ✨ Don't allow disabling the last active metric
     if (prefs.enabled[key]) {
       const activeCount = store.SCORE_COMPONENTS.filter((c) => prefs.enabled[c.key]).length;
       if (activeCount <= 1) {
@@ -303,7 +308,6 @@ export default function MetricWeightCustomization({
     const enabledKeys = store.SCORE_COMPONENTS.filter((c) => nextEnabled[c.key]).map((c) => c.key);
     const nextWeights = { ...prefs.weights };
 
-    // If disabling key, clear its lock
     if (prefs.enabled[key]) {
       setLocked((prev) => {
         const next = { ...prev };
@@ -317,7 +321,6 @@ export default function MetricWeightCustomization({
         nextWeights[c.key] = 0;
       }
     } else if (!nextEnabled[key]) {
-      // Key disabled: set to 0 and rebalance remaining enabled keys to sum to 100%
       nextWeights[key] = 0;
       const otherLockedKeys = enabledKeys.filter((k) => locked[k]);
       const otherUnlockedKeys = enabledKeys.filter((k) => !locked[k]);
@@ -350,7 +353,6 @@ export default function MetricWeightCustomization({
         }
       }
     } else {
-      // Key enabled: introduce it and rebalance others
       if (enabledKeys.length === 1) {
         nextWeights[key] = 1.0;
       } else {
@@ -399,7 +401,7 @@ export default function MetricWeightCustomization({
   };
 
   const handleApplyToAll = async () => {
-    const docIds = documents.map(d => d.id);
+    const docIds = documents.map((d) => d.id);
     await triggerBatchAssess(docIds, true, false);
   };
 
@@ -410,7 +412,6 @@ export default function MetricWeightCustomization({
     setShowSelectModal(false);
   };
 
-
   const handleAssessSelected = async () => {
     if (selectedDocs.size === 0) return;
     const docIds = Array.from(selectedDocs);
@@ -418,10 +419,29 @@ export default function MetricWeightCustomization({
     setShowSelectModal(false);
   };
 
+  // Delete one document from the select modal
+  const handleDeleteDoc = async (id) => {
+    if (!onDeleteDocument) return;
+    setDeletingId(id);
+    try {
+      await onDeleteDocument(id);
+      setSelectedDocs((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    } catch (e) {
+      console.warn("Delete failed:", e);
+      showWarning("Could not delete the file. Please try again.");
+    } finally {
+      setDeletingId(null);
+      setConfirmDeleteId(null);
+    }
+  };
+
   const triggerBatchAssess = async (docIds, overwriteWeights, onlyApplyWeights = false) => {
     if (!docIds.length) return;
 
-    // ✨ Safety net: never assess with every metric off
     const anyActive = store.SCORE_COMPONENTS.some((c) => prefs.enabled[c.key]);
     if (!anyActive) {
       showWarning(MIN_ACTIVE_MESSAGE);
@@ -437,25 +457,29 @@ export default function MetricWeightCustomization({
         citation: prefs.enabled.citation ? prefs.weights.citation : 0,
       };
 
-      const payload = { 
-        documentIds: docIds, 
+      const payload = {
+        documentIds: docIds,
         weights: panelWeights,
         overwriteWeights,
-        onlyApplyWeights 
+        onlyApplyWeights,
       };
-      
+
       const { res, data } = await apiFetch(`/api/v1/documents/assess-batch`, {
-        method: 'POST',
-        headers: { 'X-Session-Id': sessionId },
-        body: JSON.stringify(payload)
+        method: "POST",
+        headers: { "X-Session-Id": sessionId },
+        body: JSON.stringify(payload),
       });
-      
+
       if (res.ok) {
         setHasChanged(false);
         if (onAssessmentTriggered) onAssessmentTriggered(docIds);
+      } else {
+        console.warn("assess-batch failed:", res.status, data);
+        showWarning(data?.message || `Assessment failed (${res.status}). Please try again.`);
       }
     } catch (e) {
       console.warn("Batch assess failed:", e);
+      showWarning("Could not start assessment. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -503,7 +527,7 @@ export default function MetricWeightCustomization({
     0
   );
 
-  // ✨ Local theme-aware style overrides
+  // Local theme-aware style overrides
   const cardStyle = isHero
     ? {
         background: isDark ? "#171624" : "#ffffff",
@@ -597,7 +621,6 @@ export default function MetricWeightCustomization({
 
       {isHero && isProcessing ? (
         <div style={{ padding: "3rem 1.5rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-          {/* Guaranteed Animated SVG Spinner with glowing center */}
           <div
             style={{
               position: "relative",
@@ -679,7 +702,6 @@ export default function MetricWeightCustomization({
             {processStatusText}
           </p>
 
-          {/* Moving Progress Bar & Percentage Count */}
           <div
             style={{
               width: "280px",
@@ -720,7 +742,6 @@ export default function MetricWeightCustomization({
             <span style={{ color: "#ea580c", fontWeight: 700 }}>{processProgress}%</span>
           </div>
 
-          {/* Shimmering skeleton cards beneath previewing layout */}
           <div className="cw-loading-skeleton-preview" style={{ marginTop: "1.5rem", width: "100%", maxWidth: "380px", display: "flex", gap: "10px" }}>
             <div className="cw-loading-skeleton-card-left" style={{ height: "48px" }} />
             <div className="cw-loading-skeleton-card-right" style={{ height: "48px" }} />
@@ -868,7 +889,7 @@ export default function MetricWeightCustomization({
             </p>
           )}
 
-          {/* ✨ Warning alert (e.g. last active metric can't be turned off) */}
+          {/* Warning alert */}
           {warning && (
             <div
               role="alert"
@@ -923,7 +944,7 @@ export default function MetricWeightCustomization({
             </div>
           )}
 
-          {/* Metric Items: Vertically aligned inside the single card */}
+          {/* Metric Items */}
           <div
             style={{
               display: "flex",
@@ -939,7 +960,6 @@ export default function MetricWeightCustomization({
               const detail = METRIC_DETAILS[key];
               const isLast = index === store.SCORE_COMPONENTS.length - 1;
 
-              // Check if all other enabled components are locked
               const otherKeys = store.SCORE_COMPONENTS.filter((c) => prefs.enabled[c.key] && c.key !== key);
               const otherUnlockedCount = otherKeys.filter((c) => !locked[c.key]).length;
               const isSoleUnlocked = enabled && !isLocked && otherUnlockedCount === 0 && otherKeys.length > 0;
@@ -954,8 +974,8 @@ export default function MetricWeightCustomization({
                     flexDirection: "column",
                     gap: isHero ? "8px" : "6px",
                     paddingBottom: isHero && !isLast ? "20px" : "0",
-                    borderBottom: isHero && !isLast 
-                      ? (isDark ? "1px solid rgba(255, 255, 255, 0.07)" : "1px solid #f1f5f9") 
+                    borderBottom: isHero && !isLast
+                      ? (isDark ? "1px solid rgba(255, 255, 255, 0.07)" : "1px solid #f1f5f9")
                       : "none",
                   }}
                 >
@@ -1071,7 +1091,6 @@ export default function MetricWeightCustomization({
                     </p>
                   )}
 
-                  {/* Modern Slim Pill Slider Bar matching Reference */}
                   <div
                     style={{
                       position: "relative",
@@ -1082,7 +1101,6 @@ export default function MetricWeightCustomization({
                       marginTop: 2,
                     }}
                   >
-                    {/* The 7px Slim Pill Track (soft neutral background) */}
                     <div
                       style={{
                         position: "relative",
@@ -1094,7 +1112,6 @@ export default function MetricWeightCustomization({
                         pointerEvents: "none",
                       }}
                     >
-                      {/* Active Solid Orange Fill Bar */}
                       <div
                         style={{
                           height: "100%",
@@ -1114,7 +1131,6 @@ export default function MetricWeightCustomization({
                       />
                     </div>
 
-                    {/* Interactive Slider Input with White Center & Orange Ring Knob */}
                     <input
                       type="range"
                       min={0}
@@ -1226,11 +1242,11 @@ export default function MetricWeightCustomization({
             <div style={{ display: "flex", gap: "12px", width: "100%" }}>
               <button
                 onClick={() => {
-                  const pending = documents.filter(d => d.rawStatus === "pending" || (!d.relevancyScore && d.relevancyScore !== 0));
+                  const pending = documents.filter((d) => d.rawStatus === "pending" || (!d.relevancyScore && d.relevancyScore !== 0));
                   if (pending.length > 0) {
-                    setSelectedDocs(new Set(pending.map(d => d.id)));
+                    setSelectedDocs(new Set(pending.map((d) => d.id)));
                   } else {
-                    setSelectedDocs(new Set(documents.map(d => d.id)));
+                    setSelectedDocs(new Set(documents.map((d) => d.id)));
                   }
                   setModalSearch("");
                   setModalFilter("all");
@@ -1340,7 +1356,6 @@ export default function MetricWeightCustomization({
                     {processStatusText}
                   </span>
                 </div>
-                {/* Moving Progress Bar */}
                 <div
                   style={{
                     width: "100%",
@@ -1510,7 +1525,6 @@ export default function MetricWeightCustomization({
                 background: isDark ? "rgba(255, 255, 255, 0.015)" : "#fafafa",
               }}
             >
-              {/* Search input */}
               <div
                 style={{
                   position: "relative",
@@ -1576,7 +1590,6 @@ export default function MetricWeightCustomization({
                 )}
               </div>
 
-              {/* Filter chips & Select All toggle */}
               <div
                 style={{
                   display: "flex",
@@ -1803,6 +1816,7 @@ export default function MetricWeightCustomization({
                         boxShadow: isSelected
                           ? (isDark ? "0 4px 14px rgba(234, 88, 12, 0.15)" : "0 2px 8px rgba(234, 88, 12, 0.08)")
                           : "none",
+                        opacity: deletingId === doc.id ? 0.55 : 1,
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
@@ -1883,7 +1897,6 @@ export default function MetricWeightCustomization({
                             marginTop: "4px",
                           }}
                         >
-                          {/* Status Pill */}
                           {isPending ? (
                             <span
                               style={{
@@ -1925,7 +1938,6 @@ export default function MetricWeightCustomization({
                             </span>
                           )}
 
-                          {/* Author or Year */}
                           {(authors || year) && (
                             <span
                               style={{
@@ -1939,6 +1951,90 @@ export default function MetricWeightCustomization({
                           )}
                         </div>
                       </div>
+
+                      {/* Delete file (trash icon → inline confirm) */}
+                      {onDeleteDocument && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, alignSelf: "center" }}
+                        >
+                          {confirmDeleteId === doc.id ? (
+                            <>
+                              <button
+                                type="button"
+                                disabled={deletingId === doc.id}
+                                onClick={() => handleDeleteDoc(doc.id)}
+                                style={{
+                                  background: "#dc2626",
+                                  color: "#ffffff",
+                                  border: "none",
+                                  borderRadius: "8px",
+                                  padding: "5px 10px",
+                                  fontSize: "0.72rem",
+                                  fontWeight: 700,
+                                  fontFamily: "'Poppins', sans-serif",
+                                  cursor: deletingId === doc.id ? "wait" : "pointer",
+                                  opacity: deletingId === doc.id ? 0.7 : 1,
+                                }}
+                              >
+                                {deletingId === doc.id ? "Deleting..." : "Delete"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deletingId === doc.id}
+                                onClick={() => setConfirmDeleteId(null)}
+                                style={{
+                                  background: "transparent",
+                                  color: isDark ? "#cbd5e1" : "#64748b",
+                                  border: isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #cbd5e1",
+                                  borderRadius: "8px",
+                                  padding: "5px 10px",
+                                  fontSize: "0.72rem",
+                                  fontWeight: 600,
+                                  fontFamily: "'Poppins', sans-serif",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Delete file"
+                              aria-label={`Delete ${docTitle}`}
+                              disabled={isProcessing}
+                              onClick={() => setConfirmDeleteId(doc.id)}
+                              style={{
+                                width: "30px",
+                                height: "30px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                borderRadius: "8px",
+                                background: "transparent",
+                                border: "1px solid transparent",
+                                color: "#94a3b8",
+                                cursor: isProcessing ? "not-allowed" : "pointer",
+                                transition: "all 0.15s ease",
+                                padding: 0,
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = "#dc2626";
+                                e.currentTarget.style.background = isDark ? "rgba(220,38,38,0.12)" : "#fef2f2";
+                                e.currentTarget.style.borderColor = isDark ? "rgba(248,113,113,0.4)" : "#fecaca";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = "#94a3b8";
+                                e.currentTarget.style.background = "transparent";
+                                e.currentTarget.style.borderColor = "transparent";
+                              }}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -1958,7 +2054,6 @@ export default function MetricWeightCustomization({
                 flexWrap: "wrap",
               }}
             >
-              {/* Selected Count Indicator */}
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span
                   style={{
@@ -1990,7 +2085,6 @@ export default function MetricWeightCustomization({
                 </span>
               </div>
 
-              {/* Action Buttons */}
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <button
                   type="button"

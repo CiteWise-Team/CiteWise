@@ -10,6 +10,8 @@ import ModernToast from "../../../../components/ui/ModernToast";
 const MAX_FILE_MB = 20;
 const STORAGE_SESSION_KEY = "citewise.session_id";
 const DUPLICATE_REMOVE_DELAY = 3000;
+// ✨ NEW: how long finished files stay visible (with the green badge) before leaving the queue
+const DONE_REMOVE_DELAY = 2000;
 const LEGACY_UPLOADS_KEY = "citewise.uploadedDocs";
 
 // Key by name+size only (lastModified can differ on re-pick in some browsers)
@@ -108,6 +110,22 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
     const timer = setTimeout(() => {
       setFileQueue((prev) => prev.filter((item) => item.status !== "duplicate"));
     }, DUPLICATE_REMOVE_DELAY);
+
+    return () => clearTimeout(timer);
+  }, [fileQueue]);
+
+  // ✨ NEW: clear finished files from the queue after a short success moment.
+  // "extracting" counts as done too: the file is already on the server and in the
+  // document list, and nothing in this component ever flips it to "uploaded".
+  useEffect(() => {
+    const hasDone = fileQueue.some((i) => i.status === "uploaded" || i.status === "extracting");
+    if (!hasDone) return;
+
+    const timer = setTimeout(() => {
+      setFileQueue((prev) =>
+        prev.filter((i) => i.status !== "uploaded" && i.status !== "extracting")
+      );
+    }, DONE_REMOVE_DELAY);
 
     return () => clearTimeout(timer);
   }, [fileQueue]);
@@ -582,10 +600,17 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           alignItems: "center",
         }}
       >
-        <UploadAllButton onClick={handleUpload} isUploading={uploadState === "uploading"} />
+        {/* ✨ CHANGED: disabled when nothing is waiting to upload */}
+        <UploadAllButton
+          onClick={handleUpload}
+          isUploading={uploadState === "uploading"}
+          disabled={readyCount === 0}
+        />
+        {/* ✨ CHANGED: pass uploadedCount so the footer can show the real server total */}
         <UploadStatusBar
           readyCount={readyCount}
           totalCount={totalCount}
+          uploadedCount={uploadedCount}
           statusMessage={statusMessage}
           uploadState={uploadState}
         />

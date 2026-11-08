@@ -11,9 +11,6 @@ import * as store from "../../../lib/citewiseStore";
 import { useTheme } from "../../../../context/ThemeContext";
 import ModernToast from "../../../../components/ui/ModernToast";
 
-// Poll quickly while an assessment runs: at the old 5 s interval a result
-// could sit finished on the server for up to 5 s before the UI noticed. The
-// give-up limit keeps the same 250 s wall-clock budget.
 const INSIGHTS_POLL_MS = 1500;
 const MAX_INSIGHT_POLLS = Math.ceil(250000 / INSIGHTS_POLL_MS);
 const ACTIVE_DOCUMENTS_POLL_MS = 2000;
@@ -62,6 +59,11 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
   const [loadingProgress, setLoadingProgress] = useState(20);
   const [loadingStatusText, setLoadingStatusText] = useState("Connecting to workspace session...");
   const isFirstLoadRef = useRef(true);
+
+  const [assessmentStarted, setAssessmentStarted] = useState(false);
+
+  // ✨ FIX: Track IDs of docs currently being deleted so the background poller ignores them
+  const deletingDocIdsRef = useRef(new Set());
 
   const [hasEverAssessed, setHasEverAssessed] = useState(() => {
     try {
@@ -157,6 +159,7 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       setActiveInsights(null);
       setIsInsightsLoading(false);
       setInsightsPollExhausted(false);
+      setAssessmentStarted(false);
       setIsInitialLoading(true);
       setLoadingProgress(20);
       setLoadingStatusText("Connecting to workspace session...");
@@ -194,7 +197,12 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
 
       if (response.ok) {
         setDocuments((prev) => {
-          const mapped = mapDocuments(Array.isArray(data) ? data : [], prev);
+          // ✨ FIX: Filter out documents currently in the process of being deleted
+          const safeItems = (Array.isArray(data) ? data : []).filter(
+            (item) => !deletingDocIdsRef.current.has(item.id)
+          );
+          const mapped = mapDocuments(safeItems, prev);
+          
           if (mapped.some((doc) => doc.rawStatus === "complete")) {
             setHasEverAssessed(true);
             try {
@@ -437,7 +445,6 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     localStorage.setItem(storageKey, JSON.stringify(approvedList));
     sessionStorage.setItem(storageKey, JSON.stringify(approvedList));
 
-    // When an approved document is unapproved or no documents are approved, lock Step 3
     if (!targetApprovalState || approvedList.length === 0) {
       if (groupId) {
         localStorage.setItem(`citewise.${groupId}.synthesisUnlocked`, "false");
@@ -561,6 +568,9 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
     const docToDelete = documents[index];
     if (!docToDelete?.id) return;
 
+    // ✨ FIX: Mark this document as currently being deleted
+    deletingDocIdsRef.current.add(docToDelete.id);
+
     const wasApproved = docToDelete.approved;
     const updatedDocs = documents.filter((_, i) => i !== index);
     setDocuments(updatedDocs);
@@ -610,12 +620,28 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
           'X-Session-Id': resolvedSessionId,
         }
       });
-      if (!response.ok && response.status !== 404) {
-        await fetchDocuments();
+      
+      // ✨ FIX: Once server confirms delete (or says it's already gone), we can safely forget it
+      if (response.ok || response.status === 404) {
+         deletingDocIdsRef.current.delete(docToDelete.id);
+      } else {
+         // If it failed, remove from ignore list and re-fetch
+         deletingDocIdsRef.current.delete(docToDelete.id);
+         await fetchDocuments();
       }
     } catch (err) {
       console.warn("Failed to delete document:", err);
+      // ✨ FIX: On error, remove from ignore list and re-fetch
+      deletingDocIdsRef.current.delete(docToDelete.id);
       await fetchDocuments();
+    }
+  };
+
+  // ✨ Wrapper for MetricWeightCustomization to delete by ID
+  const handleDeleteDocById = async (docId) => {
+    const index = documents.findIndex((d) => d.id === docId);
+    if (index !== -1) {
+      await handleDeleteDocument(index);
     }
   };
 
@@ -691,11 +717,14 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
       }
     `}</style>
   );
-  const anyDocAssessed = documents.some((doc) =>
-    doc.rawStatus === "complete" ||
-    (doc.relevancyScore !== null && doc.relevancyScore !== undefined && doc.relevancyScore > 0)
+
+  const anyDocAssessed = documents.some(
+    (doc) =>
+      ["complete", "processing", "extracting"].includes(doc.rawStatus) ||
+      (typeof doc.relevancyScore === "number" && doc.relevancyScore > 0)
   );
-  const hasAssessedDocs = documents.length > 0 && anyDocAssessed;
+  const hasAssessedDocs = documents.length > 0 && (anyDocAssessed || assessmentStarted);
+
   return (
     <div
       style={{
@@ -1084,7 +1113,9 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
               <MetricWeightCustomization
                 sessionId={resolvedSessionId}
                 documents={documents}
+                onDeleteDocument={handleDeleteDocById}
                 onAssessmentTriggered={(assessedDocIds) => {
+                  setAssessmentStarted(true);
                   setHasEverAssessed(true);
                   try {
                     localStorage.setItem(`citewise_has_assessed_${resolvedSessionId}`, "true");
@@ -1146,7 +1177,9 @@ export default function ValidationDashboardLayout({ groupId, sessionId: propSess
                   <MetricWeightCustomization
                     sessionId={resolvedSessionId}
                     documents={documents}
+                    onDeleteDocument={handleDeleteDocById}
                     onAssessmentTriggered={(assessedDocIds) => {
+                      setAssessmentStarted(true);
                       setHasEverAssessed(true);
                       try {
                         localStorage.setItem(`citewise_has_assessed_${resolvedSessionId}`, "true");
