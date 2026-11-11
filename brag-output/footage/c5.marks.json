@@ -1,0 +1,12 @@
+{
+  "frames": 412,
+  "seconds": 17.627031087875366,
+  "marks": {
+    "approveStart": 1.205,
+    "toApprove": 5.243,
+    "approveClick": 5.976,
+    "approved": 11.989,
+    "proceed": 14.921,
+    "step3": 23.438
+  }
+}

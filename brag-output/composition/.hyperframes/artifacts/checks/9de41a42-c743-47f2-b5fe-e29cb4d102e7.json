@@ -1,0 +1,4424 @@
+{
+  "ok": false,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": false,
+    "errorCount": 1,
+    "warningCount": 11,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "duplicate_media_discovery_risk",
+        "severity": "warning",
+        "message": "Detected 5 matching img entries with the same source/start/duration.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Avoid duplicated media nodes that can be discovered twice during compilation."
+      },
+      {
+        "code": "gsap_non_transform_motion",
+        "severity": "error",
+        "message": "GSAP tween on \"__unresolved__\" uses motion that snaps to integer device pixels: left. Layout and text-reflow properties snap during browser layout; roundProps rounds the tween value. Slow motion or an ease-out tail then stutters under the seek-by-frame capture engine. Animate transforms (x/y/scale/opacity) instead.",
+        "selector": "__unresolved__",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "replace left with the transform equivalent (x), e.g. tl.fromTo(\"__unresolved__\", { x: -1300 }, { x: 0, ...yourAnimation }). Transforms interpolate sub-pixel and stay smooth at any speed."
+      },
+      {
+        "code": "composition_file_too_large",
+        "severity": "warning",
+        "message": "This HTML composition file has 599 lines. Smaller sub-compositions are easier to read, iterate on, and diff.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently."
+      },
+      {
+        "code": "timeline_track_too_dense",
+        "severity": "warning",
+        "message": "Track 0 has 7 timed elements in this HTML file. Smaller sub-compositions keep timelines easier to read, iterate on, and diff.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move coherent scene groups into separate .html files under compositions/ and mount them from the parent with data-composition-src so the timeline stays easier to inspect, revise, and validate."
+      },
+      {
+        "code": "timeline_track_too_dense",
+        "severity": "warning",
+        "message": "Track 5 has 30 timed elements in this HTML file. Smaller sub-compositions keep timelines easier to read, iterate on, and diff.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move coherent scene groups into separate .html files under compositions/ and mount them from the parent with data-composition-src so the timeline stays easier to inspect, revise, and validate."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"s1\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#s1",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"s1\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"s2\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#s2",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"s2\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"s3\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#s3",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"s3\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"s4\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#s4",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"s4\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"s5\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#s5",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"s5\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"s6\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#s6",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"s6\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"s7\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#s7",
+        "dataAttributes": {},
+        "sourceFile": "C:\\Users\\admin\\Documents\\CiteWise\\CiteWise\\.claude\\worktrees\\project-video-pitch-cf5aad\\brag-output\\composition\\index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"s7\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      }
+    ],
+    "filesScanned": 1
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 9,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"vo\" is 93.83s but its slot (data-duration) is 98.03s — the slot is shortened to the media length when rendered. Set data-duration to ~93.83s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "98.033",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-logo\" is 0.13s but its slot (data-duration) is 1.00s — the slot is shortened to the media length when rendered. Set data-duration to ~0.13s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "98.033",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-click3\" is 0.06s but its slot (data-duration) is 0.50s — the slot is shortened to the media length when rendered. Set data-duration to ~0.06s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "98.033",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-drop3a\" is 0.11s but its slot (data-duration) is 0.80s — the slot is shortened to the media length when rendered. Set data-duration to ~0.11s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "98.033",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-drop3b\" is 0.19s but its slot (data-duration) is 0.80s — the slot is shortened to the media length when rendered. Set data-duration to ~0.19s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "98.033",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-click4a\" is 0.06s but its slot (data-duration) is 0.50s — the slot is shortened to the media length when rendered. Set data-duration to ~0.06s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "98.033",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-click4b\" is 0.06s but its slot (data-duration) is 0.50s — the slot is shortened to the media length when rendered. Set data-duration to ~0.06s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "98.033",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-click5\" is 0.06s but its slot (data-duration) is 0.50s — the slot is shortened to the media length when rendered. Set data-duration to ~0.06s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "98.033",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-outro\" is 0.13s but its slot (data-duration) is 1.00s — the slot is shortened to the media length when rendered. Set data-duration to ~0.13s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "98.033",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      }
+    ]
+  },
+  "layout": {
+    "ok": false,
+    "errorCount": 10,
+    "warningCount": 1,
+    "infoCount": 26,
+    "findings": [
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 5.446,
+        "selector": "div.pile > div:nth-of-type(3) > b:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 353.79,
+          "top": 445.38,
+          "right": 389.63,
+          "bottom": 472.7,
+          "width": 35.83,
+          "height": 27.32
+        },
+        "containerSelector": "div.pile > div:nth-of-type(7)",
+        "text": "PDF",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 0.67,
+        "lifetime": {
+          "start": 0,
+          "end": 12.251
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 353.79,
+          "y": 445.38,
+          "width": 35.83,
+          "height": 27.32
+        },
+        "firstSeen": 5.446,
+        "lastSeen": 5.446,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          5.446
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 5.446,
+        "selector": "div.pile > div:nth-of-type(4) > b:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 615.18,
+          "top": 385.56,
+          "right": 655.17,
+          "bottom": 419.46,
+          "width": 39.99,
+          "height": 33.9
+        },
+        "containerSelector": "div.pile > div:nth-of-type(7)",
+        "text": "PDF",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 0.7,
+        "lifetime": {
+          "start": 0,
+          "end": 12.251
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 615.18,
+          "y": 385.56,
+          "width": 39.99,
+          "height": 33.9
+        },
+        "firstSeen": 5.446,
+        "lastSeen": 5.446,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          5.446
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "error",
+        "time": 5.446,
+        "selector": "div.pile > div:nth-of-type(6) > b:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 469.56,
+          "top": 534.75,
+          "right": 507.56,
+          "bottom": 565.31,
+          "width": 37.99,
+          "height": 30.55
+        },
+        "containerSelector": "div.pile > div:nth-of-type(7)",
+        "text": "PDF",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 0,
+          "end": 12.251
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 469.56,
+          "y": 534.75,
+          "width": 37.99,
+          "height": 30.55
+        },
+        "firstSeen": 5.446,
+        "lastSeen": 5.446,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          5.446
+        ]
+      },
+      {
+        "code": "clipped_text",
+        "severity": "error",
+        "time": 38.124,
+        "selector": "#s4-d1 > div:nth-of-type(1) > div:nth-of-type(1)",
+        "message": "Text content is clipped by its own box.",
+        "rect": {
+          "left": 150,
+          "top": 313.5,
+          "right": 442,
+          "bottom": 363.5,
+          "width": 292,
+          "height": 50
+        },
+        "text": "Evaluating Targeted Policing Strategies for Adolescent Violence Prevention",
+        "fixHint": "Text is 292px x 50px inside 292px x 50px and overflows by up to 25px; increase the text box height to at least ~75px, or allow wrapping with max-width/fitTextFontSize.",
+        "overflow": {
+          "bottom": 25
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 313.5,
+          "width": 292,
+          "height": 50
+        },
+        "firstSeen": 38.124,
+        "lastSeen": 49.017,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          38.124,
+          49.017
+        ]
+      },
+      {
+        "code": "clipped_text",
+        "severity": "error",
+        "time": 38.124,
+        "selector": "#s4-d2 > div:nth-of-type(1) > div:nth-of-type(1)",
+        "message": "Text content is clipped by its own box.",
+        "rect": {
+          "left": 150,
+          "top": 437.5,
+          "right": 442,
+          "bottom": 487.5,
+          "width": 292,
+          "height": 50
+        },
+        "text": "School-Based Mentoring and Youth Violence: A Longitudinal Study",
+        "fixHint": "Text is 292px x 50px inside 292px x 50px and overflows by up to 25px; increase the text box height to at least ~75px, or allow wrapping with max-width/fitTextFontSize.",
+        "overflow": {
+          "bottom": 25
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 437.5,
+          "width": 292,
+          "height": 50
+        },
+        "firstSeen": 38.124,
+        "lastSeen": 49.017,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          38.124,
+          49.017
+        ]
+      },
+      {
+        "code": "clipped_text",
+        "severity": "error",
+        "time": 38.124,
+        "selector": "span.s4-title",
+        "message": "Text content is clipped by its own box.",
+        "rect": {
+          "left": 984.42,
+          "top": 240,
+          "right": 1572,
+          "bottom": 265,
+          "width": 587.58,
+          "height": 25
+        },
+        "text": "Evaluating Targeted Policing Strategies for Adolescent Violence Prevention",
+        "fixHint": "Text is 588px x 25px inside 588px x 25px and overflows by up to 59px; widen the text box to at least ~647px, or allow wrapping with max-width/fitTextFontSize.",
+        "overflow": {
+          "right": 59
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 984.42,
+          "y": 240,
+          "width": 587.58,
+          "height": 25
+        },
+        "firstSeen": 38.124,
+        "lastSeen": 49.017,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          38.124,
+          49.017
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 49.017,
+        "selector": "div.card.s4-left > div:nth-of-type(1) > span:nth-of-type(1)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 142,
+          "top": 236,
+          "right": 355.94,
+          "bottom": 269,
+          "width": 213.94,
+          "height": 33
+        },
+        "containerSelector": "div.ph",
+        "text": "Quick Navigation",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 142,
+          "y": 236,
+          "width": 213.94,
+          "height": 33
+        },
+        "firstSeen": 47.307,
+        "lastSeen": 50.156,
+        "occurrences": 6,
+        "heldMs": 2848.999999999997,
+        "times": [
+          47.307,
+          47.877,
+          48.447,
+          49.017,
+          49.586,
+          50.156
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 49.017,
+        "selector": "div.card.s4-left > div:nth-of-type(1) > span:nth-of-type(2)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 555.88,
+          "top": 240,
+          "right": 632,
+          "bottom": 265,
+          "width": 76.12,
+          "height": 25
+        },
+        "containerSelector": "div.ph > span:nth-of-type(1)",
+        "text": "4 papers",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 555.88,
+          "y": 240,
+          "width": 76.12,
+          "height": 25
+        },
+        "firstSeen": 47.307,
+        "lastSeen": 50.156,
+        "occurrences": 6,
+        "heldMs": 2848.999999999997,
+        "times": [
+          47.307,
+          47.877,
+          48.447,
+          49.017,
+          49.586,
+          50.156
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 49.017,
+        "selector": "#s4-d2 > div:nth-of-type(1) > div:nth-of-type(2)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 150,
+          "top": 492.5,
+          "right": 375.98,
+          "bottom": 514.5,
+          "width": 225.98,
+          "height": 22
+        },
+        "containerSelector": "div.hq > span:nth-of-type(1)",
+        "text": "Okafor et al., 2022 · 21 pages",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 492.5,
+          "width": 225.98,
+          "height": 22
+        },
+        "firstSeen": 47.307,
+        "lastSeen": 50.156,
+        "occurrences": 6,
+        "heldMs": 2848.999999999997,
+        "times": [
+          47.307,
+          47.877,
+          48.447,
+          49.017,
+          49.586,
+          50.156
+        ]
+      },
+      {
+        "code": "content_overlap",
+        "severity": "error",
+        "time": 49.017,
+        "selector": "#s4-d2 > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(2)",
+        "message": "Two text blocks overlap and may render unreadable.",
+        "rect": {
+          "left": 486.08,
+          "top": 483,
+          "right": 610,
+          "bottom": 505,
+          "width": 123.92,
+          "height": 22
+        },
+        "containerSelector": "div.hq > span:nth-of-type(1)",
+        "text": "Recommended",
+        "fixHint": "Give each block its own zone, or put data-layout-allow-overlap on the text or on a container inside the scene. A marker on the scene root does not apply. Decoration nobody needs to read can take data-layout-ignore.",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 486.08,
+          "y": 483,
+          "width": 123.92,
+          "height": 22
+        },
+        "firstSeen": 47.307,
+        "lastSeen": 50.156,
+        "occurrences": 6,
+        "heldMs": 2848.999999999997,
+        "times": [
+          47.307,
+          47.877,
+          48.447,
+          49.017,
+          49.586,
+          50.156
+        ]
+      },
+      {
+        "code": "escaped_container",
+        "severity": "warning",
+        "time": 5.446,
+        "selector": "div.glow.g2",
+        "message": "Positioned element renders far outside its offset parent — its coordinates were likely computed in a different frame (canvas/viewport pixels).",
+        "rect": {
+          "left": 1130.02,
+          "top": 475.57,
+          "right": 2430.02,
+          "bottom": 1775.57,
+          "width": 1300,
+          "height": 1300
+        },
+        "containerSelector": "div.backdrop",
+        "text": "",
+        "fixHint": "Compute left/top in the offset parent's frame (subtract its rect), or mark intentional placement with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1130.02,
+          "y": 475.57,
+          "width": 1300,
+          "height": 1300
+        },
+        "firstSeen": 5.446,
+        "lastSeen": 16.339,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          5.446,
+          16.339
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "div.card.s4-left > div:nth-of-type(1) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 142,
+          "top": 236,
+          "right": 355.94,
+          "bottom": 269,
+          "width": 213.94,
+          "height": 33
+        },
+        "containerSelector": "div.ph",
+        "text": "Quick Navigation",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 142,
+          "y": 236,
+          "width": 213.94,
+          "height": 33
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "div.card.s4-left > div:nth-of-type(1) > span:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 555.88,
+          "top": 240,
+          "right": 632,
+          "bottom": 265,
+          "width": 76.13,
+          "height": 25
+        },
+        "containerSelector": "div.ph",
+        "text": "4 papers",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 555.88,
+          "y": 240,
+          "width": 76.13,
+          "height": 25
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d1 > div:nth-of-type(1) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 150,
+          "top": 312.5,
+          "right": 421.94,
+          "bottom": 388.5,
+          "width": 271.94,
+          "height": 76
+        },
+        "containerSelector": "i.h",
+        "text": "Evaluating Targeted Policing Strategies for Adolescent Violence Prevention",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 312.5,
+          "width": 271.94,
+          "height": 76
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d1 > div:nth-of-type(1) > div:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 150,
+          "top": 368.5,
+          "right": 388.41,
+          "bottom": 390.5,
+          "width": 238.41,
+          "height": 22
+        },
+        "containerSelector": "div.pg > i:nth-of-type(3)",
+        "text": "Navarro & Lim, 2023 · 14 pages",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 368.5,
+          "width": 238.41,
+          "height": 22
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d1 > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 568.19,
+          "top": 314,
+          "right": 624,
+          "bottom": 354,
+          "width": 55.81,
+          "height": 40
+        },
+        "containerSelector": "#s4-pdf",
+        "text": "86%",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 568.19,
+          "y": 314,
+          "width": 55.81,
+          "height": 40
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d1 > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 486.08,
+          "top": 359,
+          "right": 610,
+          "bottom": 381,
+          "width": 123.92,
+          "height": 22
+        },
+        "containerSelector": "#s4-pdf",
+        "text": "Recommended",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 486.08,
+          "y": 359,
+          "width": 123.92,
+          "height": 22
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d2 > div:nth-of-type(1) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 150,
+          "top": 436.5,
+          "right": 440.66,
+          "bottom": 512.5,
+          "width": 290.66,
+          "height": 76
+        },
+        "containerSelector": "#s4-pdf",
+        "text": "School-Based Mentoring and Youth Violence: A Longitudinal Study",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 436.5,
+          "width": 290.66,
+          "height": 76
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d2 > div:nth-of-type(1) > div:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 150,
+          "top": 492.5,
+          "right": 375.98,
+          "bottom": 514.5,
+          "width": 225.98,
+          "height": 22
+        },
+        "containerSelector": "#s4-hl",
+        "text": "Okafor et al., 2022 · 21 pages",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 492.5,
+          "width": 225.98,
+          "height": 22
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d2 > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 568.19,
+          "top": 438,
+          "right": 624,
+          "bottom": 478,
+          "width": 55.81,
+          "height": 40
+        },
+        "containerSelector": "div.pg > i:nth-of-type(6)",
+        "text": "81%",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 568.19,
+          "y": 438,
+          "width": 55.81,
+          "height": 40
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d2 > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 486.08,
+          "top": 483,
+          "right": 610,
+          "bottom": 505,
+          "width": 123.92,
+          "height": 22
+        },
+        "containerSelector": "#s4-hl",
+        "text": "Recommended",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 486.08,
+          "y": 483,
+          "width": 123.92,
+          "height": 22
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d3 > div:nth-of-type(1) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 150,
+          "top": 560.5,
+          "right": 413.25,
+          "bottom": 611.5,
+          "width": 263.25,
+          "height": 51
+        },
+        "containerSelector": "#s4-hl",
+        "text": "Community Trust and Youth Outreach Programs",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 560.5,
+          "width": 263.25,
+          "height": 51
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d3 > div:nth-of-type(1) > div:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 150,
+          "top": 616.5,
+          "right": 335.16,
+          "bottom": 638.5,
+          "width": 185.16,
+          "height": 22
+        },
+        "containerSelector": "div.pg > i:nth-of-type(7)",
+        "text": "Delgado, 2021 · 9 pages",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 616.5,
+          "width": 185.16,
+          "height": 22
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d3 > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 568.19,
+          "top": 562,
+          "right": 624,
+          "bottom": 602,
+          "width": 55.81,
+          "height": 40
+        },
+        "containerSelector": "#s4-hl",
+        "text": "68%",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 568.19,
+          "y": 562,
+          "width": 55.81,
+          "height": 40
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "span.chip.rev",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 492.66,
+          "top": 607,
+          "right": 610,
+          "bottom": 629,
+          "width": 117.34,
+          "height": 22
+        },
+        "containerSelector": "div.pg > i:nth-of-type(7)",
+        "text": "Needs Review",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 492.66,
+          "y": 607,
+          "width": 117.34,
+          "height": 22
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d4 > div:nth-of-type(1) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 150,
+          "top": 684.5,
+          "right": 426.19,
+          "bottom": 735.5,
+          "width": 276.19,
+          "height": 51
+        },
+        "containerSelector": "div.pg > i:nth-of-type(10)",
+        "text": "Urban Traffic Flow Prediction with Graph Networks",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 684.5,
+          "width": 276.19,
+          "height": 51
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d4 > div:nth-of-type(1) > div:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 150,
+          "top": 740.5,
+          "right": 377.44,
+          "bottom": 762.5,
+          "width": 227.44,
+          "height": 22
+        },
+        "containerSelector": "div.pg > i:nth-of-type(12)",
+        "text": "Chen & Park, 2020 · 12 pages",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 740.5,
+          "width": 227.44,
+          "height": 22
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-d4 > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 568.19,
+          "top": 686,
+          "right": 624,
+          "bottom": 726,
+          "width": 55.81,
+          "height": 40
+        },
+        "containerSelector": "div.pg > i:nth-of-type(10)",
+        "text": "23%",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 568.19,
+          "y": 686,
+          "width": 55.81,
+          "height": 40
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "span.chip.low",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 485.06,
+          "top": 731,
+          "right": 610,
+          "bottom": 753,
+          "width": 124.94,
+          "height": 22
+        },
+        "containerSelector": "#s4-pdf",
+        "text": "Low Relevance",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 485.06,
+          "y": 731,
+          "width": 124.94,
+          "height": 22
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "div.s4-foot > div:nth-of-type(1) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 132,
+          "top": 794,
+          "right": 239.16,
+          "bottom": 832,
+          "width": 107.16,
+          "height": 38
+        },
+        "containerSelector": "#s4-pdf",
+        "text": "Approved Documents",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 132,
+          "y": 794,
+          "width": 107.16,
+          "height": 38
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "div.s4-foot > div:nth-of-type(1) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 132,
+          "top": 832,
+          "right": 150,
+          "bottom": 871,
+          "width": 18,
+          "height": 39
+        },
+        "containerSelector": "#s4-pdf",
+        "text": "0",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 132,
+          "y": 832,
+          "width": 18,
+          "height": 39
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "div.s4-foot > div:nth-of-type(2) > div:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 255.16,
+          "top": 794,
+          "right": 333.66,
+          "bottom": 832,
+          "width": 78.5,
+          "height": 38
+        },
+        "containerSelector": "#s4-pdf",
+        "text": "Average Score",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 255.16,
+          "y": 794,
+          "width": 78.5,
+          "height": 38
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "div.s4-foot > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 255.16,
+          "top": 832,
+          "right": 291.16,
+          "bottom": 871,
+          "width": 36,
+          "height": 39
+        },
+        "containerSelector": "div.pg > i:nth-of-type(16)",
+        "text": "--",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 255.16,
+          "y": 832,
+          "width": 36,
+          "height": 39
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 49.017,
+        "selector": "#s4-proceed",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 395.3,
+          "top": 817.5,
+          "right": 620,
+          "bottom": 846.5,
+          "width": 224.7,
+          "height": 29
+        },
+        "containerSelector": "#s4-pdf",
+        "text": "Proceed to Synthesis",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "lifetime": {
+          "start": 33.011,
+          "end": 54.43600000000001
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 395.3,
+          "y": 817.5,
+          "width": 224.7,
+          "height": 29
+        },
+        "firstSeen": 49.017,
+        "lastSeen": 49.017,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 59.909,
+        "selector": "#s5-run",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 426.67,
+          "top": 698.25,
+          "right": 670.11,
+          "bottom": 715.25,
+          "width": 243.44,
+          "height": 17
+        },
+        "containerSelector": "div.card.s5-left",
+        "text": "Analyzing approved sources",
+        "fixHint": "Text is 243px x 17px inside 520px x 684px and overflows by up to 33px; widen the container to at least ~553px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 117,
+          "top": 221,
+          "right": 637,
+          "bottom": 905,
+          "width": 520,
+          "height": 684
+        },
+        "overflow": {
+          "right": 33.11
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 426.67,
+          "y": 698.25,
+          "width": 243.44,
+          "height": 17
+        },
+        "firstSeen": 59.909,
+        "lastSeen": 59.909,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          59.909
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 59.909,
+        "selector": "#s5-run",
+        "message": "Nowrap text is wider than its container.",
+        "rect": {
+          "left": 426.67,
+          "top": 693.25,
+          "right": 670.11,
+          "bottom": 718.25,
+          "width": 243.44,
+          "height": 25
+        },
+        "containerSelector": "div.status",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 426.67,
+          "top": 693.25,
+          "right": 612,
+          "bottom": 723.25,
+          "width": 185.33,
+          "height": 30
+        },
+        "overflow": {
+          "right": 58.11
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 426.67,
+          "y": 693.25,
+          "width": 243.44,
+          "height": 25
+        },
+        "firstSeen": 59.909,
+        "lastSeen": 59.909,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          59.909
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 59.909,
+        "selector": "#s5-v1",
+        "message": "Nowrap text is wider than its container.",
+        "rect": {
+          "left": 1271.94,
+          "top": 236.5,
+          "right": 1319.94,
+          "bottom": 268.5,
+          "width": 48,
+          "height": 32
+        },
+        "containerSelector": "div.ver",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 1271.94,
+          "top": 236.5,
+          "right": 1315.94,
+          "bottom": 268.5,
+          "width": 44,
+          "height": 32
+        },
+        "overflow": {
+          "right": 4
+        },
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1271.94,
+          "y": 236.5,
+          "width": 48,
+          "height": 32
+        },
+        "firstSeen": 59.909,
+        "lastSeen": 59.909,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          59.909
+        ]
+      }
+    ],
+    "duration": 98.033,
+    "samples": [
+      5.446,
+      16.339,
+      27.231,
+      38.124,
+      49.017,
+      59.909,
+      70.802,
+      81.694,
+      92.587
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 37,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 16,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.15:1; WCAG AA requires 4.5:1.",
+        "text": "Evaluating Targeted Policing Strategies for Adoles",
+        "fg": "rgb(228,228,240)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 1.15,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(111,111,117)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 313.5,
+          "width": 292,
+          "height": 50
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.5:1; WCAG AA requires 4.5:1.",
+        "text": "Navarro & Lim, 2023 · 14 pages",
+        "fg": "rgb(169,169,189)",
+        "bg": "rgb(207,207,219)",
+        "ratio": 1.5,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(88,88,99)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 368.5,
+          "width": 292,
+          "height": 22
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.1:1; WCAG AA requires 3:1.",
+        "text": "86%",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 1.1,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(141,141,141)",
+        "large": true,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 568.1875,
+          "y": 319,
+          "width": 55.8125,
+          "height": 31
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.15:1; WCAG AA requires 4.5:1.",
+        "text": "School-Based Mentoring and Youth Violence: A Longi",
+        "fg": "rgb(228,228,240)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 1.15,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(111,111,117)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 437.5,
+          "width": 292,
+          "height": 50
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.37:1; WCAG AA requires 4.5:1.",
+        "text": "Okafor et al., 2022 · 21 pages",
+        "fg": "rgb(169,169,189)",
+        "bg": "rgb(253,186,116)",
+        "ratio": 1.37,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(83,83,93)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 492.5,
+          "width": 292,
+          "height": 22
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.1:1; WCAG AA requires 3:1.",
+        "text": "81%",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 1.1,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(141,141,141)",
+        "large": true,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 568.1875,
+          "y": 443,
+          "width": 55.8125,
+          "height": 31
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.34:1; WCAG AA requires 4.5:1.",
+        "text": "Community Trust and Youth Outreach Programs",
+        "fg": "rgb(228,228,240)",
+        "bg": "rgb(253,186,116)",
+        "ratio": 1.34,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(83,83,88)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 561.5,
+          "width": 292,
+          "height": 50
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.1:1; WCAG AA requires 4.5:1.",
+        "text": "Delgado, 2021 · 9 pages",
+        "fg": "rgb(169,169,189)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 2.1,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(111,111,125)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(2)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 616.5,
+          "width": 292,
+          "height": 22
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.69:1; WCAG AA requires 3:1.",
+        "text": "68%",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(253,186,116)",
+        "ratio": 1.69,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(110,110,110)",
+        "large": true,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 568.1875,
+          "y": 567,
+          "width": 55.8125,
+          "height": 31
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.15:1; WCAG AA requires 4.5:1.",
+        "text": "Urban Traffic Flow Prediction with Graph Networks",
+        "fg": "rgb(228,228,240)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 1.15,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(111,111,117)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(1) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 685.5,
+          "width": 292,
+          "height": 50
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.1:1; WCAG AA requires 4.5:1.",
+        "text": "Chen & Park, 2020 · 12 pages",
+        "fg": "rgb(169,169,189)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 2.1,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(111,111,125)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(1) > div:nth-of-type(2)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 740.5,
+          "width": 292,
+          "height": 22
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.1:1; WCAG AA requires 3:1.",
+        "text": "23%",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 1.1,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(141,141,141)",
+        "large": true,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 568.1875,
+          "y": 691,
+          "width": 55.8125,
+          "height": 31
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.1:1; WCAG AA requires 4.5:1.",
+        "text": "Approved Documents",
+        "fg": "rgb(169,169,189)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 2.1,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(111,111,125)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(6) > div:nth-of-type(1) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 132,
+          "y": 794,
+          "width": 107.15625,
+          "height": 38
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.1:1; WCAG AA requires 3:1.",
+        "text": "0",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 1.1,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(141,141,141)",
+        "large": true,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(6) > div:nth-of-type(1) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 132,
+          "y": 832,
+          "width": 18,
+          "height": 39
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.1:1; WCAG AA requires 4.5:1.",
+        "text": "Average Score",
+        "fg": "rgb(169,169,189)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 2.1,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(111,111,125)",
+        "large": false,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(6) > div:nth-of-type(2) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 255.15625,
+          "y": 794,
+          "width": 102.140625,
+          "height": 38
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.1:1; WCAG AA requires 3:1.",
+        "text": "--",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(244,244,248)",
+        "ratio": 1.1,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(141,141,141)",
+        "large": true,
+        "selector": "div > section:nth-of-type(4) > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(6) > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 255.15625,
+          "y": 832,
+          "width": 36,
+          "height": 39
+        },
+        "time": 49.017,
+        "times": [
+          49.017
+        ]
+      }
+    ],
+    "enabled": true,
+    "samples": [
+      5.446,
+      27.231,
+      49.017,
+      70.802,
+      92.587
+    ],
+    "checked": 112,
+    "passed": 96
+  },
+  "craft": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 9,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "first_frame_empty",
+        "severity": "warning",
+        "message": "Frame 0 shows only the background, and the first frame is the thumbnail on social players: have the title or key image already on screen at 0 s instead of entering from nothing; see references/review.md.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"Explore identified gaps, synthesize key literature eviden...\" (15 words) is on screen 2.33 s (±0.01 s), under its 3.75 s floor: hold it about 0.5 s + 0.3 s a word (5.00 s here) before it leaves or changes; see references/motion.md.",
+        "text": "Explore identified gaps, synthesize key literature evidence into your draft, and formulate measurable SMART goals.",
+        "selector": "#s3-launch > p:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 482.05,
+          "y": 354.3,
+          "width": 955.9000000000001,
+          "height": 64.58999999999997
+        },
+        "time": 21.972,
+        "words": 15,
+        "seconds": 2.332,
+        "floorSeconds": 3.75,
+        "measured": [
+          {
+            "time": 21.603,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 21.767,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 21.931,
+            "opacity": 0.25,
+            "heightPx": 65
+          },
+          {
+            "time": 22.094,
+            "opacity": 0.87,
+            "heightPx": 65
+          },
+          {
+            "time": 22.258,
+            "opacity": 1,
+            "heightPx": 65
+          },
+          {
+            "time": 22.422,
+            "opacity": 1,
+            "heightPx": 65
+          },
+          {
+            "time": 22.585,
+            "opacity": 1,
+            "heightPx": 65
+          },
+          {
+            "time": 23.731,
+            "opacity": 1,
+            "heightPx": 65
+          },
+          {
+            "time": 23.895,
+            "opacity": 1,
+            "heightPx": 65
+          },
+          {
+            "time": 24.058,
+            "opacity": 1,
+            "heightPx": 65
+          },
+          {
+            "time": 24.222,
+            "opacity": 0.86,
+            "heightPx": 65
+          },
+          {
+            "time": 24.386,
+            "opacity": 0.14,
+            "heightPx": 65
+          },
+          {
+            "time": 24.549,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 24.713,
+            "opacity": null,
+            "heightPx": null
+          }
+        ]
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"Turn your selected evidence into a focused introduction w...\" (10 words) is on screen 2.04 s (±0.01 s), under its 2.63 s floor: hold it about 0.5 s + 0.3 s a word (3.50 s here) before it leaves or changes; see references/motion.md.",
+        "text": "Turn your selected evidence into a focused introduction with CiteWise.",
+        "selector": "#s3-opt > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 740,
+          "y": 667.95,
+          "width": 409.1100000000001,
+          "height": 55.34000000000003
+        },
+        "time": 22.268,
+        "words": 10,
+        "seconds": 2.036,
+        "floorSeconds": 2.625,
+        "measured": [
+          {
+            "time": 21.931,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 22.094,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 22.258,
+            "opacity": 0.49,
+            "heightPx": 55
+          },
+          {
+            "time": 22.422,
+            "opacity": 0.93,
+            "heightPx": 55
+          },
+          {
+            "time": 22.585,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 22.749,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 22.913,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 23.731,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 23.895,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 24.058,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 24.222,
+            "opacity": 0.86,
+            "heightPx": 55
+          },
+          {
+            "time": 24.386,
+            "opacity": 0.14,
+            "heightPx": 55
+          },
+          {
+            "time": 24.549,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 24.713,
+            "opacity": null,
+            "heightPx": null
+          }
+        ]
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"Translate your research direction into clear, measurable ...\" (9 words) is on screen 1.90 s (±0.01 s), under its 2.40 s floor: hold it about 0.5 s + 0.3 s a word (3.20 s here) before it leaves or changes; see references/motion.md.",
+        "text": "Translate your research direction into clear, measurable thesis goals.",
+        "selector": "div.opts > div:nth-of-type(3) > span:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1268,
+          "y": 676.31,
+          "width": 411.23,
+          "height": 55.35000000000002
+        },
+        "time": 22.402,
+        "words": 9,
+        "seconds": 1.903,
+        "floorSeconds": 2.4,
+        "measured": [
+          {
+            "time": 21.931,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 22.094,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 22.258,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 22.422,
+            "opacity": 0.61,
+            "heightPx": 55
+          },
+          {
+            "time": 22.585,
+            "opacity": 0.96,
+            "heightPx": 55
+          },
+          {
+            "time": 22.749,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 22.913,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 23.731,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 23.895,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 24.058,
+            "opacity": 1,
+            "heightPx": 55
+          },
+          {
+            "time": 24.222,
+            "opacity": 0.86,
+            "heightPx": 55
+          },
+          {
+            "time": 24.386,
+            "opacity": 0.14,
+            "heightPx": 55
+          },
+          {
+            "time": 24.549,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 24.713,
+            "opacity": null,
+            "heightPx": null
+          }
+        ]
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 192 text elements stay under it for 0.5 s or more, the smallest \"Approved Documents\" at 15 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "Approved Documents",
+        "selector": "div.s4-foot > div:nth-of-type(1) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 132,
+          "y": 794,
+          "width": 107.16,
+          "height": 38
+        },
+        "time": 33.223,
+        "times": [
+          0.818,
+          0.818,
+          1.146,
+          1.473,
+          1.637,
+          1.964,
+          2.291,
+          2.619,
+          9.001,
+          14.239,
+          17.184,
+          18.33,
+          19.312,
+          21.603,
+          21.603,
+          21.603,
+          22.094,
+          22.258,
+          22.258,
+          22.422,
+          22.422,
+          22.422,
+          22.422,
+          24.549,
+          24.549,
+          24.549,
+          24.549,
+          24.549,
+          24.549,
+          24.549,
+          24.549,
+          24.549,
+          24.549,
+          24.549,
+          24.549,
+          24.876,
+          24.876,
+          25.04,
+          25.858,
+          25.858,
+          26.677,
+          26.84,
+          26.84,
+          27.168,
+          27.659,
+          29.786,
+          29.786,
+          29.786,
+          29.786,
+          30.277,
+          30.277,
+          30.768,
+          30.768,
+          31.259,
+          31.259,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.223,
+          33.551,
+          33.551,
+          33.551,
+          33.551,
+          33.551,
+          33.551,
+          33.714,
+          33.714,
+          33.714,
+          33.714,
+          33.714,
+          33.714,
+          34.369,
+          34.86,
+          35.023,
+          35.351,
+          36.005,
+          36.005,
+          36.169,
+          36.169,
+          36.333,
+          36.333,
+          36.333,
+          36.333,
+          40.424,
+          41.406,
+          42.552,
+          43.37,
+          43.698,
+          43.698,
+          43.861,
+          44.516,
+          44.516,
+          44.516,
+          44.516,
+          44.516,
+          44.516,
+          47.462,
+          47.462,
+          47.462,
+          51.881,
+          53.026,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.663,
+          54.99,
+          54.99,
+          54.99,
+          55.154,
+          55.154,
+          55.154,
+          55.317,
+          55.317,
+          55.317,
+          57.281,
+          57.936,
+          58.1,
+          58.591,
+          58.918,
+          59.082,
+          59.409,
+          59.573,
+          59.9,
+          60.064,
+          60.391,
+          60.882,
+          63.01,
+          63.01,
+          63.173,
+          63.337,
+          63.664,
+          63.664,
+          63.664,
+          63.664,
+          65.464,
+          66.774,
+          66.774,
+          66.774,
+          66.774,
+          69.556,
+          69.556,
+          71.52,
+          71.52,
+          71.52,
+          71.52,
+          74.138,
+          74.138,
+          74.138,
+          74.138,
+          80.03,
+          80.03,
+          80.03,
+          80.03,
+          80.03,
+          80.03,
+          80.03,
+          81.994,
+          81.994,
+          81.994,
+          81.994,
+          81.994,
+          81.994,
+          81.994,
+          81.994,
+          92.96
+        ],
+        "fontPx": 15,
+        "floorPx": 28,
+        "seconds": 21.276,
+        "elements": [
+          {
+            "selector": "div.s4-foot > div:nth-of-type(1) > div:nth-of-type(1)",
+            "text": "Approved Documents",
+            "fontPx": 15,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "div.s4-foot > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Average Score",
+            "fontPx": 15,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "span.chip.rev",
+            "text": "Needs Review",
+            "fontPx": 15.85,
+            "time": 35.023,
+            "seconds": 19.476
+          },
+          {
+            "selector": "#s3 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 1",
+            "fontPx": 16,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "#s3 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 2",
+            "fontPx": 16,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "#s3 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 3",
+            "fontPx": 16,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "#s4 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 1",
+            "fontPx": 16,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "#s4 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 2",
+            "fontPx": 16,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "#s4 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 3",
+            "fontPx": 16,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "#s4-d1 > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(2)",
+            "text": "Recommended",
+            "fontPx": 16,
+            "time": 34.369,
+            "seconds": 20.13
+          },
+          {
+            "selector": "div.boxes > div:nth-of-type(1) > div:nth-of-type(1)",
+            "text": "WEIGHTED SCORE:",
+            "fontPx": 16,
+            "time": 43.698,
+            "seconds": 10.801
+          },
+          {
+            "selector": "div.boxes > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "CONFIDENCE:",
+            "fontPx": 16,
+            "time": 43.698,
+            "seconds": 10.801
+          },
+          {
+            "selector": "div.boxes > div:nth-of-type(3) > div:nth-of-type(1)",
+            "text": "RELEVANCE:",
+            "fontPx": 16,
+            "time": 43.861,
+            "seconds": 10.638
+          },
+          {
+            "selector": "#s5 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 1",
+            "fontPx": 16,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s5 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 2",
+            "fontPx": 16,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s5 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 3",
+            "fontPx": 16,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s5-v2",
+            "text": "v2",
+            "fontPx": 16.11,
+            "time": 65.464,
+            "seconds": 3.765
+          },
+          {
+            "selector": "span.chip.low",
+            "text": "Low Relevance",
+            "fontPx": 16.14,
+            "time": 35.351,
+            "seconds": 18.003
+          },
+          {
+            "selector": "#s3-imp",
+            "text": "Imported",
+            "fontPx": 16.7,
+            "time": 25.04,
+            "seconds": 8.02
+          },
+          {
+            "selector": "#s3-f1 > div:nth-of-type(1)",
+            "text": "Research Title",
+            "fontPx": 17,
+            "time": 24.876,
+            "seconds": 8.184
+          },
+          {
+            "selector": "#s3-f2 > div:nth-of-type(1)",
+            "text": "Rationale",
+            "fontPx": 17,
+            "time": 25.858,
+            "seconds": 7.202
+          },
+          {
+            "selector": "#s3-f3 > div:nth-of-type(1)",
+            "text": "Research Gaps",
+            "fontPx": 17,
+            "time": 26.677,
+            "seconds": 6.383
+          },
+          {
+            "selector": "div.gap.primary > span:nth-of-type(2)",
+            "text": "Primary focus",
+            "fontPx": 17,
+            "time": 26.84,
+            "seconds": 6.22
+          },
+          {
+            "selector": "span.lab",
+            "text": "Selected files",
+            "fontPx": 17,
+            "time": 29.786,
+            "seconds": 3.274
+          },
+          {
+            "selector": "#s4-d1 > div:nth-of-type(1) > div:nth-of-type(2)",
+            "text": "Navarro & Lim, 2023 · 14 pages",
+            "fontPx": 17,
+            "time": 33.551,
+            "seconds": 20.948
+          },
+          {
+            "selector": "#s4-d2 > div:nth-of-type(1) > div:nth-of-type(2)",
+            "text": "Okafor et al., 2022 · 21 pages",
+            "fontPx": 17,
+            "time": 33.551,
+            "seconds": 20.948
+          },
+          {
+            "selector": "#s4-d3 > div:nth-of-type(1) > div:nth-of-type(2)",
+            "text": "Delgado, 2021 · 9 pages",
+            "fontPx": 17,
+            "time": 33.714,
+            "seconds": 20.785
+          },
+          {
+            "selector": "#s4-d4 > div:nth-of-type(1) > div:nth-of-type(2)",
+            "text": "Chen & Park, 2020 · 12 pages",
+            "fontPx": 17,
+            "time": 33.714,
+            "seconds": 19.64
+          },
+          {
+            "selector": "#s4-d2 > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(2)",
+            "text": "Recommended",
+            "fontPx": 17,
+            "time": 34.86,
+            "seconds": 19.639
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1) > em:nth-of-type(1)",
+            "text": "weight 35%",
+            "fontPx": 17,
+            "time": 36.005,
+            "seconds": 18.494
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(3) > span:nth-of-type(1) > em:nth-of-type(1)",
+            "text": "weight 30%",
+            "fontPx": 17,
+            "time": 36.169,
+            "seconds": 18.33
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(4) > span:nth-of-type(1) > em:nth-of-type(1)",
+            "text": "weight 20%",
+            "fontPx": 17,
+            "time": 36.333,
+            "seconds": 18.166
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(5) > span:nth-of-type(1) > em:nth-of-type(1)",
+            "text": "weight 15%",
+            "fontPx": 17,
+            "time": 36.333,
+            "seconds": 18.166
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Approved sources",
+            "fontPx": 17,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s5-v1",
+            "text": "v1",
+            "fontPx": 17,
+            "time": 54.663,
+            "seconds": 10.802
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(2)",
+            "text": "Navarro & Lim, 2023",
+            "fontPx": 17,
+            "time": 54.99,
+            "seconds": 14.239
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Core",
+            "fontPx": 17,
+            "time": 54.99,
+            "seconds": 14.239
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2)",
+            "text": "Okafor et al., 2022",
+            "fontPx": 17,
+            "time": 55.154,
+            "seconds": 14.075
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Supporting",
+            "fontPx": 17,
+            "time": 55.154,
+            "seconds": 14.075
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(2)",
+            "text": "Delgado, 2021",
+            "fontPx": 17,
+            "time": 55.317,
+            "seconds": 13.912
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Background",
+            "fontPx": 17,
+            "time": 55.317,
+            "seconds": 13.912
+          },
+          {
+            "selector": "#s5-trace > span:nth-of-type(2)",
+            "text": "Navarro & Lim, 2023 · p. 7",
+            "fontPx": 17,
+            "time": 63.664,
+            "seconds": 5.565
+          },
+          {
+            "selector": "#s5-trace > span:nth-of-type(3)",
+            "text": "Okafor et al., 2022 · p. 12",
+            "fontPx": 17,
+            "time": 63.664,
+            "seconds": 5.565
+          },
+          {
+            "selector": "#s5-trace > span:nth-of-type(4)",
+            "text": "Delgado, 2021 · p. 3",
+            "fontPx": 17,
+            "time": 63.664,
+            "seconds": 5.565
+          },
+          {
+            "selector": "div.pile > div:nth-of-type(1) > b:nth-of-type(1)",
+            "text": "PDF",
+            "fontPx": 18,
+            "time": 0.818,
+            "seconds": 11.457
+          },
+          {
+            "selector": "div.pile > div:nth-of-type(2) > b:nth-of-type(1)",
+            "text": "PDF",
+            "fontPx": 18,
+            "time": 1.146,
+            "seconds": 11.129
+          },
+          {
+            "selector": "div.pile > div:nth-of-type(3) > b:nth-of-type(1)",
+            "text": "PDF",
+            "fontPx": 18,
+            "time": 1.473,
+            "seconds": 10.802
+          },
+          {
+            "selector": "div.pile > div:nth-of-type(4) > b:nth-of-type(1)",
+            "text": "PDF",
+            "fontPx": 18,
+            "time": 1.637,
+            "seconds": 10.638
+          },
+          {
+            "selector": "div.pile > div:nth-of-type(5) > b:nth-of-type(1)",
+            "text": "PDF",
+            "fontPx": 18,
+            "time": 1.964,
+            "seconds": 10.311
+          },
+          {
+            "selector": "div.pile > div:nth-of-type(6) > b:nth-of-type(1)",
+            "text": "PDF",
+            "fontPx": 18,
+            "time": 2.291,
+            "seconds": 9.984
+          },
+          {
+            "selector": "div.pile > div:nth-of-type(7) > b:nth-of-type(1)",
+            "text": "PDF",
+            "fontPx": 18,
+            "time": 2.619,
+            "seconds": 9.656
+          },
+          {
+            "selector": "div.card.s3-right > div:nth-of-type(2) > div:nth-of-type(4) > span:nth-of-type(3)",
+            "text": "2.1 MB",
+            "fontPx": 18,
+            "time": 29.786,
+            "seconds": 3.274
+          },
+          {
+            "selector": "div.card.s3-right > div:nth-of-type(2) > div:nth-of-type(5) > span:nth-of-type(3)",
+            "text": "1.4 MB",
+            "fontPx": 18,
+            "time": 30.277,
+            "seconds": 2.783
+          },
+          {
+            "selector": "div.card.s3-right > div:nth-of-type(2) > div:nth-of-type(6) > span:nth-of-type(3)",
+            "text": "3.6 MB",
+            "fontPx": 18,
+            "time": 30.768,
+            "seconds": 2.292
+          },
+          {
+            "selector": "div.card.s3-right > div:nth-of-type(2) > div:nth-of-type(7) > span:nth-of-type(3)",
+            "text": "0.9 MB",
+            "fontPx": 18,
+            "time": 31.259,
+            "seconds": 1.801
+          },
+          {
+            "selector": "#s4-d1 > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Assessing...",
+            "fontPx": 18,
+            "time": 33.551,
+            "seconds": 0.818
+          },
+          {
+            "selector": "#s4-d2 > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Assessing...",
+            "fontPx": 18,
+            "time": 33.551,
+            "seconds": 1.145
+          },
+          {
+            "selector": "#s4-d3 > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Assessing...",
+            "fontPx": 18,
+            "time": 33.714,
+            "seconds": 1.31
+          },
+          {
+            "selector": "#s4-d4 > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Assessing...",
+            "fontPx": 18,
+            "time": 33.714,
+            "seconds": 1.637
+          },
+          {
+            "selector": "#s5-trace > span:nth-of-type(1)",
+            "text": "Where each citation comes from",
+            "fontPx": 18,
+            "time": 63.664,
+            "seconds": 5.565
+          },
+          {
+            "selector": "div.rk",
+            "text": "weighted score",
+            "fontPx": 18,
+            "time": 80.03,
+            "seconds": 3.928
+          },
+          {
+            "selector": "#s5-para",
+            "text": "Paraphrase",
+            "fontPx": 18.17,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s4-vp",
+            "text": "View page",
+            "fontPx": 18.67,
+            "time": 44.516,
+            "seconds": 9.983
+          },
+          {
+            "selector": "#s5-exp",
+            "text": "Export",
+            "fontPx": 18.91,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "div.steps > div:nth-of-type(1) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 1",
+            "fontPx": 19,
+            "time": 17.184,
+            "seconds": 4.256
+          },
+          {
+            "selector": "div.steps > div:nth-of-type(3) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 2",
+            "fontPx": 19,
+            "time": 18.33,
+            "seconds": 3.11
+          },
+          {
+            "selector": "div.steps > div:nth-of-type(5) > div:nth-of-type(2) > small:nth-of-type(1)",
+            "text": "Step 3",
+            "fontPx": 19,
+            "time": 19.312,
+            "seconds": 2.128
+          },
+          {
+            "selector": "div.opts > div:nth-of-type(1) > small:nth-of-type(1)",
+            "text": "Step 01",
+            "fontPx": 19,
+            "time": 22.258,
+            "seconds": 2.128
+          },
+          {
+            "selector": "#s3-opt > small:nth-of-type(1)",
+            "text": "Step 02",
+            "fontPx": 19,
+            "time": 22.422,
+            "seconds": 1.964
+          },
+          {
+            "selector": "div.opts > div:nth-of-type(3) > small:nth-of-type(1)",
+            "text": "Step 03",
+            "fontPx": 19,
+            "time": 22.422,
+            "seconds": 1.964
+          },
+          {
+            "selector": "div.muted",
+            "text": "Upload candidate Review of Related Literature PDFs for parsing.",
+            "fontPx": 19,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "#s3-fh > span:nth-of-type(2)",
+            "text": "4 PDFs",
+            "fontPx": 19,
+            "time": 29.786,
+            "seconds": 3.274
+          },
+          {
+            "selector": "div.card.s4-left > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "4 papers",
+            "fontPx": 19,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "span.s4-title",
+            "text": "Evaluating Targeted Policing Strategies for Adolescent Violence Prevention",
+            "fontPx": 19,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "div.em > b:nth-of-type(1)",
+            "text": "Page 7",
+            "fontPx": 19,
+            "time": 44.516,
+            "seconds": 9.983
+          },
+          {
+            "selector": "div.em > span:nth-of-type(2)",
+            "text": "Relevance:",
+            "fontPx": 19,
+            "time": 44.516,
+            "seconds": 9.983
+          },
+          {
+            "selector": "div.em > span:nth-of-type(2) > b:nth-of-type(1)",
+            "text": "High",
+            "fontPx": 19,
+            "time": 44.516,
+            "seconds": 9.983
+          },
+          {
+            "selector": "div.ph > span:nth-of-type(1)",
+            "text": "Verified on page",
+            "fontPx": 19,
+            "time": 47.462,
+            "seconds": 3.273
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "3 approved",
+            "fontPx": 19,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "div.tools > div:nth-of-type(3)",
+            "text": "Version History",
+            "fontPx": 19,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Evaluating Targeted Policing Strategies for Adolescent Violence Prevention",
+            "fontPx": 19,
+            "time": 54.99,
+            "seconds": 14.239
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1)",
+            "text": "School-Based Mentoring and Youth Violence: A Longitudinal Study",
+            "fontPx": 19,
+            "time": 55.154,
+            "seconds": 14.075
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(1)",
+            "text": "Community Trust and Youth Outreach Programs",
+            "fontPx": 19,
+            "time": 55.317,
+            "seconds": 13.912
+          },
+          {
+            "selector": "#s5-run",
+            "text": "Analyzing approved sources",
+            "fontPx": 19,
+            "time": 57.281,
+            "seconds": 3.601
+          },
+          {
+            "selector": "#s5-rdy",
+            "text": "Draft ready",
+            "fontPx": 19,
+            "time": 60.882,
+            "seconds": 8.347
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(7)",
+            "text": "Delgado, M. (2021). Community trust and youth outreach programs.",
+            "fontPx": 19,
+            "time": 63.01,
+            "seconds": 6.219
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(8)",
+            "text": "Navarro, J., & Lim, S. (2023). Evaluating targeted policing strategies for adolescent violence prevention.",
+            "fontPx": 19,
+            "time": 63.173,
+            "seconds": 6.056
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(9)",
+            "text": "Okafor, C., et al. (2022). School-based mentoring and youth violence: A longitudinal study.",
+            "fontPx": 19,
+            "time": 63.337,
+            "seconds": 5.892
+          },
+          {
+            "selector": "div.sliders > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Gap Alignment",
+            "fontPx": 19,
+            "time": 80.03,
+            "seconds": 3.928
+          },
+          {
+            "selector": "div.sliders > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Methodology",
+            "fontPx": 19,
+            "time": 80.03,
+            "seconds": 3.928
+          },
+          {
+            "selector": "div.sliders > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Theory",
+            "fontPx": 19,
+            "time": 80.03,
+            "seconds": 3.928
+          },
+          {
+            "selector": "div.sliders > div:nth-of-type(4) > span:nth-of-type(1)",
+            "text": "Citation Quality",
+            "fontPx": 19,
+            "time": 80.03,
+            "seconds": 3.928
+          },
+          {
+            "selector": "#s1-c > div:nth-of-type(1)",
+            "text": "Citations you can't trace",
+            "fontPx": 20,
+            "time": 9.001,
+            "seconds": 3.274
+          },
+          {
+            "selector": "#s3 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "Workspaces /",
+            "fontPx": 20,
+            "time": 21.603,
+            "seconds": 11.457
+          },
+          {
+            "selector": "#s3 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2) > em:nth-of-type(1)",
+            "text": "Adolescent Gun Violence Thesis",
+            "fontPx": 20,
+            "time": 21.603,
+            "seconds": 11.457
+          },
+          {
+            "selector": "div.drop > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Drop PDF files or click to browse",
+            "fontPx": 20,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "#s4 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "Workspaces /",
+            "fontPx": 20,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "#s4 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2) > em:nth-of-type(1)",
+            "text": "Adolescent Gun Violence Thesis",
+            "fontPx": 20,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "#s4-d1 > div:nth-of-type(1) > div:nth-of-type(1)",
+            "text": "Evaluating Targeted Policing Strategies for Adolescent Violence Prevention",
+            "fontPx": 20,
+            "time": 33.551,
+            "seconds": 20.948
+          },
+          {
+            "selector": "#s4-d2 > div:nth-of-type(1) > div:nth-of-type(1)",
+            "text": "School-Based Mentoring and Youth Violence: A Longitudinal Study",
+            "fontPx": 20,
+            "time": 33.551,
+            "seconds": 20.948
+          },
+          {
+            "selector": "#s4-d3 > div:nth-of-type(1) > div:nth-of-type(1)",
+            "text": "Community Trust and Youth Outreach Programs",
+            "fontPx": 20,
+            "time": 33.714,
+            "seconds": 20.785
+          },
+          {
+            "selector": "#s4-d4 > div:nth-of-type(1) > div:nth-of-type(1)",
+            "text": "Urban Traffic Flow Prediction with Graph Networks",
+            "fontPx": 20,
+            "time": 33.714,
+            "seconds": 19.64
+          },
+          {
+            "selector": "div.ph",
+            "text": "Page 7 of 14",
+            "fontPx": 20,
+            "time": 47.462,
+            "seconds": 3.273
+          },
+          {
+            "selector": "#s5 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "Workspaces /",
+            "fontPx": 20,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s5 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2) > em:nth-of-type(1)",
+            "text": "Adolescent Gun Violence Thesis",
+            "fontPx": 20,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s6-c1 > div:nth-of-type(4) > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "0",
+            "fontPx": 20,
+            "time": 71.52,
+            "seconds": 12.438
+          },
+          {
+            "selector": "#s6-c1 > div:nth-of-type(4) > div:nth-of-type(2) > b:nth-of-type(1)",
+            "text": "Target: 1.0 s or less",
+            "fontPx": 20,
+            "time": 71.52,
+            "seconds": 12.438
+          },
+          {
+            "selector": "#s6-c2 > div:nth-of-type(4) > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "0",
+            "fontPx": 20,
+            "time": 74.138,
+            "seconds": 9.82
+          },
+          {
+            "selector": "#s6-c2 > div:nth-of-type(4) > div:nth-of-type(2) > b:nth-of-type(1)",
+            "text": "Target: 30 s or less",
+            "fontPx": 20,
+            "time": 74.138,
+            "seconds": 9.82
+          },
+          {
+            "selector": "#s4-approve",
+            "text": "Approve",
+            "fontPx": 20.74,
+            "time": 33.223,
+            "seconds": 18.658
+          },
+          {
+            "selector": "div.opts > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Find research gaps and organize evidence with CATalyst.",
+            "fontPx": 21,
+            "time": 22.258,
+            "seconds": 2.128
+          },
+          {
+            "selector": "#s3-opt > span:nth-of-type(1)",
+            "text": "Turn your selected evidence into a focused introduction with CiteWise.",
+            "fontPx": 21,
+            "time": 22.422,
+            "seconds": 1.964
+          },
+          {
+            "selector": "div.opts > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Translate your research direction into clear, measurable thesis goals.",
+            "fontPx": 21,
+            "time": 22.422,
+            "seconds": 1.964
+          },
+          {
+            "selector": "div.drop > div:nth-of-type(3)",
+            "text": "Upload File",
+            "fontPx": 21,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "div.card.s3-right > div:nth-of-type(2) > div:nth-of-type(4) > span:nth-of-type(2)",
+            "text": "Evaluating Targeted Policing Strategies for Adolescent Violence Prevention.pdf",
+            "fontPx": 21,
+            "time": 29.786,
+            "seconds": 3.274
+          },
+          {
+            "selector": "div.card.s3-right > div:nth-of-type(2) > div:nth-of-type(5) > span:nth-of-type(2)",
+            "text": "School-Based Mentoring and Youth Violence.pdf",
+            "fontPx": 21,
+            "time": 30.277,
+            "seconds": 2.783
+          },
+          {
+            "selector": "div.card.s3-right > div:nth-of-type(2) > div:nth-of-type(6) > span:nth-of-type(2)",
+            "text": "Community Trust and Youth Outreach Programs.pdf",
+            "fontPx": 21,
+            "time": 30.768,
+            "seconds": 2.292
+          },
+          {
+            "selector": "div.card.s3-right > div:nth-of-type(2) > div:nth-of-type(7) > span:nth-of-type(2)",
+            "text": "Urban Traffic Flow Prediction with Graph Networks.pdf",
+            "fontPx": 21,
+            "time": 31.259,
+            "seconds": 1.801
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(1)",
+            "text": "Semantic Alignment Scores",
+            "fontPx": 21,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "#s4-ev > div:nth-of-type(1)",
+            "text": "Highlighted Evidence Excerpts",
+            "fontPx": 21,
+            "time": 44.516,
+            "seconds": 9.983
+          },
+          {
+            "selector": "#s4-approved",
+            "text": "Approved",
+            "fontPx": 21,
+            "time": 51.881,
+            "seconds": 2.618
+          },
+          {
+            "selector": "#s4-proceed",
+            "text": "Proceed to Synthesis",
+            "fontPx": 21,
+            "time": 53.026,
+            "seconds": 1.473
+          },
+          {
+            "selector": "#s5-go",
+            "text": "Draft Introduction",
+            "fontPx": 21,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s5-rh",
+            "text": "References",
+            "fontPx": 21,
+            "time": 63.01,
+            "seconds": 6.219
+          },
+          {
+            "selector": "#s6-stack > span:nth-of-type(2)",
+            "text": "React",
+            "fontPx": 21,
+            "time": 81.994,
+            "seconds": 1.964
+          },
+          {
+            "selector": "#s6-stack > span:nth-of-type(3)",
+            "text": "Express",
+            "fontPx": 21,
+            "time": 81.994,
+            "seconds": 1.964
+          },
+          {
+            "selector": "#s6-stack > span:nth-of-type(4)",
+            "text": "Supabase",
+            "fontPx": 21,
+            "time": 81.994,
+            "seconds": 1.964
+          },
+          {
+            "selector": "#s6-stack > span:nth-of-type(5)",
+            "text": "Cloudflare R2",
+            "fontPx": 21,
+            "time": 81.994,
+            "seconds": 1.964
+          },
+          {
+            "selector": "#s6-stack > span:nth-of-type(6)",
+            "text": "n8n",
+            "fontPx": 21,
+            "time": 81.994,
+            "seconds": 1.964
+          },
+          {
+            "selector": "#s6-stack > span:nth-of-type(7)",
+            "text": "Google Gemini",
+            "fontPx": 21,
+            "time": 81.994,
+            "seconds": 1.964
+          },
+          {
+            "selector": "#s6-stack > span:nth-of-type(8)",
+            "text": "LlamaParse OCR",
+            "fontPx": 21,
+            "time": 81.994,
+            "seconds": 1.964
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(1)",
+            "text": "Adolescent gun violence remains a persistent public health concern, yet most prevention",
+            "fontPx": 21.5,
+            "time": 58.1,
+            "seconds": 11.129
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(2)",
+            "text": "programs are judged by short-term arrest counts rather than lasting outcomes",
+            "fontPx": 21.5,
+            "time": 58.591,
+            "seconds": 10.638
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(3) > c:nth-of-type(1)",
+            "text": "(Navarro & Lim, 2023)",
+            "fontPx": 21.5,
+            "time": 58.918,
+            "seconds": 10.311
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(3)",
+            "text": ". School-based mentoring shows promise, but follow-up rarely",
+            "fontPx": 21.5,
+            "time": 59.082,
+            "seconds": 10.147
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(4)",
+            "text": "extends beyond twelve months . Community trust, a likely driver",
+            "fontPx": 21.5,
+            "time": 59.409,
+            "seconds": 9.82
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(4) > c:nth-of-type(1)",
+            "text": "(Okafor et al., 2022)",
+            "fontPx": 21.5,
+            "time": 59.573,
+            "seconds": 9.656
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(5)",
+            "text": "of sustained participation, is seldom measured at all . This study",
+            "fontPx": 21.5,
+            "time": 59.9,
+            "seconds": 9.329
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(5) > c:nth-of-type(1)",
+            "text": "(Delgado, 2021)",
+            "fontPx": 21.5,
+            "time": 60.064,
+            "seconds": 9.165
+          },
+          {
+            "selector": "div.draft > div:nth-of-type(6)",
+            "text": "addresses that gap by following community-based early intervention over a longer horizon.",
+            "fontPx": 21.5,
+            "time": 60.391,
+            "seconds": 8.838
+          },
+          {
+            "selector": "#s1-eb",
+            "text": "The problem",
+            "fontPx": 22,
+            "time": 0.818,
+            "seconds": 11.457
+          },
+          {
+            "selector": "#s2-eb",
+            "text": "The Academic Research & Drafting Suite",
+            "fontPx": 22,
+            "time": 14.239,
+            "seconds": 7.201
+          },
+          {
+            "selector": "#s3 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "Data Import",
+            "fontPx": 22,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "#s3 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "AI Assessment",
+            "fontPx": 22,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "#s3 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "Generate Introduction",
+            "fontPx": 22,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "div.gap.primary > span:nth-of-type(1)",
+            "text": "Few studies follow adolescents beyond twelve months.",
+            "fontPx": 22,
+            "time": 26.84,
+            "seconds": 6.22
+          },
+          {
+            "selector": "#s3-f3 > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Limited evidence from school-based settings.",
+            "fontPx": 22,
+            "time": 27.168,
+            "seconds": 5.892
+          },
+          {
+            "selector": "#s3-f3 > div:nth-of-type(4) > span:nth-of-type(1)",
+            "text": "Outcome measures rarely include community trust.",
+            "fontPx": 22,
+            "time": 27.659,
+            "seconds": 5.401
+          },
+          {
+            "selector": "#s4 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "Data Import",
+            "fontPx": 22,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "#s4 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "AI Assessment",
+            "fontPx": 22,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "#s4 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "Generate Introduction",
+            "fontPx": 22,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Gap Alignment",
+            "fontPx": 22,
+            "time": 36.005,
+            "seconds": 18.494
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Methodology",
+            "fontPx": 22,
+            "time": 36.169,
+            "seconds": 18.33
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(4) > span:nth-of-type(1)",
+            "text": "Theory / Framework",
+            "fontPx": 22,
+            "time": 36.333,
+            "seconds": 18.166
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(5) > span:nth-of-type(1)",
+            "text": "Citation Quality",
+            "fontPx": 22,
+            "time": 36.333,
+            "seconds": 18.166
+          },
+          {
+            "selector": "#s4-ev > q:nth-of-type(1)",
+            "text": "\"Follow-up assessments were limited to twelve months, leaving long-term effects on adolescent participants unexamined.\"",
+            "fontPx": 22,
+            "time": 44.516,
+            "seconds": 9.983
+          },
+          {
+            "selector": "div.hq > span:nth-of-type(1)",
+            "text": "Follow-up assessments were limited to twelve months, leaving long-term effects on adolescent participants unexamined.",
+            "fontPx": 22,
+            "time": 47.462,
+            "seconds": 3.273
+          },
+          {
+            "selector": "#s5 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "Data Import",
+            "fontPx": 22,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s5 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "AI Assessment",
+            "fontPx": 22,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s5 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "Generate Introduction",
+            "fontPx": 22,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s5-menu > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Export as PDF (.pdf)",
+            "fontPx": 22,
+            "time": 66.774,
+            "seconds": 2.455
+          },
+          {
+            "selector": "#s5-word > span:nth-of-type(1)",
+            "text": "Export as Word (.docx)",
+            "fontPx": 22,
+            "time": 66.774,
+            "seconds": 2.455
+          },
+          {
+            "selector": "#s5-menu > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Export as Plain Text (.txt)",
+            "fontPx": 22,
+            "time": 66.774,
+            "seconds": 2.455
+          },
+          {
+            "selector": "#s5-menu > div:nth-of-type(4) > span:nth-of-type(1)",
+            "text": "Copy to Clipboard",
+            "fontPx": 22,
+            "time": 66.774,
+            "seconds": 2.455
+          },
+          {
+            "selector": "#s6-head > div:nth-of-type(1)",
+            "text": "Results & validation",
+            "fontPx": 22,
+            "time": 69.556,
+            "seconds": 14.402
+          },
+          {
+            "selector": "#s6-stack > span:nth-of-type(1)",
+            "text": "Built with",
+            "fontPx": 22,
+            "time": 81.994,
+            "seconds": 1.964
+          },
+          {
+            "selector": "div.tk",
+            "text": "TekCon 2026",
+            "fontPx": 22,
+            "time": 92.96,
+            "seconds": 5.073
+          },
+          {
+            "selector": "#s3-f1 > div:nth-of-type(2)",
+            "text": "Community-Based Early Intervention for Adolescent Gun Violence",
+            "fontPx": 23,
+            "time": 24.876,
+            "seconds": 8.184
+          },
+          {
+            "selector": "#s3-f2 > div:nth-of-type(2)",
+            "text": "Prevention programs are judged by short-term arrest counts, not by lasting outcomes for at-risk youth.",
+            "fontPx": 23,
+            "time": 25.858,
+            "seconds": 7.202
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(2)",
+            "text": "92%",
+            "fontPx": 23,
+            "time": 40.424,
+            "seconds": 14.075
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(3) > span:nth-of-type(2)",
+            "text": "84%",
+            "fontPx": 23,
+            "time": 41.406,
+            "seconds": 13.093
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(4) > span:nth-of-type(2)",
+            "text": "78%",
+            "fontPx": 23,
+            "time": 42.552,
+            "seconds": 11.947
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(2) > div:nth-of-type(5) > span:nth-of-type(2)",
+            "text": "88%",
+            "fontPx": 23,
+            "time": 43.37,
+            "seconds": 11.129
+          },
+          {
+            "selector": "#s6-c1 > div:nth-of-type(3)",
+            "text": "Under half a second per paper",
+            "fontPx": 23,
+            "time": 71.52,
+            "seconds": 12.438
+          },
+          {
+            "selector": "#s6-c2 > div:nth-of-type(3)",
+            "text": "Range 18 to 31 seconds",
+            "fontPx": 23,
+            "time": 74.138,
+            "seconds": 9.82
+          },
+          {
+            "selector": "#s6-c3 > div:nth-of-type(3)",
+            "text": "Rescored from the cached response",
+            "fontPx": 23,
+            "time": 80.03,
+            "seconds": 3.928
+          },
+          {
+            "selector": "#s3-launch > p:nth-of-type(1)",
+            "text": "Explore identified gaps, synthesize key literature evidence into your draft, and formulate measurable SMART goals.",
+            "fontPx": 24,
+            "time": 22.094,
+            "seconds": 2.292
+          },
+          {
+            "selector": "div.card.s3-left > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "CATalyst Workspace",
+            "fontPx": 24,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "div.card.s3-right > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "RRL Document Upload",
+            "fontPx": 24,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "div.card.s4-left > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Quick Navigation",
+            "fontPx": 24,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "div.card.s4-right > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "AI Assessment Panel",
+            "fontPx": 24,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "div.card.s5-left > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Synthesis Control",
+            "fontPx": 24,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "div.card.s5-right > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Generated Draft",
+            "fontPx": 24,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s3 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "CiteWise",
+            "fontPx": 25,
+            "time": 21.603,
+            "seconds": 11.457
+          },
+          {
+            "selector": "div.drop > div:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "Ready to upload?",
+            "fontPx": 25,
+            "time": 24.549,
+            "seconds": 8.511
+          },
+          {
+            "selector": "#s4 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "CiteWise",
+            "fontPx": 25,
+            "time": 33.223,
+            "seconds": 21.276
+          },
+          {
+            "selector": "#s5 > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "CiteWise",
+            "fontPx": 25,
+            "time": 54.663,
+            "seconds": 14.566
+          },
+          {
+            "selector": "#s6-c1 > div:nth-of-type(1)",
+            "text": "Text extraction + page indexing",
+            "fontPx": 25,
+            "time": 71.52,
+            "seconds": 12.438
+          },
+          {
+            "selector": "#s6-c2 > div:nth-of-type(1)",
+            "text": "Full AI assessment, four criteria",
+            "fontPx": 25,
+            "time": 74.138,
+            "seconds": 9.82
+          },
+          {
+            "selector": "#s6-c3 > div:nth-of-type(1)",
+            "text": "Re-weighting the criteria",
+            "fontPx": 25,
+            "time": 80.03,
+            "seconds": 3.928
+          },
+          {
+            "selector": "#s5-h",
+            "text": "Introduction",
+            "fontPx": 27,
+            "time": 57.936,
+            "seconds": 11.293
+          },
+          {
+            "selector": "#s6-head > p:nth-of-type(1)",
+            "text": "3 to 21 pages each, scored end to end",
+            "fontPx": 27,
+            "time": 69.556,
+            "seconds": 14.402
+          }
+        ]
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"Follow-up assessments were limited to twelve months, leav...\" (16 words) is on screen 3.33 s (±0.01 s), under its 3.97 s floor: hold it about 0.5 s + 0.3 s a word (5.30 s here) before it leaves or changes; see references/motion.md.",
+        "text": "Follow-up assessments were limited to twelve months, leaving long-term effects on adolescent participants unexamined.",
+        "selector": "div.hq",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150.51,
+          "y": 486,
+          "width": 449.29999999999995,
+          "height": 92.77999999999997
+        },
+        "time": 47.339,
+        "words": 16,
+        "seconds": 3.335,
+        "floorSeconds": 3.975,
+        "measured": [
+          {
+            "time": 46.971,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 47.134,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 47.298,
+            "opacity": 0.2,
+            "heightPx": 93
+          },
+          {
+            "time": 47.462,
+            "opacity": 0.86,
+            "heightPx": 93
+          },
+          {
+            "time": 47.625,
+            "opacity": 0.99,
+            "heightPx": 93
+          },
+          {
+            "time": 47.789,
+            "opacity": 1,
+            "heightPx": 93
+          },
+          {
+            "time": 47.953,
+            "opacity": 1,
+            "heightPx": 93
+          },
+          {
+            "time": 50.08,
+            "opacity": 1,
+            "heightPx": 93
+          },
+          {
+            "time": 50.244,
+            "opacity": 1,
+            "heightPx": 93
+          },
+          {
+            "time": 50.408,
+            "opacity": 1,
+            "heightPx": 93
+          },
+          {
+            "time": 50.571,
+            "opacity": 0.83,
+            "heightPx": 93
+          },
+          {
+            "time": 50.735,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 50.899,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 51.062,
+            "opacity": null,
+            "heightPx": null
+          }
+        ]
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"Under half a second per paper\" (6 words) is on screen 0.36 s (±0.01 s), under its 1.72 s floor: hold it about 0.5 s + 0.3 s a word (2.30 s here) before it leaves or changes; see references/motion.md.",
+        "text": "Under half a second per paper",
+        "selector": "#s6-c1 > div:nth-of-type(3)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 143,
+          "y": 488.68,
+          "width": 318.19,
+          "height": 30.000000000000057
+        },
+        "time": 71.377,
+        "words": 6,
+        "seconds": 0.358,
+        "floorSeconds": 1.725,
+        "measured": [
+          {
+            "time": 71.029,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 71.193,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 71.356,
+            "opacity": 0.44,
+            "heightPx": 30
+          },
+          {
+            "time": 71.52,
+            "opacity": 0.92,
+            "heightPx": 30
+          },
+          {
+            "time": 71.684,
+            "opacity": 1,
+            "heightPx": 30
+          },
+          {
+            "time": 71.847,
+            "opacity": 1,
+            "heightPx": 30
+          },
+          {
+            "time": 72.011,
+            "opacity": 1,
+            "heightPx": 30
+          },
+          {
+            "time": 72.175,
+            "opacity": 1,
+            "heightPx": 30
+          }
+        ]
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"Range 18 to 31 seconds\" (5 words) is on screen 0.34 s (±0.01 s), under its 1.50 s floor: hold it about 0.5 s + 0.3 s a word (2.00 s here) before it leaves or changes; see references/motion.md.",
+        "text": "Range 18 to 31 seconds",
+        "selector": "#s6-c2 > div:nth-of-type(3)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 719,
+          "y": 487.46,
+          "width": 245.58000000000004,
+          "height": 30.000000000000057
+        },
+        "time": 74.169,
+        "words": 5,
+        "seconds": 0.338,
+        "floorSeconds": 1.5,
+        "measured": [
+          {
+            "time": 73.811,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 73.975,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 74.138,
+            "opacity": 0.67,
+            "heightPx": 30
+          },
+          {
+            "time": 74.302,
+            "opacity": 0.97,
+            "heightPx": 30
+          },
+          {
+            "time": 74.466,
+            "opacity": 1,
+            "heightPx": 30
+          },
+          {
+            "time": 74.629,
+            "opacity": 1,
+            "heightPx": 30
+          },
+          {
+            "time": 74.793,
+            "opacity": 1,
+            "heightPx": 30
+          },
+          {
+            "time": 74.957,
+            "opacity": 1,
+            "heightPx": 30
+          }
+        ]
+      },
+      {
+        "code": "line_unread",
+        "severity": "warning",
+        "message": "\"Rescored from the cached response\" (5 words) is on screen 0.37 s (±0.01 s), under its 1.50 s floor: hold it about 0.5 s + 0.3 s a word (2.00 s here) before it leaves or changes; see references/motion.md.",
+        "text": "Rescored from the cached response",
+        "selector": "#s6-c3 > div:nth-of-type(3)",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 1295,
+          "y": 489.5,
+          "width": 379.25,
+          "height": 30
+        },
+        "time": 79.908,
+        "words": 5,
+        "seconds": 0.368,
+        "floorSeconds": 1.5,
+        "measured": [
+          {
+            "time": 79.539,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 79.703,
+            "opacity": null,
+            "heightPx": null
+          },
+          {
+            "time": 79.867,
+            "opacity": 0.49,
+            "heightPx": 30
+          },
+          {
+            "time": 80.03,
+            "opacity": 0.89,
+            "heightPx": 30
+          },
+          {
+            "time": 80.194,
+            "opacity": 1,
+            "heightPx": 30
+          },
+          {
+            "time": 80.358,
+            "opacity": 1,
+            "heightPx": 30
+          },
+          {
+            "time": 80.521,
+            "opacity": 1,
+            "heightPx": 30
+          },
+          {
+            "time": 80.685,
+            "opacity": 1,
+            "heightPx": 30
+          }
+        ]
+      }
+    ],
+    "enabled": true,
+    "step": 0.1639999999999997,
+    "samples": 599
+  },
+  "audio": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": false,
+    "files": [],
+    "times": [],
+    "findingFiles": []
+  }
+}

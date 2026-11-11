@@ -1,0 +1,1 @@
+On real research papers, text extraction finished in under half a second, and a full AI assessment averaged about twenty-four seconds, against a thirty-second target.

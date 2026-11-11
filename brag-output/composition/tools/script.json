@@ -1,0 +1,67 @@
+{
+  "voice": "af_heart",
+  "speed": 1.1,
+  "lead": 0.6,
+  "gap": 0.36,
+  "tail": 0.85,
+  "scenes": [
+    {
+      "id": "s1",
+      "lead": 0.9,
+      "lines": [
+        { "say": "Every thesis starts the same way: with a pile of PDFs.", "cap": "Every thesis starts the same way: with a pile of PDFs." },
+        { "say": "Which papers actually support your research gap?", "cap": "Which papers actually support your research gap?" },
+        { "say": "Reading them all takes time, and you still end up with citations you can't trace.", "cap": "Reading them all takes time, | and you still end up with citations you can't trace." }
+      ]
+    },
+    {
+      "id": "s2",
+      "lines": [
+        { "say": "This is Cite Wise: an AI-powered research assistant that takes you from research gap to drafted introduction, in one connected flow.", "cap": "This is CiteWise: an AI-powered research assistant | that takes you from research gap to drafted introduction, | in one connected flow." }
+      ]
+    },
+    {
+      "id": "s3",
+      "lead": 1.3,
+      "lines": [
+        { "say": "Step one: Data Import.", "cap": "Step one: Data Import." },
+        { "say": "One click brings in your research title, rationale, and gaps from your Catalyst workspace.", "cap": "One click brings in your research title, rationale, and gaps | from your CATalyst workspace." },
+        { "say": "Then you upload your related literature as PDFs.", "cap": "Then you upload your related literature as PDFs." }
+      ]
+    },
+    {
+      "id": "s4",
+      "lines": [
+        { "say": "Step two: AI Assessment.", "cap": "Step two: AI Assessment." },
+        { "say": "Each paper is scored against your research gap on four weighted criteria: gap alignment, methodology, theory, and citation quality.", "cap": "Each paper is scored against your research gap | on four weighted criteria: | gap alignment, methodology, theory, and citation quality." },
+        { "say": "Every score comes with word-for-word evidence, verified to the exact page, so you can check it yourself.", "cap": "Every score comes with word-for-word evidence, | verified to the exact page, so you can check it yourself." },
+        { "say": "You stay in control: approve what fits, leave out what doesn't.", "cap": "You stay in control: approve what fits, leave out what doesn't." }
+      ]
+    },
+    {
+      "id": "s5",
+      "lines": [
+        { "say": "Step three: Generate Introduction.", "cap": "Step three: Generate Introduction." },
+        { "say": "Cite Wise drafts your introduction from only the sources you approved, with in-text citations and a reference list.", "cap": "CiteWise drafts your introduction from only the sources you approved, | with in-text citations and a reference list." },
+        { "say": "Paraphrase it, keep a version history, and export to PDF or Word.", "cap": "Paraphrase it, keep a version history, and export to PDF or Word." }
+      ]
+    },
+    {
+      "id": "s6",
+      "lines": [
+        { "say": "On real research papers, text extraction finished in under half a second, and a full AI assessment averaged about twenty-four seconds, against a thirty-second target.", "cap": "On real research papers, text extraction finished in under half a second, | and a full AI assessment averaged about 24 seconds, | against a 30-second target." },
+        { "say": "Change the weights, and scores update with no extra AI call.", "cap": "Change the weights, and scores update with no extra AI call." }
+      ]
+    },
+    {
+      "id": "s7",
+      "tail": 4.2,
+      "lines": [
+        { "say": "Less time sorting papers.", "cap": "Less time sorting papers." },
+        { "say": "More time doing research.", "cap": "More time doing research." },
+        { "say": "Every claim traceable to its source.", "cap": "Every claim traceable to its source." },
+        { "say": "Cite Wise: discover research gaps, and draft with confidence.", "cap": "CiteWise: discover research gaps, and draft with confidence." }
+      ]
+    }
+  ]
+}

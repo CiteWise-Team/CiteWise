@@ -1,0 +1,1 @@
+Paraphrase it, keep a version history, and export to PDF or Word.

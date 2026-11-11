@@ -1,0 +1,17 @@
+{
+  "frames": 2330,
+  "seconds": 54.1523060798645,
+  "marks": {
+    "toCard": 0.999,
+    "toModule": 3.765,
+    "moduleClick": 4.478,
+    "citewise": 4.48,
+    "scrollGaps": 8.285,
+    "scrollBack": 13.42,
+    "toUpload": 16.103,
+    "filesChosen": 16.827,
+    "toUploadAll": 22.934,
+    "uploadAll": 23.651,
+    "end": 53.652
+  }
+}

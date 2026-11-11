@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/js/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Poppins"; font-weight: 500; src: url("assets/fonts/poppins-500.woff2") format("woff2"); }
+      @font-face { font-family: "Poppins"; font-weight: 600; src: url("assets/fonts/poppins-600.woff2") format("woff2"); }
+      @font-face { font-family: "Poppins"; font-weight: 700; src: url("assets/fonts/poppins-700.woff2") format("woff2"); }
+      @font-face { font-family: "Poppins"; font-weight: 800; src: url("assets/fonts/poppins-800.woff2") format("woff2"); }
+      @font-face { font-family: "Geist"; font-weight: 100 900; src: url("assets/fonts/geist.woff2") format("woff2"); }
+      @font-face { font-family: "Geist Mono"; font-weight: 100 900; src: url("assets/fonts/geist-mono.woff2") format("woff2"); }
+
+      :root {
+        --bg: #0e0e18;
+        --panel: #1e1e2f;
+        --surface: #25253a;
+        --deep: #171624;
+        --line: #3a3a55;
+        --accent: #ea580c;
+        --accent2: #f97316;
+        --text: #e4e4f0;
+        --muted: #a9a9bd;
+        --ok: #3ecf8e;
+        --warn: #e0a32e;
+        --danger: #f0736b;
+        --display: "Poppins", sans-serif;
+        --body: "Geist", sans-serif;
+        --mono: "Geist Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); font-family: var(--body); color: var(--text); }
+      .backdrop { position: absolute; inset: 0; background: #0e0e18; }
+      .glow { position: absolute; border-radius: 50%; }
+      .glow.g1 { width: 1100px; height: 1100px; left: -380px; top: -520px; background: radial-gradient(closest-side, rgba(234, 88, 12, 0.2), rgba(234, 88, 12, 0)); }
+      .glow.g2 { width: 1300px; height: 1300px; right: -520px; bottom: -700px; background: radial-gradient(closest-side, rgba(91, 91, 214, 0.2), rgba(91, 91, 214, 0)); }
+      .ring { position: absolute; left: 50%; top: 50%; border: 1px solid rgba(228, 228, 240, 0.06); border-radius: 50%; }
+      .ring.r1 { width: 1500px; height: 1500px; margin: -750px 0 0 -750px; }
+      .ring.r2 { width: 1060px; height: 1060px; margin: -530px 0 0 -530px; }
+
+      .scene { position: absolute; inset: 0; }
+      .wrap { position: absolute; inset: 0; }
+      .ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+      .eyebrow { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent2); }
+      .hl { color: var(--accent2); }
+      .cursor { position: absolute; left: 0; top: 0; width: 44px; height: 44px; z-index: 50; }
+
+      /* captions */
+      .cap { position: absolute; left: 0; right: 0; bottom: 42px; display: flex; justify-content: center; z-index: 80; }
+      .cap span { background: #05050b; color: #ffffff; font-family: var(--body); font-weight: 500; font-size: 34px; line-height: 1.25; padding: 12px 28px; border-radius: 14px; }
+
+      /* ---------- scene 1: problem ---------- */
+      .pile { position: absolute; left: 60px; top: 40px; width: 860px; height: 880px; }
+      .paper { position: absolute; width: 280px; height: 360px; background: #f1f1f6; border-radius: 10px; padding: 26px 24px; box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55); }
+      .paper .tag { display: inline-block; background: #c0392b; color: #ffffff; font-family: var(--display); font-weight: 700; font-size: 18px; padding: 3px 10px; border-radius: 5px; margin-bottom: 18px; }
+      .paper i { display: block; height: 10px; border-radius: 5px; background: #c9c9d6; margin-bottom: 14px; }
+      .paper i.t { height: 16px; background: #8f8fa6; }
+      .paper i.w70 { width: 70%; } .paper i.w85 { width: 85%; } .paper i.w55 { width: 55%; }
+      .qm { position: absolute; width: 76px; height: 76px; border-radius: 50%; background: var(--accent); color: #ffffff; font-family: var(--display); font-weight: 800; font-size: 46px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(234, 88, 12, 0.5); }
+      .s1-copy { position: absolute; left: 940px; top: 190px; width: 900px; }
+      .s1-h { font-family: var(--display); font-weight: 800; font-size: 72px; line-height: 1.1; letter-spacing: -0.02em; margin-top: 22px; color: #ffffff; white-space: nowrap; }
+      .s1-h span { display: block; }
+      .s1-q { margin-top: 48px; display: flex; align-items: center; gap: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 24px 28px; font-size: 36px; font-weight: 600; line-height: 1.25; }
+      .s1-q b { flex: none; width: 54px; height: 54px; border-radius: 50%; border: 3px solid var(--accent2); color: var(--accent2); font-family: var(--display); font-size: 32px; display: flex; align-items: center; justify-content: center; }
+      .s1-cite { margin-top: 26px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 24px 28px; }
+      .s1-cite .lab { font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--danger); margin-bottom: 12px; }
+      .s1-cite p { font-size: 32px; line-height: 1.4; color: var(--text); }
+      .s1-cite .src { color: var(--danger); font-weight: 700; border-bottom: 3px dashed var(--danger); }
+
+      /* ---------- scene 2: solution ---------- */
+      .s2-center { position: absolute; left: 0; right: 0; top: 120px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+      .s2-logo { width: 170px; height: 170px; }
+      .s2-name { font-family: var(--display); font-weight: 800; font-size: 128px; line-height: 1.2; letter-spacing: -0.03em; color: #ffffff; margin-top: 0; }
+      .s2-eyebrow { margin-top: 10px; }
+      .s2-head { font-family: var(--display); font-weight: 700; font-size: 50px; line-height: 1.2; margin-top: 18px; color: #ffffff; }
+      .steps { display: flex; align-items: center; gap: 22px; margin-top: 58px; }
+      .stepcard { width: 474px; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 26px 28px; display: flex; align-items: center; gap: 22px; text-align: left; }
+      .stepcard .sic { flex: none; width: 76px; height: 76px; border-radius: 20px; background: #3a1c0d; color: var(--accent2); font-size: 40px; display: flex; align-items: center; justify-content: center; }
+      .stepcard small { display: block; font-family: var(--display); font-weight: 700; font-size: 19px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent2); }
+      .stepcard strong { display: block; font-family: var(--display); font-weight: 700; font-size: 28px; line-height: 1.2; color: #ffffff; margin-top: 4px; white-space: nowrap; }
+      .arrow { font-size: 44px; color: var(--muted); display: flex; }
+
+      /* ---------- real-app footage (scenes 3-5) ---------- */
+      .shot { position: absolute; left: 140px; top: 22px; width: 1640px; height: 922px; border-radius: 20px; border: 1px solid var(--line); background: #0e0e18; object-fit: cover; box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6); z-index: 2; }
+      #s3, #s4, #s5 { z-index: 3; }
+      .shot-tag { position: absolute; left: 0; right: 0; top: 40px; display: flex; justify-content: center; z-index: 5; }
+      .shot-tag div { display: flex; align-items: center; gap: 14px; background: #05050b; border: 1px solid #c2410c; border-radius: 999px; padding: 9px 24px; font-family: var(--display); font-weight: 600; font-size: 22px; color: #ffffff; }
+      .shot-tag b { color: var(--accent2); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 19px; }
+      .shot-tag i { font-style: normal; font-family: var(--body); font-weight: 500; font-size: 19px; color: var(--muted); }
+      .chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 14px; font-size: 17px; font-weight: 700; white-space: nowrap; }
+      .chip.plain { background: #25253a; color: var(--text); border: 1px solid var(--line); }
+
+      /* ---------- scene 6: results ---------- */
+      .s6-head { position: absolute; left: 110px; top: 84px; }
+      .s6-head h2 { font-family: var(--display); font-weight: 800; font-size: 66px; letter-spacing: -0.02em; color: #ffffff; margin-top: 6px; }
+      .s6-head p { font-size: 27px; color: var(--muted); margin-top: 2px; }
+      .rcards { position: absolute; left: 110px; right: 110px; top: 318px; display: flex; gap: 28px; }
+      .rcard { flex: 1; height: 440px; background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 30px 32px; position: relative; }
+      .rcard .rl { font-family: var(--display); font-weight: 600; font-size: 25px; color: var(--muted); }
+      .rcard .big { font-family: var(--display); font-weight: 800; font-size: 96px; line-height: 1.1; letter-spacing: -0.03em; color: #ffffff; margin-top: 10px; white-space: nowrap; }
+      .rcard .big small { font-size: 50px; font-weight: 700; color: var(--accent2); margin-left: 8px; letter-spacing: 0; }
+      .rcard .rsub { font-size: 23px; color: var(--text); margin-top: 2px; }
+      .meter { position: absolute; left: 32px; right: 32px; bottom: 34px; }
+      .meter .mt { position: relative; height: 16px; background: #222034; border: 1px solid #34344a; border-radius: 8px; }
+      .meter .mf { position: absolute; top: -1px; bottom: -1px; border-radius: 8px; background: linear-gradient(90deg, #f97316, #fb8c3a); }
+      .meter .mm { position: absolute; top: -12px; bottom: -12px; width: 4px; border-radius: 2px; background: #ffffff; }
+      .meter .ml { display: flex; justify-content: space-between; margin-top: 16px; font-family: var(--mono); font-size: 20px; color: var(--muted); }
+      .meter .ml b { color: #ffffff; font-weight: 500; }
+      .sliders { position: absolute; left: 32px; right: 32px; bottom: 30px; }
+      .sl { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 14px; height: 32px; font-size: 19px; color: var(--muted); }
+      .sl .st2 { position: relative; height: 6px; border-radius: 3px; background: #34344a; }
+      .sl .kn { position: absolute; top: -8px; left: 0; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%; background: var(--accent2); border: 3px solid #ffffff; }
+      .rescore { display: flex; align-items: center; justify-content: space-between; height: 44px; margin-bottom: 8px; font-size: 21px; color: var(--text); }
+      .rescore .rn { position: relative; width: 110px; height: 40px; font-family: var(--mono); font-weight: 500; font-size: 34px; line-height: 40px; color: var(--accent2); }
+      .rescore .rn span { position: absolute; right: 0; top: 0; }
+      .rcard .big small.sm { font-size: 38px; }
+      .stack { position: absolute; left: 110px; right: 110px; top: 806px; display: flex; align-items: center; gap: 14px; font-size: 22px; color: var(--muted); }
+      .stack .chip { font-size: 21px; padding: 7px 18px; }
+
+      /* ---------- scene 7: impact + team ---------- */
+      .impact { position: absolute; left: 300px; top: 250px; }
+      .imp { display: flex; align-items: center; gap: 30px; margin-bottom: 44px; font-family: var(--display); font-weight: 700; font-size: 76px; letter-spacing: -0.02em; color: #ffffff; white-space: nowrap; }
+      .imp .ck { flex: none; width: 84px; height: 84px; border-radius: 50%; background: #c2410c; color: #ffffff; font-size: 50px; display: flex; align-items: center; justify-content: center; }
+      .outro { position: absolute; left: 0; right: 0; top: 130px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+      .outro img { width: 150px; height: 150px; }
+      .outro .nm { font-family: var(--display); font-weight: 800; font-size: 116px; line-height: 1.2; letter-spacing: -0.03em; color: #ffffff; }
+      .outro .hd { font-family: var(--display); font-weight: 700; font-size: 54px; line-height: 1.2; color: #ffffff; margin-top: 4px; }
+      .team { margin-top: 48px; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 24px 44px; min-width: 1100px; }
+      .team .tc { font-family: var(--display); font-weight: 700; font-size: 30px; color: var(--accent2); }
+      .team .tm { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 44px; width: 1240px; font-size: 30px; line-height: 1.3; color: var(--text); margin-top: 10px; }
+      .team .tm span { white-space: nowrap; }
+      .team .tk { font-size: 22px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute">
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4.25 4.25 0 0 1 .5 8.47" /><path d="M12 12v8" /><path d="M8.5 15.5 12 12l3.5 3.5" /></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M12 10v6" /><path d="m9.5 13.5 2.5 2.5 2.5-2.5" /></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z" /><path d="M19 15v5M16.5 17.5h5" /></symbol>
+      <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z" /><path d="M14 7l3 3" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" /><path d="m20 20-4.5-4.5" /></symbol>
+      <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r="0.8" /></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></symbol>
+    </svg>
+
+    <div id="root" data-composition-id="main" data-start="0" data-duration="100.673" data-width="1920" data-height="1080">
+      <div class="backdrop">
+        <div class="glow g1"></div>
+        <div class="glow g2"></div>
+        <div class="ring r1"></div>
+        <div class="ring r2"></div>
+      </div>
+
+      <!-- ===== Scene 1: the problem ===== -->
+      <section id="s1" class="clip scene" data-start="0" data-duration="12.561" data-track-index="0">
+        <div class="wrap">
+          <div class="pile" data-layout-ignore>
+            <div class="paper" style="left: 190px; top: 290px"><b class="tag">PDF</b><i class="t w85"></i><i></i><i class="w85"></i><i></i><i class="w70"></i><i></i><i class="w55"></i></div>
+            <div class="paper" style="left: 380px; top: 250px"><b class="tag">PDF</b><i class="t w70"></i><i></i><i></i><i class="w85"></i><i></i><i class="w55"></i><i></i></div>
+            <div class="paper" style="left: 270px; top: 370px"><b class="tag">PDF</b><i class="t"></i><i class="w85"></i><i></i><i class="w70"></i><i></i><i></i><i class="w55"></i></div>
+            <div class="paper" style="left: 480px; top: 340px"><b class="tag">PDF</b><i class="t w85"></i><i></i><i class="w70"></i><i></i><i class="w85"></i><i></i><i class="w55"></i></div>
+            <div class="paper" style="left: 150px; top: 430px"><b class="tag">PDF</b><i class="t w70"></i><i></i><i class="w85"></i><i></i><i></i><i class="w70"></i><i></i></div>
+            <div class="paper" style="left: 400px; top: 450px"><b class="tag">PDF</b><i class="t"></i><i></i><i class="w70"></i><i class="w85"></i><i></i><i class="w55"></i><i></i></div>
+            <div class="paper" style="left: 300px; top: 310px"><b class="tag">PDF</b><i class="t w85"></i><i></i><i></i><i class="w70"></i><i></i><i class="w85"></i><i class="w55"></i></div>
+            <div class="qm" style="left: 150px; top: 250px">?</div>
+            <div class="qm" style="left: 690px; top: 300px">?</div>
+            <div class="qm" style="left: 560px; top: 740px">?</div>
+          </div>
+          <div class="s1-copy">
+            <div class="eyebrow" id="s1-eb">The problem</div>
+            <h1 class="s1-h"><span id="s1-h1">Every thesis starts with</span><span id="s1-h2" class="hl">a pile of PDFs.</span></h1>
+            <div class="s1-q" id="s1-q"><b>?</b>Which papers actually support your research gap?</div>
+            <div class="s1-cite" id="s1-c">
+              <div class="lab">Citations you can't trace</div>
+              <p>"...this reduces repeat offences." <span class="src">source?</span></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Scene 2: the solution ===== -->
+      <section id="s2" class="clip scene" data-start="12.561" data-duration="9.365" data-track-index="0">
+        <div class="wrap">
+          <div class="s2-center">
+            <img class="s2-logo" id="s2-logo" src="assets/img/citewise-logo.png" alt="" />
+            <div class="s2-name" id="s2-name">CiteWise</div>
+            <div class="eyebrow s2-eyebrow" id="s2-eb">The Academic Research &amp; Drafting Suite</div>
+            <div class="s2-head" id="s2-head">Discover research gaps <span class="hl">and draft with confidence.</span></div>
+            <div class="steps">
+              <div class="stepcard"><div class="sic"><svg class="ic"><use href="#i-folder" /></svg></div><div><small>Step 1</small><strong>Data Import</strong></div></div>
+              <div class="arrow"><svg class="ic"><use href="#i-arrow" /></svg></div>
+              <div class="stepcard"><div class="sic"><svg class="ic"><use href="#i-spark" /></svg></div><div><small>Step 2</small><strong>AI Assessment</strong></div></div>
+              <div class="arrow"><svg class="ic"><use href="#i-arrow" /></svg></div>
+              <div class="stepcard"><div class="sic"><svg class="ic"><use href="#i-pen" /></svg></div><div><small>Step 3</small><strong>Generate Introduction</strong></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Scene 3: real recording of the live app, cut by tools/build-footage.mjs ===== -->
+      <section id="s3" class="clip scene" data-start="21.925" data-duration="12.555" data-track-index="0">
+        <div class="wrap">
+          <div class="shot-tag"><div><b>Live system</b>Step 1 · Data Import</div></div>
+        </div>
+      </section>
+
+      <!-- ===== Scene 4: real recording of the live app, cut by tools/build-footage.mjs ===== -->
+      <section id="s4" class="clip scene" data-start="34.481" data-duration="21.815" data-track-index="0">
+        <div class="wrap">
+          <div class="shot-tag"><div><b>Live system</b>Step 2 · AI Assessment<i>AI wait shortened</i></div></div>
+        </div>
+      </section>
+
+      <!-- ===== Scene 5: real recording of the live app, cut by tools/build-footage.mjs ===== -->
+      <section id="s5" class="clip scene" data-start="56.296" data-duration="14.97" data-track-index="0">
+        <div class="wrap">
+          <div class="shot-tag"><div><b>Live system</b>Step 3 · Generate Introduction<i>AI wait shortened</i></div></div>
+        </div>
+      </section>
+
+      <!-- ===== Scene 6: results ===== -->
+      <section id="s6" class="clip scene" data-start="71.266" data-duration="15.101" data-track-index="0">
+        <div class="wrap">
+          <div class="s6-head" id="s6-head">
+            <div class="eyebrow">Results &amp; validation</div>
+            <h2>Measured on real research papers</h2>
+            <p>3 to 21 pages each, scored end to end</p>
+          </div>
+          <div class="rcards">
+            <div class="rcard" id="s6-c1">
+              <div class="rl">Text extraction + page indexing</div>
+              <div class="big">69-497<small>ms</small></div>
+              <div class="rsub">Under half a second per paper</div>
+              <div class="meter"><div class="mt"><div class="mf" id="s6-m1" style="left: 6.9%; width: 42.8%"></div><div class="mm" style="left: 100%; margin-left: -4px"></div></div><div class="ml"><span>0</span><b>Target: 1.0 s or less</b></div></div>
+            </div>
+            <div class="rcard" id="s6-c2">
+              <div class="rl">Full AI assessment, four criteria</div>
+              <div class="big">~24<small>s mean</small></div>
+              <div class="rsub">Range 18 to 31 seconds</div>
+              <div class="meter"><div class="mt"><div class="mf" id="s6-m2" style="left: 50%; width: 36.1%"></div><div class="mm" style="left: 83.3%"></div></div><div class="ml"><span>0</span><b>Target: 30 s or less</b></div></div>
+            </div>
+            <div class="rcard" id="s6-c3">
+              <div class="rl">Re-weighting the criteria</div>
+              <div class="big">0<small class="sm">extra AI calls</small></div>
+              <div class="rsub">Rescored from the cached response</div>
+              <div class="sliders">
+                <div class="rescore"><span>Weighted score</span><div class="rn"><span class="rs">86%</span><span class="rs">83%</span></div></div>
+                <div class="sl"><span>Gap Alignment</span><div class="st2"><div class="kn" id="s6-k1"></div></div></div>
+                <div class="sl"><span>Methodology</span><div class="st2"><div class="kn" id="s6-k2"></div></div></div>
+                <div class="sl"><span>Theory</span><div class="st2"><div class="kn" id="s6-k3"></div></div></div>
+                <div class="sl"><span>Citation Quality</span><div class="st2"><div class="kn" id="s6-k4"></div></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="stack" id="s6-stack"><span>Built with</span><span class="chip plain">React</span><span class="chip plain">Express</span><span class="chip plain">Supabase</span><span class="chip plain">Cloudflare R2</span><span class="chip plain">n8n</span><span class="chip plain">Google Gemini</span><span class="chip plain">LlamaParse OCR</span></div>
+        </div>
+      </section>
+
+      <!-- ===== Scene 7: impact + team ===== -->
+      <section id="s7" class="clip scene" data-start="86.367" data-duration="14.307" data-track-index="0">
+        <div class="wrap">
+          <div class="impact" id="s7-impact">
+            <div class="imp"><span class="ck"><svg class="ic"><use href="#i-check" /></svg></span>Less time sorting papers.</div>
+            <div class="imp"><span class="ck"><svg class="ic"><use href="#i-check" /></svg></span>More time doing research.</div>
+            <div class="imp"><span class="ck"><svg class="ic"><use href="#i-check" /></svg></span>Every claim traceable to its source.</div>
+          </div>
+          <div class="outro" id="s7-outro">
+            <img id="s7-logo" src="assets/img/citewise-logo.png" alt="" />
+            <div class="nm" id="s7-nm">CiteWise</div>
+            <div class="hd" id="s7-hd">Discover research gaps <span class="hl">and draft with confidence.</span></div>
+            <div class="team" id="s7-team">
+              <div class="tc">Team 2627-sem1-it411-39</div>
+              <div class="tm"><span>Pranz Nicole C. Rabe</span><span>Ruther Gerard L. Ramirez</span><span>Christian Andrey V. Reyes</span><span>Gregory Ivan Onyx M. Badinas</span><span>Sophia Bianca A. Encallado</span></div>
+              <div class="tk">TekCon 2026</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- real-app footage for scenes 3-5 (top level: videos may not sit inside a timed element) -->
+      <video id="v3" class="clip shot" data-start="21.925" data-duration="12.555" data-track-index="1" muted playsinline src="assets/footage/s3.mp4"></video>
+      <video id="v4" class="clip shot" data-start="34.481" data-duration="21.815" data-track-index="1" muted playsinline src="assets/footage/s4.mp4"></video>
+      <video id="v5" class="clip shot" data-start="56.296" data-duration="14.97" data-track-index="1" muted playsinline src="assets/footage/s5.mp4"></video>
+
+      <div id="cap1" class="clip cap" data-start="0.9" data-duration="3.528" data-track-index="5"><span>Every thesis starts the same way: with a pile of PDFs.</span></div>
+      <div id="cap2" class="clip cap" data-start="4.588" data-duration="2.717" data-track-index="5"><span>Which papers actually support your research gap?</span></div>
+      <div id="cap3" class="clip cap" data-start="7.465" data-duration="1.486" data-track-index="5"><span>Reading them all takes time,</span></div>
+      <div id="cap4" class="clip cap" data-start="8.951" data-duration="2.959" data-track-index="5"><span>and you still end up with citations you can't trace.</span></div>
+      <div id="cap5" class="clip cap" data-start="13.161" data-duration="3.068" data-track-index="5"><span>This is CiteWise: an AI-powered research assistant</span></div>
+      <div id="cap6" class="clip cap" data-start="16.229" data-duration="3.497" data-track-index="5"><span>that takes you from research gap to drafted introduction,</span></div>
+      <div id="cap7" class="clip cap" data-start="19.726" data-duration="1.55" data-track-index="5"><span>in one connected flow.</span></div>
+      <div id="cap8" class="clip cap" data-start="23.225" data-duration="1.843" data-track-index="5"><span>Step one: Data Import.</span></div>
+      <div id="cap9" class="clip cap" data-start="25.228" data-duration="3.452" data-track-index="5"><span>One click brings in your research title, rationale, and gaps</span></div>
+      <div id="cap10" class="clip cap" data-start="28.68" data-duration="1.868" data-track-index="5"><span>from your CATalyst workspace.</span></div>
+      <div id="cap11" class="clip cap" data-start="30.708" data-duration="3.123" data-track-index="5"><span>Then you upload your related literature as PDFs.</span></div>
+      <div id="cap12" class="clip cap" data-start="35.081" data-duration="1.971" data-track-index="5"><span>Step two: AI Assessment.</span></div>
+      <div id="cap13" class="clip cap" data-start="37.211" data-duration="2.959" data-track-index="5"><span>Each paper is scored against your research gap</span></div>
+      <div id="cap14" class="clip cap" data-start="40.17" data-duration="1.673" data-track-index="5"><span>on four weighted criteria:</span></div>
+      <div id="cap15" class="clip cap" data-start="41.843" data-duration="3.867" data-track-index="5"><span>gap alignment, methodology, theory, and citation quality.</span></div>
+      <div id="cap16" class="clip cap" data-start="45.87" data-duration="2.658" data-track-index="5"><span>Every score comes with word-for-word evidence,</span></div>
+      <div id="cap17" class="clip cap" data-start="48.528" data-duration="3.494" data-track-index="5"><span>verified to the exact page, so you can check it yourself.</span></div>
+      <div id="cap18" class="clip cap" data-start="52.182" data-duration="3.464" data-track-index="5"><span>You stay in control: approve what fits, leave out what doesn't.</span></div>
+      <div id="cap19" class="clip cap" data-start="56.896" data-duration="2.141" data-track-index="5"><span>Step three: Generate Introduction.</span></div>
+      <div id="cap20" class="clip cap" data-start="59.197" data-duration="4.103" data-track-index="5"><span>CiteWise drafts your introduction from only the sources you approved,</span></div>
+      <div id="cap21" class="clip cap" data-start="63.3" data-duration="2.817" data-track-index="5"><span>with in-text citations and a reference list.</span></div>
+      <div id="cap22" class="clip cap" data-start="66.277" data-duration="4.339" data-track-index="5"><span>Paraphrase it, keep a version history, and export to PDF or Word.</span></div>
+      <div id="cap23" class="clip cap" data-start="71.866" data-duration="4.744" data-track-index="5"><span>On real research papers, text extraction finished in under half a second,</span></div>
+      <div id="cap24" class="clip cap" data-start="76.61" data-duration="3.314" data-track-index="5"><span>and a full AI assessment averaged about 24 seconds,</span></div>
+      <div id="cap25" class="clip cap" data-start="79.924" data-duration="1.955" data-track-index="5"><span>against a 30-second target.</span></div>
+      <div id="cap26" class="clip cap" data-start="82.039" data-duration="3.677" data-track-index="5"><span>Change the weights, and scores update with no extra AI call.</span></div>
+      <div id="cap27" class="clip cap" data-start="86.967" data-duration="1.715" data-track-index="5"><span>Less time sorting papers.</span></div>
+      <div id="cap28" class="clip cap" data-start="88.841" data-duration="1.629" data-track-index="5"><span>More time doing research.</span></div>
+      <div id="cap29" class="clip cap" data-start="90.631" data-duration="2.035" data-track-index="5"><span>Every claim traceable to its source.</span></div>
+      <div id="cap30" class="clip cap" data-start="92.825" data-duration="3.848" data-track-index="5"><span>CiteWise: discover research gaps, and draft with confidence.</span></div>
+
+      <audio id="vo" data-start="0" data-duration="96.473" data-track-index="10" data-volume="1" src="assets/vo/voiceover.wav"></audio>
+      <audio id="music" data-start="0" data-duration="100.673" data-track-index="11" data-volume="0.13" data-fade-in="0.8" data-fade-out="2.5" src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"></audio>
+      <audio id="sfx-logo" data-start="12.861" data-duration="1" data-track-index="12" data-volume="0.4" src="assets/sfx/bong_001.ogg"></audio>
+      <audio id="sfx-outro" data-start="92.875" data-duration="1" data-track-index="13" data-volume="0.4" src="assets/sfx/bong_001.ogg"></audio>
+    </div>
+
+    <script>
+      const T = {"total":100.673,"scenes":[{"id":"s1","start":0,"dur":12.561,"lines":[{"start":0.9,"dur":3.328,"cap":"Every thesis starts the same way: with a pile of PDFs."},{"start":4.588,"dur":2.517,"cap":"Which papers actually support your research gap?"},{"start":7.465,"dur":4.245,"cap":"Reading them all takes time, | and you still end up with citations you can't trace."}]},{"id":"s2","start":12.561,"dur":9.365,"lines":[{"start":13.161,"dur":7.915,"cap":"This is CiteWise: an AI-powered research assistant | that takes you from research gap to drafted introduction, | in one connected flow."}]},{"id":"s3","start":21.925,"dur":12.555,"lines":[{"start":23.225,"dur":1.643,"cap":"Step one: Data Import."},{"start":25.228,"dur":5.12,"cap":"One click brings in your research title, rationale, and gaps | from your CATalyst workspace."},{"start":30.708,"dur":2.923,"cap":"Then you upload your related literature as PDFs."}]},{"id":"s4","start":34.481,"dur":21.815,"lines":[{"start":35.081,"dur":1.771,"cap":"Step two: AI Assessment."},{"start":37.211,"dur":8.299,"cap":"Each paper is scored against your research gap | on four weighted criteria: | gap alignment, methodology, theory, and citation quality."},{"start":45.87,"dur":5.952,"cap":"Every score comes with word-for-word evidence, | verified to the exact page, so you can check it yourself."},{"start":52.182,"dur":3.264,"cap":"You stay in control: approve what fits, leave out what doesn't."}]},{"id":"s5","start":56.296,"dur":14.97,"lines":[{"start":56.896,"dur":1.941,"cap":"Step three: Generate Introduction."},{"start":59.197,"dur":6.72,"cap":"CiteWise drafts your introduction from only the sources you approved, | with in-text citations and a reference list."},{"start":66.277,"dur":4.139,"cap":"Paraphrase it, keep a version history, and export to PDF or Word."}]},{"id":"s6","start":71.266,"dur":15.101,"lines":[{"start":71.866,"dur":9.813,"cap":"On real research papers, text extraction finished in under half a second, | and a full AI assessment averaged about 24 seconds, | against a 30-second target."},{"start":82.039,"dur":3.477,"cap":"Change the weights, and scores update with no extra AI call."}]},{"id":"s7","start":86.367,"dur":14.307,"lines":[{"start":86.967,"dur":1.515,"cap":"Less time sorting papers."},{"start":88.841,"dur":1.429,"cap":"More time doing research."},{"start":90.631,"dur":1.835,"cap":"Every claim traceable to its source."},{"start":92.825,"dur":3.648,"cap":"CiteWise: discover research gaps, and draft with confidence."}]}]};
+      const SC = Object.fromEntries(T.scenes.map((s) => [s.id, s]));
+      const S = (id) => SC[id].start;
+      const L = (id, n) => SC[id].lines[n - 1].start;
+      const D = (id, n) => SC[id].lines[n - 1].dur;
+      const $ = (sel) => document.querySelector(sel);
+      const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+      const tl = gsap.timeline({ paused: true });
+      const rise = (target, t, { y = 26, ...vars } = {}) =>
+        tl.fromTo(target, { opacity: 0, y }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", ...vars }, t);
+      const pop = (target, t, vars = {}) =>
+        tl.fromTo(target, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(1.8)", ...vars }, t);
+      const fade = (target, t, to = 1, duration = 0.35) => tl.to(target, { opacity: to, duration, ease: "power1.inOut" }, t);
+
+      // Scene cross-dissolves through the backdrop.
+      T.scenes.forEach((s, i) => {
+        const w = `#${s.id} .wrap`;
+        tl.fromTo(w, { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power2.out" }, s.start);
+        if (i < T.scenes.length - 1) tl.to(w, { opacity: 0, duration: 0.3, ease: "power2.in" }, s.start + s.dur - 0.3);
+      });
+      tl.fromTo(".glow.g1", { x: 0, y: 0 }, { x: 160, y: 90, duration: T.total, ease: "none" }, 0);
+      tl.fromTo(".glow.g2", { x: 0, y: 0 }, { x: -180, y: -80, duration: T.total, ease: "none" }, 0);
+
+      // ---- Scene 1: the problem ----
+      {
+        const a = L("s1", 1), b = L("s1", 2), c = L("s1", 3);
+        const rot = [-14, 9, -4, 17, 6, -10, 3];
+        $$("#s1 .paper").forEach((p, i) => {
+          tl.fromTo(p, { y: -980, rotation: rot[i] - 24, opacity: 1 }, { y: 0, rotation: rot[i], duration: 0.7, ease: "power2.in" }, S("s1") + 0.15 + i * 0.3);
+          tl.to(p, { y: -10, duration: 0.09, yoyo: true, repeat: 1, ease: "power1.out" }, S("s1") + 0.85 + i * 0.3);
+        });
+        rise("#s1-eb", a - 0.3);
+        rise("#s1-h1", a, { y: 40 });
+        rise("#s1-h2", a + D("s1", 1) * 0.55, { y: 40 });
+        rise("#s1-q", b);
+        $$("#s1 .qm").forEach((q, i) => pop(q, b + 0.5 + i * 0.28));
+        rise("#s1-c", c + D("s1", 3) * 0.36);
+      }
+
+      // ---- Scene 2: the solution ----
+      {
+        const a = L("s2", 1), d = D("s2", 1);
+        pop("#s2-logo", S("s2") + 0.3, { duration: 0.6 });
+        rise("#s2-name", a + 0.15, { y: 40, duration: 0.6 });
+        rise("#s2-eb", a + d * 0.16);
+        rise("#s2-head", a + d * 0.3);
+        const parts = $$("#s2 .steps > *");
+        const times = [0.52, 0.6, 0.66, 0.74, 0.8];
+        parts.forEach((el, i) => rise(el, a + d * times[i]));
+      }
+
+      // ---- Scenes 3-5: real footage; only the label animates ----
+      ["s3", "s4", "s5"].forEach((id) => {
+        const v = "#v" + id.slice(1), sc = SC[id];
+        tl.fromTo(v, { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power2.out" }, sc.start);
+        tl.to(v, { opacity: 0, duration: 0.3, ease: "power2.in" }, sc.start + sc.dur - 0.3);
+        rise(`#${id} .shot-tag div`, sc.start + 0.5, { y: -18 });
+      });
+
+      // ---- Scene 6: results ----
+      {
+        const s = S("s6"), a = L("s6", 1), b = L("s6", 2), ad = D("s6", 1);
+        rise("#s6-head", s + 0.2);
+        rise("#s6-c1", a + ad * 0.16);
+        tl.fromTo("#s6-m1", { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.8, ease: "power2.out" }, a + ad * 0.16 + 0.4);
+        rise("#s6-c2", a + ad * 0.44);
+        tl.fromTo("#s6-m2", { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.8, ease: "power2.out" }, a + ad * 0.44 + 0.4);
+        tl.fromTo("#s6-c2 .mm", { scaleY: 0.4 }, { scaleY: 1.25, duration: 0.25, yoyo: true, repeat: 1 }, a + ad * 0.84);
+        rise("#s6-c3", b);
+        const from = [70, 60, 40, 30], to = [50, 72, 46, 32];
+        const trackW = $("#s6 .st2").offsetWidth || 320;
+        tl.set($$("#s6 .rs")[1], { opacity: 0 }, 0);
+        ["#s6-k1", "#s6-k2", "#s6-k3", "#s6-k4"].forEach((k, i) =>
+          tl.fromTo(k, { x: (from[i] / 100) * trackW }, { x: (to[i] / 100) * trackW, duration: 0.7, ease: "power2.inOut" }, b + 0.7 + i * 0.1),
+        );
+        tl.set($$("#s6 .rs")[0], { opacity: 0 }, b + 1.3);
+        tl.fromTo($$("#s6 .rs")[1], { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, b + 1.3);
+        rise("#s6-stack", b + 2.0);
+      }
+
+      // ---- Scene 7: impact + team ----
+      {
+        const d = L("s7", 4);
+        $$("#s7 .imp").forEach((el, i) => {
+          rise(el, L("s7", i + 1) - 0.05, { y: 34 });
+          pop(el.querySelector(".ck"), L("s7", i + 1) + 0.1);
+        });
+        fade("#s7-impact", d - 0.4, 0, 0.3);
+        pop("#s7-logo", d - 0.05, { duration: 0.55 });
+        rise("#s7-nm", d + 0.1, { y: 40, duration: 0.6 });
+        rise("#s7-hd", d + 0.9);
+        rise("#s7-team", d + 2.0);
+      }
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

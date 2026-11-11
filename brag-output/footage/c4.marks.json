@@ -1,0 +1,18 @@
+{
+  "frames": 959,
+  "seconds": 36.77716398239136,
+  "marks": {
+    "toRow": 2.061,
+    "rowClick": 2.785,
+    "toViewPage": 5.995,
+    "viewPage": 9.31,
+    "pageRendered": 10.323,
+    "closeModal": 14.998,
+    "scrollScores": 18.979,
+    "scrollBack": 26.107,
+    "approveStart": 29.116,
+    "toApprove": 35.389,
+    "approveClick": 36.135,
+    "approved": 38.641
+  }
+}

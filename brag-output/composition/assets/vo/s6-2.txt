@@ -1,0 +1,1 @@
+Change the weights, and scores update with no extra AI call.

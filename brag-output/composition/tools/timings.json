@@ -1,0 +1,306 @@
+{
+  "total": 100.673,
+  "scenes": [
+    {
+      "id": "s1",
+      "start": 0,
+      "dur": 12.561,
+      "lines": [
+        {
+          "start": 0.9,
+          "dur": 3.328,
+          "cap": "Every thesis starts the same way: with a pile of PDFs."
+        },
+        {
+          "start": 4.588,
+          "dur": 2.517,
+          "cap": "Which papers actually support your research gap?"
+        },
+        {
+          "start": 7.465,
+          "dur": 4.245,
+          "cap": "Reading them all takes time, | and you still end up with citations you can't trace."
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "start": 12.561,
+      "dur": 9.365,
+      "lines": [
+        {
+          "start": 13.161,
+          "dur": 7.915,
+          "cap": "This is CiteWise: an AI-powered research assistant | that takes you from research gap to drafted introduction, | in one connected flow."
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "start": 21.925,
+      "dur": 12.555,
+      "lines": [
+        {
+          "start": 23.225,
+          "dur": 1.643,
+          "cap": "Step one: Data Import."
+        },
+        {
+          "start": 25.228,
+          "dur": 5.12,
+          "cap": "One click brings in your research title, rationale, and gaps | from your CATalyst workspace."
+        },
+        {
+          "start": 30.708,
+          "dur": 2.923,
+          "cap": "Then you upload your related literature as PDFs."
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "start": 34.481,
+      "dur": 21.815,
+      "lines": [
+        {
+          "start": 35.081,
+          "dur": 1.771,
+          "cap": "Step two: AI Assessment."
+        },
+        {
+          "start": 37.211,
+          "dur": 8.299,
+          "cap": "Each paper is scored against your research gap | on four weighted criteria: | gap alignment, methodology, theory, and citation quality."
+        },
+        {
+          "start": 45.87,
+          "dur": 5.952,
+          "cap": "Every score comes with word-for-word evidence, | verified to the exact page, so you can check it yourself."
+        },
+        {
+          "start": 52.182,
+          "dur": 3.264,
+          "cap": "You stay in control: approve what fits, leave out what doesn't."
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "start": 56.296,
+      "dur": 14.97,
+      "lines": [
+        {
+          "start": 56.896,
+          "dur": 1.941,
+          "cap": "Step three: Generate Introduction."
+        },
+        {
+          "start": 59.197,
+          "dur": 6.72,
+          "cap": "CiteWise drafts your introduction from only the sources you approved, | with in-text citations and a reference list."
+        },
+        {
+          "start": 66.277,
+          "dur": 4.139,
+          "cap": "Paraphrase it, keep a version history, and export to PDF or Word."
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "start": 71.266,
+      "dur": 15.101,
+      "lines": [
+        {
+          "start": 71.866,
+          "dur": 9.813,
+          "cap": "On real research papers, text extraction finished in under half a second, | and a full AI assessment averaged about 24 seconds, | against a 30-second target."
+        },
+        {
+          "start": 82.039,
+          "dur": 3.477,
+          "cap": "Change the weights, and scores update with no extra AI call."
+        }
+      ]
+    },
+    {
+      "id": "s7",
+      "start": 86.367,
+      "dur": 14.307,
+      "lines": [
+        {
+          "start": 86.967,
+          "dur": 1.515,
+          "cap": "Less time sorting papers."
+        },
+        {
+          "start": 88.841,
+          "dur": 1.429,
+          "cap": "More time doing research."
+        },
+        {
+          "start": 90.631,
+          "dur": 1.835,
+          "cap": "Every claim traceable to its source."
+        },
+        {
+          "start": 92.825,
+          "dur": 3.648,
+          "cap": "CiteWise: discover research gaps, and draft with confidence."
+        }
+      ]
+    }
+  ],
+  "captions": [
+    {
+      "start": 0.9,
+      "dur": 3.528,
+      "text": "Every thesis starts the same way: with a pile of PDFs."
+    },
+    {
+      "start": 4.588,
+      "dur": 2.717,
+      "text": "Which papers actually support your research gap?"
+    },
+    {
+      "start": 7.465,
+      "dur": 1.486,
+      "text": "Reading them all takes time,"
+    },
+    {
+      "start": 8.951,
+      "dur": 2.959,
+      "text": "and you still end up with citations you can't trace."
+    },
+    {
+      "start": 13.161,
+      "dur": 3.068,
+      "text": "This is CiteWise: an AI-powered research assistant"
+    },
+    {
+      "start": 16.229,
+      "dur": 3.497,
+      "text": "that takes you from research gap to drafted introduction,"
+    },
+    {
+      "start": 19.726,
+      "dur": 1.55,
+      "text": "in one connected flow."
+    },
+    {
+      "start": 23.225,
+      "dur": 1.843,
+      "text": "Step one: Data Import."
+    },
+    {
+      "start": 25.228,
+      "dur": 3.452,
+      "text": "One click brings in your research title, rationale, and gaps"
+    },
+    {
+      "start": 28.68,
+      "dur": 1.868,
+      "text": "from your CATalyst workspace."
+    },
+    {
+      "start": 30.708,
+      "dur": 3.123,
+      "text": "Then you upload your related literature as PDFs."
+    },
+    {
+      "start": 35.081,
+      "dur": 1.971,
+      "text": "Step two: AI Assessment."
+    },
+    {
+      "start": 37.211,
+      "dur": 2.959,
+      "text": "Each paper is scored against your research gap"
+    },
+    {
+      "start": 40.17,
+      "dur": 1.673,
+      "text": "on four weighted criteria:"
+    },
+    {
+      "start": 41.843,
+      "dur": 3.867,
+      "text": "gap alignment, methodology, theory, and citation quality."
+    },
+    {
+      "start": 45.87,
+      "dur": 2.658,
+      "text": "Every score comes with word-for-word evidence,"
+    },
+    {
+      "start": 48.528,
+      "dur": 3.494,
+      "text": "verified to the exact page, so you can check it yourself."
+    },
+    {
+      "start": 52.182,
+      "dur": 3.464,
+      "text": "You stay in control: approve what fits, leave out what doesn't."
+    },
+    {
+      "start": 56.896,
+      "dur": 2.141,
+      "text": "Step three: Generate Introduction."
+    },
+    {
+      "start": 59.197,
+      "dur": 4.103,
+      "text": "CiteWise drafts your introduction from only the sources you approved,"
+    },
+    {
+      "start": 63.3,
+      "dur": 2.817,
+      "text": "with in-text citations and a reference list."
+    },
+    {
+      "start": 66.277,
+      "dur": 4.339,
+      "text": "Paraphrase it, keep a version history, and export to PDF or Word."
+    },
+    {
+      "start": 71.866,
+      "dur": 4.744,
+      "text": "On real research papers, text extraction finished in under half a second,"
+    },
+    {
+      "start": 76.61,
+      "dur": 3.314,
+      "text": "and a full AI assessment averaged about 24 seconds,"
+    },
+    {
+      "start": 79.924,
+      "dur": 1.955,
+      "text": "against a 30-second target."
+    },
+    {
+      "start": 82.039,
+      "dur": 3.677,
+      "text": "Change the weights, and scores update with no extra AI call."
+    },
+    {
+      "start": 86.967,
+      "dur": 1.715,
+      "text": "Less time sorting papers."
+    },
+    {
+      "start": 88.841,
+      "dur": 1.629,
+      "text": "More time doing research."
+    },
+    {
+      "start": 90.631,
+      "dur": 2.035,
+      "text": "Every claim traceable to its source."
+    },
+    {
+      "start": 92.825,
+      "dur": 3.848,
+      "text": "CiteWise: discover research gaps, and draft with confidence."
+    }
+  ]
+}
