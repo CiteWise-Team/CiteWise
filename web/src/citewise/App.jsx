@@ -8,6 +8,7 @@ import useIsMobile, { MOBILE_TABBAR_HEIGHT } from "../hooks/useIsMobile";
 import WorkspaceImportLayout from "./module1/catalyst-import/components/WorkspaceImportLayout";
 import ValidationDashboardLayout from "./module2/literature-review/components/ValidationDashboardLayout";
 import SynthesisDraftModule from "./module3/synthesis-draft/components/SynthesisDraftModule";
+import * as store from "./lib/citewiseStore";
 import "../styles/workspace.css";
 
 const CITEWISE_STEP_META = [
@@ -518,7 +519,47 @@ export default function CiteWiseApp() {
     localStorage.setItem(scopedKey(groupId, "maxUnlockedStep"), "3");
     setStep(2);
     setMaxUnlockedStep((prev) => Math.max(prev, 3));
-    navigate(`/smart-goals/${groupId}`, { state: { selectedIntroduction } });
+
+    // Resolve title and gaps from store / localStorage
+    let existingCatData = {};
+    try {
+      existingCatData = JSON.parse(localStorage.getItem(scopedKey(groupId, "catalystData")) || "{}");
+    } catch {}
+
+    const storeTitle = (sessionId ? store.getChosenTitle(sessionId) : "") || "";
+    const activeTitle = storeTitle || existingCatData.title || "";
+
+    const storeGaps = sessionId ? store.getGaps(sessionId) : [];
+    const formattedStoreGaps = storeGaps.map((g) => (typeof g === "string" ? g : g?.text)).filter(Boolean);
+    const primaryStoreGap = (sessionId ? localStorage.getItem(`citewise_chosen_gap_${sessionId}`) : "")
+      || storeGaps.find((g) => g?.selected)?.text
+      || formattedStoreGaps[0]
+      || "";
+
+    const activeGaps = formattedStoreGaps.length
+      ? formattedStoreGaps
+      : (Array.isArray(existingCatData.gaps) ? existingCatData.gaps : (primaryStoreGap ? [primaryStoreGap] : []));
+    const activeSelectedGap = primaryStoreGap || activeGaps[0] || existingCatData.gaps?.[0] || "";
+
+    try {
+      localStorage.setItem(
+        scopedKey(groupId, "catalystData"),
+        JSON.stringify({
+          ...existingCatData,
+          title: activeTitle,
+          gaps: activeGaps,
+        })
+      );
+    } catch {}
+
+    navigate(`/smart-goals/${groupId}`, {
+      state: {
+        selectedIntroduction,
+        researchTitle: activeTitle,
+        selectedGap: activeSelectedGap,
+        gaps: activeGaps,
+      },
+    });
   }
 
   const currentStepMeta = CITEWISE_STEP_META[step] || CITEWISE_STEP_META[0];

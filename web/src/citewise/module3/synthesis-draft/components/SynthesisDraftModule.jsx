@@ -736,13 +736,41 @@
 
     const handleSelectSmartGoalsVersion = (version) => {
       if (!version?.id || !version.content?.trim()) return;
-      setSelectedSmartGoalsVersion({
+      const normalizedIntro = {
         id: version.id,
         label: version.label || "Selected introduction",
         content: version.content,
         references: Array.isArray(version.references) ? version.references : [],
         timestamp: version.timestamp || null,
-      });
+      };
+      setSelectedSmartGoalsVersion(normalizedIntro);
+
+      if (groupId) {
+        try {
+          localStorage.setItem(`citewise.${groupId}.smartGoalsIntroduction`, JSON.stringify(normalizedIntro));
+        } catch {}
+
+        try {
+          const catKey = `citewise.${groupId}.catalystData`;
+          const existingCat = JSON.parse(localStorage.getItem(catKey) || "{}");
+          const storeTitle = (sessionId ? store.getChosenTitle(sessionId) : "") || "";
+          const storeGaps = sessionId ? store.getGaps(sessionId) : [];
+          const formattedGaps = storeGaps.map((g) => (typeof g === "string" ? g : g?.text)).filter(Boolean);
+          const primaryGap = (sessionId ? localStorage.getItem(`citewise_chosen_gap_${sessionId}`) : "")
+            || storeGaps.find((g) => g?.selected)?.text
+            || formattedGaps[0]
+            || "";
+
+          localStorage.setItem(
+            catKey,
+            JSON.stringify({
+              ...existingCat,
+              title: storeTitle || existingCat.title || "",
+              gaps: formattedGaps.length ? formattedGaps : (existingCat.gaps || (primaryGap ? [primaryGap] : [])),
+            })
+          );
+        } catch {}
+      }
     };
 
     const handleSetCurrentAsFinal = () => {

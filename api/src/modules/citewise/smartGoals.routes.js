@@ -160,7 +160,21 @@ router.get('/saved/:groupId', async (req, res) => {
     return res.status(500).json({ message: 'Could not load saved SMART goals.' });
   }
 
-  return res.json({ success: true, generation: data?.generation_json ?? null });
+  const { data: baseline } = await supabase
+    .from('research_baselines')
+    .select('project_title, research_gaps, rationale')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  return res.json({
+    success: true,
+    generation: data?.generation_json ?? null,
+    baseline: baseline ? {
+      title: baseline.project_title ?? '',
+      gaps: Array.isArray(baseline.research_gaps) ? baseline.research_gaps : [],
+      rationale: baseline.rationale ?? '',
+    } : null,
+  });
 });
 
 router.post('/save', async (req, res) => {
@@ -499,11 +513,11 @@ async function generateObjectives(req, res, replacement = false) {
     ? req.body.existingObjectives.filter((objective) => typeof objective === 'string').map((objective) => cleanText(objective, 500)).filter(Boolean).slice(0, 10)
     : [];
 
-  if (!groupId || !researchTitle || !selectedGap || (replacement
-    && (req.body?.declinedGoal?.reviewStatus !== 'declined' || !declinedGoal?.objective || !declinedGoal.specific))) {
-    return res.status(400).json({ message: replacement
-      ? 'Group, research title, selected research gap, and declined objective are required.'
-      : 'Group, research title, and selected research gap are required.' });
+  if (!groupId || !researchTitle || !selectedGap) {
+    return res.status(400).json({ message: 'Group, research title, and selected research gap are required.' });
+  }
+  if (replacement && (req.body?.declinedGoal?.reviewStatus !== 'declined' || !declinedGoal?.objective || !declinedGoal.specific)) {
+    return res.status(400).json({ message: 'Group, research title, selected research gap, and declined objective are required.' });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
