@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
 import { useGroup } from "../../../context/GroupContext";
 import { getSummaryByGroupAPI } from "../../../api/workflow.summarizer";
-import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
+import { RiLoader4Line } from "react-icons/ri";
+import { BookOpen } from "lucide-react";
 import WorkflowCardHeader from "../WorkflowCardHeader";
+import WorkflowPartnerLoadingUI from "./WorkflowPartnerLoadingUI";
 
-export default function SummarizerResult({ result, onComplete }) {
+export default function SummarizerResult({
+  result,
+  onComplete,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing = false,
+  processingStatus = "",
+}) {
   const group_id = useGroup().groupId;
 
   const [activeTab, setActiveTab] = useState("papers");
@@ -44,15 +53,20 @@ export default function SummarizerResult({ result, onComplete }) {
   }, [group_id, result]);
 
   return (
-    <div className="h-100 d-flex flex-column rounded-4 workflow-result-card document-result-card" style={{ minHeight: 0 }}>
+    <div className={`h-100 d-flex flex-column rounded-4 workflow-result-card document-result-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
       <WorkflowCardHeader
         title="Read the summary"
         subtitle="The generated summary appears here so you can review key ideas quickly."
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
         rightContent={
-          <div className="d-flex gap-2 workflow-result-tabs flex-shrink-0">
+          <div className="d-flex gap-2 workflow-result-tabs flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             <button
               className={`workflow-result-tab${activeTab === "papers" ? " is-active" : ""}`}
-              onClick={() => setActiveTab("papers")}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab("papers");
+              }}
             >
               Papers
             </button>
@@ -60,7 +74,10 @@ export default function SummarizerResult({ result, onComplete }) {
             <button
               className={`workflow-result-tab${activeTab === "result" ? " is-active" : ""}`}
               disabled={!selectedPaper}
-              onClick={() => setActiveTab("result")}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab("result");
+              }}
             >
               Result
             </button>
@@ -68,26 +85,45 @@ export default function SummarizerResult({ result, onComplete }) {
         }
       />
 
-      {/* CONTENT AREA */}
-      <div
-        className="workflow-result-content flex-grow-1"
-        style={{
+      {!isCollapsed && (
+        /* CONTENT AREA */
+        <div
+          className="workflow-result-content flex-grow-1"
+          style={{
           minHeight: 0,
           overflow: "hidden"
         }}
       >
-        {loading ? (
-          <div className="text-center mt-5">
-            <RiLoader4Line className="fs-1 mb-2 spin-loader" style={{ color: "#ea580c" }} />
-            <p style={{ color: "#4b5563" }}>
-              Loading summaries...
-            </p>
-          </div>
+        {isProcessing ? (
+          <WorkflowPartnerLoadingUI
+            stepType="summarizer"
+            title={processingStatus || "Summarizing sections with AI..."}
+          />
+        ) : loading ? (
+          <WorkflowPartnerLoadingUI
+            stepType="summarizer"
+            title="Loading summaries..."
+            description="Fetching your structured academic summaries and synthesized insights..."
+          />
         ) : papers.length === 0 ? (
-          <div className="text-center mt-5">
-            <RiQuestionLine className="fs-1 mb-2" style={{ color: "#9ca3af" }} />
-            <p style={{ color: "#4b5563" }}>
-              No summaries found.
+          <div className="text-center py-5 px-3 d-flex flex-column align-items-center justify-content-center">
+            <div
+              className="d-inline-flex align-items-center justify-content-center mb-3 rounded-4"
+              style={{
+                width: "56px",
+                height: "56px",
+                background: "rgba(234, 88, 12, 0.08)",
+                border: "1px dashed rgba(234, 88, 12, 0.35)",
+                color: "#ea580c",
+              }}
+            >
+              <BookOpen size={26} strokeWidth={2} />
+            </div>
+            <h6 className="fw-bold mb-1" style={{ color: "var(--cw-text-primary, #0f0e17)", fontSize: "1rem" }}>
+              No summaries generated yet
+            </h6>
+            <p className="small mb-0" style={{ color: "var(--cw-text-muted, #6b7280)", maxWidth: "340px", lineHeight: 1.5 }}>
+              Select an extracted document in the left panel and click &ldquo;Run Workflow&rdquo; to summarize key sections.
             </p>
           </div>
         ) : activeTab === "papers" ? (
@@ -166,6 +202,7 @@ export default function SummarizerResult({ result, onComplete }) {
 
         )}
       </div>
+      )}
     </div>
   );
 }

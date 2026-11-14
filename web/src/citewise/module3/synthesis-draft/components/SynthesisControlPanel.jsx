@@ -1,5 +1,7 @@
-// module3/synthesis-draft/components/SynthesisControlPanel.jsx
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import DraftIntroductionButton from "./DraftIntroductionButton";
+import { useTheme } from "../../../../context/ThemeContext";
 
 export default function SynthesisControlPanel({ 
   generationStatus, 
@@ -10,48 +12,68 @@ export default function SynthesisControlPanel({
   hasApprovedDocuments,
   approvedCount
 }) {
+  const { isDark } = useTheme();
+  const [open, setOpen] = useState(true);
+  const styles = getStyles(isDark);
+
   return (
     <div style={styles.card}>
-      <div className="workflow-card-header" style={styles.cardHeader}>
-        <span style={styles.cardTitle}>Synthesis Control</span>
-        <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--cw-text-muted, #6b7280)", fontFamily: "'Poppins', sans-serif" }}>
-          Generate an introduction draft with APA citations from approved literature.
-        </p>
+      <div
+        className="workflow-card-header"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          ...styles.cardHeader,
+          borderBottom: open ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+          cursor: "pointer",
+          userSelect: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div>
+          <span style={styles.cardTitle}>Synthesis Control</span>
+        </div>
+        <span style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}>
+          {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </span>
       </div>
 
-      <div style={styles.cardBody}>
-        {/* Generation Status Box */}
-        <div style={styles.statusBox}>
-          <span style={styles.statusLabel}>Generation Status</span>
-          <span style={styles.statusText}>
-            {generationStatus === "generating" && <span style={styles.statusDot} />}
-            {statusText}
-          </span>
+      {open && (
+        <div style={styles.cardBody}>
+          {/* Generation Status Box */}
+          <div style={styles.statusBox}>
+            <span style={styles.statusLabel}>Generation Status</span>
+            <span style={styles.statusText}>
+              {generationStatus === "generating" && <span style={styles.statusDot} />}
+              {statusText}
+            </span>
 
-          {generationStatus === "generating" && (
-            <div style={styles.progressBarContainer}>
-              <div style={{ ...styles.progressBarFill, width: `${generationProgress}%` }} />
+            {generationStatus === "generating" && (
+              <div style={styles.progressBarContainer}>
+                <div style={{ ...styles.progressBarFill, width: `${generationProgress}%` }} />
+              </div>
+            )}
+          </div>
+
+          {/* Warning if no approved documents */}
+          {!hasApprovedDocuments && generationStatus === "idle" && (
+            <div style={styles.warningBox}>
+              <span style={styles.warningText}>⚠️ No approved documents found. Please approve documents in AI Assessment first.</span>
             </div>
           )}
+
+          {/* Draft Introduction Button */}
+          <DraftIntroductionButton
+            generationStatus={generationStatus}
+            generationProgress={generationProgress}
+            onSynthesize={onSynthesize}
+            onRegenerate={resetGeneration => onRegenerate && onRegenerate(resetGeneration)}
+            hasApprovedDocuments={hasApprovedDocuments}
+            approvedCount={approvedCount}
+          />
         </div>
-
-        {/* Warning if no approved documents */}
-        {!hasApprovedDocuments && generationStatus === "idle" && (
-          <div style={styles.warningBox}>
-            <span style={styles.warningText}>⚠️ No approved documents found. Please approve documents in AI Assessment first.</span>
-          </div>
-        )}
-
-        {/* Draft Introduction Button */}
-        <DraftIntroductionButton
-          generationStatus={generationStatus}
-          generationProgress={generationProgress}
-          onSynthesize={onSynthesize}
-          onRegenerate={onRegenerate}
-          hasApprovedDocuments={hasApprovedDocuments}
-          approvedCount={approvedCount}
-        />
-      </div>
+      )}
 
       <style>{`
         @keyframes pulse {
@@ -63,7 +85,7 @@ export default function SynthesisControlPanel({
   );
 }
 
-const styles = {
+const getStyles = (isDark) => ({
   card: {
     background: "var(--cw-bg-surface, #ffffff)",
     border: "1px solid var(--cw-border, #e5e7eb)",
@@ -71,13 +93,13 @@ const styles = {
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
-    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
+    boxShadow: isDark ? "0 4px 16px rgba(0, 0, 0, 0.3)" : "0 4px 16px rgba(0, 0, 0, 0.05)",
   },
-cardHeader: {
-  background: "var(--cw-bg-surface-elevated, #f9fafb)",
-  borderBottom: "1px solid var(--cw-border, #e5e7eb)",
-  padding: "16px 20px",
-},
+  cardHeader: {
+    background: "var(--cw-bg-surface-elevated, #f9fafb)",
+    borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+    padding: "16px 20px",
+  },
   cardTitle: {
     fontFamily: "'Poppins', sans-serif",
     fontWeight: 700,
@@ -92,8 +114,8 @@ cardHeader: {
     gap: "16px",
   },
   statusBox: {
-    background: "#f9fafb",
-    border: "1px solid #e5e7eb",
+    background: isDark ? "rgba(255, 255, 255, 0.04)" : "#f9fafb",
+    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
     borderRadius: "10px",
     padding: "14px 16px",
     display: "flex",
@@ -105,11 +127,11 @@ cardHeader: {
     fontWeight: "700",
     letterSpacing: "0.08em",
     textTransform: "uppercase",
-    color: "#6b7280",
+    color: isDark ? "#9ca3af" : "#6b7280",
   },
   statusText: {
     fontSize: "0.85rem",
-    color: "#111827",
+    color: isDark ? "#f9fafb" : "#111827",
     fontWeight: "600",
     display: "flex",
     alignItems: "center",
@@ -119,34 +141,34 @@ cardHeader: {
     width: "8px",
     height: "8px",
     borderRadius: "50%",
-    background: "#f97316",
+    background: "#ea580c",
     display: "inline-block",
     animation: "pulse 1.2s infinite",
   },
   progressBarContainer: {
     width: "100%",
     height: "4px",
-    background: "#f3f4f6",
+    background: isDark ? "rgba(255, 255, 255, 0.1)" : "#f3f4f6",
     borderRadius: "2px",
     marginTop: "8px",
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    background: "linear-gradient(90deg, #f97316, #fb8c3a)",
+    background: "#ea580c",
     borderRadius: "2px",
     transition: "width 0.4s ease",
   },
   warningBox: {
-    background: "#fff7ef",
-    border: "1px solid #fed7aa",
+    background: isDark ? "rgba(249, 115, 22, 0.12)" : "#fff7ef",
+    border: isDark ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid #fed7aa",
     borderRadius: "8px",
     padding: "10px 12px",
   },
   warningText: {
     fontSize: "0.75rem",
-    color: "#9a3412",
+    color: isDark ? "#fed7aa" : "#92400e",
     fontFamily: "'Poppins', sans-serif",
     fontWeight: 500,
   },
-};
+});

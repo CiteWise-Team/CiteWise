@@ -3,11 +3,20 @@ import { FaArrowRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useGroup } from "../../../context/GroupContext";
 import { getTopicsByGroupIdAPI } from "../../../api/workflow.topic";
-import { RiLoader4Line, RiQuestionLine } from "react-icons/ri";
+import { RiLoader4Line } from "react-icons/ri";
+import { Compass } from "lucide-react";
 import { apiFetch } from "../../../api/http";
 import WorkflowCardHeader from "../WorkflowCardHeader";
+import WorkflowPartnerLoadingUI from "./WorkflowPartnerLoadingUI";
 
-export default function TopicSuggesterOutput({ result, onComplete }) {
+export default function TopicSuggesterOutput({
+  result,
+  onComplete,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing = false,
+  processingStatus = "",
+}) {
   const group_id = useGroup().groupId;
   const navigate = useNavigate();
 
@@ -88,10 +97,12 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
   const activeItem = items.find((p) => p.id === activeId);
 
   return (
-    <div className="h-100 d-flex flex-column rounded-4 workflow-result-card topic-result-card" style={{ minHeight: 0 }}>
+    <div className={`h-100 d-flex flex-column rounded-4 workflow-result-card topic-result-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
       <WorkflowCardHeader
         title="Compare suggested topics"
         subtitle="Review the suggested topics and their supporting rationale before choosing your direction."
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
         rightContent={
           items.length > 0 ? (
             <span
@@ -112,7 +123,14 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
           ) : null
         }
       />
-      <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
+      {!isCollapsed && (
+        <div className="workflow-result-content flex-grow-1" style={{ minHeight: 0, overflow: "hidden" }}>
+        {isProcessing ? (
+          <WorkflowPartnerLoadingUI
+            stepType="topic"
+            title={processingStatus || "Generating topic recommendations with AI..."}
+          />
+        ) : (
         <div className="workflow-split-result-body d-flex h-100 cw-m-split" style={{ minHeight: 0, overflow: "visible", gap: 0 }}>
         {/* LEFT SIDEBAR — Titles only */}
         <div
@@ -136,16 +154,32 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
 
           <div className="workflow-result-sidebar-list flex-grow-1" style={{ overflowY: "auto", minHeight: 0, paddingRight: "4px" }}>
             {loading ? (
-              <div className="text-center mt-5">
-                <RiLoader4Line className="fs-1 mb-2 spin-loader" style={{ color: "#ea580c" }} />
-                <p style={{ color: "#4b5563" }}>Loading topics...</p>
+              <div style={{ padding: "2.5rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: "10px" }}>
+                <span className="catalyst-btn-spinner-orange" style={{ width: "24px", height: "24px", borderWidth: "2.5px" }} />
+                <span style={{ fontSize: "0.82rem", color: "var(--cw-text-muted, #6b7280)", fontWeight: 500, fontFamily: "'Poppins', sans-serif" }}>
+                  Loading topics...
+                </span>
               </div>
             ) : items.length === 0 ? (
-              <div className="text-center mt-5">
-                <RiQuestionLine className="fs-1 mb-2" style={{ color: "#9ca3af" }} />
-                <p style={{ color: "#4b5563" }}>
-                  No topics generated yet.
-                </p>
+              <div className="text-center py-4 px-2 d-flex flex-column align-items-center justify-content-center">
+                <div
+                  className="d-inline-flex align-items-center justify-content-center mb-2 rounded-3"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                    background: "rgba(234, 88, 12, 0.08)",
+                    border: "1px dashed rgba(234, 88, 12, 0.35)",
+                    color: "#ea580c",
+                  }}
+                >
+                  <Compass size={20} strokeWidth={2} />
+                </div>
+                <div className="small fw-bold" style={{ color: "var(--cw-text-primary, #0f0e17)" }}>
+                  No topics generated yet
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--cw-text-muted, #6b7280)", marginTop: "4px" }}>
+                  Run workflow to propose topics
+                </div>
               </div>
             ) : (
               items.map((item) => {
@@ -241,7 +275,9 @@ export default function TopicSuggesterOutput({ result, onComplete }) {
           )}
         </div>
       </div>
+        )}
       </div>
+      )}
     </div>
   );
 }

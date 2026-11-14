@@ -10,7 +10,15 @@ import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function TopicSuggesterInput({ setResult }) {
+export default function TopicSuggesterInput({
+  setResult,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing,
+  setIsProcessing,
+  processingStatus,
+  setProcessingStatus,
+}) {
   const { groupId: group_id } = useGroup();
 
   const [gaps, setGaps] = useState([]);
@@ -28,6 +36,8 @@ export default function TopicSuggesterInput({ setResult }) {
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
     };
   }, []);
 
@@ -77,6 +87,8 @@ export default function TopicSuggesterInput({ setResult }) {
     try {
       setRunning(true);
       setRunningText("Starting topic discovery...");
+      setIsProcessing?.(true);
+      setProcessingStatus?.("Generating topic recommendations with AI...");
 
       const selectedGapTexts = gaps
         .filter((g) => selectedGaps.includes(g.id))
@@ -90,6 +102,8 @@ export default function TopicSuggesterInput({ setResult }) {
       // Handle async 202 background job
       if (response?.jobId) {
         setRunningText("Generating topic recommendations with AI...");
+        setIsProcessing?.(true);
+        setProcessingStatus?.("Generating topic recommendations with AI...");
 
         const startTime = Date.now();
         const MAX_POLL_TIME = 180 * 1000; // 3 minutes timeout
@@ -100,6 +114,8 @@ export default function TopicSuggesterInput({ setResult }) {
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Timeout",
@@ -113,6 +129,8 @@ export default function TopicSuggesterInput({ setResult }) {
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               setResult(pollRes.data);
               showFeedback({
                 type: "success",
@@ -123,6 +141,8 @@ export default function TopicSuggesterInput({ setResult }) {
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setRunning(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Workflow Failed",
@@ -139,6 +159,8 @@ export default function TopicSuggesterInput({ setResult }) {
 
       if (!response?.jobId) {
         setRunning(false);
+        setIsProcessing?.(false);
+        setProcessingStatus?.("");
         showFeedback({
           type: "error",
           title: "Topic Suggestion Failed",
@@ -149,6 +171,8 @@ export default function TopicSuggesterInput({ setResult }) {
     } catch (err) {
       console.error(err);
       setRunning(false);
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
       showFeedback({
         type: "error",
         title: "Workflow Failed",
@@ -159,17 +183,21 @@ export default function TopicSuggesterInput({ setResult }) {
 
   return (
     <>
-      <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
+      <div className={`h-100 rounded-4 workflow-input-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
         <WorkflowCardHeader
           title="Generate topic suggestions"
           subtitle={
             <span>
-              Provide your research context and let <span style={{ color: "#ea580c", fontWeight: 600 }}>CAT</span>alyst propose focused directions for your study.
+              Provide your research context and let CATalyst propose focused directions for your study.
             </span>
           }
+          isCollapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse}
         />
 
-        <div className="workflow-input-body">
+        {!isCollapsed && (
+          <>
+            <div className="workflow-input-body">
           <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
             <small style={{ color: "#4b5563", fontWeight: 600 }}>Choose one or more gaps</small>
 
@@ -184,7 +212,17 @@ export default function TopicSuggesterInput({ setResult }) {
               }}
             >
               {loading && (
-                <div style={{ color: "#6b7280" }}>Loading gaps...</div>
+                <div style={{ padding: "1.5rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span className="catalyst-btn-spinner-orange" />
+                    <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#9a3412", fontFamily: "'Poppins', sans-serif" }}>
+                      Loading gaps...
+                    </span>
+                  </div>
+                  <div style={{ width: "140px", height: "4px", background: "#fed7aa", borderRadius: "999px", overflow: "hidden", position: "relative" }}>
+                    <div className="catalyst-progress-beam" />
+                  </div>
+                </div>
               )}
 
               {!loading && gaps.length === 0 && (
@@ -236,14 +274,16 @@ export default function TopicSuggesterInput({ setResult }) {
             className="workflow-action-button"
           >
             {running ? (
-              <RiLoader4Line className="spinner-border spinner-border-sm spin-loader" style={{ animation: "spin 1s linear infinite" }} />
+              <span className="catalyst-btn-spinner" />
             ) : (
               <FaPlay size={12} className="me-1" />
             )}
             {running ? runningText : "Run Workflow"}
           </button>
         </div>
-      </div>
+      </>
+    )}
+  </div>
 
       <FeedbackModal {...config} onClose={hideFeedback} />
     </>

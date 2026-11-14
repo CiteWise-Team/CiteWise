@@ -9,9 +9,9 @@ export default function ConnectImportButton({ onClick, isLoading }) {
         alignItems: "center",
         justifyContent: "center",
         gap: "0.5rem",
-        background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+        background: "#ea580c",
         color: "#fff",
-        border: "none",
+        border: "1px solid #ea580c",
         borderRadius: "8px",
         fontSize: "0.875rem",
         fontWeight: "700",
@@ -20,28 +20,33 @@ export default function ConnectImportButton({ onClick, isLoading }) {
         padding: "0.55rem 1.25rem",
         cursor: isLoading ? "not-allowed" : "pointer",
         whiteSpace: "nowrap",
-        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+        transition: "all 180ms ease",
         opacity: isLoading ? 0.7 : 1,
-        boxShadow: "0 4px 12px rgba(249, 115, 22, 0.28), 0 1px 2px rgba(249, 115, 22, 0.15)",
+        boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
         position: "relative",
         overflow: "hidden",
       }}
       onMouseEnter={(e) => {
         if (!isLoading) {
-          e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
-          e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.4), 0 2px 4px rgba(249, 115, 22, 0.2)";
+          e.currentTarget.style.background = "#c2410c";
+          e.currentTarget.style.borderColor = "#c2410c";
+          e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
           e.currentTarget.style.transform = "translateY(-1px)";
         }
       }}
       onMouseLeave={(e) => {
         if (!isLoading) {
-          e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.28), 0 1px 2px rgba(249, 115, 22, 0.15)";
+          e.currentTarget.style.background = "#ea580c";
+          e.currentTarget.style.borderColor = "#ea580c";
+          e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
           e.currentTarget.style.transform = "translateY(0)";
         }
       }}
       onMouseDown={(e) => {
-        if (!isLoading) e.currentTarget.style.transform = "translateY(1px)";
+        if (!isLoading) {
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+        }
       }}
       onMouseUp={(e) => {
         if (!isLoading) e.currentTarget.style.transform = "translateY(-1px)";

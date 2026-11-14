@@ -10,6 +10,7 @@ export default function ConfirmModal({
   confirmText = "Confirm",
   cancelText = "Cancel",
   type = "primary",
+  warningMessage,
   onConfirm,
 }) {
   const { isDark } = useTheme();
@@ -32,6 +33,9 @@ export default function ConfirmModal({
   }
 
   const isDanger = type === "danger";
+  const effectiveWarning = warningMessage !== undefined
+    ? warningMessage
+    : (isDanger ? "All evidence, topic notes, and drafting history linked to this workspace will be deleted." : null);
 
   return createPortal(
     <div className="modal fade" id={id} tabIndex="-1" aria-hidden="true">
@@ -52,10 +56,10 @@ export default function ConfirmModal({
 
           {/* Body */}
           <div className="workspace-create-body">
-            <p style={{ color: isDark ? "#cbd5e1" : "#4b5563", fontSize: "0.92rem", lineHeight: 1.6, margin: isDanger ? "0 0 14px" : "0" }}>
+            <p style={{ color: isDark ? "#cbd5e1" : "#4b5563", fontSize: "0.92rem", lineHeight: 1.6, margin: effectiveWarning ? "0 0 14px" : "0" }}>
               {message}
             </p>
-            {isDanger && (
+            {effectiveWarning && (
               <div
                 style={{
                   backgroundColor: isDark ? "rgba(220, 38, 38, 0.15)" : "#fef2f2",
@@ -67,7 +71,7 @@ export default function ConfirmModal({
                   lineHeight: 1.5,
                 }}
               >
-                <strong>Warning:</strong> All evidence, topic notes, and drafting history linked to this workspace will be deleted.
+                <strong>Warning:</strong> {effectiveWarning}
               </div>
             )}
           </div>

@@ -161,7 +161,7 @@ export default function Home() {
 
           <div className="float-badge badge-1">
             <span className="avatar">C</span>
-            <span style={{ color: "#ea580c" }}>CAT</span>alyst
+            <span><span style={{ color: "#ea580c" }}>CAT</span>alyst</span>
           </div>
           <div className="float-badge badge-2">
             <span className="avatar">AI</span>

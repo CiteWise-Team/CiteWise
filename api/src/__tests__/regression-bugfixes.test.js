@@ -88,12 +88,17 @@ describe('API rate-limit ceiling vs. dashboard polling', () => {
     // Read the poll intervals from source so this fails if someone tightens an
     // interval without revisiting the budget.
     const dashboardSrc = readSource(DASHBOARD);
-    const intervalsMs = [...dashboardSrc.matchAll(/setTimeout\(\s*fetch\w+\s*,\s*(\d+)\)/g)]
-      .map((m) => Number(m[1]));
+    const constMs = (name) => Number(dashboardSrc.match(new RegExp(`const ${name} = (\\d+);`))[1]);
+    const insightsMs = constMs('INSIGHTS_POLL_MS');
+    const documentsMs = constMs('ACTIVE_DOCUMENTS_POLL_MS');
 
-    expect(intervalsMs.length).toBeGreaterThan(0);
-    const fastestMs = Math.min(...intervalsMs);
-    const worstCase = (windowMs / fastestMs) * intervalsMs.length;
+    // Every insights re-poll must use the budgeted interval.
+    const insightTimers = [...dashboardSrc.matchAll(/setTimeout\(\s*fetchInsightsData\s*,\s*(\w+)\)/g)].map((m) => m[1]);
+    expect(insightTimers.length).toBeGreaterThan(0);
+    expect(new Set(insightTimers)).toEqual(new Set(['INSIGHTS_POLL_MS']));
+
+    // Both loops can run at once while a document is being assessed.
+    const worstCase = windowMs / insightsMs + windowMs / documentsMs;
 
     // Before the fix: max was 200 while polling alone needed 240+, so ordinary use
     // exhausted the budget within minutes and every request started failing.
@@ -103,7 +108,7 @@ describe('API rate-limit ceiling vs. dashboard polling', () => {
   it('backs the document poll off when nothing is being assessed', () => {
     const dashboardSrc = readSource(DASHBOARD);
     expect(dashboardSrc).toMatch(/documentsActiveRef/);
-    expect(dashboardSrc).toMatch(/documentsActiveRef\.current \? 5000 : 30000/);
+    expect(dashboardSrc).toMatch(/documentsActiveRef\.current \? ACTIVE_DOCUMENTS_POLL_MS : 30000/);
   });
 });
 

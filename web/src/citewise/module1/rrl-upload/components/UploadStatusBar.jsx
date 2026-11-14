@@ -15,7 +15,13 @@ function FilledDocumentIcon() {
   );
 }
 
-export default function UploadStatusBar({ readyCount, totalCount, statusMessage, uploadState }) {
+export default function UploadStatusBar({
+  readyCount,
+  totalCount,
+  uploadedCount,
+  statusMessage,
+  uploadState,
+}) {
   const statusColor = {
     ready: "#f97316",
     success: "#16a34a",
@@ -24,6 +30,13 @@ export default function UploadStatusBar({ readyCount, totalCount, statusMessage,
     error: "#dc2626",
     warning: "#d97706",
   }[uploadState] || "#6b7280";
+
+  // ✨ CHANGED: while files are in the queue show ready / queue counts;
+  // once the queue is empty show how many documents are already uploaded.
+  const leftLabel =
+    totalCount > 0
+      ? `${readyCount} ready · ${totalCount} in queue`
+      : `${uploadedCount ?? 0} document${uploadedCount === 1 ? "" : "s"} uploaded`;
 
   return (
     <div
@@ -44,7 +57,7 @@ export default function UploadStatusBar({ readyCount, totalCount, statusMessage,
     >
       <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "var(--cw-text-primary, #111827)" }}>
         <FilledDocumentIcon />
-        <span style={{ fontWeight: 600 }}>Files: {totalCount ?? readyCount}</span>
+        <span style={{ fontWeight: 600 }}>{leftLabel}</span>
       </div>
       <div style={{ fontWeight: 700, color: statusColor, display: "flex", alignItems: "center", gap: "4px" }}>
         {uploadState === "ready" ? "✓ Ready" : statusMessage}

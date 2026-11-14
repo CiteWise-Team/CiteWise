@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import EvidenceExcerptList from './EvidenceExcerptList';
 import SemanticScoreDashboard from './SemanticScoreDashboard';
 import UploadNewPDFButton from './UploadNewPDFButton';
@@ -31,6 +32,43 @@ const panelHeaderStyle = {
   padding: PANEL_HEADER_PADDING,
   background: 'var(--cw-bg-surface-elevated, #f9fafb)',
   borderBottom: '1px solid var(--cw-border, #e5e7eb)',
+};
+
+// ── NEW: Modal Styles ─────────────────────────────────────────
+const modalStyles = {
+  overlay: {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 9999
+  },
+  content: {
+    backgroundColor: 'var(--cw-bg-surface, #1e293b)', 
+    padding: '24px',
+    borderRadius: '12px',
+    maxWidth: '420px',
+    width: '90%',
+    border: '1px solid var(--cw-border, #334155)',
+    boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+    fontFamily: "'Poppins', sans-serif"
+  },
+  title: {
+    color: '#f97316', margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 700
+  },
+  text: {
+    color: 'var(--cw-text-primary, #e2e8f0)', fontSize: '0.9rem', lineHeight: 1.5, margin: '0 0 20px 0'
+  },
+  actions: {
+    display: 'flex', justifyContent: 'flex-end', gap: '10px'
+  },
+  cancelBtn: {
+    padding: '8px 16px', borderRadius: '6px', border: '1px solid #475569', 
+    backgroundColor: 'transparent', color: '#cbd5e1', cursor: 'pointer', fontWeight: 600
+  },
+  confirmBtn: {
+    padding: '8px 16px', borderRadius: '6px', border: 'none', 
+    backgroundColor: '#f97316', color: 'white', fontWeight: 700, cursor: 'pointer'
+  }
 };
 
 const AIAssessmentPanel = ({
@@ -68,8 +106,60 @@ const AIAssessmentPanel = ({
   const resolvedInsights = useExternal ? externalInsights : insights;
   const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
   const resolvedError = useExternal ? externalError : error;
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  
   // Re-render the recomputed overall score when the user changes weight prefs.
   const [prefsVersion, setPrefsVersion] = useState(0);
+
+  // ── NEW: Modal Warning State ─────────────────────────────────
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+
+  // Synchronized active loading progression
+  const [panelProgress, setPanelProgress] = useState(25);
+  const [panelStatusText, setPanelStatusText] = useState("Analyzing document content...");
+
+  useEffect(() => {
+    if (!resolvedLoading && !isAssessing) {
+      setPanelProgress(25);
+      return;
+    }
+    setPanelProgress(25);
+    setPanelStatusText(
+      isAssessing
+        ? "Submitting document for AI evaluation..."
+        : "Reading document excerpts & methodology..."
+    );
+
+    const t1 = setTimeout(() => {
+      setPanelProgress(52);
+      setPanelStatusText(
+        isAssessing
+          ? "Evaluating study relevance & findings..."
+          : "Extracting key research arguments & evidence..."
+      );
+    }, 600);
+
+    const t2 = setTimeout(() => {
+      setPanelProgress(78);
+      setPanelStatusText(
+        isAssessing
+          ? "Calibrating alignment metrics & scoring..."
+          : "Synthesizing document insights..."
+      );
+    }, 1300);
+
+    const t3 = setTimeout(() => {
+      setPanelProgress(94);
+      setPanelStatusText("Finalizing assessment report...");
+    }, 2200);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [resolvedLoading, isAssessing, documentId]);
 
   useEffect(() => {
     const unsub = store.subscribe(({ name }) => {
@@ -91,7 +181,6 @@ const AIAssessmentPanel = ({
   useEffect(() => {
     if (!documentId || useExternal) return;
 
-    // Immediately load from cache when documentId changes
     if (insightsCache.has(documentId)) {
       setInsights(insightsCache.get(documentId));
       setLoading(false);
@@ -108,12 +197,19 @@ const AIAssessmentPanel = ({
       try {
         const { res: response, data } = await apiFetch(`/api/v1/documents/${documentId}/insights`);
 
+        if (response.status === 202) {
+          if (isMounted) {
+            setLoading(true);
+            pollTimeout = setTimeout(fetchInsights, 1500);
+          }
+          return;
+        }
+
         if (response.status === 404) {
           if (isMounted) {
             setInsights(null);
             setError(null);
-            setLoading(true);
-            pollTimeout = setTimeout(fetchInsights, 5000);
+            setLoading(false);
           }
           return;
         }
@@ -144,9 +240,53 @@ const AIAssessmentPanel = ({
     };
   }, [documentId, refreshKey, useExternal]);
 
-  const handleAssess = async () => {
-    if (!documentId || isAssessing) return;
+  // Helper to map API data
+  const getMappedData = () => {
+    if (!resolvedInsights) return null;
+    const responseScores = resolvedInsights.scores || {};
+    return {
+      excerpts: Array.isArray(resolvedInsights.evidenceExcerpts)
+        ? resolvedInsights.evidenceExcerpts.map((e) => ({
+            criterion: e.criterion || null,
+            quoteText: e.quoteText || e.quote || e.text || "",
+            pageNumber: e.pageNumber ?? e.page ?? null,
+            pageVerified: e.pageVerified ?? null,
+            relevanceLevel: e.relevanceLevel || e.relevance || null,
+            evidenceType: e.evidenceType || e.type || null,
+            displayOrder: e.displayOrder ?? null,
+          }))
+        : [],
+      scores: {
+        gapAlignment: resolvedInsights.gapAlignmentScore ?? resolvedInsights.gapAlignment ?? responseScores.gapAlignment ?? responseScores.gapAlignmentScore ?? 0,
+        methodology: resolvedInsights.methodologyScore ?? resolvedInsights.methodology ?? responseScores.methodology ?? responseScores.methodologyScore ?? 0,
+        theoretical: resolvedInsights.theoreticalScore ?? resolvedInsights.theory ?? responseScores.theoretical ?? responseScores.theory ?? responseScores.theoreticalScore ?? responseScores.theoryScore ?? 0,
+        citation: resolvedInsights.citationScore ?? resolvedInsights.citationQuality ?? responseScores.citation ?? responseScores.citationQuality ?? responseScores.citationScore ?? 0,
+        overall: resolvedInsights.overallScore ?? resolvedInsights.overall ?? responseScores.overall ?? responseScores.overallScore ?? resolvedInsights.averageOverallScore ?? null,
+      },
+      recommendationStatus: resolvedInsights.recommendationStatus || resolvedInsights.recommendation || null,
+      confidenceLevel: resolvedInsights.confidenceLevel || null,
+      relevanceLevel: resolvedInsights.relevanceLevel || null,
+      mismatchFlags: Array.isArray(resolvedInsights.mismatchFlags) ? resolvedInsights.mismatchFlags : [],
+      weaknessFlags: Array.isArray(resolvedInsights.weaknessFlags) ? resolvedInsights.weaknessFlags : [],
+      validationFlags: Array.isArray(resolvedInsights.validationFlags) ? resolvedInsights.validationFlags : [],
+      pageCount: resolvedInsights.pageCount ?? null,
+      timing: resolvedInsights.timing ?? null,
+    };
+  };
 
+  const mappedData = getMappedData();
+
+  void prefsVersion;
+  if (mappedData) {
+    const prefs = store.getScorePrefs(sessionId);
+    const recomputed = store.recomputeOverall(mappedData.scores, prefs);
+    if (recomputed != null) {
+      mappedData.scores = { ...mappedData.scores, overall: recomputed };
+    }
+  }
+
+  // ── NEW: Extracted Assessment Logic ─────────────────────────
+  const executeAssess = async () => {
     setIsAssessing(true);
     setError(null);
 
@@ -175,50 +315,29 @@ const AIAssessmentPanel = ({
     }
   };
 
-  // Helper to map API data to the format expected by the new child components
-  const getMappedData = () => {
-    if (!resolvedInsights) return null;
-    const responseScores = resolvedInsights.scores || {};
-    return {
-      excerpts: Array.isArray(resolvedInsights.evidenceExcerpts)
-        ? resolvedInsights.evidenceExcerpts.map((e) => ({
-            criterion: e.criterion || null,
-            quoteText: e.quoteText || e.quote || e.text || "",
-            pageNumber: e.pageNumber ?? e.page ?? null,
-            relevanceLevel: e.relevanceLevel || e.relevance || null,
-            evidenceType: e.evidenceType || e.type || null,
-            displayOrder: e.displayOrder ?? null,
-          }))
-        : [],
-      scores: {
-        gapAlignment: resolvedInsights.gapAlignmentScore ?? resolvedInsights.gapAlignment ?? responseScores.gapAlignment ?? responseScores.gapAlignmentScore ?? 0,
-        methodology: resolvedInsights.methodologyScore ?? resolvedInsights.methodology ?? responseScores.methodology ?? responseScores.methodologyScore ?? 0,
-        theoretical: resolvedInsights.theoreticalScore ?? resolvedInsights.theory ?? responseScores.theoretical ?? responseScores.theory ?? responseScores.theoreticalScore ?? responseScores.theoryScore ?? 0,
-        citation: resolvedInsights.citationScore ?? resolvedInsights.citationQuality ?? responseScores.citation ?? responseScores.citationQuality ?? responseScores.citationScore ?? 0,
-        overall: resolvedInsights.overallScore ?? resolvedInsights.overall ?? responseScores.overall ?? responseScores.overallScore ?? resolvedInsights.averageOverallScore ?? null,
-      },
-      recommendationStatus: resolvedInsights.recommendationStatus || resolvedInsights.recommendation || null,
-      confidenceLevel: resolvedInsights.confidenceLevel || null,
-      relevanceLevel: resolvedInsights.relevanceLevel || null,
-      mismatchFlags: Array.isArray(resolvedInsights.mismatchFlags) ? resolvedInsights.mismatchFlags : [],
-      weaknessFlags: Array.isArray(resolvedInsights.weaknessFlags) ? resolvedInsights.weaknessFlags : [],
-      validationFlags: Array.isArray(resolvedInsights.validationFlags) ? resolvedInsights.validationFlags : [],
-    };
+  // ── NEW: Intercept handler with Relevance Check ─────────────
+  const handleAssess = async () => {
+    if (!documentId || isAssessing) return;
+
+    // Check for low relevance (e.g., below 20%)
+    const currentScore = mappedData?.scores?.overall ?? 100;
+    const relevanceText = mappedData?.relevanceLevel || "Unknown";
+    
+    // We trigger warning if score is low OR relevance text indicates "Low"
+    const isLowRelevance = currentScore < 20 || relevanceText.toLowerCase().includes('low');
+
+    if (isLowRelevance && mappedData) {
+      // Show modal and save the action
+      setPendingAction(() => executeAssess);
+      setShowWarningModal(true);
+      return;
+    }
+
+    // Proceed directly if not low
+    executeAssess();
   };
 
-  const mappedData = getMappedData();
-
-  // Recompute overall from user weight prefs
-  void prefsVersion;
-  if (mappedData) {
-    const prefs = store.getScorePrefs(sessionId);
-    const recomputed = store.recomputeOverall(mappedData.scores, prefs);
-    if (recomputed != null) {
-      mappedData.scores = { ...mappedData.scores, overall: recomputed };
-    }
-  }
-
-  // --- Helper: Panel header with both buttons ---
+  // --- Helper: Panel header ---
   const PanelHeader = () => (
     <div
       style={{
@@ -244,14 +363,14 @@ const AIAssessmentPanel = ({
         >
           AI Assessment Panel
         </h2>
-        <p className="workflow-card-header-subtitle cw-panel-subtitle" style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--cw-text-muted, #6b7280)', fontFamily: "'Poppins', sans-serif" }}>
-          Analyze literature relevance, methodology, and theoretical frameworks.
-        </p>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
         {documentId && (
           <button
-            onClick={handleAssess}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAssess(); // This now triggers the modal if needed
+            }}
             disabled={isAssessing}
             style={{
               padding: '8px 16px',
@@ -269,7 +388,7 @@ const AIAssessmentPanel = ({
             }}
             onMouseOver={(e) => {
               if (!isAssessing) {
-                e.currentTarget.style.background = 'rgba(249, 115, 22, 0.1)';
+                e.currentTarget.style.background = 'rgba(234, 88, 12, 0.1)';
               }
             }}
             onMouseOut={(e) => {
@@ -280,23 +399,46 @@ const AIAssessmentPanel = ({
           >
             {isAssessing ? (
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
-                  <line x1="12" y1="2" x2="12" y2="6"></line>
-                  <line x1="12" y1="18" x2="12" y2="22"></line>
-                  <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-                  <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-                  <line x1="2" y1="12" x2="6" y2="12"></line>
-                  <line x1="18" y1="12" x2="22" y2="12"></line>
-                  <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-                  <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                <svg width="14" height="14" viewBox="0 0 50 50">
+                  <circle
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.3)"
+                    strokeWidth="5"
+                  />
+                  <circle
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                    strokeDasharray="50 70"
+                  >
+                    <animateTransform
+                      attributeName="transform"
+                      type="rotate"
+                      from="0 25 25"
+                      to="360 25 25"
+                      dur="0.8s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
                 </svg>
                 Assessing...
-                <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
               </span>
             ) : resolvedInsights ? 'Reassess' : 'Assess Selected'}
           </button>
         )}
-        <UploadNewPDFButton onClick={onUploadClick || externalUploadPDF} />
+        <div onClick={(e) => e.stopPropagation()}>
+          <UploadNewPDFButton onClick={onUploadClick || externalUploadPDF} />
+        </div>
+        <span style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}>
+          {isPanelOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </span>
       </div>
     </div>
   );
@@ -304,36 +446,31 @@ const AIAssessmentPanel = ({
   // --- Empty state (no document selected) ---
   if (!documentId && !useExternal) {
     return (
-      <div style={panelStyle} className="citewise-card">
-        <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
+      <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+        <div
+          className="workflow-card-header cw-panel-header"
+          onClick={() => setIsPanelOpen((o) => !o)}
+          style={{
+            ...panelHeaderStyle,
+            cursor: 'pointer',
+            userSelect: 'none',
+            borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none',
+          }}
+        >
           <PanelHeader />
         </div>
-        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', flexDirection: 'column', gap: '12px' }}>
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#9ca3af"
-              strokeWidth="1"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p
-              style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: '13px',
-                color: '#6b7280',
-                margin: 0,
-              }}
-            >
-              Select a document to view AI insights.
-            </p>
+        {isPanelOpen && (
+          <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', flexDirection: 'column', gap: '12px' }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '13px', color: '#6b7280', margin: 0 }}>
+                Select a document to view AI insights.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -341,79 +478,82 @@ const AIAssessmentPanel = ({
   // --- Loading state ---
   if (resolvedLoading || isAssessing) {
     return (
-      <div style={panelStyle} className="citewise-card">
-        <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
+      <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+        <div
+          className="workflow-card-header cw-panel-header"
+          onClick={() => setIsPanelOpen((o) => !o)}
+          style={{
+            ...panelHeaderStyle,
+            cursor: 'pointer',
+            userSelect: 'none',
+            borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none',
+          }}
+        >
           <PanelHeader />
         </div>
-        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: '13px',
-              color: '#6b7280',
-              letterSpacing: '0.5px',
-            }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', color: '#f97316' }}>
-              <line x1="12" y1="2" x2="12" y2="6"></line>
-              <line x1="12" y1="18" x2="12" y2="22"></line>
-              <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-              <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-              <line x1="2" y1="12" x2="6" y2="12"></line>
-              <line x1="18" y1="12" x2="22" y2="12"></line>
-              <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-              <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
-            </svg>
-            {isAssessing ? 'Starting assessment...' : 'Analyzing document content...'}
+        {isPanelOpen && (
+          <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '320px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.5rem', maxWidth: '460px', width: '100%', textAlign: 'center', boxSizing: 'border-box' }}>
+            <div style={{ position: 'relative', width: '76px', height: '76px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
+              <svg width="76" height="76" viewBox="0 0 50 50" style={{ position: 'absolute', inset: 0 }}>
+                <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.12)" strokeWidth="3.5" />
+                <circle cx="25" cy="25" r="20" fill="none" stroke="#ea580c" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="55 70">
+                  <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.95s" repeatCount="indefinite" />
+                </circle>
+              </svg>
+              <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(234, 88, 12, 0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 16px rgba(234, 88, 12, 0.25)' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+              </div>
+            </div>
+
+            <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '1.2rem', fontWeight: 700, color: 'var(--cw-text-primary, #0f0e17)', margin: '0 0 0.35rem 0', letterSpacing: '-0.01em' }}>
+              {isAssessing ? 'Running AI Assessment' : 'Analyzing Document Content'}
+            </h3>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '0.85rem', color: 'var(--cw-text-muted, #6b7280)', lineHeight: 1.55, margin: '0 0 1.5rem 0', maxWidth: '400px', minHeight: '1.55em' }}>
+              {panelStatusText}
+            </p>
+
+            <div style={{ width: '280px', maxWidth: '85%', height: '8px', background: 'var(--cw-border, #e5e7eb)', borderRadius: '999px', overflow: 'hidden', position: 'relative', boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.08)', margin: '0 auto 0.6rem auto' }}>
+              <div style={{ height: '100%', width: `${panelProgress}%`, background: 'linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)', borderRadius: '999px', transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 10px rgba(234, 88, 12, 0.45)' }} />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '280px', maxWidth: '85%', margin: '0 auto', fontSize: '0.75rem', fontFamily: "'Poppins', sans-serif" }}>
+              <span style={{ color: 'var(--cw-text-muted, #6b7280)' }}>Assessment progress</span>
+              <span style={{ color: '#ea580c', fontWeight: 700 }}>{panelProgress}%</span>
+            </div>
+
+            <div className="cw-loading-skeleton-preview" style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px', display: 'flex', gap: '10px' }}>
+              <div className="cw-loading-skeleton-card-left" style={{ height: '48px' }} />
+              <div className="cw-loading-skeleton-card-right" style={{ height: '48px' }} />
+            </div>
           </div>
         </div>
-      </div>
-    );
+      )}
+    </div>
+  );
   }
 
   // --- Error state ---
   if (resolvedError) {
     return (
-      <div style={panelStyle}>
-        <div className="cw-panel-header" style={panelHeaderStyle}>
+      <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+        <div className="workflow-card-header cw-panel-header" onClick={() => setIsPanelOpen((o) => !o)} style={{ ...panelHeaderStyle, cursor: 'pointer', userSelect: 'none', borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none' }}>
           <PanelHeader />
         </div>
-        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
-          <div
-            style={{
-              background: 'rgba(220, 38, 38, 0.06)',
-              border: '1px solid rgba(220, 38, 38, 0.25)',
-              borderRadius: '8px',
-              padding: '16px',
-              textAlign: 'center',
-            }}
-          >
-            <h3
-              style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: '16px',
-                color: '#dc2626',
-                margin: '0 0 8px 0',
-              }}
-            >
-              Analysis Error
-            </h3>
-            <p
-              style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: '13px',
-                color: '#374151',
-                margin: 0,
-              }}
-            >
-              {resolvedError}
-            </p>
+        {isPanelOpen && (
+          <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING }}>
+            <div style={{ background: 'rgba(220, 38, 38, 0.06)', border: '1px solid rgba(220, 38, 38, 0.25)', borderRadius: '8px', padding: '16px', textAlign: 'center' }}>
+              <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', color: '#dc2626', margin: '0 0 8px 0' }}>Analysis Error</h3>
+              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '13px', color: '#374151', margin: 0 }}>{resolvedError}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -427,51 +567,90 @@ const AIAssessmentPanel = ({
       waitingMessage = 'Assessment did not return results. Check backend logs and your n8n Code node (it may be returning empty {}). Click Assess Selected to try again.';
     }
     return (
-      <div style={panelStyle} className="citewise-card">
-        <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
+      <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+        <div className="workflow-card-header cw-panel-header" onClick={() => setIsPanelOpen((o) => !o)} style={{ ...panelHeaderStyle, cursor: 'pointer', userSelect: 'none', borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none' }}>
           <PanelHeader />
         </div>
-        <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
-          <p
-            style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: '13px',
-              color: '#6b7280',
-            }}
-          >
-            {waitingMessage}
-          </p>
-        </div>
+        {isPanelOpen && (
+          <div className="cw-panel-content" style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
+            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '13px', color: '#6b7280' }}>{waitingMessage}</p>
+          </div>
+        )}
       </div>
     );
   }
 
   // --- Success state ---
   return (
-    <div style={panelStyle} className="citewise-card">
-      <div className="workflow-card-header cw-panel-header" style={panelHeaderStyle}>
-        <PanelHeader />
+    <>
+      <div style={{ ...panelStyle, gap: isPanelOpen ? '32px' : 0 }} className="citewise-card">
+        <div className="workflow-card-header cw-panel-header" onClick={() => setIsPanelOpen((o) => !o)} style={{ ...panelHeaderStyle, cursor: 'pointer', userSelect: 'none', borderBottom: isPanelOpen ? '1px solid var(--cw-border, #e5e7eb)' : 'none' }}>
+          <PanelHeader />
+        </div>
+        {isPanelOpen && (
+          <div className="cw-panel-content" style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
+            <EvidenceExcerptList excerpts={mappedData.excerpts} documentId={documentId} sessionId={sessionId} />
+            {(mappedData.timing?.assessmentMs != null || mappedData.timing?.assessmentSeconds != null || mappedData.pageCount != null) && (
+              <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '11px', color: 'var(--cw-text-muted, #6b7280)', marginTop: '10px' }}>
+                {[
+                  mappedData.pageCount != null ? `${mappedData.pageCount} page${mappedData.pageCount === 1 ? '' : 's'}` : null,
+                  mappedData.timing?.extractionMs != null ? `extracted in ${(mappedData.timing.extractionMs / 1000).toFixed(1)} s${mappedData.timing.extractionMethod === 'llamaparse' ? ' (OCR)' : ''}` : null,
+                  (mappedData.timing?.assessmentSeconds != null || mappedData.timing?.assessmentMs != null)
+                    ? `assessed in ${(mappedData.timing?.assessmentSeconds ?? (mappedData.timing.assessmentMs / 1000)).toFixed(1)} s`
+                    : null,
+                ].filter(Boolean).join(' · ')}
+              </div>
+            )}
+            <div style={{ height: '35px' }} />
+            <SemanticScoreDashboard
+              scores={mappedData.scores}
+              recommendationStatus={mappedData.recommendationStatus}
+              confidenceLevel={mappedData.confidenceLevel}
+              relevanceLevel={mappedData.relevanceLevel}
+              mismatchFlags={mappedData.mismatchFlags}
+              weaknessFlags={mappedData.weaknessFlags}
+              validationFlags={mappedData.validationFlags}
+              metricWeights={metricWeights}
+            />
+            <RrlUsagePanel
+              sessionId={sessionId}
+              documentId={documentId}
+              excerpts={mappedData.excerpts}
+            />
+          </div>
+        )}
       </div>
-      <div className="cw-panel-content" style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
-        <EvidenceExcerptList excerpts={mappedData.excerpts} />
-        <div style={{ height: '35px' }} />
-        <SemanticScoreDashboard
-          scores={mappedData.scores}
-          recommendationStatus={mappedData.recommendationStatus}
-          confidenceLevel={mappedData.confidenceLevel}
-          relevanceLevel={mappedData.relevanceLevel}
-          mismatchFlags={mappedData.mismatchFlags}
-          weaknessFlags={mappedData.weaknessFlags}
-          validationFlags={mappedData.validationFlags}
-          metricWeights={metricWeights}
-        />
-        <RrlUsagePanel
-          sessionId={sessionId}
-          documentId={documentId}
-          excerpts={mappedData.excerpts}
-        />
-      </div>
-    </div>
+
+      {/* ── NEW: Warning Modal ───────────────────────────────────── */}
+      {showWarningModal && (
+        <div style={modalStyles.overlay}>
+          <div style={modalStyles.content}>
+            <h3 style={modalStyles.title}>⚠️ Low Relevance Warning</h3>
+            <p style={modalStyles.text}>
+              This source has a <strong>low relevance score</strong> or has been flagged as Low Relevance. 
+              Are you sure you want to include it in your synthesis and proceed?
+            </p>
+            <div style={modalStyles.actions}>
+              <button 
+                style={modalStyles.cancelBtn} 
+                onClick={() => setShowWarningModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                style={modalStyles.confirmBtn} 
+                onClick={() => {
+                  setShowWarningModal(false);
+                  if (pendingAction) pendingAction();
+                }}
+              >
+                Yes, Proceed Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTheme } from "../../context/ThemeContext";
 
 export default function EditWorkspaceModal({ onSubmit, data }) {
@@ -6,6 +6,19 @@ export default function EditWorkspaceModal({ onSubmit, data }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#ea580c");
+  const descRef = useRef(null);
+
+  const adjustTextareaHeight = (el) => {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(42, el.scrollHeight)}px`;
+  };
+
+  useEffect(() => {
+    if (descRef.current) {
+      adjustTextareaHeight(descRef.current);
+    }
+  }, [description]);
 
   useEffect(() => {
     if (data) {
@@ -90,10 +103,24 @@ export default function EditWorkspaceModal({ onSubmit, data }) {
                   Description
                 </label>
                 <textarea
+                  ref={descRef}
                   className="form-control workspace-create-field"
-                  rows="3"
+                  rows="1"
+                  placeholder="Describe your research topic or workspace scope..."
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    adjustTextareaHeight(e.target);
+                  }}
+                  style={{
+                    resize: "none",
+                    overflow: "hidden",
+                    minHeight: "42px",
+                    lineHeight: "1.5",
+                    paddingTop: "9px",
+                    paddingBottom: "9px",
+                    transition: "height 0.12s ease",
+                  }}
                 />
               </div>
 

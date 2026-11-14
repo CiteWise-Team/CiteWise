@@ -20,6 +20,106 @@ export default function DataDisplayGrid({ catalystData, isLoading, error }) {
     );
   }
 
+  if (isLoading) {
+    return (
+      <div style={{ padding: "2.5rem 1.5rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+        {/* Guaranteed Animated SVG Spinner with glowing center */}
+        <div
+          style={{
+            position: "relative",
+            width: "72px",
+            height: "72px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: "1.25rem",
+          }}
+        >
+          <svg width="72" height="72" viewBox="0 0 50 50" style={{ position: "absolute", inset: 0 }}>
+            <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(234, 88, 12, 0.12)" strokeWidth="3.5" />
+            <circle
+              cx="25"
+              cy="25"
+              r="20"
+              fill="none"
+              stroke="#ea580c"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeDasharray="55 70"
+            >
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                from="0 25 25"
+                to="360 25 25"
+                dur="0.95s"
+                repeatCount="indefinite"
+              />
+            </circle>
+          </svg>
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              background: "rgba(234, 88, 12, 0.09)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 0 16px rgba(234, 88, 12, 0.25)",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+        </div>
+
+        <h3
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontSize: "1.15rem",
+            fontWeight: 700,
+            color: "var(--cw-text-primary, #0f0e17)",
+            margin: "0 0 0.35rem 0",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          Importing CATalyst Data
+        </h3>
+        <p
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontSize: "0.85rem",
+            color: "var(--cw-text-muted, #6b7280)",
+            lineHeight: 1.55,
+            margin: "0 0 1.25rem 0",
+            maxWidth: "380px",
+          }}
+        >
+          Connecting to CATalyst workspace and retrieving research data...
+        </p>
+
+        {/* Moving Progress Bar */}
+        <div
+          style={{
+            width: "240px",
+            maxWidth: "85%",
+            height: "7px",
+            background: "var(--cw-border, #e5e7eb)",
+            borderRadius: "999px",
+            overflow: "hidden",
+            position: "relative",
+            boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.08)",
+            margin: "0 auto",
+          }}
+        >
+          <div className="cw-loading-progress-fill" />
+        </div>
+      </div>
+    );
+  }
+
   if (!catalystData && !isLoading) return null;
 
   return (
