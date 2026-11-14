@@ -49,7 +49,7 @@ function getWordCount(text) {
 function readSavedIntroduction(groupId) {
   try {
     const raw = localStorage.getItem(`citewise.${groupId}.smartGoalsIntroduction`);
-    return raw ? JSON.parse(raw) : null;
+    return raw ? normalizeIntroductionVersion(JSON.parse(raw)) : null;
   } catch {
     return null;
   }
@@ -204,9 +204,13 @@ function readSelectedIntroduction(groupId) {
 function readApprovedPapers(groupId) {
   try {
     const sessionId = localStorage.getItem(`citewise.${groupId}.sessionId`);
-    if (!sessionId) return [];
-    const key = `citewise_approved_docs_${sessionId}`;
-    const papers = JSON.parse(localStorage.getItem(key) || sessionStorage.getItem(key) || "[]");
+    const key = sessionId ? `citewise_approved_docs_${sessionId}` : "citewise_approved_docs_default";
+    const papers = JSON.parse(
+      localStorage.getItem(key)
+      || sessionStorage.getItem(key)
+      || localStorage.getItem("citewise_approved_docs_default")
+      || "[]"
+    );
     return Array.isArray(papers) ? papers : [];
   } catch {
     return [];
@@ -542,6 +546,11 @@ export default function SmartGoals() {
 
   useEffect(() => {
     let active = true;
+    if (location.state?.sessionId && groupId && !localStorage.getItem(`citewise.${groupId}.sessionId`)) {
+      try {
+        localStorage.setItem(`citewise.${groupId}.sessionId`, location.state.sessionId);
+      } catch {}
+    }
     const data = readGroupData(groupId);
     const saved = readSavedGeneration(groupId);
     const introduction = readSelectedIntroduction(groupId)

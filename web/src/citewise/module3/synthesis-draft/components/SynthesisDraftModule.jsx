@@ -1,5 +1,5 @@
   import { useState, useEffect } from "react";
-  import { ArrowRight, BadgeCheck, ChevronDown, ChevronUp, Edit3, Loader2, Sparkles, Target } from "lucide-react";
+  import { ArrowRight, BadgeCheck, CheckCircle2, ChevronDown, ChevronUp, Edit3, Loader2, Sparkles, Target } from "lucide-react";
   import SynthesisControlPanel from "./SynthesisControlPanel";
   import ApprovedSourceList from "./ApprovedSourceList";
   import GeneratedDraftDisplay from "./GeneratedDraftDisplay";
@@ -214,7 +214,17 @@
     const [citationTrace, setCitationTrace] = useState([]);
     const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
     const [isExportingPdf, setIsExportingPdf] = useState(false);
-    const [selectedSmartGoalsVersion, setSelectedSmartGoalsVersion] = useState(null);
+    const [selectedSmartGoalsVersion, setSelectedSmartGoalsVersion] = useState(() => {
+      if (!groupId) return null;
+      try {
+        const raw = localStorage.getItem(`citewise.${groupId}.smartGoalsIntroduction`);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.content?.trim()) return parsed;
+        }
+      } catch {}
+      return null;
+    });
     const [exportModalState, setExportModalState] = useState({
       isOpen: false,
       format: null,
@@ -740,8 +750,8 @@
         id: version.id,
         label: version.label || "Selected introduction",
         content: version.content,
-        references: Array.isArray(version.references) ? version.references : [],
-        timestamp: version.timestamp || null,
+        references: (Array.isArray(version.references) && version.references.length) ? version.references : (references || []),
+        timestamp: version.timestamp || new Date().toISOString(),
       };
       setSelectedSmartGoalsVersion(normalizedIntro);
 
@@ -770,6 +780,12 @@
             })
           );
         } catch {}
+
+        if (sessionId && approvedDocuments.length > 0) {
+          try {
+            localStorage.setItem(`citewise_approved_docs_${sessionId}`, JSON.stringify(approvedDocuments));
+          } catch {}
+        }
       }
     };
 
@@ -1060,38 +1076,52 @@
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "auto", justifyContent: "flex-end", flexShrink: 0 }}>
                   <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "auto", justifyContent: "flex-end" }}>
-                    <button
-                      type="button"
-                      onClick={() => onProceedToSmartGoals?.(selectedSmartGoalsVersion)}
-                      disabled={!selectedSmartGoalsVersion || !groupId}
-                      title={selectedSmartGoalsVersion ? `Use ${selectedSmartGoalsVersion.label} for SMART Goals` : "Select a final version from Version History first"}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 7,
-                        minHeight: 32,
-                        padding: "0 11px",
-                        border: isDark ? "1px solid rgba(94, 234, 212, 0.35)" : "1px solid #b5d7d0",
-                        borderRadius: 8,
-                        color: selectedSmartGoalsVersion
-                          ? (isDark ? "#5eead4" : "#176d62")
-                          : (isDark ? "#6b7280" : "#8b989b"),
-                        background: selectedSmartGoalsVersion
-                          ? (isDark ? "rgba(20, 118, 107, 0.22)" : "#edf7f4")
-                          : (isDark ? "rgba(255, 255, 255, 0.04)" : "#f5f7f7"),
-                        fontFamily: "'Poppins', sans-serif",
-                        fontSize: 11,
-                        fontWeight: 650,
-                        cursor: selectedSmartGoalsVersion && groupId ? "pointer" : "not-allowed",
-                        opacity: selectedSmartGoalsVersion && groupId ? 1 : 0.45,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <Target size={15} />
-                      Proceed to SMART Goals
-                      <ArrowRight size={14} />
-                    </button>
+                    {/* Proceed to SMART Goals: Only appears when a version is set as final */}
+                    {selectedSmartGoalsVersion && (
+                      <button
+                        type="button"
+                        onClick={() => onProceedToSmartGoals?.(selectedSmartGoalsVersion)}
+                        title={`Proceed to SMART Goals using ${selectedSmartGoalsVersion.label}`}
+                        aria-label="Proceed to SMART Goals"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 7,
+                          minHeight: 32,
+                          padding: "0 13px",
+                          border: isDark ? "1px solid rgba(45, 212, 191, 0.5)" : "1px solid #14b8a6",
+                          borderRadius: 8,
+                          color: "#ffffff",
+                          background: isDark
+                            ? "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)"
+                            : "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)",
+                          boxShadow: isDark
+                            ? "0 2px 10px rgba(13, 148, 136, 0.35)"
+                            : "0 2px 8px rgba(20, 184, 166, 0.25)",
+                          fontFamily: "'Poppins', sans-serif",
+                          fontSize: 11,
+                          fontWeight: 650,
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          transition: "all 0.18s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-1px)";
+                          e.currentTarget.style.boxShadow = "0 4px 14px rgba(13, 148, 136, 0.45)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow = isDark
+                            ? "0 2px 10px rgba(13, 148, 136, 0.35)"
+                            : "0 2px 8px rgba(20, 184, 166, 0.25)";
+                        }}
+                      >
+                        <Target size={15} />
+                        <span>Proceed to SMART Goals</span>
+                        <ArrowRight size={14} />
+                      </button>
+                    )}
 
                     {/* Set as Final Icon Button */}
                     <div data-guide="citewise-btn-set-final" style={{ position: "relative", display: "inline-flex" }}>
@@ -1339,6 +1369,107 @@
                     paraphrasedDraft={paraphrasedDraft}
                     setParaphrasedDraft={setParaphrasedDraft}
                   />
+
+                  {/* Proceed to SMART Goals: Displayed prominently when a version is set as final */}
+                  {selectedSmartGoalsVersion && (
+                    <div
+                      style={{
+                        marginTop: "24px",
+                        padding: "16px 20px",
+                        borderRadius: "12px",
+                        background: isDark
+                          ? "linear-gradient(135deg, rgba(13, 148, 136, 0.14) 0%, rgba(15, 118, 110, 0.22) 100%)"
+                          : "linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)",
+                        border: isDark
+                          ? "1px solid rgba(45, 212, 191, 0.35)"
+                          : "1px solid #99f6e4",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "14px",
+                        boxShadow: isDark
+                          ? "0 4px 16px rgba(0, 0, 0, 0.25)"
+                          : "0 4px 12px rgba(20, 184, 166, 0.08)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "10px",
+                            background: isDark ? "rgba(45, 212, 191, 0.2)" : "#14b8a6",
+                            color: isDark ? "#5eead4" : "#ffffff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <CheckCircle2 size={20} />
+                        </div>
+                        <div>
+                          <div
+                            style={{
+                              fontSize: "0.88rem",
+                              fontWeight: 700,
+                              color: isDark ? "#5eead4" : "#0f766e",
+                              letterSpacing: "0.01em",
+                            }}
+                          >
+                            Final Version Selected: {selectedSmartGoalsVersion.label}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.78rem",
+                              color: isDark ? "#94a3b8" : "#4b5563",
+                              marginTop: "2px",
+                            }}
+                          >
+                            Ready to calibrate specific, measurable, evidence-backed objectives in SMART Goals.
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => onProceedToSmartGoals?.(selectedSmartGoalsVersion)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                          padding: "10px 20px",
+                          borderRadius: "10px",
+                          border: "none",
+                          color: "#ffffff",
+                          background: isDark
+                            ? "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)"
+                            : "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)",
+                          fontFamily: "'Poppins', sans-serif",
+                          fontSize: "0.84rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          boxShadow: "0 2px 10px rgba(13, 148, 136, 0.35)",
+                          transition: "all 0.18s ease",
+                          marginLeft: "auto",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-1px)";
+                          e.currentTarget.style.boxShadow = "0 4px 16px rgba(13, 148, 136, 0.45)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow = "0 2px 10px rgba(13, 148, 136, 0.35)";
+                        }}
+                      >
+                        <Target size={16} />
+                        <span>Proceed to SMART Goals</span>
+                        <ArrowRight size={15} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

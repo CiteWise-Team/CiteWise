@@ -506,12 +506,26 @@ export default function CiteWiseApp() {
 
   function handleProceedToSmartGoals(version) {
     if (!groupId || !version?.id || !version.content?.trim()) return;
+
+    let finalReferences = Array.isArray(version.references) ? version.references : [];
+    if (!finalReferences.length && sessionId) {
+      try {
+        const activeDraftRaw = localStorage.getItem(`citewise_draft_${sessionId}`);
+        if (activeDraftRaw) {
+          const parsedDraft = JSON.parse(activeDraftRaw);
+          if (Array.isArray(parsedDraft?.references) && parsedDraft.references.length) {
+            finalReferences = parsedDraft.references;
+          }
+        }
+      } catch {}
+    }
+
     const selectedIntroduction = {
       id: version.id,
-      label: version.label,
+      label: version.label || "Selected introduction",
       content: version.content,
-      references: Array.isArray(version.references) ? version.references : [],
-      timestamp: version.timestamp || null,
+      references: finalReferences,
+      timestamp: version.timestamp || new Date().toISOString(),
     };
     localStorage.setItem(scopedKey(groupId, "smartGoalsIntroduction"), JSON.stringify(selectedIntroduction));
     localStorage.setItem(scopedKey(groupId, "smartGoalsStarted"), "true");
@@ -552,12 +566,25 @@ export default function CiteWiseApp() {
       );
     } catch {}
 
+    // Ensure session-scoped approved docs are synced in localStorage
+    if (sessionId) {
+      try {
+        const approvedDocsKey = `citewise_approved_docs_${sessionId}`;
+        const existingDocs = localStorage.getItem(approvedDocsKey);
+        if (!existingDocs) {
+          const fallbackDocs = sessionStorage.getItem(approvedDocsKey) || localStorage.getItem("citewise_approved_docs_default");
+          if (fallbackDocs) localStorage.setItem(approvedDocsKey, fallbackDocs);
+        }
+      } catch {}
+    }
+
     navigate(`/smart-goals/${groupId}`, {
       state: {
         selectedIntroduction,
         researchTitle: activeTitle,
         selectedGap: activeSelectedGap,
         gaps: activeGaps,
+        sessionId: sessionId || "",
       },
     });
   }
