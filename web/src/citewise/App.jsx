@@ -513,6 +513,11 @@ export default function CiteWiseApp() {
       timestamp: version.timestamp || null,
     };
     localStorage.setItem(scopedKey(groupId, "smartGoalsIntroduction"), JSON.stringify(selectedIntroduction));
+    localStorage.setItem(scopedKey(groupId, "smartGoalsStarted"), "true");
+    localStorage.setItem(scopedKey(groupId, "step"), "2");
+    localStorage.setItem(scopedKey(groupId, "maxUnlockedStep"), "3");
+    setStep(2);
+    setMaxUnlockedStep((prev) => Math.max(prev, 3));
     navigate(`/smart-goals/${groupId}`, { state: { selectedIntroduction } });
   }
 
