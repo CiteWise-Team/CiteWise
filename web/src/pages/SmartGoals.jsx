@@ -115,7 +115,10 @@ function markGoalsForReviewGrading(generation) {
   if (!generation?.goals) return generation;
   return {
     ...generation,
-    goals: generation.goals.map((goal) => ({ ...goal, evaluationOutdated: true })),
+    goals: generation.goals.map((goal) => ({
+      ...goal,
+      evaluationOutdated: Boolean(goal?.evaluationOutdated || !goal?.evaluation),
+    })),
   };
 }
 
@@ -368,7 +371,7 @@ export default function SmartGoals() {
         let sid = localStorage.getItem(`citewise.${groupId}.sessionId`);
         if (!sid) {
           try {
-            const res = await apiRequest(`/v1/documents/session-for-group/${groupId}`);
+            const res = await apiRequest(`/api/v1/documents/session-for-group/${encodeURIComponent(groupId)}`);
             sid = res?.data?.sessionId;
             if (sid) localStorage.setItem(`citewise.${groupId}.sessionId`, sid);
           } catch (err) {
@@ -410,6 +413,35 @@ export default function SmartGoals() {
             }
           } catch (err) {
             console.warn("[SmartGoals] Failed parsing active draft:", err);
+          }
+
+          try {
+            const serverDraft = await apiRequest(`/api/v1/synthesis/status?sessionId=${encodeURIComponent(sid)}`);
+            if (
+              serverDraft?.contentText?.trim() &&
+              serverDraft.status !== "GENERATING" &&
+              serverDraft.status !== "FAILED"
+            ) {
+              const refsArray = (serverDraft.referencesText || "")
+                .split("\n")
+                .map((ref) => ref.trim())
+                .filter(Boolean);
+              const alreadyPresent = versions.some(
+                (v) => v.content?.trim() === serverDraft.contentText.trim()
+              );
+              if (!alreadyPresent) {
+                versions.unshift({
+                  id: serverDraft.draftId ? `db-draft-${serverDraft.draftId}` : "db-synthesis-draft",
+                  label: "Saved Synthesis Draft",
+                  content: serverDraft.contentText,
+                  references: refsArray,
+                  timestamp: serverDraft.createdAt || new Date().toISOString(),
+                  source: "database",
+                });
+              }
+            }
+          } catch {
+            // Non-fatal if no server synthesis draft exists yet
           }
         }
 
@@ -462,7 +494,8 @@ export default function SmartGoals() {
       ? { ...markGoalsForReviewGrading(saved), introductionVersion: normalizeIntroductionVersion(saved.introductionVersion) || introduction }
       : null;
     setGroupData(data);
-    setSelectedIntroduction(introduction);
+    setSelectedIntroduction(introduction || hydratedSaved?.introductionVersion || null);
+    if (hydratedSaved?.goals?.length) setIsSelectingIntroduction(false);
     setResearchTitle(hydratedSaved?.researchTitle || data.title || "");
     setSelectedGap(hydratedSaved?.selectedGap || data.gaps?.[0] || "");
     setGeneration(hydratedSaved);
@@ -482,6 +515,13 @@ export default function SmartGoals() {
             ...markGoalsForReviewGrading(savedGeneration),
             introductionVersion: normalizeIntroductionVersion(savedGeneration.introductionVersion) || introduction,
           };
+          if (hydratedGeneration.introductionVersion) {
+            setSelectedIntroduction(hydratedGeneration.introductionVersion);
+            try {
+              localStorage.setItem(`citewise.${groupId}.smartGoalsIntroduction`, JSON.stringify(hydratedGeneration.introductionVersion));
+            } catch {}
+          }
+          setIsSelectingIntroduction(false);
           setGeneration(hydratedGeneration);
           setGenerationGroupId(groupId);
           setResearchTitle(hydratedGeneration.researchTitle || data.title || "");
@@ -721,7 +761,7 @@ export default function SmartGoals() {
       setGeneration((current) => ({
         ...current,
         goals: current.goals.map((goal, goalIndex) => goalIndex === index
-          ? { ...replacementGoal, evaluationOutdated: true, reviewStatus: "pending" }
+          ? { ...replacementGoal, evaluationOutdated: Boolean(!replacementGoal.evaluation), reviewStatus: "pending" }
           : goal),
       }));
       setActiveGoalIndex(index);
@@ -924,9 +964,8 @@ export default function SmartGoals() {
   const approvedPaperCount = approvedPapers.length || generation?.approvedSourceCount || 0;
   const acceptedGoalCount = generation?.goals?.filter((goal) => goal.reviewStatus === "accepted").length || 0;
   const reviewedGoalCount = generation?.goals?.filter((goal) => ["accepted", "declined"].includes(goal.reviewStatus)).length || 0;
-  const hasPendingEvaluation = goalsReady && generation.goals.some((goal) => goal.evaluationOutdated || !goal.evaluation);
   const canFinishReview = goalsReady && acceptedGoalCount >= 3 && reviewedGoalCount === generation.goals.length
-    && !hasPendingEvaluation && !isReviewEvaluating && !reviewGradeError;
+    && !isReviewEvaluating;
   const canGenerate = Boolean(researchTitle.trim() && selectedGap.trim());
 
   if (isSelectingIntroduction) {
@@ -1540,7 +1579,7 @@ export default function SmartGoals() {
                           <button className="smart-goals-edit-button" type="button" onClick={() => { setReviewGradeError(""); setActiveGoalIndex(index); setActiveStage("goals"); }}><Pencil size={14} aria-hidden="true" />Edit</button>
                         </div>
                         <div className="smart-goals-grade-grid">
-                          {goal.evaluation && !goal.evaluationOutdated ? (
+                          {goal.evaluation && (!goal.evaluationOutdated || reviewGradeError) ? (
                             <>
                               <div className={`smart-goals-score-card ${scoreTone(goal.evaluation.gapAlignmentScore)}`}>
                                 <span>GAP ALIGNMENT</span>
@@ -1557,7 +1596,7 @@ export default function SmartGoals() {
                           ) : isReviewEvaluating ? (
                             <p className="smart-goals-grade-pending">Updating this grade to match the latest objective text…</p>
                           ) : reviewGradeError ? (
-                            <p className="smart-goals-grade-pending">This objective has not been graded yet. Use Retry grading above.</p>
+                            <p className="smart-goals-grade-pending">Advisory grade unavailable right now. You can retry grading above or continue with your decision below.</p>
                           ) : (
                             <p className="smart-goals-grade-pending">This objective is waiting for its current-text assessment.</p>
                           )}

@@ -447,7 +447,7 @@ export default function CiteWiseApp() {
     let cancelled = false;
     (async () => {
       try {
-        const response = await apiRequest(`/v1/documents/session-for-group/${groupId}`);
+        const response = await apiRequest(`/api/v1/documents/session-for-group/${encodeURIComponent(groupId)}`);
         const resolved = response?.data?.sessionId;
         if (!cancelled && resolved) setSessionId(resolved);
       } catch (err) {
