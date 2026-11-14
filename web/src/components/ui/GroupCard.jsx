@@ -25,6 +25,9 @@ export default function GroupCard({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [showLauncher, setShowLauncher] = useState(false);
+  const [smartGoalsStarted, setSmartGoalsStarted] = useState(
+    () => localStorage.getItem(`citewise.${group_id}.smartGoalsStarted`) === "true"
+  );
   const menuRef = useRef(null);
 
   // Topic picker state
@@ -63,6 +66,8 @@ export default function GroupCard({
   }
 
   function handleOpenSmartGoals() {
+    localStorage.setItem(gk("smartGoalsStarted"), "true");
+    setSmartGoalsStarted(true);
     enterGroup({ id: group_id, name, color });
     navigate(`/smart-goals/${group_id}`, { state: { groupName: name } });
   }
@@ -266,9 +271,9 @@ export default function GroupCard({
                   icon={PenLine}
                   title="Introduction Drafting"
                   description="Turn your selected evidence into a focused introduction with CiteWise."
-                  active={step1Done}
+                  active={step1Done && !smartGoalsStarted}
                   disabled={!step1Done}
-                  statusText={!step1Done ? "Locked" : undefined}
+                  statusText={!step1Done ? "Locked" : smartGoalsStarted ? "Review / Open →" : undefined}
                   loading={importing}
                   onClick={handleOpenCiteWise}
                 />
@@ -277,9 +282,9 @@ export default function GroupCard({
                   icon={Target}
                   title="SMART Goals Generation"
                   description="Translate your research direction into clear, measurable thesis goals."
-                  active={false}
+                  active={smartGoalsStarted}
                   disabled={!step1Done}
-                  statusText={step1Done ? "Ready to start →" : "Locked"}
+                  statusText={!step1Done ? "Locked" : smartGoalsStarted ? undefined : "Ready to start →"}
                   onClick={handleOpenSmartGoals}
                 />
               </div>
