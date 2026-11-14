@@ -71,7 +71,8 @@ SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
 FRONTEND_URL=http://localhost:5173
 N8N_BASE_URL=http://localhost:5678
 GEMINI_API_KEY=<your_gemini_api_key>
-GEMINI_MODEL=gemini-3.6-flash
+GEMINI_MODEL=gemini-4-carbon
+GEMINI_TIMEOUT_MS=120000
 
 # CATalyst n8n webhooks
 N8N_EXTRACTOR_WEBHOOK=http://localhost:5678/webhook/<your-extractor-path>
@@ -83,6 +84,8 @@ N8N_TOPIC_PROD_WEBHOOK_URL=http://localhost:5678/webhook/<your-topic-path>
 CITEWISE_N8N_SCORING_WEBHOOK_URL=http://localhost:5678/webhook/semantic_scoring
 CITEWISE_N8N_SYNTHESIS_WEBHOOK_URL=http://localhost:5678/webhook/citewise-synthesizer-v2
 ```
+
+SMART-goal generation defaults to [Gemini 4 Carbon](https://ai.google.dev/gemini-api/docs/models/gemini-4-carbon), Google's strongest reasoning model, with structured-output support. Set `GEMINI_MODEL` to another model ID available to your API key to change it; the server's default request timeout is 120 seconds and can be overridden with `GEMINI_TIMEOUT_MS`. Carbon may have higher cost or stricter availability and quotas than Flash models. Restart or redeploy the API after changing these server-side environment variables.
 
 **`web/.env`** — browser-safe only:
 ```env
@@ -141,6 +144,8 @@ http://localhost:5173/
 ```
 
 ---
+
+In SMART Goals, researchers refine objectives before opening Review plan. Review plan grades the current objective text (including edited or individually regenerated goals) for gap alignment and SMART quality, with prominent color-coded advisory scores. Possible next-step research decisions appear as collapsed optional planning notes; they are not required to complete or accept an objective. Researchers can accept or decline each objective; declining an objective reveals an option to regenerate only that objective. At least three objectives must be accepted, and every objective must have a decision, before **Save and combine** is enabled. After selecting the final Step 2 introduction and proceeding to SMART Goals, the **Combined draft** tab brings that introduction, research title, selected gap, overall aim, accepted SMART objectives, and references together for review and export. It assembles the selected content without rewriting the introduction.
 
 ## API Reference
 

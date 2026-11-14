@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   Check,
   ChevronLeft,
   Clipboard,
   Compass,
+  ChevronRight,
   Download,
   FileCheck2,
   Info,
@@ -15,6 +16,7 @@ import {
   Sparkles,
   Target,
   Trash2,
+  X,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../api/http";
@@ -49,12 +51,16 @@ const EMPTY_GOAL = {
   sourceRefs: [],
   assumptions: [],
   needsUserInput: [],
+  evaluation: null,
+  evaluationOutdated: false,
+  reviewStatus: "pending",
 };
 
 const WORKFLOW_STAGES = [
   { id: "plan", label: "Choose inputs", number: "01", icon: BookOpen },
   { id: "goals", label: "Refine goals", number: "02", icon: Target },
   { id: "review", label: "Review plan", number: "03", icon: FileCheck2 },
+  { id: "paper", label: "Combined draft", number: "04", icon: BookOpen },
 ];
 
 function readGroupData(groupId) {
@@ -73,6 +79,30 @@ function readSavedGeneration(groupId) {
   }
 }
 
+function markGoalsForReviewGrading(generation) {
+  if (!generation?.goals) return generation;
+  return {
+    ...generation,
+    goals: generation.goals.map((goal) => ({ ...goal, evaluationOutdated: true })),
+  };
+}
+
+function readSelectedIntroduction(groupId) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(`citewise.${groupId}.smartGoalsIntroduction`) || "null");
+    if (!stored || typeof stored.content !== "string" || !stored.content.trim()) return null;
+    return {
+      id: typeof stored.id === "string" ? stored.id : "",
+      label: typeof stored.label === "string" ? stored.label : "Selected introduction",
+      content: stored.content,
+      references: Array.isArray(stored.references) ? stored.references.filter((reference) => typeof reference === "string") : [],
+      timestamp: typeof stored.timestamp === "string" ? stored.timestamp : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function readApprovedPapers(groupId) {
   try {
     const sessionId = localStorage.getItem(`citewise.${groupId}.sessionId`);
@@ -83,6 +113,11 @@ function readApprovedPapers(groupId) {
   } catch {
     return [];
   }
+}
+
+function paperSourceLabel(papers, sourceId) {
+  const paper = papers.find((item) => String(item.id) === String(sourceId));
+  return paper?.title || paper?.name || paper?.fileName || sourceId;
 }
 
 const docxCrcTable = Array.from({ length: 256 }, (_, index) => {
@@ -168,8 +203,25 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+function sanitizeFilename(value) {
+  return [...value]
+    .filter((character) => {
+      const code = character.charCodeAt(0);
+      return code >= 32 && code !== 127 && !/[<>:"/\\|?*]/.test(character);
+    })
+    .join("")
+    .replace(/[. ]+$/, "");
+}
+
 function isGoalComplete(goal) {
-  return GOAL_FIELDS.every(([field]) => goal[field]?.trim()) && !goal.needsUserInput?.length;
+  return GOAL_FIELDS.every(([field]) => goal[field]?.trim());
+}
+
+function scoreLabel(score) {
+  if (score >= 85) return "Strong";
+  if (score >= 70) return "Good";
+  if (score >= 50) return "Needs work";
+  return "Weak";
 }
 
 function renderReviewText(value) {
@@ -196,37 +248,91 @@ export default function SmartGoals() {
   const [researchTitle, setResearchTitle] = useState("");
   const [selectedGap, setSelectedGap] = useState("");
   const [generation, setGeneration] = useState(null);
+  const [selectedIntroduction, setSelectedIntroduction] = useState(null);
   const [generationGroupId, setGenerationGroupId] = useState(null);
   const [activeStage, setActiveStage] = useState("plan");
+  const [guideStep, setGuideStep] = useState(-1);
+  const [guideSpotlight, setGuideSpotlight] = useState(null);
   const [activeGoalIndex, setActiveGoalIndex] = useState(0);
   const [pendingDeleteIndex, setPendingDeleteIndex] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [regeneratingGoalIndex, setRegeneratingGoalIndex] = useState(null);
+  const [isReviewEvaluating, setIsReviewEvaluating] = useState(false);
+  const [reviewGradeError, setReviewGradeError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
+  const [finalFilename, setFinalFilename] = useState("");
+  const [finalFileFormat, setFinalFileFormat] = useState("PDF");
   const [copyStatus, setCopyStatus] = useState("");
   const [error, setError] = useState("");
+  const reviewEvaluationInFlight = useRef(false);
+  const finishFilenameInput = useRef(null);
+  const goalsReady = Boolean(generation?.goals?.length);
+  const smartGoalsGuideSteps = useMemo(() => {
+    const steps = [
+      { target: "guide-trigger", stage: "plan", title: "Your SMART Goals Guide", description: "This walkthrough points out where to enter your research focus, generate objectives, review the AI estimates, and combine your final selections." },
+      { target: "workflow-stepper", stage: "plan", title: "Move through the four stages", description: "Use this step bar to move between choosing inputs, refining objectives, reviewing decisions, and viewing the combined draft." },
+      { target: "study-focus", stage: "plan", title: "Set your study focus", description: "Enter your research title and choose one primary gap. The objectives will be generated to address this specific gap." },
+      { target: "generate-goals", stage: "plan", title: "Generate SMART objectives", description: "When your title and gap are ready, choose Generate goals. The AI uses approved RRL evidence to draft objectives. Regenerating replaces this draft." },
+    ];
+
+    if (goalsReady) {
+      steps.push(
+        { target: "objective-list", stage: "goals", title: "Choose an objective to refine", description: "Select an objective here to edit it. The Add objective control lets you add another objective to your plan." },
+        { target: "goal-editor", stage: "goals", title: "Refine the SMART criteria", description: "Work through Specific, Measurable, Achievable, Relevant, and Time-bound. The AI grades the latest version of every objective when you open Review plan." },
+        { target: "review-stage", stage: "goals", title: "Open Review plan", description: "When you are ready, use Review goals to assess the latest version of each objective and decide which ones to keep." },
+        { target: "review-decisions", stage: "review", title: "Accept or decline each objective", description: "Use Accept objective for goals you want to keep, or Decline for goals you do not. Declined goals can be regenerated individually. Accept at least three objectives before saving." },
+        { target: "save-combine", stage: "review", title: "Save and combine", description: "This saves your accepted SMART goals and the selected Step 2 introduction to your account, then opens the Combined draft." },
+        { target: "combined-preview", stage: "paper", title: "Review the combined draft", description: "Check how the selected introduction, title, gap, aim, accepted objectives, and references fit together. This combines your content without rewriting it." },
+        { target: "finish", stage: "paper", title: "Finish your review", description: "Select Finish to preview the final paper and optionally download it as a PDF or Word document before returning to your workspaces." },
+      );
+    } else {
+      steps.push({
+        target: "generate-goals",
+        stage: "plan",
+        title: "Generate objectives to continue",
+        description: "This workspace does not have generated objectives yet. Close the guide, select Generate goals, and reopen the guide to learn how to refine, review, and combine them.",
+      });
+    }
+
+    return steps;
+  }, [goalsReady]);
+  const guideOpen = guideStep >= 0;
+  const activeGuideStep = smartGoalsGuideSteps[guideStep];
 
   useEffect(() => {
     let active = true;
     const data = readGroupData(groupId);
     const saved = readSavedGeneration(groupId);
+    const introduction = readSelectedIntroduction(groupId);
+    const hydratedSaved = saved
+      ? { ...markGoalsForReviewGrading(saved), introductionVersion: saved.introductionVersion || introduction }
+      : null;
     setGroupData(data);
-    setResearchTitle(saved?.researchTitle || data.title || "");
-    setSelectedGap(saved?.selectedGap || data.gaps?.[0] || "");
-    setGeneration(saved);
+    setSelectedIntroduction(introduction);
+    setResearchTitle(hydratedSaved?.researchTitle || data.title || "");
+    setSelectedGap(hydratedSaved?.selectedGap || data.gaps?.[0] || "");
+    setGeneration(hydratedSaved);
     setGenerationGroupId(groupId);
-    setActiveStage(saved?.goals?.length ? "goals" : "plan");
+    setActiveStage(hydratedSaved?.goals?.length ? "goals" : "plan");
     setActiveGoalIndex(0);
     setCopyStatus("");
     setError("");
+    setReviewGradeError("");
+    reviewEvaluationInFlight.current = false;
 
     if (groupId && !saved?.goals?.length) {
       apiRequest(`/api/v1/smart-goals/saved/${encodeURIComponent(groupId)}`)
         .then(({ generation: savedGeneration }) => {
           if (!active || !savedGeneration?.goals?.length) return;
-          setGeneration(savedGeneration);
+          const hydratedGeneration = {
+            ...markGoalsForReviewGrading(savedGeneration),
+            introductionVersion: savedGeneration.introductionVersion || introduction,
+          };
+          setGeneration(hydratedGeneration);
           setGenerationGroupId(groupId);
-          setResearchTitle(savedGeneration.researchTitle || data.title || "");
-          setSelectedGap(savedGeneration.selectedGap || data.gaps?.[0] || "");
+          setResearchTitle(hydratedGeneration.researchTitle || data.title || "");
+          setSelectedGap(hydratedGeneration.selectedGap || data.gaps?.[0] || "");
           setActiveStage("goals");
         })
         .catch(() => {});
@@ -243,6 +349,142 @@ export default function SmartGoals() {
       setError("Your browser could not save this draft locally.");
     }
   }, [generation, generationGroupId, groupId]);
+
+  useEffect(() => {
+    if (activeStage !== "review" || !goalsReady || reviewGradeError || reviewEvaluationInFlight.current) return undefined;
+    const pendingGoals = generation.goals
+      .map((goal, index) => ({ goal, index }))
+      .filter(({ goal }) => goal.evaluationOutdated || !goal.evaluation);
+    if (!pendingGoals.length) return undefined;
+
+    const goalContent = (goal) => GOAL_FIELDS.map(([field]) => goal[field] || "").join("\n");
+    const submittedGoals = pendingGoals.map(({ goal }) => ({ ...goal }));
+    const submittedContent = submittedGoals.map(goalContent);
+    let active = true;
+    reviewEvaluationInFlight.current = true;
+    setIsReviewEvaluating(true);
+    apiRequest("/api/v1/smart-goals/evaluate-goals", {
+      method: "POST",
+      body: JSON.stringify({
+        groupId,
+        researchTitle: generation.researchTitle || researchTitle,
+        selectedGap: generation.selectedGap || selectedGap,
+        goals: submittedGoals,
+      }),
+    })
+      .then(({ evaluations }) => {
+        if (!Array.isArray(evaluations) || evaluations.length !== pendingGoals.length) {
+          throw new Error("The grading response did not match the objectives. Please retry.");
+        }
+        if (!active) return;
+        setGeneration((current) => ({
+          ...current,
+          goals: current.goals.map((goal, index) => {
+            const submittedIndex = pendingGoals.findIndex((item) => item.index === index);
+            if (submittedIndex < 0 || goalContent(goal) !== submittedContent[submittedIndex]) return goal;
+            return { ...goal, evaluation: evaluations[submittedIndex], evaluationOutdated: false };
+          }),
+        }));
+        setReviewGradeError("");
+      })
+      .catch((gradeError) => {
+        if (active) {
+          setReviewGradeError(import.meta.env.DEV
+            ? gradeError.message || "Could not grade the current objectives. Please retry."
+            : "Could not grade the current objectives right now. Please retry.");
+        }
+      })
+      .finally(() => {
+        reviewEvaluationInFlight.current = false;
+        if (active) setIsReviewEvaluating(false);
+      });
+
+    return () => {
+      active = false;
+      reviewEvaluationInFlight.current = false;
+    };
+  }, [activeStage, generation, goalsReady, groupId, researchTitle, reviewGradeError, selectedGap]);
+
+  useEffect(() => {
+    if (!guideOpen || !activeGuideStep) {
+      setGuideSpotlight(null);
+      return undefined;
+    }
+
+    const target = document.querySelector(`[data-smart-guide="${activeGuideStep.target}"]`);
+    if (!target) {
+      setGuideSpotlight(null);
+      return undefined;
+    }
+
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    const updateSpotlight = () => {
+      const rect = target.getBoundingClientRect();
+      const padding = window.innerWidth <= 700 ? 7 : 10;
+      const left = Math.max(4, rect.left - padding);
+      setGuideSpotlight({
+        top: Math.max(4, rect.top - padding),
+        left,
+        width: Math.min(window.innerWidth - left - 4, rect.width + padding * 2),
+        height: rect.height + padding * 2,
+        borderRadius: Math.max(parseInt(window.getComputedStyle(target).borderRadius, 10) || 12, 14),
+      });
+    };
+
+    updateSpotlight();
+    const timers = [100, 250, 450, 700].map((delay) => window.setTimeout(updateSpotlight, delay));
+    let frameId;
+    const startTime = performance.now();
+    const trackTarget = (time) => {
+      updateSpotlight();
+      if (time - startTime < 650) frameId = window.requestAnimationFrame(trackTarget);
+    };
+    frameId = window.requestAnimationFrame(trackTarget);
+    window.addEventListener("resize", updateSpotlight);
+    window.addEventListener("scroll", updateSpotlight, true);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      timers.forEach(window.clearTimeout);
+      window.removeEventListener("resize", updateSpotlight);
+      window.removeEventListener("scroll", updateSpotlight, true);
+    };
+  }, [activeGuideStep, guideOpen]);
+
+  useEffect(() => {
+    if (!guideOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setGuideStep(-1);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [guideOpen]);
+
+  useEffect(() => {
+    if (!isFinishModalOpen) return undefined;
+    finishFilenameInput.current?.focus();
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setIsFinishModalOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isFinishModalOpen]);
+
+  function startSmartGoalsGuide() {
+    setActiveStage("plan");
+    setGuideStep(0);
+  }
+
+  function moveSmartGoalsGuide(direction) {
+    const nextIndex = guideStep + direction;
+    if (nextIndex < 0) return;
+    if (nextIndex >= smartGoalsGuideSteps.length) {
+      setGuideStep(-1);
+      return;
+    }
+    setActiveStage(smartGoalsGuideSteps[nextIndex].stage);
+    setGuideStep(nextIndex);
+  }
 
   async function handleGenerate(event) {
     event.preventDefault();
@@ -262,7 +504,10 @@ export default function SmartGoals() {
           selectedGap: selectedGap.trim(),
         }),
       });
-      setGeneration(result);
+      setGeneration({
+        ...markGoalsForReviewGrading(result),
+        introductionVersion: selectedIntroduction,
+      });
       setActiveGoalIndex(0);
       setActiveStage("goals");
     } catch (requestError) {
@@ -277,8 +522,63 @@ export default function SmartGoals() {
   function updateGoal(index, field, value) {
     setGeneration((current) => ({
       ...current,
-      goals: current.goals.map((goal, goalIndex) => goalIndex === index ? { ...goal, [field]: value } : goal),
+      goals: current.goals.map((goal, goalIndex) => {
+        if (goalIndex !== index) return goal;
+        const changesSMARTContent = GOAL_FIELDS.some(([goalField]) => goalField === field) && goal[field] !== value;
+        return {
+          ...goal,
+          [field]: value,
+          ...(changesSMARTContent ? { evaluationOutdated: true, reviewStatus: "pending" } : {}),
+        };
+      }),
     }));
+  }
+
+  function setGoalReviewStatus(index, status) {
+    setGeneration((current) => ({
+      ...current,
+      goals: current.goals.map((goal, goalIndex) => goalIndex === index
+        ? { ...goal, reviewStatus: goal.reviewStatus === status ? "pending" : status }
+        : goal),
+    }));
+  }
+
+  async function regenerateDeclinedGoal(index) {
+    const declinedGoal = generation?.goals?.[index];
+    if (!declinedGoal || declinedGoal.reviewStatus !== "declined" || regeneratingGoalIndex !== null) return;
+
+    setRegeneratingGoalIndex(index);
+    setError("");
+    try {
+      const result = await apiRequest("/api/v1/smart-goals/regenerate-goal", {
+        method: "POST",
+        body: JSON.stringify({
+          groupId,
+          researchTitle: generation.researchTitle || researchTitle,
+          selectedGap: generation.selectedGap || selectedGap,
+          declinedGoal,
+          existingObjectives: generation.goals
+            .filter((_, goalIndex) => goalIndex !== index)
+            .map((goal) => goal.objective)
+            .filter(Boolean),
+        }),
+      });
+      const replacementGoal = result.goals?.[0];
+      if (!replacementGoal) throw new Error("The AI did not return a replacement objective.");
+      setGeneration((current) => ({
+        ...current,
+        goals: current.goals.map((goal, goalIndex) => goalIndex === index
+          ? { ...replacementGoal, evaluationOutdated: true, reviewStatus: "pending" }
+          : goal),
+      }));
+      setActiveGoalIndex(index);
+    } catch (requestError) {
+      setError(import.meta.env.DEV
+        ? requestError.message || "Could not regenerate this objective. Please try again."
+        : "Could not regenerate this objective right now. Please try again.");
+    } finally {
+      setRegeneratingGoalIndex(null);
+    }
   }
 
   function addGoal() {
@@ -301,8 +601,14 @@ export default function SmartGoals() {
       `\n## Overall aim\n${generation.overallAim || ""}`,
       ...generation.goals.map((goal, index) => [
         `\n## Goal ${index + 1}: ${goal.objective}`,
+        `- **Decision:** ${goal.reviewStatus || "pending"}`,
+        ...(goal.evaluation ? [
+          `- **AI gap alignment:** ${goal.evaluation.gapAlignmentScore}/100`,
+          `- **AI SMART quality:** ${goal.evaluation.smartQualityScore}/100`,
+          `- **AI assessment:** ${goal.evaluation.feedback}`,
+        ] : []),
         ...GOAL_FIELDS.slice(1).map(([field, label]) => `- **${label}:** ${goal[field] || ""}`),
-          ...(goal.needsUserInput?.length ? ["- **Researcher input needed:**", ...goal.needsUserInput.map((item) => `  - ${item}`)] : []),
+          ...(goal.needsUserInput?.length ? ["- **Optional planning notes:**", ...goal.needsUserInput.map((item) => `  - ${item}`)] : []),
         goal.sourceRefs?.length ? `- **Source IDs:** ${goal.sourceRefs.join(", ")}` : "",
       ].filter(Boolean).join("\n")),
     ].join("\n");
@@ -316,33 +622,64 @@ export default function SmartGoals() {
     }
   }
 
-  async function exportReview(format) {
+  async function exportReview(format, includeIntroduction = false, requestedFilename = "") {
+    const acceptedGoals = generation.goals.filter((goal) => goal.reviewStatus === "accepted");
+    const paperGoals = includeIntroduction ? acceptedGoals : generation.goals;
+    const references = generation.introductionVersion?.references || selectedIntroduction?.references || [];
     const plainText = [
       generation.researchTitle || groupData.title || "Research SMART Goals",
       "",
+      ...(includeIntroduction ? [
+        "Introduction",
+        generation.introductionVersion?.content || selectedIntroduction?.content || "No Step 2 introduction was selected.",
+        "",
+      ] : []),
       "Research Gap",
       generation.selectedGap || selectedGap || "Not specified",
       "",
       "Overall Research Aim",
       generation.overallAim || "Not specified",
-      ...generation.goals.flatMap((goal, index) => [
+      ...(includeIntroduction ? ["", "SMART Objectives"] : []),
+      ...paperGoals.flatMap((goal, index) => [
         "",
         `Objective ${index + 1}: ${goal.objective || "Untitled objective"}`,
+        ...(!includeIntroduction ? [
+          `Decision: ${goal.reviewStatus || "Pending review"}`,
+          ...(goal.evaluation ? [
+            `AI gap alignment: ${goal.evaluation.gapAlignmentScore}/100${goal.evaluationOutdated ? " (original text; now outdated)" : ""}`,
+            `AI SMART quality: ${goal.evaluation.smartQualityScore}/100${goal.evaluationOutdated ? " (original text; now outdated)" : ""}`,
+            `AI assessment: ${goal.evaluation.feedback}`,
+          ] : ["AI assessment: Not available"]),
+        ] : []),
         ...GOAL_FIELDS.slice(1).map(([field, label]) => `${label}: ${goal[field] || "Not specified"}`),
-        ...(goal.needsUserInput?.length ? ["Researcher input needed:", ...goal.needsUserInput.map((item) => `- ${item}`)] : []),
-        ...(goal.sourceRefs?.length ? [`Evidence sources: ${goal.sourceRefs.join(", ")}`] : []),
+        ...(includeIntroduction && goal.sourceRefs?.length
+          ? [`Evidence sources: ${goal.sourceRefs.map((sourceId) => paperSourceLabel(approvedPapers, sourceId)).join("; ")}`]
+          : []),
+        ...(!includeIntroduction && goal.needsUserInput?.length ? ["Optional planning notes:", ...goal.needsUserInput.map((item) => `- ${item}`)] : []),
+        ...(!includeIntroduction && goal.sourceRefs?.length ? [`Evidence sources: ${goal.sourceRefs.join(", ")}`] : []),
       ]),
+      ...(includeIntroduction ? [
+        "",
+        "References",
+        ...(references.length ? references : ["No references were included with the selected introduction."]),
+      ] : []),
     ].join("\n");
-    const filename = `smart-goals-${groupId}`;
+    const filenameBase = requestedFilename.trim()
+      ? sanitizeFilename(requestedFilename.trim()).replace(/\.(pdf|docx)$/i, "").replace(/[. ]+$/, "")
+      : includeIntroduction ? `research-draft-${groupId}` : `smart-goals-${groupId}`;
+    if (!filenameBase) {
+      setError("Enter a valid filename before downloading the final paper.");
+      return;
+    }
 
     try {
       if (format === "TXT") {
-        downloadBlob(new Blob([plainText], { type: "text/plain;charset=utf-8" }), `${filename}.txt`);
+        downloadBlob(new Blob([plainText], { type: "text/plain;charset=utf-8" }), `${filenameBase}.txt`);
         return;
       }
 
       if (format === "DOCX") {
-        downloadBlob(createDocxBlob(plainText), `${filename}.docx`);
+        downloadBlob(createDocxBlob(plainText), `${filenameBase}.docx`);
         return;
       }
 
@@ -364,15 +701,21 @@ export default function SmartGoals() {
           pdf.text(line, margin, y);
           y += 14;
         }
-        pdf.save(`${filename}.pdf`);
+        pdf.save(`${filenameBase}.pdf`);
       }
     } catch {
       setError(`Could not export the plan as ${format}. Please try again.`);
     }
   }
 
-  async function handleFinish() {
+  async function handleSaveAndCombine() {
     if (!generation || isSaving) return;
+    if (!canFinishReview) {
+      setError(acceptedGoalCount < 3
+        ? "Accept at least 3 SMART objectives, and accept or decline every objective, before saving and combining."
+        : "Accept or decline every objective before saving and combining.");
+      return;
+    }
     setIsSaving(true);
     setError("");
     try {
@@ -380,7 +723,7 @@ export default function SmartGoals() {
         method: "POST",
         body: JSON.stringify({ groupId, generation }),
       });
-      navigate("/groups");
+      setActiveStage("paper");
     } catch (saveError) {
       setError(import.meta.env.DEV
         ? saveError.message || "Could not save SMART goals. Please try again."
@@ -390,15 +733,42 @@ export default function SmartGoals() {
     }
   }
 
+  function handleFinish() {
+    const baseName = sanitizeFilename((generation?.researchTitle || groupData.title || "research-paper")
+      .trim()
+      .replace(/\s+/g, "-"));
+    setFinalFilename(baseName || "research-paper");
+    setError("");
+    setIsFinishModalOpen(true);
+  }
+
+  function completeSmartGoals() {
+    setIsFinishModalOpen(false);
+    navigate("/groups");
+  }
+
+  function scoreTone(score) {
+    if (score >= 85) return "is-strong";
+    if (score >= 70) return "is-good";
+    if (score >= 50) return "is-needs-work";
+    return "is-weak";
+  }
+
   const completedFieldCount = (goal) => GOAL_FIELDS.filter(([field]) => goal[field]?.trim()).length;
-  const goalsReady = Boolean(generation?.goals?.length);
   const activeGoal = generation?.goals?.[activeGoalIndex];
   const totalCriteriaFilled = generation?.goals?.reduce((count, goal) => count + completedFieldCount(goal), 0) || 0;
   const selectedStageIndex = WORKFLOW_STAGES.findIndex((stage) => stage.id === activeStage);
 
   const gaps = Array.isArray(groupData.gaps) ? groupData.gaps : [];
+  const introduction = generation?.introductionVersion || selectedIntroduction;
+  const acceptedGoals = generation?.goals?.filter((goal) => goal.reviewStatus === "accepted") || [];
   const approvedPapers = readApprovedPapers(groupId);
   const approvedPaperCount = approvedPapers.length || generation?.approvedSourceCount || 0;
+  const acceptedGoalCount = generation?.goals?.filter((goal) => goal.reviewStatus === "accepted").length || 0;
+  const reviewedGoalCount = generation?.goals?.filter((goal) => ["accepted", "declined"].includes(goal.reviewStatus)).length || 0;
+  const hasPendingEvaluation = goalsReady && generation.goals.some((goal) => goal.evaluationOutdated || !goal.evaluation);
+  const canFinishReview = goalsReady && acceptedGoalCount >= 3 && reviewedGoalCount === generation.goals.length
+    && !hasPendingEvaluation && !isReviewEvaluating && !reviewGradeError;
   const canGenerate = Boolean(researchTitle.trim() && selectedGap.trim());
 
   return (
@@ -415,20 +785,12 @@ export default function SmartGoals() {
               <p className="workflow-description">Use your research title, selected gap, and relevant approved RRL evidence to shape clear objectives.</p>
             </div>
           </div>
-          <details className="smart-goals-guide">
-            <summary className="groups-guide-trigger-btn workflow-guide-button"><Compass size={16} aria-hidden="true" /><span>Guide</span></summary>
-            <div className="smart-goals-guide-popover" role="region" aria-label="SMART Goals guide">
-              <strong>Build a focused plan</strong>
-              <ol>
-                <li>Choose your research title and gap.</li>
-                <li>Refine each objective against the SMART criteria.</li>
-                <li>Review evidence links and decisions to confirm.</li>
-              </ol>
-            </div>
-          </details>
+          <button className="groups-guide-trigger-btn workflow-guide-button" type="button" onClick={startSmartGoalsGuide} data-smart-guide="guide-trigger">
+            <Compass size={16} aria-hidden="true" /><span>Guide</span>
+          </button>
         </header>
 
-        <nav className="smart-goals-stepper" aria-label="SMART goals workflow">
+        <nav className="smart-goals-stepper" aria-label="SMART goals workflow" data-smart-guide="workflow-stepper">
           {WORKFLOW_STAGES.map((stage, index) => {
             const Icon = stage.icon;
             const locked = index > 0 && !goalsReady;
@@ -440,7 +802,10 @@ export default function SmartGoals() {
                   type="button"
                   disabled={locked}
                   aria-current={activeStage === stage.id ? "step" : undefined}
-                  onClick={() => setActiveStage(stage.id)}
+                  onClick={() => {
+                    if (stage.id !== "review") setReviewGradeError("");
+                    setActiveStage(stage.id);
+                  }}
                 >
                   <span className="smart-goals-step-icon">{done ? <Check size={16} /> : <Icon size={17} />}</span>
                   <span className="smart-goals-step-copy"><small>STEP {stage.number}</small><strong>{stage.label}</strong></span>
@@ -474,17 +839,30 @@ export default function SmartGoals() {
                   <div><h2>Objectives</h2><p>Select an objective to refine.</p></div>
                   <span className="smart-goals-count-pill">{generation.goals.length} {generation.goals.length === 1 ? "objective" : "objectives"}</span>
                 </div>
-                <div className="smart-goals-goal-rail">
+                <div className="smart-goals-goal-rail" data-smart-guide="objective-list">
                   {generation.goals.map((goal, index) => (
                     <button className={`smart-goals-goal-tab${activeGoalIndex === index ? " is-active" : ""}`} type="button" key={`goal-${index}`} onClick={() => setActiveGoalIndex(index)}>
                       <span className="smart-goal-number">{String(index + 1).padStart(2, "0")}</span>
                       <span className="smart-goals-goal-tab-copy">
                         <strong title={goal.objective || `Untitled objective ${index + 1}`}>{goal.objective || `Untitled objective ${index + 1}`}</strong>
-                        <small><i className={`smart-goals-status-dot${isGoalComplete(goal) ? " is-complete" : " is-needs-input"}`} aria-hidden="true" />{isGoalComplete(goal) ? "Complete" : "Needs input"}</small>
+                        <small><i className={`smart-goals-status-dot${goal.reviewStatus === "accepted" ? " is-complete" : goal.reviewStatus === "declined" ? " is-declined" : " is-needs-input"}`} aria-hidden="true" />{goal.reviewStatus === "accepted" ? "Accepted" : goal.reviewStatus === "declined" ? "Declined" : isGoalComplete(goal) ? "Ready to review" : "Needs input"}</small>
                       </span>
                     </button>
                   ))}
                   <button className="smart-goals-add-goal" type="button" onClick={addGoal}><Plus size={16} aria-hidden="true" />Add objective</button>
+                </div>
+              </>
+            ) : activeStage === "paper" ? (
+              <>
+                <div className="workflow-card-header smart-goals-side-header">
+                  <div><h2>Aligned draft</h2><p>The selected Step 2 introduction and accepted objectives.</p></div>
+                  <span className="smart-goals-count-pill">{acceptedGoals.length} accepted</span>
+                </div>
+                <div className="smart-goals-context-content">
+                  <span className="smart-goals-eyebrow">TITLE</span>
+                  <p>{generation.researchTitle || groupData.title || "Not specified"}</p>
+                  <span className="smart-goals-eyebrow">PRIMARY GAP</span>
+                  <p>{generation.selectedGap || selectedGap || "Not specified"}</p>
                 </div>
               </>
             ) : (
@@ -514,7 +892,7 @@ export default function SmartGoals() {
                 </div>
                 <p className="smart-goals-panel-description">Generate 3–4 evidence-backed objectives with clear SMART criteria.</p>
                 <form onSubmit={handleGenerate}>
-                  <div className="smart-goals-plan-fields">
+                  <div className="smart-goals-plan-fields" data-smart-guide="study-focus">
                     <label className="smart-goals-field">
                       <span>Research topic / title <small>Required · Step 1</small></span>
                       <textarea className="smart-goals-full-text" rows="2" value={researchTitle} onChange={(event) => setResearchTitle(event.target.value)} placeholder="Enter the research title" />
@@ -547,7 +925,7 @@ export default function SmartGoals() {
                     <div className="smart-goals-sticky-stats"><strong>{approvedPaperCount}</strong><span>Approved papers</span></div>
                     <div className="smart-goals-sticky-actions">
                       <span>{generation ? "Regenerating replaces the current draft." : "Only relevant evidence excerpts are included."}</span>
-                    <button className="smart-goals-generate" type="submit" disabled={isGenerating || !canGenerate}>
+                    <button className="smart-goals-generate" type="submit" disabled={isGenerating || !canGenerate} data-smart-guide="generate-goals">
                       {isGenerating ? <LoaderCircle className="smart-goals-spinner" size={17} /> : generation ? <RotateCcw size={17} /> : <Sparkles size={17} />}
                       {isGenerating ? "Building your goals..." : generation ? "Regenerate goals" : "Generate goals"}
                     </button>
@@ -584,7 +962,7 @@ export default function SmartGoals() {
                       </div>
                       <div className="smart-goals-editor-fields">
                         {GOAL_FIELDS.map(([field, label], index) => (
-                          <label className={`smart-goals-field smart-goals-smart-field smart-goals-smart-${field}`} key={field}>
+                          <label className={`smart-goals-field smart-goals-smart-field smart-goals-smart-${field}`} key={field} data-smart-guide={field === "specific" ? "goal-editor" : undefined}>
                             <span><i aria-hidden="true">{label[0]}</i>{label}</span>
                             <small className="smart-goals-field-help">{SMART_FIELD_HELP[field]}</small>
                             <textarea className="smart-goals-auto-grow" rows={field === "objective" ? 2 : 3} value={activeGoal[field] || ""} onChange={(event) => updateGoal(activeGoalIndex, field, event.target.value)} placeholder={`Define the ${label.toLowerCase()} criterion`} />
@@ -592,10 +970,13 @@ export default function SmartGoals() {
                         ))}
                       </div>
                       <div className="smart-goals-editor-insights">
-                        <div className={activeGoal.needsUserInput?.length ? "is-needs-input" : ""}>
-                          <strong>To confirm</strong>
-                          {activeGoal.needsUserInput?.length ? <ul>{activeGoal.needsUserInput.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul> : <span>No missing decisions flagged.</span>}
-                        </div>
+                        {activeGoal.needsUserInput?.length > 0 && (
+                          <details className="smart-goals-optional-notes">
+                            <summary>Optional planning notes ({activeGoal.needsUserInput.length})</summary>
+                            <p>These are possible details to consider as your research plan develops. They are not required to complete this objective.</p>
+                            <ul>{activeGoal.needsUserInput.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>
+                          </details>
+                        )}
                         <div>
                           <strong>Evidence references</strong>
                           <span className="smart-goals-evidence-count">{activeGoal.sourceRefs?.length ? `${new Set(activeGoal.sourceRefs).size} evidence sources` : "No source reference attached."}</span>
@@ -611,7 +992,7 @@ export default function SmartGoals() {
                     <span><strong>{totalCriteriaFilled}</strong> / {generation.goals.length * GOAL_FIELDS.length} criteria filled</span>
                   </div>
                   <div className="smart-goals-sticky-actions">
-                    <button className="smart-goals-generate" type="button" onClick={() => setActiveStage("review")}><FileCheck2 size={16} /> Review goals</button>
+                    <button className="smart-goals-generate" type="button" onClick={() => setActiveStage("review")} data-smart-guide="review-stage"><FileCheck2 size={16} /> Review goals</button>
                   </div>
                 </div>
               </>
@@ -639,34 +1020,152 @@ export default function SmartGoals() {
                   <div><span>RESEARCH GAP</span><p>{generation.selectedGap || selectedGap || "Not specified"}</p></div>
                   <div><span>OVERALL AIM</span><p>{generation.overallAim || "Add an overall aim in Goal Studio."}</p></div>
                 </div>
+                <p className="smart-goals-grade-note">AI scores below grade the current objective text, including any edits. They are advisory estimates, not proof of correctness. Planning notes are optional and do not block completion. Accept at least three objectives and accept or decline every objective before saving. Declined objectives can be regenerated individually.</p>
+                {isReviewEvaluating && <p className="smart-goals-review-grading" role="status"><LoaderCircle className="smart-goals-spinner" size={17} aria-hidden="true" /> Grading the latest objective text…</p>}
+                {reviewGradeError && (
+                  <div className="smart-goals-review-grade-error" role="alert">
+                    <span>{reviewGradeError}</span>
+                    <button className="smart-goals-secondary-action" type="button" onClick={() => setReviewGradeError("")}>Retry grading</button>
+                  </div>
+                )}
                 <div className="smart-goals-review-list">
                   {generation.goals.map((goal, index) => {
                     const complete = completedFieldCount(goal);
                     return (
-                      <article className="smart-goals-review-item" key={`review-${index}`}>
+                      <article className={`smart-goals-review-item${goal.reviewStatus === "accepted" ? " is-accepted" : goal.reviewStatus === "declined" ? " is-declined" : ""}`} key={`review-${index}`}>
                         <div className="smart-goals-review-item-head">
                           <span className="smart-goal-number">{String(index + 1).padStart(2, "0")}</span>
-                          <div><h3>{goal.objective || `Objective ${index + 1}`}</h3><span>{complete}/6 SMART criteria completed</span></div>
-                          <button className="smart-goals-edit-button" type="button" onClick={() => { setActiveGoalIndex(index); setActiveStage("goals"); }}><Pencil size={14} aria-hidden="true" />Edit</button>
+                          <div><h3>{goal.objective || `Objective ${index + 1}`}</h3><span>{complete}/6 SMART criteria completed · {goal.reviewStatus === "accepted" ? "Accepted" : goal.reviewStatus === "declined" ? "Declined" : "Awaiting your decision"}</span></div>
+                          <button className="smart-goals-edit-button" type="button" onClick={() => { setReviewGradeError(""); setActiveGoalIndex(index); setActiveStage("goals"); }}><Pencil size={14} aria-hidden="true" />Edit</button>
+                        </div>
+                        <div className="smart-goals-grade-grid">
+                          {goal.evaluation && !goal.evaluationOutdated ? (
+                            <>
+                              <div className={`smart-goals-score-card ${scoreTone(goal.evaluation.gapAlignmentScore)}`}>
+                                <span>GAP ALIGNMENT</span>
+                                <strong>{goal.evaluation.gapAlignmentScore}<small>/100</small></strong>
+                                <b>{scoreLabel(goal.evaluation.gapAlignmentScore)}</b>
+                              </div>
+                              <div className={`smart-goals-score-card ${scoreTone(goal.evaluation.smartQualityScore)}`}>
+                                <span>SMART QUALITY</span>
+                                <strong>{goal.evaluation.smartQualityScore}<small>/100</small></strong>
+                                <b>{scoreLabel(goal.evaluation.smartQualityScore)}</b>
+                              </div>
+                              {goal.evaluation.feedback && <p className="smart-goals-grade-feedback">{goal.evaluation.feedback}</p>}
+                            </>
+                          ) : isReviewEvaluating ? (
+                            <p className="smart-goals-grade-pending">Updating this grade to match the latest objective text…</p>
+                          ) : reviewGradeError ? (
+                            <p className="smart-goals-grade-pending">This objective has not been graded yet. Use Retry grading above.</p>
+                          ) : (
+                            <p className="smart-goals-grade-pending">This objective is waiting for its current-text assessment.</p>
+                          )}
                         </div>
                         <div className="smart-goals-review-criteria">
                           {GOAL_FIELDS.slice(1).map(([field, label]) => <div key={field}><strong>{label}</strong><p>{renderReviewText(goal[field] || "Not specified yet")}</p></div>)}
                         </div>
-                        {goal.needsUserInput?.length > 0 && <div className="smart-goals-needs-input"><strong>Researcher input needed</strong><ul>{goal.needsUserInput.map((item, itemIndex) => <li key={`${itemIndex}-${item}`}>{renderReviewText(item)}</li>)}</ul></div>}
-                        {!goal.needsUserInput?.length && goal.timeBound && /researcher|confirm|determin/i.test(goal.timeBound) && <div className="smart-goals-needs-input"><strong>Researcher input needed</strong><ul><li>{renderReviewText(goal.timeBound)}</li></ul></div>}
+                        {(goal.needsUserInput?.length > 0 || (goal.timeBound && /researcher|confirm|determin/i.test(goal.timeBound))) && (
+                          <details className="smart-goals-optional-notes">
+                            <summary>Optional planning notes</summary>
+                            <p>Consider these details as the study develops. They are not required to accept or save this objective.</p>
+                            <ul>
+                              {(goal.needsUserInput?.length ? goal.needsUserInput : [goal.timeBound]).map((item, itemIndex) => (
+                                <li key={`${itemIndex}-${item}`}>{renderReviewText(item)}</li>
+                              ))}
+                            </ul>
+                          </details>
+                        )}
+                        <div className="smart-goals-review-decisions" role="group" aria-label={`Review objective ${index + 1}`} data-smart-guide={index === 0 ? "review-decisions" : undefined}>
+                          <button className={`smart-goals-decision-button is-accept${goal.reviewStatus === "accepted" ? " is-selected" : ""}`} type="button" aria-pressed={goal.reviewStatus === "accepted"} disabled={regeneratingGoalIndex !== null} onClick={() => setGoalReviewStatus(index, "accepted")}><Check size={15} aria-hidden="true" />{goal.reviewStatus === "accepted" ? "Accepted" : "Accept objective"}</button>
+                          <button className={`smart-goals-decision-button is-decline${goal.reviewStatus === "declined" ? " is-selected" : ""}`} type="button" aria-pressed={goal.reviewStatus === "declined"} disabled={regeneratingGoalIndex !== null} onClick={() => setGoalReviewStatus(index, "declined")}><X size={15} aria-hidden="true" />{goal.reviewStatus === "declined" ? "Declined" : "Decline"}</button>
+                          {goal.reviewStatus === "declined" && (
+                            <button
+                              className="smart-goals-decision-button is-regenerate"
+                              type="button"
+                              disabled={regeneratingGoalIndex !== null}
+                              onClick={() => regenerateDeclinedGoal(index)}
+                            >
+                              {regeneratingGoalIndex === index
+                                ? <LoaderCircle className="smart-goals-spinner" size={15} aria-hidden="true" />
+                                : <RotateCcw size={15} aria-hidden="true" />}
+                              {regeneratingGoalIndex === index ? "Regenerating objective..." : "Regenerate this objective"}
+                            </button>
+                          )}
+                        </div>
                       </article>
                     );
                   })}
                 </div>
                 {error && <p className="smart-goals-error" role="alert">{error}</p>}
                 <div className="smart-goals-sticky-bar smart-goals-review-footer">
-                  <span>{approvedPaperCount} approved sources considered. Verify evidence before use.</span>
+                  <span>{acceptedGoalCount} accepted · {generation.goals.length - reviewedGoalCount} undecided. {acceptedGoalCount < 3 ? `Accept ${3 - acceptedGoalCount} more to save.` : "Verify evidence before use."}</span>
                   <div className="smart-goals-sticky-actions">
-                    <button className="smart-goals-secondary-action" type="button" onClick={() => setActiveStage("goals")}><Target size={15} aria-hidden="true" />Back to refine</button>
-                    <button className="smart-goals-generate" type="button" onClick={handleFinish} disabled={isSaving}>
+                    <button className="smart-goals-secondary-action" type="button" onClick={() => { setReviewGradeError(""); setActiveStage("goals"); }}><Target size={15} aria-hidden="true" />Back to refine</button>
+                    <button className="smart-goals-generate" type="button" onClick={handleSaveAndCombine} disabled={isSaving || !canFinishReview} data-smart-guide="save-combine">
                       {isSaving ? <LoaderCircle className="smart-goals-spinner" size={15} aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}
-                      {isSaving ? "Saving..." : "Finish"}
+                      {isSaving ? "Saving and combining..." : "Save and combine"}
                     </button>
+                  </div>
+                </div>
+              </>
+            )}
+            {activeStage === "paper" && goalsReady && (
+              <>
+                <div className="workflow-card-header smart-goals-main-header smart-goals-review-heading">
+                  <div><h2>Research draft</h2><p>Step 2’s selected title/introduction together with the SMART objectives you accepted.</p></div>
+                </div>
+                <p className="smart-goals-grade-note">This combines your selected introduction with accepted goals; it does not rewrite the introduction. Check the flow and add other paper sections as your study requires.</p>
+                <article className="smart-goals-paper-preview">
+                  <h1 data-smart-guide="combined-preview">{generation.researchTitle || groupData.title || "Research title"}</h1>
+                  <section>
+                    <h2>Introduction</h2>
+                    {introduction?.content ? (
+                      <>
+                        <p className="smart-goals-paper-version">{introduction.label || "Selected Step 2 version"}</p>
+                        <div className="smart-goals-paper-prose">{introduction.content}</div>
+                      </>
+                    ) : (
+                      <div className="smart-goals-paper-empty">
+                        <p>No Step 2 introduction is attached to this SMART Goals draft yet.</p>
+                        <button className="smart-goals-edit-button" type="button" onClick={() => navigate(`/citewise/${groupId}`)}>Return to Step 2 and select an introduction version</button>
+                      </div>
+                    )}
+                  </section>
+                  <section>
+                    <h2>Research gap</h2>
+                    <p className="smart-goals-paper-prose">{generation.selectedGap || selectedGap || "Not specified"}</p>
+                  </section>
+                  <section>
+                    <h2>Overall research aim</h2>
+                    <p className="smart-goals-paper-prose">{generation.overallAim || "Not specified"}</p>
+                  </section>
+                  <section>
+                    <h2>SMART objectives</h2>
+                    {acceptedGoals.length ? acceptedGoals.map((goal, index) => (
+                      <article className="smart-goals-paper-objective" key={`paper-goal-${index}`}>
+                        <h3>{index + 1}. {goal.objective || "Objective"}</h3>
+                        {GOAL_FIELDS.slice(1).map(([field, label]) => (
+                          <p key={field}><strong>{label}:</strong> {goal[field] || "Not specified"}</p>
+                        ))}
+                        {goal.sourceRefs?.length > 0 && <p><strong>Evidence sources:</strong> {goal.sourceRefs.map((sourceId) => paperSourceLabel(approvedPapers, sourceId)).join("; ")}</p>}
+                      </article>
+                    )) : <p className="smart-goals-paper-empty">Accept at least one objective in Review plan to include it here.</p>}
+                  </section>
+                  <section>
+                    <h2>References</h2>
+                    {Array.isArray(introduction?.references) && introduction.references.length > 0 ? (
+                      <ol>{introduction.references.map((reference, index) => <li key={`${index}-${reference}`}>{reference}</li>)}</ol>
+                    ) : (
+                      <p className="smart-goals-paper-empty">No references were attached to the selected introduction.</p>
+                    )}
+                  </section>
+                </article>
+                {error && <p className="smart-goals-error" role="alert">{error}</p>}
+                <div className="smart-goals-sticky-bar smart-goals-review-footer">
+                  <span>{acceptedGoals.length} accepted objectives included · {introduction ? "Step 2 introduction attached" : "Introduction missing"}</span>
+                  <div className="smart-goals-sticky-actions">
+                    <button className="smart-goals-secondary-action" type="button" onClick={() => setActiveStage("review")}><FileCheck2 size={15} aria-hidden="true" />Back to review</button>
+                    <button className="smart-goals-generate" type="button" onClick={handleFinish} data-smart-guide="finish"><Check size={15} aria-hidden="true" />Finish</button>
                   </div>
                 </div>
               </>
@@ -674,6 +1173,123 @@ export default function SmartGoals() {
           </section>
         </div>
       </main>
+      {guideOpen && activeGuideStep && (
+        <div className="smart-goals-guide-layer">
+          <div className="smart-goals-guide-blocker" aria-hidden="true" />
+          {guideSpotlight && (
+            <div
+              className="smart-goals-guide-spotlight"
+              style={{
+                top: guideSpotlight.top,
+                left: guideSpotlight.left,
+                width: guideSpotlight.width,
+                height: guideSpotlight.height,
+                borderRadius: guideSpotlight.borderRadius,
+              }}
+              aria-hidden="true"
+            />
+          )}
+          <section className="smart-goals-guide-card" role="dialog" aria-modal="true" aria-labelledby="smart-goals-guide-title" aria-describedby="smart-goals-guide-description">
+            <div className="smart-goals-guide-card-header">
+              <span>Step {guideStep + 1} of {smartGoalsGuideSteps.length}</span>
+              <button type="button" onClick={() => setGuideStep(-1)} aria-label="Close guide"><X size={18} /></button>
+            </div>
+            <div className="smart-goals-guide-progress" aria-hidden="true">
+              <span style={{ width: `${((guideStep + 1) / smartGoalsGuideSteps.length) * 100}%` }} />
+            </div>
+            <h2 id="smart-goals-guide-title">{activeGuideStep.title}</h2>
+            <p id="smart-goals-guide-description">{activeGuideStep.description}</p>
+            <div className="smart-goals-guide-actions">
+              <button className="smart-goals-guide-skip" type="button" onClick={() => setGuideStep(-1)}>Skip guide</button>
+              <div>
+                <button className="smart-goals-guide-back" type="button" onClick={() => moveSmartGoalsGuide(-1)} disabled={guideStep === 0}>
+                  <ChevronLeft size={16} aria-hidden="true" />Back
+                </button>
+                <button className="smart-goals-guide-next" type="button" onClick={() => moveSmartGoalsGuide(1)}>
+                  {guideStep === smartGoalsGuideSteps.length - 1 ? "Finish" : "Next"}
+                  {guideStep < smartGoalsGuideSteps.length - 1 && <ChevronRight size={16} aria-hidden="true" />}
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+      {isFinishModalOpen && (
+        <div className="smart-goals-finish-overlay" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setIsFinishModalOpen(false);
+        }}>
+          <section className="smart-goals-finish-modal" role="dialog" aria-modal="true" aria-labelledby="smart-goals-finish-title">
+            <header className="smart-goals-finish-modal-header">
+              <div>
+                <span className="smart-goals-finish-eyebrow">FINAL REVIEW</span>
+                <h2 id="smart-goals-finish-title">Your research paper draft</h2>
+                <p>Preview the combined paper and download a copy if you need one.</p>
+              </div>
+              <button type="button" className="smart-goals-finish-close" aria-label="Close final preview" onClick={() => setIsFinishModalOpen(false)}><X size={20} /></button>
+            </header>
+            <div className="smart-goals-finish-paper">
+              <h1>{generation.researchTitle || groupData.title || "Research title"}</h1>
+              <section>
+                <h3>Introduction</h3>
+                {introduction?.content ? (
+                  <div className="smart-goals-paper-prose">{introduction.content}</div>
+                ) : <p className="smart-goals-paper-empty">No Step 2 introduction was selected.</p>}
+              </section>
+              <section>
+                <h3>Research gap</h3>
+                <p className="smart-goals-paper-prose">{generation.selectedGap || selectedGap || "Not specified"}</p>
+              </section>
+              <section>
+                <h3>Overall research aim</h3>
+                <p className="smart-goals-paper-prose">{generation.overallAim || "Not specified"}</p>
+              </section>
+              <section>
+                <h3>SMART objectives</h3>
+                {acceptedGoals.map((goal, index) => (
+                  <div className="smart-goals-finish-objective" key={`finish-goal-${index}`}>
+                    <h4>{index + 1}. {goal.objective || "Objective"}</h4>
+                    {GOAL_FIELDS.slice(1).map(([field, label]) => (
+                      <p key={field}><strong>{label}:</strong> {goal[field] || "Not specified"}</p>
+                    ))}
+                    {goal.sourceRefs?.length > 0 && (
+                      <p><strong>Evidence sources:</strong> {goal.sourceRefs.map((sourceId) => paperSourceLabel(approvedPapers, sourceId)).join("; ")}</p>
+                    )}
+                  </div>
+                ))}
+              </section>
+              <section>
+                <h3>References</h3>
+                <ol>{(introduction?.references || []).map((reference, index) => <li key={`${index}-${reference}`}>{reference}</li>)}</ol>
+                {!introduction?.references?.length && <p className="smart-goals-paper-empty">No references were attached to the selected introduction.</p>}
+              </section>
+            </div>
+            <div className="smart-goals-finish-download">
+              <label className="smart-goals-finish-filename">
+                <span>Filename</span>
+                <input ref={finishFilenameInput} value={finalFilename} onChange={(event) => setFinalFilename(event.target.value)} placeholder="research-paper" maxLength={120} />
+              </label>
+              <label className="smart-goals-finish-format">
+                <span>File type</span>
+                <select value={finalFileFormat} onChange={(event) => setFinalFileFormat(event.target.value)}>
+                  <option value="PDF">PDF (.pdf)</option>
+                  <option value="DOCX">Word document (.docx)</option>
+                </select>
+              </label>
+              <span className="smart-goals-finish-extension">.{finalFileFormat === "PDF" ? "pdf" : "docx"}</span>
+            </div>
+            {error && <p className="smart-goals-error" role="alert">{error}</p>}
+            <footer className="smart-goals-finish-actions">
+              <button className="smart-goals-secondary-action" type="button" onClick={() => setIsFinishModalOpen(false)}>Back to draft</button>
+              <div>
+                <button className="smart-goals-secondary-action smart-goals-finish-download-button" type="button" onClick={() => exportReview(finalFileFormat, true, finalFilename)}>
+                  <Download size={16} aria-hidden="true" />Download {finalFileFormat === "PDF" ? "PDF" : "Word"}
+                </button>
+                <button className="smart-goals-generate" type="button" onClick={completeSmartGoals}><Check size={16} aria-hidden="true" />Finish</button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
