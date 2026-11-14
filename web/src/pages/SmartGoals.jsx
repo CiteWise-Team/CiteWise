@@ -119,17 +119,25 @@ function markGoalsForReviewGrading(generation) {
   };
 }
 
+function normalizeIntroductionVersion(value) {
+  if (!value || typeof value !== "object" || typeof value.content !== "string" || !value.content.trim()) return null;
+  return {
+    id: typeof value.id === "string" ? value.id : "",
+    label: typeof value.label === "string" ? value.label : "Selected introduction",
+    content: value.content,
+    references: Array.isArray(value.references)
+      ? value.references
+          .map((ref) => (typeof ref === "string" ? ref : ref?.raw || ref?.title || ""))
+          .filter(Boolean)
+      : [],
+    timestamp: typeof value.timestamp === "string" ? value.timestamp : null,
+  };
+}
+
 function readSelectedIntroduction(groupId) {
   try {
     const stored = JSON.parse(localStorage.getItem(`citewise.${groupId}.smartGoalsIntroduction`) || "null");
-    if (!stored || typeof stored.content !== "string" || !stored.content.trim()) return null;
-    return {
-      id: typeof stored.id === "string" ? stored.id : "",
-      label: typeof stored.label === "string" ? stored.label : "Selected introduction",
-      content: stored.content,
-      references: Array.isArray(stored.references) ? stored.references.filter((reference) => typeof reference === "string") : [],
-      timestamp: typeof stored.timestamp === "string" ? stored.timestamp : null,
-    };
+    return normalizeIntroductionVersion(stored);
   } catch {
     return null;
   }
@@ -424,9 +432,11 @@ export default function SmartGoals() {
   function handleConfirmIntroSelection(draftToUse) {
     const chosen = draftToUse || savedIntroductions.find((d) => d.id === selectedDraftId) || savedIntroductions[0];
     if (chosen) {
-      setSelectedIntroduction(chosen);
+      const normalizedChosen = normalizeIntroductionVersion(chosen);
+      setSelectedIntroduction(normalizedChosen || chosen);
+      setGeneration((current) => (current ? { ...current, introductionVersion: normalizedChosen } : current));
       try {
-        localStorage.setItem(`citewise.${groupId}.smartGoalsIntroduction`, JSON.stringify(chosen));
+        localStorage.setItem(`citewise.${groupId}.smartGoalsIntroduction`, JSON.stringify(normalizedChosen || chosen));
       } catch (err) {
         console.warn("[SmartGoals] Could not persist selected introduction:", err);
       }
@@ -436,6 +446,7 @@ export default function SmartGoals() {
 
   function handleSkipIntroSelection() {
     setSelectedIntroduction(null);
+    setGeneration((current) => (current ? { ...current, introductionVersion: null } : current));
     try {
       localStorage.removeItem(`citewise.${groupId}.smartGoalsIntroduction`);
     } catch {}
@@ -448,7 +459,7 @@ export default function SmartGoals() {
     const saved = readSavedGeneration(groupId);
     const introduction = readSelectedIntroduction(groupId);
     const hydratedSaved = saved
-      ? { ...markGoalsForReviewGrading(saved), introductionVersion: saved.introductionVersion || introduction }
+      ? { ...markGoalsForReviewGrading(saved), introductionVersion: normalizeIntroductionVersion(saved.introductionVersion) || introduction }
       : null;
     setGroupData(data);
     setSelectedIntroduction(introduction);
@@ -469,7 +480,7 @@ export default function SmartGoals() {
           if (!active || !savedGeneration?.goals?.length) return;
           const hydratedGeneration = {
             ...markGoalsForReviewGrading(savedGeneration),
-            introductionVersion: savedGeneration.introductionVersion || introduction,
+            introductionVersion: normalizeIntroductionVersion(savedGeneration.introductionVersion) || introduction,
           };
           setGeneration(hydratedGeneration);
           setGenerationGroupId(groupId);
@@ -863,12 +874,13 @@ export default function SmartGoals() {
     try {
       const payloadGeneration = {
         ...generation,
-        introductionVersion: selectedIntroduction?.label || generation.introductionVersion || null,
+        introductionVersion: normalizeIntroductionVersion(selectedIntroduction) || normalizeIntroductionVersion(generation.introductionVersion) || null,
       };
       await apiRequest("/api/v1/smart-goals/save", {
         method: "POST",
         body: JSON.stringify({ groupId, generation: payloadGeneration }),
       });
+      setGeneration(payloadGeneration);
       setActiveStage("paper");
     } catch (saveError) {
       setError(import.meta.env.DEV
@@ -906,7 +918,7 @@ export default function SmartGoals() {
   const selectedStageIndex = WORKFLOW_STAGES.findIndex((stage) => stage.id === activeStage);
 
   const gaps = Array.isArray(groupData.gaps) ? groupData.gaps : [];
-  const introduction = generation?.introductionVersion || selectedIntroduction;
+  const introduction = normalizeIntroductionVersion(selectedIntroduction) || normalizeIntroductionVersion(generation?.introductionVersion);
   const acceptedGoals = generation?.goals?.filter((goal) => goal.reviewStatus === "accepted") || [];
   const approvedPapers = readApprovedPapers(groupId);
   const approvedPaperCount = approvedPapers.length || generation?.approvedSourceCount || 0;
