@@ -353,6 +353,14 @@ function getGeminiModel() {
   return (process.env.GEMINI_MODEL || 'gemini-4-carbon').trim().replace(/^models\//, '');
 }
 
+function extractGeminiText(geminiData) {
+  const parts = geminiData?.candidates?.[0]?.content?.parts ?? [];
+  const contentParts = parts.filter((part) => !part?.thought);
+  return (contentParts.length ? contentParts : parts)
+    .map((part) => part?.text ?? '')
+    .join('');
+}
+
 router.post('/evaluate-goals', async (req, res) => {
   const groupId = cleanText(req.body?.groupId, 128);
   const researchTitle = cleanText(req.body?.researchTitle, 300);
@@ -441,7 +449,7 @@ router.post('/evaluate-goals', async (req, res) => {
 
     phase = 'parsing Gemini response';
     const geminiData = JSON.parse(rawResponse);
-    const generatedText = geminiData.candidates?.[0]?.content?.parts?.map((part) => part.text ?? '').join('') ?? '';
+    const generatedText = extractGeminiText(geminiData);
     const parsed = JSON.parse(generatedText);
     const evaluations = parsed.evaluations;
     if (!Array.isArray(evaluations) || evaluations.length !== goals.length
@@ -614,9 +622,7 @@ async function generateObjectives(req, res, replacement = false) {
       return res.status(502).json({ message: diagnosticResponseMessage(providerMessage) });
     }
 
-    const generatedText = geminiData.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text ?? '')
-      .join('') ?? '';
+    const generatedText = extractGeminiText(geminiData);
     let generated;
     try {
       generated = parseGoals(generatedText, allowedSourceIds, replacement ? 1 : null);
