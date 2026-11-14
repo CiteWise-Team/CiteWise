@@ -96,11 +96,66 @@ const WORKFLOW_STAGES = [
 ];
 
 function readGroupData(groupId) {
+  let catalyst = {};
   try {
-    return JSON.parse(localStorage.getItem(`citewise.${groupId}.catalystData`) || "{}");
-  } catch {
-    return {};
+    catalyst = JSON.parse(localStorage.getItem(`citewise.${groupId}.catalystData`) || "{}");
+  } catch {}
+
+  let sid = null;
+  try {
+    sid = localStorage.getItem(`citewise.${groupId}.sessionId`);
+  } catch {}
+
+  let chosenTitle = "";
+  let chosenGap = "";
+  let storeGaps = [];
+
+  if (sid) {
+    try {
+      const rawTitle = localStorage.getItem(`citewise.chosenTitle.${sid}`);
+      if (rawTitle) {
+        try {
+          const parsed = JSON.parse(rawTitle);
+          chosenTitle = typeof parsed === "string" ? parsed : "";
+        } catch {
+          chosenTitle = rawTitle;
+        }
+      }
+    } catch {}
+
+    try {
+      chosenGap = localStorage.getItem(`citewise_chosen_gap_${sid}`) || "";
+    } catch {}
+
+    try {
+      const rawGaps = localStorage.getItem(`citewise.gaps.${sid}`);
+      if (rawGaps) {
+        const parsed = JSON.parse(rawGaps);
+        if (Array.isArray(parsed)) {
+          storeGaps = parsed.map((g) => (typeof g === "string" ? g : g?.text)).filter(Boolean);
+          if (!chosenGap) {
+            const selected = parsed.find((g) => g?.selected);
+            if (selected?.text) chosenGap = selected.text;
+          }
+        }
+      }
+    } catch {}
   }
+
+  const title = (typeof chosenTitle === "string" && chosenTitle.trim())
+    ? chosenTitle.trim()
+    : (catalyst.title || "");
+
+  const gaps = (Array.isArray(storeGaps) && storeGaps.length > 0)
+    ? storeGaps
+    : (Array.isArray(catalyst.gaps) ? catalyst.gaps : (chosenGap ? [chosenGap] : []));
+
+  return {
+    ...catalyst,
+    title,
+    gaps,
+    selectedGap: chosenGap || gaps[0] || "",
+  };
 }
 
 function readSavedGeneration(groupId) {
@@ -306,9 +361,9 @@ export default function SmartGoals() {
   });
   const [previewingDraft, setPreviewingDraft] = useState(null);
 
-  const [groupData, setGroupData] = useState({});
-  const [researchTitle, setResearchTitle] = useState("");
-  const [selectedGap, setSelectedGap] = useState("");
+  const [groupData, setGroupData] = useState(() => readGroupData(groupId));
+  const [researchTitle, setResearchTitle] = useState(() => location.state?.researchTitle || readGroupData(groupId).title || "");
+  const [selectedGap, setSelectedGap] = useState(() => location.state?.selectedGap || readGroupData(groupId).selectedGap || "");
   const [generation, setGeneration] = useState(null);
   const [generationGroupId, setGenerationGroupId] = useState(null);
   const [activeStage, setActiveStage] = useState("plan");
@@ -489,15 +544,33 @@ export default function SmartGoals() {
     let active = true;
     const data = readGroupData(groupId);
     const saved = readSavedGeneration(groupId);
-    const introduction = readSelectedIntroduction(groupId);
+    const introduction = readSelectedIntroduction(groupId)
+      || normalizeIntroductionVersion(location.state?.selectedIntroduction);
     const hydratedSaved = saved
       ? { ...markGoalsForReviewGrading(saved), introductionVersion: normalizeIntroductionVersion(saved.introductionVersion) || introduction }
       : null;
+
+    const stateGaps = Array.isArray(location.state?.gaps) ? location.state.gaps : [];
+    if (stateGaps.length && (!data.gaps || data.gaps.length === 0)) {
+      data.gaps = stateGaps;
+    }
+
     setGroupData(data);
     setSelectedIntroduction(introduction || hydratedSaved?.introductionVersion || null);
     if (hydratedSaved?.goals?.length) setIsSelectingIntroduction(false);
-    setResearchTitle(hydratedSaved?.researchTitle || data.title || "");
-    setSelectedGap(hydratedSaved?.selectedGap || data.gaps?.[0] || "");
+
+    const initialTitle = hydratedSaved?.researchTitle
+      || location.state?.researchTitle
+      || data.title
+      || "";
+    const initialGap = hydratedSaved?.selectedGap
+      || location.state?.selectedGap
+      || data.selectedGap
+      || data.gaps?.[0]
+      || "";
+
+    setResearchTitle(initialTitle);
+    setSelectedGap(initialGap);
     setGeneration(hydratedSaved);
     setGenerationGroupId(groupId);
     setActiveStage(hydratedSaved?.goals?.length ? "goals" : "plan");
@@ -507,28 +580,63 @@ export default function SmartGoals() {
     setReviewGradeError("");
     reviewEvaluationInFlight.current = false;
 
-    if (groupId && !saved?.goals?.length) {
+    if (groupId) {
       apiRequest(`/api/v1/smart-goals/saved/${encodeURIComponent(groupId)}`)
-        .then(({ generation: savedGeneration }) => {
-          if (!active || !savedGeneration?.goals?.length) return;
-          const hydratedGeneration = {
-            ...markGoalsForReviewGrading(savedGeneration),
-            introductionVersion: normalizeIntroductionVersion(savedGeneration.introductionVersion) || introduction,
-          };
-          if (hydratedGeneration.introductionVersion) {
-            setSelectedIntroduction(hydratedGeneration.introductionVersion);
-            try {
-              localStorage.setItem(`citewise.${groupId}.smartGoalsIntroduction`, JSON.stringify(hydratedGeneration.introductionVersion));
-            } catch {}
+        .then(({ generation: savedGeneration, baseline }) => {
+          if (!active) return;
+          if (savedGeneration?.goals?.length) {
+            const hydratedGeneration = {
+              ...markGoalsForReviewGrading(savedGeneration),
+              introductionVersion: normalizeIntroductionVersion(savedGeneration.introductionVersion) || introduction,
+            };
+            if (hydratedGeneration.introductionVersion) {
+              setSelectedIntroduction(hydratedGeneration.introductionVersion);
+              try {
+                localStorage.setItem(`citewise.${groupId}.smartGoalsIntroduction`, JSON.stringify(hydratedGeneration.introductionVersion));
+              } catch {}
+            }
+            setIsSelectingIntroduction(false);
+            setGeneration(hydratedGeneration);
+            setGenerationGroupId(groupId);
+            if (hydratedGeneration.researchTitle) setResearchTitle(hydratedGeneration.researchTitle);
+            if (hydratedGeneration.selectedGap) setSelectedGap(hydratedGeneration.selectedGap);
+            setActiveStage("goals");
           }
-          setIsSelectingIntroduction(false);
-          setGeneration(hydratedGeneration);
-          setGenerationGroupId(groupId);
-          setResearchTitle(hydratedGeneration.researchTitle || data.title || "");
-          setSelectedGap(hydratedGeneration.selectedGap || data.gaps?.[0] || "");
-          setActiveStage("goals");
+
+          if (baseline) {
+            setGroupData((prev) => {
+              const prevGaps = Array.isArray(prev?.gaps) && prev.gaps.length ? prev.gaps : [];
+              const baseGaps = Array.isArray(baseline.gaps) ? baseline.gaps : [];
+              return {
+                ...prev,
+                title: prev?.title || baseline.title || "",
+                gaps: prevGaps.length ? prevGaps : baseGaps,
+              };
+            });
+            setResearchTitle((prev) => prev || baseline.title || "");
+            setSelectedGap((prev) => prev || baseline.gaps?.[0] || "");
+          }
         })
         .catch(() => {});
+
+      if (!initialTitle || (!data.gaps || !data.gaps.length)) {
+        apiRequest(`/api/catalyst/${encodeURIComponent(groupId)}`)
+          .then(({ data: catPayload }) => {
+            if (!active || !catPayload) return;
+            const catTitle = catPayload.title || "";
+            const catGaps = Array.isArray(catPayload.gaps) ? catPayload.gaps : [];
+            if (catTitle || catGaps.length) {
+              setGroupData((prev) => ({
+                ...prev,
+                title: prev?.title || catTitle,
+                gaps: (Array.isArray(prev?.gaps) && prev.gaps.length) ? prev.gaps : catGaps,
+              }));
+              setResearchTitle((prev) => prev || catTitle);
+              setSelectedGap((prev) => prev || catGaps[0] || "");
+            }
+          })
+          .catch(() => {});
+      }
     }
 
     return () => { active = false; };

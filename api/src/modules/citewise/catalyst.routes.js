@@ -43,10 +43,24 @@ async function fetchCatalystData(workspaceId) {
     return [];
   });
 
+  let baseline = null;
+  if (!topic?.title || !gaps.length) {
+    const { data: bData } = await supabase
+      .from('research_baselines')
+      .select('project_title, research_gaps, rationale')
+      .eq('catalyst_workspace_id', workspaceId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    baseline = bData;
+  }
+
+  const baselineGaps = Array.isArray(baseline?.research_gaps) ? baseline.research_gaps : [];
+
   return {
-    title:    topic?.title     ?? null,
-    rationale:topic?.rationale ?? null,
-    gaps,
+    title:    topic?.title     ?? baseline?.project_title ?? null,
+    rationale:topic?.rationale ?? baseline?.rationale     ?? null,
+    gaps:     gaps.length      ? gaps : baselineGaps,
   };
 }
 
