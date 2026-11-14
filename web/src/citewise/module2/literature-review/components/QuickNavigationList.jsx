@@ -1,5 +1,16 @@
 import { useState, useEffect, useRef } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTheme } from "../../../../context/ThemeContext";
+
+// ✨ A paper counts as "low relevance" if its numeric score is under this value
+const LOW_RELEVANCE_THRESHOLD = 50;
+
+// ✨ Helper: decide whether a doc is low relevance
+const isLowRelevance = (doc) => {
+  const score = doc.relevancyScore;
+  if (typeof score === "number") return score < LOW_RELEVANCE_THRESHOLD;
+  return doc.relevanceLevel === "Low" || doc.relevanceLevel === "low";
+};
 
 export default function QuickNavigationList({
   documents = [],
@@ -7,14 +18,21 @@ export default function QuickNavigationList({
   onSelect,
   onApprovalToggle,
   onDelete,
-  onBatchApprove, // ✨ NEW: optional callback for batch approve
+  onBatchApprove, // optional callback for batch approve
 }) {
   const { isDark } = useTheme();
+  const [open, setOpen] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, index: null, name: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  // ✨ Set of originalIndexes the user has circle-selected for approval
+  // Set of originalIndexes the user has circle-selected for approval
   const [selectedForApproval, setSelectedForApproval] = useState(() => new Set());
+  // ✨ Low relevance warning modal state
+  const [lowRelevanceConfirm, setLowRelevanceConfirm] = useState({
+    show: false,
+    indices: [],
+    lowNames: [],
+  });
 
   const totalCount = documents.length;
   const approvedCount = documents.filter((d) => !!d.approved).length;
@@ -62,7 +80,7 @@ export default function QuickNavigationList({
     }
   }, [currentIndex]);
 
-  // ✨ Toggle circle selection for one doc
+  // Toggle circle selection for one doc
   const handleCircleClick = (e, originalIndex, doc) => {
     e.stopPropagation();
 
@@ -90,15 +108,45 @@ export default function QuickNavigationList({
     });
   };
 
-  // ✨ Clear all selections
+  // Clear all selections
   const handleClearSelection = () => {
     setSelectedForApproval(new Set());
   };
 
-  // ✨ Approve everything the user circle-selected
-  const handleApproveSelected = () => {
-    if (selectedForApproval.size === 0) return;
-    const indices = Array.from(selectedForApproval);
+  const unapprovedInDocuments = documents
+    .map((doc, idx) => (!doc.approved ? idx : null))
+    .filter((idx) => idx !== null);
+
+  const targetIndices = (activeFilter !== "all" || searchQuery.trim())
+    ? filteredDocs
+        .map(({ doc, originalIndex }) => (!doc.approved ? originalIndex : null))
+        .filter((idx) => idx !== null)
+    : unapprovedInDocuments;
+
+  const isAllSelected =
+    targetIndices.length > 0 &&
+    targetIndices.every((idx) => selectedForApproval.has(idx));
+
+  const handleSelectAllToggle = () => {
+    if (targetIndices.length === 0) return;
+    if (isAllSelected) {
+      setSelectedForApproval((prev) => {
+        const next = new Set(prev);
+        targetIndices.forEach((idx) => next.delete(idx));
+        return next;
+      });
+    } else {
+      setSelectedForApproval((prev) => {
+        const next = new Set(prev);
+        targetIndices.forEach((idx) => next.add(idx));
+        return next;
+      });
+    }
+  };
+
+  // ✨ Actually perform the approval (called directly or after user confirms)
+  const performApprove = (indices) => {
+    if (!indices || indices.length === 0) return;
 
     // Prefer the batch callback if provided (single API call in parent)
     if (onBatchApprove) {
@@ -109,6 +157,36 @@ export default function QuickNavigationList({
     }
 
     setSelectedForApproval(new Set());
+  };
+
+  // ✨ Approve everything the user circle-selected (with low relevance check)
+  const handleApproveSelected = () => {
+    if (selectedForApproval.size === 0) return;
+    const indices = Array.from(selectedForApproval);
+
+    // Find selected docs that are low relevance
+    const lowNames = indices
+      .map((idx) => documents[idx])
+      .filter((doc) => doc && !doc.approved && isLowRelevance(doc))
+      .map((doc) => doc.name);
+
+    if (lowNames.length > 0) {
+      // Ask for confirmation before approving
+      setLowRelevanceConfirm({ show: true, indices, lowNames });
+      return;
+    }
+
+    performApprove(indices);
+  };
+
+  const closeLowRelevanceConfirm = () => {
+    setLowRelevanceConfirm({ show: false, indices: [], lowNames: [] });
+  };
+
+  const confirmLowRelevanceApprove = () => {
+    const { indices } = lowRelevanceConfirm;
+    closeLowRelevanceConfirm();
+    performApprove(indices);
   };
 
   const selectionCount = selectedForApproval.size;
@@ -124,8 +202,8 @@ export default function QuickNavigationList({
         display: "flex",
         flexDirection: "column",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
-        height: "500px",
-        maxHeight: "540px",
+        height: open ? "500px" : "auto",
+        maxHeight: open ? "540px" : "none",
         boxSizing: "border-box",
         overflow: "hidden",
       }}
@@ -133,30 +211,20 @@ export default function QuickNavigationList({
       {/* Panel Header matching Data Import panels */}
       <div
         className="workflow-card-header"
+        onClick={() => setOpen((o) => !o)}
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "1.125rem 1.5rem",
           background: "var(--cw-bg-surface-elevated, #f9fafb)",
-          borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+          borderBottom: open ? "1px solid var(--cw-border, #e5e7eb)" : "none",
           flexShrink: 0,
+          cursor: "pointer",
+          userSelect: "none",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                style={{
-                  width: "16px",
-                  height: "2px",
-                  background: "#f97316",
-                  borderRadius: "1px",
-                }}
-              />
-            ))}
-          </div>
+        <div style={{ display: "flex", alignItems: "center" }}>
           <span
             className="workflow-card-header-title"
             style={{
@@ -170,674 +238,1058 @@ export default function QuickNavigationList({
             Quick Navigation
           </span>
         </div>
-        <span
-          className="workflow-card-header-subtitle"
-          style={{
-            fontSize: "11px",
-            color: "var(--cw-text-muted, #6b7280)",
-            fontFamily: "'Poppins', sans-serif",
-            fontWeight: 500,
-          }}
-        >
-          {filteredDocs.length} of {totalCount} papers
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span
+            className="workflow-card-header-subtitle"
+            style={{
+              fontSize: "11px",
+              color: "var(--cw-text-muted, #6b7280)",
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 500,
+            }}
+          >
+            {filteredDocs.length} of {totalCount} papers
+          </span>
+          <span
+            className="cw-collapse-chevron"
+            style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}
+          >
+            {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
+        </div>
       </div>
 
-      {/* Main card body with controls, scroll list, and actions */}
-      <div
-        style={{
-          padding: "16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-          flex: 1,
-          minHeight: 0,
-          overflow: "hidden",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Pinned Top Controls */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px", flexShrink: 0 }}>
-          {/* Search Input Bar */}
-          <div style={{ position: "relative", width: "100%" }}>
-            <input
-              type="text"
-              placeholder="Search papers by title..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: "100%",
-                background: isDark ? "#100f18" : "#f9fafb",
-                border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e5e7eb",
-                borderRadius: "8px",
-                padding: "7px 28px 7px 10px",
-                color: isDark ? "#ffffff" : "#111827",
-                fontSize: "12px",
-                fontFamily: "'Poppins', sans-serif",
-                outline: "none",
-                boxSizing: "border-box",
-                transition: "border-color 0.2s ease, box-shadow 0.2s ease",
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#f97316";
-                e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.1)" : "#e5e7eb";
-                e.currentTarget.style.boxShadow = "none";
-              }}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
+      {open && (
+        <>
+          {/* Main card body with controls, scroll list, and actions */}
+          <div
+            style={{
+              padding: "16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              flex: 1,
+              minHeight: 0,
+              overflow: "hidden",
+              boxSizing: "border-box",
+            }}
+          >
+            {/* Pinned Top Controls */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", flexShrink: 0 }}>
+              {/* Search Input Bar */}
+              <div style={{ position: "relative", width: "100%" }}>
+                <input
+                  type="text"
+                  placeholder="Search papers by title..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    background: isDark ? "#100f18" : "#f9fafb",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    padding: "7px 28px 7px 10px",
+                    color: isDark ? "#ffffff" : "#111827",
+                    fontSize: "12px",
+                    fontFamily: "'Poppins', sans-serif",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#f97316";
+                    e.currentTarget.style.boxShadow = "0 0 0 2px rgba(249, 115, 22, 0.15)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.1)" : "#e5e7eb";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    style={{
+                      position: "absolute",
+                      right: "8px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      color: isDark ? "#94a3b8" : "#9ca3af",
+                      cursor: "pointer",
+                      padding: "2px",
+                      fontSize: "12px",
+                      lineHeight: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Filter Chips / Tabs */}
+              <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
+                {[
+                  { id: "all", label: `All (${totalCount})` },
+                  { id: "approved", label: `Approved (${approvedCount})` },
+                  { id: "high", label: `High (${highCount})` },
+                  { id: "pending", label: `Pending (${pendingCount})` },
+                ].map((tab) => {
+                  const isSelected = activeFilter === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveFilter(tab.id)}
+                      style={{
+                        background: isSelected ? "#ea580c" : (isDark ? "#171624" : "#ffffff"),
+                        color: isSelected ? "#ffffff" : (isDark ? "#cbd5e1" : "#6b7280"),
+                        border: `1px solid ${isSelected ? "#ea580c" : (isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb")}`,
+                        borderRadius: "8px",
+                        padding: "4px 10px",
+                        fontSize: "11px",
+                        fontFamily: "'Poppins', sans-serif",
+                        fontWeight: isSelected ? 600 : 500,
+                        cursor: "pointer",
+                        transition: "all 180ms ease",
+                        whiteSpace: "nowrap",
+                        boxShadow: isSelected ? "0 2px 8px rgba(234, 88, 12, 0.22)" : "none",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                        if (isSelected) {
+                          e.currentTarget.style.background = "#c2410c";
+                          e.currentTarget.style.borderColor = "#c2410c";
+                          e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                        } else {
+                          e.currentTarget.style.borderColor = "#ea580c";
+                          e.currentTarget.style.color = "#ea580c";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        if (isSelected) {
+                          e.currentTarget.style.background = "#ea580c";
+                          e.currentTarget.style.borderColor = "#ea580c";
+                          e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                        } else {
+                          e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb";
+                          e.currentTarget.style.color = isDark ? "#cbd5e1" : "#6b7280";
+                        }
+                      }}
+                      onMouseDown={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Selection Toolbar Row: Select All & count */}
+              <div
                 style={{
-                  position: "absolute",
-                  right: "8px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  color: isDark ? "#94a3b8" : "#9ca3af",
-                  cursor: "pointer",
-                  padding: "2px",
-                  fontSize: "12px",
-                  lineHeight: 1,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
+                  justifyContent: "space-between",
+                  gap: "8px",
+                  padding: "2px 2px",
                 }}
-                title="Clear search"
               >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Filter Chips / Tabs */}
-          <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
-            {[
-              { id: "all", label: `All (${totalCount})` },
-              { id: "approved", label: `Approved (${approvedCount})` },
-              { id: "high", label: `High (${highCount})` },
-              { id: "pending", label: `Pending (${pendingCount})` },
-            ].map((tab) => {
-              const isSelected = activeFilter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveFilter(tab.id)}
+                <span
                   style={{
-                    background: isSelected ? "#f97316" : (isDark ? "#171624" : "#ffffff"),
-                    color: isSelected ? "#ffffff" : (isDark ? "#cbd5e1" : "#6b7280"),
-                    border: `1px solid ${isSelected ? "#f97316" : (isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb")}`,
-                    borderRadius: "12px",
+                    fontSize: "11px",
+                    fontFamily: "'Poppins', sans-serif",
+                    color: isDark ? "#94a3b8" : "#6b7280",
+                    fontWeight: 500,
+                  }}
+                >
+                  {selectionCount > 0 ? (
+                    <span>
+                      <strong style={{ color: "#ea580c" }}>{selectionCount}</strong> of {totalCount} selected
+                    </span>
+                  ) : approvedCount === totalCount && totalCount > 0 ? (
+                    <span style={{ color: "#16a34a", fontWeight: 600 }}>All papers approved</span>
+                  ) : (
+                    <span>
+                      {unapprovedInDocuments.length} paper{unapprovedInDocuments.length !== 1 ? "s" : ""} to approve
+                    </span>
+                  )}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={handleSelectAllToggle}
+                  disabled={totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    background: isAllSelected
+                      ? (isDark ? "rgba(234, 88, 12, 0.22)" : "#fff7ed")
+                      : (isDark ? "#171624" : "#ffffff"),
+                    color: isAllSelected
+                      ? "#ea580c"
+                      : (isDark ? "#e2e8f0" : "#374151"),
+                    border: `1px solid ${
+                      isAllSelected
+                        ? "#ea580c"
+                        : (isDark ? "rgba(255, 255, 255, 0.14)" : "#d1d5db")
+                    }`,
+                    borderRadius: "6px",
                     padding: "3px 8px",
                     fontSize: "11px",
                     fontFamily: "'Poppins', sans-serif",
-                    fontWeight: isSelected ? 600 : 500,
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
+                    fontWeight: 600,
+                    cursor: totalCount === 0 || (approvedCount === totalCount && selectionCount === 0) ? "not-allowed" : "pointer",
+                    opacity: totalCount === 0 || (approvedCount === totalCount && selectionCount === 0) ? 0.6 : 1,
+                    transition: "all 160ms ease",
+                    boxShadow: isAllSelected ? "0 1px 4px rgba(234, 88, 12, 0.18)" : "none",
                     whiteSpace: "nowrap",
                   }}
                   onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.borderColor = "#f97316";
-                      e.currentTarget.style.color = "#f97316";
-                    }
+                    if (totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)) return;
+                    e.currentTarget.style.borderColor = "#ea580c";
+                    e.currentTarget.style.color = "#ea580c";
+                    e.currentTarget.style.background = isDark ? "rgba(234, 88, 12, 0.16)" : "#fff7ed";
+                    e.currentTarget.style.transform = "translateY(-1px)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.12)" : "#e5e7eb";
-                      e.currentTarget.style.color = isDark ? "#cbd5e1" : "#6b7280";
-                    }
+                    if (totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)) return;
+                    e.currentTarget.style.borderColor = isAllSelected
+                      ? "#ea580c"
+                      : (isDark ? "rgba(255, 255, 255, 0.14)" : "#d1d5db");
+                    e.currentTarget.style.color = isAllSelected
+                      ? "#ea580c"
+                      : (isDark ? "#e2e8f0" : "#374151");
+                    e.currentTarget.style.background = isAllSelected
+                      ? (isDark ? "rgba(234, 88, 12, 0.22)" : "#fff7ed")
+                      : (isDark ? "#171624" : "#ffffff");
+                    e.currentTarget.style.transform = "translateY(0)";
                   }}
+                  onMouseDown={(e) => {
+                    if (totalCount === 0 || (approvedCount === totalCount && selectionCount === 0)) return;
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                  title={
+                    approvedCount === totalCount && selectionCount === 0
+                      ? "All uploaded papers are already approved"
+                      : isAllSelected
+                      ? "Deselect all papers"
+                      : "Select all uploaded papers for approval"
+                  }
                 >
-                  {tab.label}
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    {isAllSelected ? (
+                      <>
+                        <polyline points="9 11 12 14 22 4" />
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                      </>
+                    ) : (
+                      <>
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <polyline points="9 11 12 14 17 9" />
+                      </>
+                    )}
+                  </svg>
+                  <span>{isAllSelected ? "Deselect All" : "Select All"}</span>
                 </button>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+            </div>
 
-        {/* Document List (Scrollable) */}
-        <div
-          className="citewise-queue-scroll"
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflowY: "auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-            paddingRight: "4px",
-          }}
-        >
-          {filteredDocs.length === 0 ? (
+            {/* Document List (Scrollable) */}
             <div
+              className="citewise-queue-scroll"
               style={{
-                padding: "16px 8px",
-                textAlign: "center",
-                color: isDark ? "#94a3b8" : "#9ca3af",
-                fontSize: "12px",
-                fontFamily: "'Poppins', sans-serif",
-                background: isDark ? "#171624" : "#f9fafb",
-                borderRadius: "8px",
-                border: isDark ? "1px dashed rgba(255, 255, 255, 0.12)" : "1px dashed #e5e7eb",
-                fontStyle: "italic",
+                flex: 1,
+                minHeight: 0,
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                paddingRight: "4px",
               }}
             >
-              No papers match current search / filter.
-            </div>
-          ) : (
-            filteredDocs.map(({ doc, originalIndex }) => {
-              const isActive = originalIndex === currentIndex;
-              const isSelectedForApproval = selectedForApproval.has(originalIndex);
-              return (
+              {filteredDocs.length === 0 ? (
                 <div
-                  key={doc.id || doc.name || originalIndex}
-                  ref={isActive ? activeItemRef : null}
-                  onClick={() => onSelect && onSelect(originalIndex)}
                   style={{
-                    background: isSelectedForApproval
-                      ? (isDark ? "rgba(249, 115, 22, 0.22)" : "#fff2e0")
-                      : isActive
-                      ? (isDark ? "rgba(249, 115, 22, 0.14)" : "#fff7ef")
-                      : (isDark ? "#171624" : "#ffffff"),
-                    border: `1px solid ${
-                      isSelectedForApproval
-                        ? "#f97316"
-                        : isActive
-                        ? "#f97316"
-                        : (isDark ? "rgba(255, 255, 255, 0.08)" : "#e5e7eb")
-                    }`,
-                    borderLeft: isSelectedForApproval
-                      ? "3px solid #f97316"
-                      : isActive
-                      ? "3px solid #f97316"
-                      : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb"),
+                    padding: "16px 8px",
+                    textAlign: "center",
+                    color: isDark ? "#94a3b8" : "#9ca3af",
+                    fontSize: "12px",
+                    fontFamily: "'Poppins', sans-serif",
+                    background: isDark ? "#171624" : "#f9fafb",
                     borderRadius: "8px",
-                    padding: "8px 10px",
+                    border: isDark ? "1px dashed rgba(255, 255, 255, 0.12)" : "1px dashed #e5e7eb",
+                    fontStyle: "italic",
+                  }}
+                >
+                  No papers match current search / filter.
+                </div>
+              ) : (
+                filteredDocs.map(({ doc, originalIndex }) => {
+                  const isActive = originalIndex === currentIndex;
+                  const isSelectedForApproval = selectedForApproval.has(originalIndex);
+                  return (
+                    <div
+                      key={doc.id || doc.name || originalIndex}
+                      ref={isActive ? activeItemRef : null}
+                      onClick={() => onSelect && onSelect(originalIndex)}
+                      style={{
+                        background: isSelectedForApproval
+                          ? (isDark ? "rgba(249, 115, 22, 0.22)" : "#fff2e0")
+                          : isActive
+                          ? (isDark ? "rgba(249, 115, 22, 0.14)" : "#fff7ef")
+                          : (isDark ? "#171624" : "#ffffff"),
+                        border: `1px solid ${
+                          isSelectedForApproval
+                            ? "#f97316"
+                            : isActive
+                            ? "#f97316"
+                            : (isDark ? "rgba(255, 255, 255, 0.08)" : "#e5e7eb")
+                        }`,
+                        borderLeft: isSelectedForApproval
+                          ? "3px solid #f97316"
+                          : isActive
+                          ? "3px solid #f97316"
+                          : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb"),
+                        borderRadius: "8px",
+                        padding: "8px 10px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "8px",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        boxShadow: isSelectedForApproval
+                          ? "0 0 0 3px rgba(249, 115, 22, 0.15)"
+                          : "none",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive && !isSelectedForApproval) {
+                          e.currentTarget.style.borderColor = "#f97316";
+                          e.currentTarget.style.background = isDark ? "#1f1d2e" : "#fffbf5";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive && !isSelectedForApproval) {
+                          e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.08)" : "#e5e7eb";
+                          e.currentTarget.style.background = isDark ? "#171624" : "#ffffff";
+                        }
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <span
+                          style={{
+                            fontFamily: "'Poppins', sans-serif",
+                            fontSize: "12px",
+                            color: isDark ? "#ffffff" : (isActive ? "#111827" : "#374151"),
+                            fontWeight: isActive ? "600" : "500",
+                            display: "block",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={doc.name}
+                        >
+                          {doc.name}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          {typeof doc.relevancyScore === "number" ? (
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                fontWeight: 600,
+                                color:
+                                  doc.relevancyScore >= 80
+                                    ? "#16a34a"
+                                    : doc.relevancyScore >= 50
+                                    ? "#d97706"
+                                    : (isDark ? "#94a3b8" : "#6b7280"),
+                                fontFamily: "'Poppins', sans-serif",
+                              }}
+                            >
+                              {Math.round(doc.relevancyScore)}% relevance
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: "10px", color: isDark ? "#94a3b8" : "#9ca3af", fontFamily: "'Poppins', sans-serif" }}>
+                              {doc.rawStatus === "complete" ? "Analyzed" : "Pending"}
+                            </span>
+                          )}
+                          {doc.approved && (
+                            <span
+                              style={{
+                                fontSize: "9px",
+                                color: "#16a34a",
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                fontFamily: "'Poppins', sans-serif",
+                                letterSpacing: "0.03em",
+                              }}
+                            >
+                              ✓ Approved
+                            </span>
+                          )}
+                          {isSelectedForApproval && !doc.approved && (
+                            <span
+                              style={{
+                                fontSize: "9px",
+                                color: "#f97316",
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                fontFamily: "'Poppins', sans-serif",
+                                letterSpacing: "0.03em",
+                              }}
+                            >
+                              ● Ready to approve
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Delete button */}
+                      {onDelete && (
+                        <button
+                          type="button"
+                          aria-label={`Delete ${doc.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirm({ show: true, index: originalIndex, name: doc.name });
+                          }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: isDark ? "#94a3b8" : "#9ca3af",
+                            fontSize: "13px",
+                            lineHeight: 1,
+                            cursor: "pointer",
+                            padding: "3px 5px",
+                            borderRadius: "4px",
+                            flexShrink: 0,
+                            transition: "color 0.15s, transform 0.15s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "#dc2626";
+                            e.currentTarget.style.transform = "scale(1.1)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = isDark ? "#94a3b8" : "#9ca3af";
+                            e.currentTarget.style.transform = "scale(1)";
+                          }}
+                        >
+                          ✕
+                        </button>
+                      )}
+
+                      {/* Clickable circle (multi-select) */}
+                      <button
+                        type="button"
+                        aria-label={
+                          doc.approved
+                            ? `Unapprove ${doc.name}`
+                            : isSelectedForApproval
+                            ? `Deselect ${doc.name}`
+                            : `Select ${doc.name} for approval`
+                        }
+                        onClick={(e) => handleCircleClick(e, originalIndex, doc)}
+                        title={
+                          doc.approved
+                            ? "Click to unapprove"
+                            : isSelectedForApproval
+                            ? "Selected — click again to deselect"
+                            : "Click to add to selection"
+                        }
+                        style={{
+                          width: "22px",
+                          height: "22px",
+                          borderRadius: "50%",
+                          border: doc.approved
+                            ? "2px solid #16a34a"
+                            : isSelectedForApproval
+                            ? "2px solid #f97316"
+                            : (isDark ? "2px solid rgba(255, 255, 255, 0.25)" : "2px solid #d1d5db"),
+                          background: doc.approved
+                            ? "#16a34a"
+                            : isSelectedForApproval
+                            ? (isDark ? "rgba(249, 115, 22, 0.25)" : "#fff7ef")
+                            : (isDark ? "#100f18" : "#ffffff"),
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          padding: 0,
+                          flexShrink: 0,
+                          transition: "all 0.2s ease",
+                          boxShadow: doc.approved
+                            ? "0 0 0 3px rgba(22, 163, 74, 0.15)"
+                            : isSelectedForApproval
+                            ? "0 0 0 3px rgba(249, 115, 22, 0.2)"
+                            : "0 1px 3px rgba(0, 0, 0, 0.08)",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!doc.approved && !isSelectedForApproval) {
+                            e.currentTarget.style.borderColor = "#f97316";
+                            e.currentTarget.style.background = isDark ? "rgba(249, 115, 22, 0.15)" : "#fff7ef";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!doc.approved && !isSelectedForApproval) {
+                            e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.25)" : "#d1d5db";
+                            e.currentTarget.style.background = isDark ? "#100f18" : "#ffffff";
+                          }
+                        }}
+                      >
+                        {doc.approved ? (
+                          <svg
+                            width="11"
+                            height="11"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#ffffff"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        ) : isSelectedForApproval ? (
+                          <svg
+                            width="11"
+                            height="11"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#f97316"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        ) : null}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Bottom Approve button (multi-select aware) */}
+            <div
+              style={{
+                flexShrink: 0,
+                paddingTop: "10px",
+                borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f3f4f6",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+              }}
+            >
+              {/* Small helper line above the button */}
+              {selectionCount > 0 ? (
+                <div
+                  style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: "8px",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                    width: "100%",
-                    boxSizing: "border-box",
-                    boxShadow: isSelectedForApproval
-                      ? "0 0 0 3px rgba(249, 115, 22, 0.15)"
-                      : "none",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive && !isSelectedForApproval) {
-                      e.currentTarget.style.borderColor = "#f97316";
-                      e.currentTarget.style.background = isDark ? "#1f1d2e" : "#fffbf5";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive && !isSelectedForApproval) {
-                      e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.08)" : "#e5e7eb";
-                      e.currentTarget.style.background = isDark ? "#171624" : "#ffffff";
-                    }
+                    fontSize: "0.7rem",
+                    fontFamily: "'Poppins', sans-serif",
+                    color: isDark ? "#fed7aa" : "#9a3412",
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <span
-                      style={{
-                        fontFamily: "'Poppins', sans-serif",
-                        fontSize: "12px",
-                        color: isDark ? "#ffffff" : (isActive ? "#111827" : "#374151"),
-                        fontWeight: isActive ? "600" : "500",
-                        display: "block",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                      title={doc.name}
-                    >
-                      {doc.name}
-                    </span>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                      {typeof doc.relevancyScore === "number" ? (
-                        <span
-                          style={{
-                            fontSize: "10px",
-                            fontWeight: 600,
-                            color:
-                              doc.relevancyScore >= 80
-                                ? "#16a34a"
-                                : doc.relevancyScore >= 50
-                                ? "#d97706"
-                                : (isDark ? "#94a3b8" : "#6b7280"),
-                            fontFamily: "'Poppins', sans-serif",
-                          }}
-                        >
-                          {Math.round(doc.relevancyScore)}% relevance
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: "10px", color: isDark ? "#94a3b8" : "#9ca3af", fontFamily: "'Poppins', sans-serif" }}>
-                          {doc.rawStatus === "complete" ? "Analyzed" : "Pending"}
-                        </span>
-                      )}
-                      {doc.approved && (
-                        <span
-                          style={{
-                            fontSize: "9px",
-                            color: "#16a34a",
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            fontFamily: "'Poppins', sans-serif",
-                            letterSpacing: "0.03em",
-                          }}
-                        >
-                          ✓ Approved
-                        </span>
-                      )}
-                      {isSelectedForApproval && !doc.approved && (
-                        <span
-                          style={{
-                            fontSize: "9px",
-                            color: "#f97316",
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            fontFamily: "'Poppins', sans-serif",
-                            letterSpacing: "0.03em",
-                          }}
-                        >
-                          ● Ready to approve
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Delete button */}
-                  {onDelete && (
-                    <button
-                      type="button"
-                      aria-label={`Delete ${doc.name}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirm({ show: true, index: originalIndex, name: doc.name });
-                      }}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: isDark ? "#94a3b8" : "#9ca3af",
-                        fontSize: "13px",
-                        lineHeight: 1,
-                        cursor: "pointer",
-                        padding: "3px 5px",
-                        borderRadius: "4px",
-                        flexShrink: 0,
-                        transition: "color 0.15s, transform 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "#dc2626";
-                        e.currentTarget.style.transform = "scale(1.1)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = isDark ? "#94a3b8" : "#9ca3af";
-                        e.currentTarget.style.transform = "scale(1)";
-                      }}
-                    >
-                      ✕
-                    </button>
-                  )}
-
-                  {/* ✨ Clickable circle (multi-select) */}
+                  <span>
+                    <strong style={{ color: "#f97316" }}>{selectionCount}</strong> paper{selectionCount !== 1 ? "s" : ""} selected
+                  </span>
                   <button
                     type="button"
-                    aria-label={
-                      doc.approved
-                        ? `Unapprove ${doc.name}`
-                        : isSelectedForApproval
-                        ? `Deselect ${doc.name}`
-                        : `Select ${doc.name} for approval`
-                    }
-                    onClick={(e) => handleCircleClick(e, originalIndex, doc)}
-                    title={
-                      doc.approved
-                        ? "Click to unapprove"
-                        : isSelectedForApproval
-                        ? "Selected — click again to deselect"
-                        : "Click to add to selection"
-                    }
+                    onClick={handleClearSelection}
                     style={{
-                      width: "22px",
-                      height: "22px",
-                      borderRadius: "50%",
-                      border: doc.approved
-                        ? "2px solid #16a34a"
-                        : isSelectedForApproval
-                        ? "2px solid #f97316"
-                        : (isDark ? "2px solid rgba(255, 255, 255, 0.25)" : "2px solid #d1d5db"),
-                      background: doc.approved
-                        ? "#16a34a"
-                        : isSelectedForApproval
-                        ? (isDark ? "rgba(249, 115, 22, 0.25)" : "#fff7ef")
-                        : (isDark ? "#100f18" : "#ffffff"),
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      background: "none",
+                      border: "none",
+                      color: isDark ? "#94a3b8" : "#6b7280",
+                      fontSize: "0.68rem",
+                      fontFamily: "'Poppins', sans-serif",
                       cursor: "pointer",
-                      padding: 0,
-                      flexShrink: 0,
-                      transition: "all 0.2s ease",
-                      boxShadow: doc.approved
-                        ? "0 0 0 3px rgba(22, 163, 74, 0.15)"
-                        : isSelectedForApproval
-                        ? "0 0 0 3px rgba(249, 115, 22, 0.2)"
-                        : "0 1px 3px rgba(0, 0, 0, 0.08)",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      textDecoration: "underline",
+                      transition: "color 0.15s ease",
                     }}
-                    onMouseEnter={(e) => {
-                      if (!doc.approved && !isSelectedForApproval) {
-                        e.currentTarget.style.borderColor = "#f97316";
-                        e.currentTarget.style.background = isDark ? "rgba(249, 115, 22, 0.15)" : "#fff7ef";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!doc.approved && !isSelectedForApproval) {
-                        e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.25)" : "#d1d5db";
-                        e.currentTarget.style.background = isDark ? "#100f18" : "#ffffff";
-                      }
-                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#dc2626")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = isDark ? "#94a3b8" : "#6b7280")}
                   >
-                    {doc.approved ? (
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#ffffff"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : isSelectedForApproval ? (
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#f97316"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : null}
+                    Clear
                   </button>
                 </div>
-              );
-            })
-          )}
-        </div>
+              ) : (
+                <div
+                  style={{
+                    fontSize: "0.68rem",
+                    fontFamily: "'Poppins', sans-serif",
+                    color: isDark ? "#94a3b8" : "#9ca3af",
+                    fontStyle: "italic",
+                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "5px",
+                  }}
+                >
+                  <span>Click circles or use</span>
+                  <button
+                    type="button"
+                    onClick={handleSelectAllToggle}
+                    disabled={targetIndices.length === 0}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: targetIndices.length === 0 ? (isDark ? "#6b7280" : "#9ca3af") : "#ea580c",
+                      fontSize: "0.68rem",
+                      fontFamily: "'Poppins', sans-serif",
+                      fontWeight: 600,
+                      cursor: targetIndices.length === 0 ? "default" : "pointer",
+                      padding: 0,
+                      textDecoration: targetIndices.length === 0 ? "none" : "underline",
+                    }}
+                  >
+                    Select All
+                  </button>
+                </div>
+              )}
 
-        {/* ✨ Bottom Approve button (multi-select aware) */}
-        <div
-          style={{
-            flexShrink: 0,
-            paddingTop: "10px",
-            borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f3f4f6",
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-          }}
-        >
-          {/* Small helper line above the button */}
-          {selectionCount > 0 ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "8px",
-                fontSize: "0.7rem",
-                fontFamily: "'Poppins', sans-serif",
-                color: isDark ? "#fed7aa" : "#9a3412",
-              }}
-            >
-              <span>
-                <strong style={{ color: "#f97316" }}>{selectionCount}</strong> paper{selectionCount !== 1 ? "s" : ""} selected
-              </span>
               <button
                 type="button"
-                onClick={handleClearSelection}
+                onClick={handleApproveSelected}
+                disabled={selectionCount === 0}
                 style={{
-                  background: "none",
-                  border: "none",
-                  color: isDark ? "#94a3b8" : "#6b7280",
-                  fontSize: "0.68rem",
-                  fontFamily: "'Poppins', sans-serif",
-                  cursor: "pointer",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  textDecoration: "underline",
-                  transition: "color 0.15s ease",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#dc2626")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = isDark ? "#94a3b8" : "#6b7280")}
-              >
-                Clear
-              </button>
-            </div>
-          ) : (
-            <div
-              style={{
-                fontSize: "0.68rem",
-                fontFamily: "'Poppins', sans-serif",
-                color: isDark ? "#94a3b8" : "#9ca3af",
-                fontStyle: "italic",
-                textAlign: "center",
-              }}
-            >
-              Click the circle next to one or more papers to select them.
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={handleApproveSelected}
-            disabled={selectionCount === 0}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              padding: "11px 16px",
-              borderRadius: "10px",
-              border: "none",
-              background:
-                selectionCount === 0
-                  ? (isDark ? "rgba(255, 255, 255, 0.06)" : "#f3f4f6")
-                  : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-              color: selectionCount === 0 ? (isDark ? "#6b7280" : "#9ca3af") : "#ffffff",
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "0.85rem",
-              fontWeight: 700,
-              letterSpacing: "0.02em",
-              cursor: selectionCount === 0 ? "not-allowed" : "pointer",
-              transition: "all 0.2s ease",
-              boxShadow:
-                selectionCount === 0
-                  ? "none"
-                  : "0 4px 12px rgba(249, 115, 22, 0.25)",
-            }}
-            onMouseEnter={(e) => {
-              if (selectionCount === 0) return;
-              e.currentTarget.style.background =
-                "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
-              e.currentTarget.style.boxShadow =
-                "0 6px 16px rgba(249, 115, 22, 0.4)";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              if (selectionCount === 0) return;
-              e.currentTarget.style.background =
-                "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
-              e.currentTarget.style.boxShadow =
-                "0 4px 12px rgba(249, 115, 22, 0.25)";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-            title={
-              selectionCount === 0
-                ? "Select one or more papers first"
-                : `Approve ${selectionCount} paper${selectionCount !== 1 ? "s" : ""}`
-            }
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            {selectionCount === 0
-              ? "Approve Selected Papers"
-              : `Approve ${selectionCount} Paper${selectionCount !== 1 ? "s" : ""}`}
-          </button>
-        </div>
-      </div>
-
-      {deleteConfirm.show && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(17, 24, 39, 0.6)",
-          backdropFilter: "blur(12px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 10001,
-          animation: "fadeInToast 0.3s ease-out forwards",
-        }}>
-          <div style={{
-            background: isDark ? "#171624" : "#ffffff",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e5e7eb",
-            borderRadius: "20px",
-            padding: "2rem",
-            maxWidth: "460px",
-            width: "90%",
-            textAlign: "center",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.25), 0 0 40px rgba(249, 115, 22, 0.08)",
-            animation: "scaleInToast 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "1.25rem",
-          }}>
-            <div style={{
-              width: "64px",
-              height: "64px",
-              borderRadius: "50%",
-              background: isDark ? "rgba(249, 115, 22, 0.15)" : "#fff7ef",
-              border: "2px solid #f97316",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 0 20px rgba(249, 115, 22, 0.2)",
-            }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-              </svg>
-            </div>
-
-            <div>
-              <h3 style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontWeight: 700,
-                fontSize: "1.2rem",
-                color: isDark ? "#ffffff" : "#111827",
-                margin: "0 0 0.5rem 0",
-              }}>
-                Remove Document?
-              </h3>
-              <p style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: "0.85rem",
-                color: isDark ? "#94a3b8" : "#6b7280",
-                lineHeight: "1.5",
-                margin: 0,
-              }}>
-                Are you sure you want to remove <strong style={{ color: "#f97316" }}>"{deleteConfirm.name}"</strong>? This will permanently delete it from the current active assessment batch.
-              </p>
-            </div>
-
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "0.75rem",
-              width: "100%",
-              marginTop: "0.5rem",
-            }}>
-              <button
-                type="button"
-                onClick={() => setDeleteConfirm({ show: false, index: null, name: "" })}
-                style={{
-                  background: "transparent",
-                  border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e5e7eb",
-                  borderRadius: "10px",
-                  color: isDark ? "#cbd5e1" : "#6b7280",
-                  padding: "0.75rem 1rem",
-                  fontFamily: "'Poppins', sans-serif",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.3)" : "#d1d5db";
-                  e.currentTarget.style.color = isDark ? "#ffffff" : "#374151";
-                  e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.05)" : "#f9fafb";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb";
-                  e.currentTarget.style.color = isDark ? "#cbd5e1" : "#6b7280";
-                  e.currentTarget.style.background = "transparent";
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onDelete(deleteConfirm.index);
-                  setDeleteConfirm({ show: false, index: null, name: "" });
-                }}
-                style={{
-                  background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  border: "none",
-                  borderRadius: "10px",
-                  color: "#ffffff",
-                  padding: "0.75rem 1rem",
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "11px 16px",
+                  borderRadius: "8px",
+                  border: selectionCount === 0 ? (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb") : "1px solid #ea580c",
+                  background:
+                    selectionCount === 0
+                      ? (isDark ? "rgba(255, 255, 255, 0.06)" : "#f3f4f6")
+                      : "#ea580c",
+                  color: selectionCount === 0 ? (isDark ? "#6b7280" : "#9ca3af") : "#ffffff",
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: "0.85rem",
                   fontWeight: 700,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.3)",
+                  letterSpacing: "0.02em",
+                  cursor: selectionCount === 0 ? "not-allowed" : "pointer",
+                  transition: "all 180ms ease",
+                  boxShadow:
+                    selectionCount === 0
+                      ? "none"
+                      : "0 2px 8px rgba(234, 88, 12, 0.22)",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #fb8c3a 0%, #f97316 100%)";
+                  if (selectionCount === 0) return;
+                  e.currentTarget.style.background = "#c2410c";
+                  e.currentTarget.style.borderColor = "#c2410c";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
                   e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.45)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
+                  if (selectionCount === 0) return;
+                  e.currentTarget.style.background = "#ea580c";
+                  e.currentTarget.style.borderColor = "#ea580c";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.3)";
                 }}
+                onMouseDown={(e) => {
+                  if (selectionCount === 0) return;
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+                }}
+                title={
+                  selectionCount === 0
+                    ? "Select one or more papers first"
+                    : `Approve ${selectionCount} paper${selectionCount !== 1 ? "s" : ""}`
+                }
               >
-                Remove File
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {selectionCount === 0
+                  ? "Approve Selected Papers"
+                  : `Approve ${selectionCount} Paper${selectionCount !== 1 ? "s" : ""}`}
               </button>
             </div>
           </div>
-        </div>
+
+          {/* Delete confirmation modal */}
+          {deleteConfirm.show && (
+            <div style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(17, 24, 39, 0.6)",
+              backdropFilter: "blur(12px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10001,
+              animation: "fadeInToast 0.3s ease-out forwards",
+            }}>
+              <div style={{
+                background: isDark ? "#171624" : "#ffffff",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e5e7eb",
+                borderRadius: "20px",
+                padding: "2rem",
+                maxWidth: "460px",
+                width: "90%",
+                textAlign: "center",
+                boxShadow: "0 24px 60px rgba(0, 0, 0, 0.25), 0 0 40px rgba(249, 115, 22, 0.08)",
+                animation: "scaleInToast 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "1.25rem",
+              }}>
+                <div style={{
+                  width: "64px",
+                  height: "64px",
+                  borderRadius: "50%",
+                  background: isDark ? "rgba(249, 115, 22, 0.15)" : "#fff7ef",
+                  border: "2px solid #f97316",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 0 20px rgba(249, 115, 22, 0.2)",
+                }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18"/>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  </svg>
+                </div>
+
+                <div>
+                  <h3 style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: 700,
+                    fontSize: "1.2rem",
+                    color: isDark ? "#ffffff" : "#111827",
+                    margin: "0 0 0.5rem 0",
+                  }}>
+                    Remove Document?
+                  </h3>
+                  <p style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: "0.85rem",
+                    color: isDark ? "#94a3b8" : "#6b7280",
+                    lineHeight: "1.5",
+                    margin: 0,
+                  }}>
+                    Are you sure you want to remove <strong style={{ color: "#f97316" }}>"{deleteConfirm.name}"</strong>? This will permanently delete it from the current active assessment batch.
+                  </p>
+                </div>
+
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "0.75rem",
+                  width: "100%",
+                  marginTop: "0.5rem",
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirm({ show: false, index: null, name: "" })}
+                    style={{
+                      background: "transparent",
+                      border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e5e7eb",
+                      borderRadius: "10px",
+                      color: isDark ? "#cbd5e1" : "#6b7280",
+                      padding: "0.75rem 1rem",
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.3)" : "#d1d5db";
+                      e.currentTarget.style.color = isDark ? "#ffffff" : "#374151";
+                      e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.05)" : "#f9fafb";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb";
+                      e.currentTarget.style.color = isDark ? "#cbd5e1" : "#6b7280";
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onDelete(deleteConfirm.index);
+                      setDeleteConfirm({ show: false, index: null, name: "" });
+                    }}
+                    style={{
+                      background: "#ea580c",
+                      border: "1px solid #ea580c",
+                      borderRadius: "8px",
+                      color: "#ffffff",
+                      padding: "0.75rem 1rem",
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.85rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      transition: "all 180ms ease",
+                      boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#c2410c";
+                      e.currentTarget.style.borderColor = "#c2410c";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#ea580c";
+                      e.currentTarget.style.borderColor = "#ea580c";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                    }}
+                    onMouseDown={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+                    }}
+                  >
+                    Remove File
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✨ Low relevance confirmation modal */}
+          {lowRelevanceConfirm.show && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(17, 24, 39, 0.6)",
+                backdropFilter: "blur(12px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10001,
+                animation: "fadeInToast 0.3s ease-out forwards",
+              }}
+              onClick={closeLowRelevanceConfirm}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: isDark ? "#171624" : "#ffffff",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e5e7eb",
+                  borderRadius: "20px",
+                  padding: "2rem",
+                  maxWidth: "460px",
+                  width: "90%",
+                  textAlign: "center",
+                  boxShadow: "0 24px 60px rgba(0, 0, 0, 0.25), 0 0 40px rgba(249, 115, 22, 0.08)",
+                  animation: "scaleInToast 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "1.25rem",
+                }}
+              >
+                {/* Warning icon */}
+                <div
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "50%",
+                    background: isDark ? "rgba(249, 115, 22, 0.15)" : "#fff7ef",
+                    border: "2px solid #f97316",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 0 20px rgba(249, 115, 22, 0.2)",
+                  }}
+                >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </div>
+
+                <div style={{ width: "100%" }}>
+                  <h3
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontWeight: 700,
+                      fontSize: "1.2rem",
+                      color: isDark ? "#ffffff" : "#111827",
+                      margin: "0 0 0.5rem 0",
+                    }}
+                  >
+                    Low Relevance Paper{lowRelevanceConfirm.lowNames.length !== 1 ? "s" : ""} Selected
+                  </h3>
+                  <p
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.85rem",
+                      color: isDark ? "#94a3b8" : "#6b7280",
+                      lineHeight: "1.5",
+                      margin: "0 0 0.75rem 0",
+                    }}
+                  >
+                    {lowRelevanceConfirm.lowNames.length === 1
+                      ? "There is a low relevance file in your selection:"
+                      : `There are ${lowRelevanceConfirm.lowNames.length} low relevance files in your selection:`}
+                  </p>
+
+                  {/* List of low relevance files */}
+                  <div
+                    style={{
+                      maxHeight: "120px",
+                      overflowY: "auto",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "4px",
+                      textAlign: "left",
+                      background: isDark ? "#100f18" : "#f9fafb",
+                      border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e5e7eb",
+                      borderRadius: "10px",
+                      padding: "8px 12px",
+                      marginBottom: "0.75rem",
+                    }}
+                  >
+                    {lowRelevanceConfirm.lowNames.map((name, i) => (
+                      <span
+                        key={`${name}-${i}`}
+                        title={name}
+                        style={{
+                          fontFamily: "'Poppins', sans-serif",
+                          fontSize: "0.78rem",
+                          fontWeight: 600,
+                          color: "#f97316",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        • {name}
+                      </span>
+                    ))}
+                  </div>
+
+                  <p
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      color: isDark ? "#e2e8f0" : "#374151",
+                      lineHeight: "1.5",
+                      margin: 0,
+                    }}
+                  >
+                    Are you sure you want to continue?
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "0.75rem",
+                    width: "100%",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={closeLowRelevanceConfirm}
+                    style={{
+                      background: "transparent",
+                      border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e5e7eb",
+                      borderRadius: "10px",
+                      color: isDark ? "#cbd5e1" : "#6b7280",
+                      padding: "0.75rem 1rem",
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.3)" : "#d1d5db";
+                      e.currentTarget.style.color = isDark ? "#ffffff" : "#374151";
+                      e.currentTarget.style.background = isDark ? "rgba(255, 255, 255, 0.05)" : "#f9fafb";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#e5e7eb";
+                      e.currentTarget.style.color = isDark ? "#cbd5e1" : "#6b7280";
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmLowRelevanceApprove}
+                    style={{
+                      background: "#ea580c",
+                      border: "1px solid #ea580c",
+                      borderRadius: "8px",
+                      color: "#ffffff",
+                      padding: "0.75rem 1rem",
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: "0.85rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      transition: "all 180ms ease",
+                      boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#c2410c";
+                      e.currentTarget.style.borderColor = "#c2410c";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#ea580c";
+                      e.currentTarget.style.borderColor = "#ea580c";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
+                    }}
+                    onMouseDown={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
+                    }}
+                  >
+                    Yes, Approve Anyway
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
       <style>{`
         .citewise-queue-scroll::-webkit-scrollbar {

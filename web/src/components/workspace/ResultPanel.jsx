@@ -12,7 +12,25 @@ const STEP_INPUT_COMPONENTS = {
   search: SearcherOutput
 };
 
-export default function ResultPanel({ step, result, onComplete }) {
+export default function ResultPanel({
+  step,
+  result,
+  onComplete,
+  isCollapsed,
+  onToggleCollapse,
+  isProcessing,
+  processingStatus,
+}) {
   const Component = STEP_INPUT_COMPONENTS[step];
-  return <Component result={result} onComplete={onComplete} />;
+  if (!Component) return null;
+  return (
+    <Component
+      result={result}
+      onComplete={onComplete}
+      isCollapsed={isCollapsed}
+      onToggleCollapse={onToggleCollapse}
+      isProcessing={isProcessing}
+      processingStatus={processingStatus}
+    />
+  );
 }

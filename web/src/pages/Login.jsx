@@ -272,7 +272,15 @@ export default function Login() {
             >
               <div className="auth-btn-shine" />
               {isLoading ? (
-                <span>Signing in...</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                  <svg width="16" height="16" viewBox="0 0 50 50">
+                    <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255, 255, 255, 0.3)" strokeWidth="5" />
+                    <circle cx="25" cy="25" r="20" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="50 70">
+                      <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
+                    </circle>
+                  </svg>
+                  <span>Signing in...</span>
+                </span>
               ) : (
                 <>
                   <span>Sign in to Workspace</span>

@@ -42,7 +42,9 @@ app.use(
       // Allow requests with no origin (e.g. same-server health checks)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
+      // Allow configured origins or any Vercel preview deployment (*.vercel.app)
+      const isVercelPreview = /^https:\/\/[a-zA-Z0-9-_.]+\.vercel\.app$/.test(origin);
+      if (allowedOrigins.includes(origin) || isVercelPreview) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS'), false);

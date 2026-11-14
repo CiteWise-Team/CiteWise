@@ -58,6 +58,14 @@ export default function Groups() {
 
   const guideOpen = guideStep >= 0;
 
+  useEffect(() => {
+    const handleOpenGuide = () => {
+      setGuideStep(0);
+    };
+    window.addEventListener("open-page-guide", handleOpenGuide);
+    return () => window.removeEventListener("open-page-guide", handleOpenGuide);
+  }, []);
+
   const handleCloseGuide = () => {
     if (id) {
       localStorage.setItem(`citewise.guideCompleted.${id}`, "true");
@@ -99,12 +107,18 @@ export default function Groups() {
     const target = document.querySelector(`[data-guide="${currentStepConfig.target}"]`);
     if (!target) return;
 
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (currentStepConfig.target === "groups-header") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
 
     const updateSpotlight = () => {
       const rect = target.getBoundingClientRect();
       const padding = 10;
       const isFab = currentStepConfig.target === "create-workspace-fab";
+      const computedStyle = window.getComputedStyle(target);
+      const elemRadius = parseInt(computedStyle.borderRadius, 10) || 16;
       const width = rect.width + padding * 2;
       const height = rect.height + padding * 2;
       setSpotlight({
@@ -112,14 +126,34 @@ export default function Groups() {
         left: Math.max(0, rect.left - padding),
         width,
         height,
-        borderRadius: isFab ? Math.round(width / 2) : 20,
+        borderRadius: isFab ? Math.round(width / 2) : Math.max(elemRadius + 4, 16),
       });
     };
 
     updateSpotlight();
+    const timer1 = setTimeout(updateSpotlight, 100);
+    const timer2 = setTimeout(updateSpotlight, 250);
+    const timer3 = setTimeout(updateSpotlight, 450);
+    const timer4 = setTimeout(updateSpotlight, 700);
+
+    let frameId;
+    const startTime = performance.now();
+    const trackAnimation = (currentTime) => {
+      updateSpotlight();
+      if (currentTime - startTime < 650) {
+        frameId = requestAnimationFrame(trackAnimation);
+      }
+    };
+    frameId = requestAnimationFrame(trackAnimation);
+
     window.addEventListener("resize", updateSpotlight);
     window.addEventListener("scroll", updateSpotlight, true);
     return () => {
+      cancelAnimationFrame(frameId);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
       window.removeEventListener("resize", updateSpotlight);
       window.removeEventListener("scroll", updateSpotlight, true);
     };
@@ -371,40 +405,138 @@ export default function Groups() {
               </button>
             )}
           </div>
-          <button
-            type="button"
-            className="groups-guide-trigger-btn"
-            onClick={() => setGuideStep(0)}
-            aria-label="Open page guide"
-          >
-            <Compass size={16} />
-            <span>Guide</span>
-          </button>
         </div>
 
         <div className="row g-4 groups-grid" data-guide="workspace-cards">
           {loading ? (
-            <div className="groups-loading-state" role="status" aria-live="polite">
-              <div className="groups-loading-orbit" aria-hidden="true">
-                <span className="groups-loading-orbit-ring" />
-                <span className="groups-loading-orbit-core"><IoIosAddCircle size={25} /></span>
-              </div>
-              <div className="groups-loading-copy">
-                <strong>Preparing your workspaces</strong>
-                <span>Gathering your research spaces...</span>
-              </div>
-              <div className="groups-loading-track" aria-hidden="true">
-                <span style={{ width: `${loadingProgress}%` }} />
-              </div>
-              <div className="groups-loading-skeletons" aria-hidden="true">
-                {[1, 2, 3, 4].map((item) => (
-                  <div className="groups-loading-skeleton" key={item}>
-                    <div className="groups-skeleton-cover" />
-                    <div className="groups-skeleton-line groups-skeleton-title" />
-                    <div className="groups-skeleton-line" />
-                    <div className="groups-skeleton-line groups-skeleton-short" />
+            <div className="cw-loading-container" style={{ padding: "3rem 1rem", width: "100%", gridColumn: "1 / -1" }}>
+              <div className="cw-loading-card" style={{ padding: "2.75rem 2.5rem" }}>
+                {/* Guaranteed Animated SVG Spinner with glowing center */}
+                <div
+                  style={{
+                    position: "relative",
+                    width: "80px",
+                    height: "80px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "1.25rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "80px",
+                      height: "80px",
+                      borderRadius: "50%",
+                      border: "3.5px solid rgba(234, 88, 12, 0.14)",
+                      borderTopColor: "#ea580c",
+                      borderRightColor: "#ea580c",
+                      animation: "cwSpinOrbit 0.95s linear infinite",
+                      boxSizing: "border-box",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "50%",
+                      background: "rgba(234, 88, 12, 0.09)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 0 16px rgba(234, 88, 12, 0.25)",
+                    }}
+                  >
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#ea580c"
+                      strokeWidth="2.3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
                   </div>
-                ))}
+                </div>
+
+                <h3
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: "1.25rem",
+                    fontWeight: 700,
+                    color: "var(--cw-text-primary, #0f0e17)",
+                    margin: "0 0 0.4rem 0",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  Loading Workspaces
+                </h3>
+                <p
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: "0.85rem",
+                    color: "var(--cw-text-muted, #6b7280)",
+                    lineHeight: 1.55,
+                    margin: "0 0 1.5rem 0",
+                    maxWidth: "420px",
+                    minHeight: "1.55em",
+                  }}
+                >
+                  Gathering your research spaces and projects...
+                </p>
+
+                {/* Moving Progress Bar & Percentage Count */}
+                <div
+                  style={{
+                    width: "280px",
+                    maxWidth: "85%",
+                    height: "8px",
+                    background: "var(--cw-border, #e5e7eb)",
+                    borderRadius: "999px",
+                    overflow: "hidden",
+                    position: "relative",
+                    boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.08)",
+                    margin: "0 auto 0.6rem auto",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${loadingProgress}%`,
+                      background: "linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)",
+                      borderRadius: "999px",
+                      transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      boxShadow: "0 0 10px rgba(234, 88, 12, 0.45)",
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    width: "280px",
+                    maxWidth: "85%",
+                    margin: "0 auto",
+                    fontSize: "0.75rem",
+                    fontFamily: "'Poppins', sans-serif",
+                  }}
+                >
+                  <span style={{ color: "var(--cw-text-muted, #6b7280)" }}>Loading progress</span>
+                  <span style={{ color: "#ea580c", fontWeight: 700 }}>{loadingProgress}%</span>
+                </div>
+              </div>
+
+              {/* Shimmering skeleton cards beneath previewing layout */}
+              <div className="cw-loading-skeleton-preview" style={{ marginTop: "1.5rem", width: "100%", maxWidth: "520px", display: "flex", gap: "12px" }}>
+                <div className="cw-loading-skeleton-card-left" />
+                <div className="cw-loading-skeleton-card-right" />
               </div>
             </div>
           ) : activeGroups.length === 0 ? (
@@ -500,13 +632,15 @@ export default function Groups() {
               <p>{GUIDE_STEPS[guideStep].description}</p>
 
               <div className="groups-guide-actions">
-                <button
-                  type="button"
-                  className="groups-guide-skip"
-                  onClick={handleCloseGuide}
-                >
-                  Skip Tour
-                </button>
+                {guideStep < GUIDE_STEPS.length - 1 && (
+                  <button
+                    type="button"
+                    className="groups-guide-skip"
+                    onClick={handleCloseGuide}
+                  >
+                    Skip Tour
+                  </button>
+                )}
 
                 <div className="groups-guide-nav-buttons">
                   {guideStep > 0 && (

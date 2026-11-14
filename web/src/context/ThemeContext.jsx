@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 const ThemeContext = createContext({
-  theme: "light",
-  isDark: false,
+  theme: "dark",
+  isDark: true,
   toggleTheme: () => {},
   setTheme: () => {},
 });
@@ -12,16 +12,16 @@ export function ThemeProvider({ children }) {
     try {
       const saved = localStorage.getItem("cw_theme");
       if (saved === "dark" || saved === "light") return saved;
-      return "light";
+      return "dark";
     } catch {
-      return "light";
+      return "dark";
     }
   });
 
-  useEffect(() => {
+  const applyThemeToDom = (newTheme) => {
     const root = document.documentElement;
-    root.setAttribute("data-theme", theme);
-    if (theme === "dark") {
+    root.setAttribute("data-theme", newTheme);
+    if (newTheme === "dark") {
       document.body.classList.add("dark-theme");
       document.body.classList.remove("light-theme");
     } else {
@@ -29,10 +29,14 @@ export function ThemeProvider({ children }) {
       document.body.classList.remove("dark-theme");
     }
     try {
-      localStorage.setItem("cw_theme", theme);
+      localStorage.setItem("cw_theme", newTheme);
     } catch {
       // ignore
     }
+  };
+
+  useEffect(() => {
+    applyThemeToDom(theme);
   }, [theme]);
 
   const triggerTransition = () => {
@@ -44,22 +48,38 @@ export function ThemeProvider({ children }) {
       }
       window.__themeTransitionTimeout = setTimeout(() => {
         root.classList.remove("theme-transitioning");
-      }, 450);
+      }, 350);
     } catch {
       // ignore
     }
   };
 
+  const changeTheme = (newTheme) => {
+    if (newTheme !== "dark" && newTheme !== "light") return;
+
+    // Use native View Transition API when available for ultra-smooth GPU cross-fade
+    if (
+      typeof document !== "undefined" &&
+      document.startViewTransition &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      document.startViewTransition(() => {
+        applyThemeToDom(newTheme);
+        setThemeState(newTheme);
+      });
+    } else {
+      triggerTransition();
+      applyThemeToDom(newTheme);
+      setThemeState(newTheme);
+    }
+  };
+
   const toggleTheme = () => {
-    triggerTransition();
-    setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
+    changeTheme(theme === "dark" ? "light" : "dark");
   };
 
   const setTheme = (newTheme) => {
-    if (newTheme === "dark" || newTheme === "light") {
-      triggerTransition();
-      setThemeState(newTheme);
-    }
+    changeTheme(newTheme);
   };
 
   return (
@@ -73,8 +93,8 @@ export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
     return {
-      theme: "light",
-      isDark: false,
+      theme: "dark",
+      isDark: true,
       toggleTheme: () => {},
       setTheme: () => {},
     };

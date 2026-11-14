@@ -97,6 +97,28 @@ export async function getTextFromR2(key) {
 }
 
 /**
+ * Retrieve a binary object (e.g. the original PDF) from R2
+ * @param {string} key
+ * @returns {Promise<Buffer|null>}
+ */
+export async function getBufferFromR2(key) {
+  if (!isR2Configured || !s3Client || !key) {
+    return null;
+  }
+
+  try {
+    const res = await s3Client.send(new GetObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    }));
+    return Buffer.from(await res.Body.transformToByteArray());
+  } catch (err) {
+    console.error(`[r2Client] Failed to get object "${key}":`, err.message);
+    return null;
+  }
+}
+
+/**
  * Generate a pre-signed download URL for a file in R2
  * @param {string} key 
  * @param {number} [expiresInSeconds=3600] 
@@ -146,6 +168,7 @@ export default {
   uploadPdfToR2,
   uploadTextToR2,
   getTextFromR2,
+  getBufferFromR2,
   getPresignedDownloadUrl,
   deleteFromR2,
 };

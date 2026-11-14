@@ -344,13 +344,21 @@
 .auth-showcase-footer {
   position: relative;
   z-index: 2;
-  padding-top: 2rem;
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
+  box-sizing: border-box;
+  padding-top: 14px;
+  padding-bottom: 0;
   border-top: 1px solid #fed7aa;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: #6b7280;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 /* --------------------------------------------------------------------------
@@ -428,6 +436,10 @@
   color: #4b5563;
   line-height: 1.5;
   margin-bottom: 2rem;
+}
+
+.auth-form-heading + form {
+  margin-top: 1.5rem;
 }
 
 /* Inputs & Form Groups */
@@ -538,26 +550,143 @@
   gap: 0.4rem;
 }
 
-.auth-password-rules {
-  list-style: none;
-  padding: 0;
-  margin: 0.6rem 0 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.3rem 0.75rem;
+/* Modern Password Complexity & Security Card */
+.auth-password-complexity-card {
+  margin-top: 0.65rem;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(241, 245, 249, 0.65);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  transition: all 0.25s ease;
 }
 
-.auth-password-rules li {
+.auth-password-strength-header {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.74rem;
-  color: #6b7280;
-  transition: color 0.2s ease;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
-.auth-password-rules li.is-met {
-  color: #16a34a;
+.auth-password-strength-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-heading, #1e293b);
+  font-family: "Poppins", sans-serif;
+}
+
+.auth-password-shield-icon {
+  color: #ea580c;
+}
+
+.auth-password-strength-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: "Poppins", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  transition: all 0.2s ease;
+}
+
+.auth-password-strength-badge.is-weak {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.auth-password-strength-badge.is-medium {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.auth-password-strength-badge.is-strong {
+  background: rgba(16, 185, 129, 0.14);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.auth-password-strength-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(203, 213, 225, 0.6);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.auth-password-strength-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease;
+}
+
+.auth-password-strength-bar.is-weak {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.auth-password-strength-bar.is-medium {
+  background: linear-gradient(90deg, #ea580c, #f59e0b);
+}
+
+.auth-password-strength-bar.is-strong {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.auth-password-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 5px 8px;
+}
+
+.auth-password-rule-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-family: "Poppins", sans-serif;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
+}
+
+.auth-password-rule-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+}
+
+.auth-password-rule-item.is-met {
+  color: #047857;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.auth-password-rule-item.is-met .auth-password-rule-icon {
+  color: #10b981;
+}
+
+.auth-password-extra-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .auth-field-error {
@@ -632,8 +761,13 @@
 
 /* Form Footer Description */
 .auth-form-footer {
-  padding-top: 1.75rem;
-  text-align: center;
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
+  box-sizing: border-box;
+  padding-top: 14px;
+  padding-bottom: 0;
+  border-top: 1px solid #fed7aa;
   font-size: 0.78rem;
   color: #6b7280;
   display: flex;
@@ -641,7 +775,9 @@
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
+  flex-shrink: 0;
   margin: 0 auto;
+  margin-top: auto;
 }
 
 .auth-form-footer span {
@@ -674,11 +810,81 @@
 }
 
 /* --------------------------------------------------------------------------
-   Responsive Design
+   Responsive & Desktop Alignment Design
    -------------------------------------------------------------------------- */
+@media (min-width: 992px) {
+  .auth-split-wrapper {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+
+  .auth-showcase-panel {
+    height: 100%;
+    padding: 2rem clamp(2rem, 3.5vw, 3.5rem) 1.5rem clamp(2rem, 3.5vw, 3.5rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  .auth-showcase-content {
+    margin: auto 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .auth-showcase-content::-webkit-scrollbar {
+    display: none;
+  }
+
+  .auth-form-panel {
+    height: 100%;
+    padding: 2rem clamp(2rem, 3.5vw, 3.5rem) 1.5rem clamp(2rem, 3.5vw, 3.5rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  .auth-form-topbar {
+    flex-shrink: 0;
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-form-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding: 0.25rem 0.25rem;
+    margin: auto;
+  }
+
+  .auth-form-box::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .auth-form-box::-webkit-scrollbar-thumb {
+    background: rgba(203, 213, 225, 0.6);
+    border-radius: 4px;
+  }
+
+  [data-theme="dark"] .auth-form-box::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
 @media (max-width: 991px) {
   .auth-split-wrapper {
     flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: auto;
+    overflow-y: auto;
   }
 
   .auth-showcase-panel {
@@ -689,8 +895,10 @@
     flex: 1 1 100%;
     min-height: 100vh;
     min-height: 100dvh;
-    padding: 2rem 1.5rem;
-    justify-content: center;
+    height: auto;
+    padding: 2rem 1.5rem 1.5rem 1.5rem;
+    justify-content: space-between;
+    overflow-y: visible;
   }
 
   .auth-mobile-brand {
@@ -701,6 +909,18 @@
   .auth-form-topbar {
     justify-content: center;
     margin-bottom: 1.5rem;
+  }
+
+  .auth-form-box {
+    margin: 1.5rem auto;
+  }
+
+  .auth-form-footer {
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    padding-top: 1.25rem;
+    padding-bottom: 0.5rem;
   }
 }
 
@@ -874,6 +1094,57 @@
 
 [data-theme="dark"] .auth-password-rules li.is-met {
   color: #4ade80;
+}
+
+[data-theme="dark"] .auth-password-complexity-card {
+  background: rgba(26, 24, 38, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .auth-password-strength-label {
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .auth-password-strength-track {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .auth-password-rule-item {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .auth-password-rule-item.is-met {
+  color: #4ade80 !important;
+  background: rgba(74, 222, 128, 0.12) !important;
+  border-color: rgba(74, 222, 128, 0.25) !important;
+}
+
+[data-theme="dark"] .auth-password-rule-item.is-met .auth-password-rule-icon {
+  color: #4ade80 !important;
+}
+
+[data-theme="dark"] .auth-password-strength-badge.is-weak {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+[data-theme="dark"] .auth-password-strength-badge.is-medium {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+[data-theme="dark"] .auth-password-strength-badge.is-strong {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+[data-theme="dark"] .auth-password-extra-error {
+  color: #fca5a5 !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
 }
 
 [data-theme="dark"] .auth-field-error {

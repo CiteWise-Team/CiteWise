@@ -8,37 +8,40 @@ export default function UploadAllButton({ onClick, isUploading, disabled }) {
         alignItems: "center",
         justifyContent: "center",
         gap: "0.6rem",
-        background: "#f97316",
+        background: "#ea580c",
         color: "#ffffff",
-        border: "none",
+        border: "1px solid #ea580c",
         borderRadius: "8px",
         fontSize: "0.9rem",
         fontWeight: 700,
         padding: "0.75rem 1.5rem",
         cursor: (disabled || isUploading) ? "not-allowed" : "pointer",
-        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+        transition: "all 180ms ease",
         width: "100%",
         opacity: (disabled || isUploading) ? 0.5 : 1,
-        boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
+        boxShadow: "0 2px 8px rgba(234, 88, 12, 0.22)",
         fontFamily: "'Poppins', sans-serif",
       }}
       onMouseEnter={(e) => {
         if (!disabled && !isUploading) {
-          e.currentTarget.style.background = "#ea6a0f";
-          e.currentTarget.style.boxShadow = "0 6px 16px rgba(249, 115, 22, 0.4)";
+          e.currentTarget.style.background = "#c2410c";
+          e.currentTarget.style.borderColor = "#c2410c";
+          e.currentTarget.style.boxShadow = "0 4px 14px rgba(234, 88, 12, 0.35)";
           e.currentTarget.style.transform = "translateY(-1px)";
         }
       }}
       onMouseLeave={(e) => {
         if (!disabled && !isUploading) {
-          e.currentTarget.style.background = "#f97316";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.25)";
+          e.currentTarget.style.background = "#ea580c";
+          e.currentTarget.style.borderColor = "#ea580c";
+          e.currentTarget.style.boxShadow = "0 2px 8px rgba(234, 88, 12, 0.22)";
           e.currentTarget.style.transform = "translateY(0)";
         }
       }}
       onMouseDown={(e) => {
         if (!disabled && !isUploading) {
-          e.currentTarget.style.transform = "translateY(1px)";
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.boxShadow = "0 2px 6px rgba(234, 88, 12, 0.2)";
         }
       }}
       onMouseUp={(e) => {

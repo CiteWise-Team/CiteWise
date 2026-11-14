@@ -27,7 +27,9 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #0e0e18;
+  background-color: var(--cw-bg-base, #0f0e17);
+  color: var(--cw-text-primary, #f9fafb);
+  transition: background-color 240ms cubic-bezier(0.4, 0, 0.2, 1), color 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 h1 {
@@ -118,3 +120,20 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+@keyframes cw-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.cw-spinning {
+  display: inline-block !important;
+  transform-origin: center center !important;
+  animation: cw-spin 0.9s linear infinite !important;
+}
+
+.cw-spinning-reverse {
+  display: inline-block !important;
+  transform-origin: center center !important;
+  animation: cw-spin 1.4s linear infinite reverse !important;
+}

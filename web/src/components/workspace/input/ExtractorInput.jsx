@@ -9,7 +9,15 @@ import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
 import WorkflowCardHeader from "../WorkflowCardHeader";
 
-export default function InputPanel({ setResult }) {
+export default function InputPanel({
+  setResult,
+  isCollapsed = false,
+  onToggleCollapse,
+  isProcessing,
+  setIsProcessing,
+  processingStatus,
+  setProcessingStatus,
+}) {
   const group_id = useGroup().groupId;
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
@@ -25,6 +33,8 @@ export default function InputPanel({ setResult }) {
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
     };
   }, []);
 
@@ -79,12 +89,16 @@ export default function InputPanel({ setResult }) {
     try {
       setLoading(true);
       setLoadingText("Starting extraction...");
+      setIsProcessing?.(true);
+      setProcessingStatus?.("Extracting sections with AI...");
 
       const response = await extractorAPI(file, group_id);
 
       // If backend dispatched background extraction job (202 Accepted)
       if (response?.jobId) {
         setLoadingText("Extracting sections with AI...");
+        setIsProcessing?.(true);
+        setProcessingStatus?.("Extracting sections with AI...");
 
         const startTime = Date.now();
         const MAX_POLL_TIME = 180 * 1000; // 3 minutes timeout
@@ -95,6 +109,8 @@ export default function InputPanel({ setResult }) {
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setLoading(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Timeout",
@@ -108,6 +124,8 @@ export default function InputPanel({ setResult }) {
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setLoading(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               setResult(pollRes.data);
               showFeedback({
                 type: "success",
@@ -118,6 +136,8 @@ export default function InputPanel({ setResult }) {
               clearInterval(pollTimerRef.current);
               pollTimerRef.current = null;
               setLoading(false);
+              setIsProcessing?.(false);
+              setProcessingStatus?.("");
               showFeedback({
                 type: "error",
                 title: "Extraction Failed",
@@ -134,6 +154,8 @@ export default function InputPanel({ setResult }) {
 
       if (!response?.jobId) {
         setLoading(false);
+        setIsProcessing?.(false);
+        setProcessingStatus?.("");
         showFeedback({
           type: "error",
           title: "Extraction Failed",
@@ -144,6 +166,8 @@ export default function InputPanel({ setResult }) {
     } catch (err) {
       console.error(err);
       setLoading(false);
+      setIsProcessing?.(false);
+      setProcessingStatus?.("");
       showFeedback({
         type: "error",
         title: "Server Error",
@@ -154,111 +178,117 @@ export default function InputPanel({ setResult }) {
 
   return (
     <>
-      <div className="h-100 rounded-4 workflow-input-card" style={{ minHeight: 0 }}>
+      <div className={`h-100 rounded-4 workflow-input-card ${isCollapsed ? "is-collapsed" : ""}`} style={{ minHeight: 0 }}>
         {/* Header */}
         <WorkflowCardHeader
           title="Upload your papers"
           subtitle={
             <span>
-              Add research papers here so <span style={{ color: "#ea580c", fontWeight: 600 }}>CAT</span>alyst can extract and organize their content.
+              Add research papers here so CATalyst can extract and organize their content.
             </span>
           }
+          isCollapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse}
         />
 
-        {/* Scrollable Body */}
-        <div className="workflow-input-body">
-          {/* Upload Area */}
-          <div
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-            onClick={openFilePicker}
-            className="rounded-4 text-center p-3"
-            style={{
-              border: "2px dashed #ea580c",
-              cursor: "pointer",
-              backgroundColor: "#fffaf5",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <FaCloudUploadAlt size={28} color="#ea580c" />
-
-            <h6 className="fw-bold mt-2 mb-1" style={{ color: "#0f0e17", fontSize: "0.95rem" }}>
-              Ready to extract?
-            </h6>
-
-            <p style={{ color: "#4b5563", fontSize: "0.8rem", marginBottom: "8px" }}>
-              Drop files or click to browse
-            </p>
-
-            <button
-              type="button"
-              className="workflow-action-button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openFilePicker();
-              }}
-            >
-              Upload File
-            </button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf"
-              style={{ display: "none" }}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => handleFile(e.target.files)}
-            />
-          </div>
-
-          {/* Selected File */}
-          {file && (
-            <div>
-              <small style={{ color: "#4b5563", fontWeight: 600 }}>File ready:</small>
-
+        {!isCollapsed && (
+          <>
+            {/* Scrollable Body */}
+            <div className="workflow-input-body">
+              {/* Upload Area */}
               <div
-                className="mt-2 p-2 rounded-3 d-flex justify-content-between align-items-center"
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                onClick={openFilePicker}
+                className="workflow-upload-dropzone citewise-upload-dropzone rounded-4 text-center p-3"
                 style={{
-                  backgroundColor: "#f9fafb",
-                  border: "1px solid #e5e7eb"
+                  border: "2px dashed #ea580c",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
                 }}
               >
-                <span className="small fw-semibold text-truncate me-2" style={{ color: "#0f0e17" }}>{file.name}</span>
+                <FaCloudUploadAlt size={28} color="#ea580c" />
+
+                <h6 className="fw-bold mt-2 mb-1" style={{ fontSize: "0.95rem" }}>
+                  Ready to extract?
+                </h6>
+
+                <p style={{ fontSize: "0.8rem", marginBottom: "8px" }}>
+                  Drop files or click to browse
+                </p>
 
                 <button
                   type="button"
-                  className="workflow-icon-action flex-shrink-0"
-                  aria-label="Remove selected file"
-                  title="Remove selected file"
-                  onClick={() => {
-                    setFile(null);
-                    if (fileInputRef.current) {
-                      fileInputRef.current.value = "";
-                    }
+                  className="workflow-action-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openFilePicker();
                   }}
                 >
-                  <FaTrashAlt aria-hidden="true" size={13} />
+                  Upload File
                 </button>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Pinned Action Row */}
-        <div className="workflow-input-actions">
-          <button
-            onClick={handleRunWorkflow}
-            disabled={loading}
-            className="workflow-action-button"
-          >
-            {loading ? (
-              <RiLoader4Line className="spinner-border spinner-border-sm spin-loader" style={{ animation: "spin 1s linear infinite" }} />
-            ) : (
-              <FaPlay size={12} className="me-1" />
-            )}
-            {loading ? loadingText : "Run Workflow"}
-          </button>
-        </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  style={{ display: "none" }}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => handleFile(e.target.files)}
+                />
+              </div>
+
+              {/* Selected File */}
+              {file && (
+                <div>
+                  <small style={{ color: "var(--cw-text-secondary, #64748b)", fontWeight: 600 }}>File ready:</small>
+
+                  <div
+                    className="mt-2 p-2 rounded-3 d-flex justify-content-between align-items-center"
+                    style={{
+                      backgroundColor: "var(--cw-bg-surface-elevated, #f9fafb)",
+                      border: "1px solid var(--cw-border, #e5e7eb)",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <span className="small fw-semibold text-truncate me-2" style={{ color: "var(--cw-text-primary, #0f0e17)" }}>{file.name}</span>
+
+                    <button
+                      type="button"
+                      className="workflow-icon-action workflow-paper-delete-btn flex-shrink-0"
+                      aria-label="Remove selected file"
+                      title="Remove selected file"
+                      onClick={() => {
+                        setFile(null);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                        }
+                      }}
+                    >
+                      <FaTrashAlt aria-hidden="true" size={13} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pinned Action Row */}
+            <div className="workflow-input-actions">
+              <button
+                onClick={handleRunWorkflow}
+                disabled={loading}
+                className="workflow-action-button"
+              >
+                {loading ? (
+                  <span className="catalyst-btn-spinner" />
+                ) : (
+                  <FaPlay size={12} className="me-1" />
+                )}
+                {loading ? loadingText : "Run Workflow"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <FeedbackModal {...config} onClose={hideFeedback} />

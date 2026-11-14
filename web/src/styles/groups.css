@@ -163,7 +163,8 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  padding: 8px 0 34px;
+  padding: 8px 0 18px;
+  margin-bottom: 16px;
   border-bottom: 1px solid #e5e7eb;
 }
 
@@ -320,6 +321,7 @@
 .groups-guide-spotlight {
   position: fixed;
   z-index: 9992;
+  box-sizing: border-box !important;
   border: 2px solid #ea580c;
   border-radius: 20px;
   box-shadow: 0 0 0 9999px rgba(15, 14, 23, 0.68),
@@ -450,6 +452,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 .groups-guide-back-btn {

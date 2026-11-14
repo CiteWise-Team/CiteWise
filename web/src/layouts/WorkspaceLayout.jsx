@@ -121,8 +121,14 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
     }
     if (!target) return undefined;
 
-    // For input and results panels, refine target to the actual card element for crisp rounded highlights
-    if (targetKey === "workflow-input") {
+    // For specific targets, refine to the exact visual element for crisp, centered rounded highlights
+    if (targetKey === "workspace-header") {
+      const headerLeft = target.querySelector(".workflow-header-left");
+      if (headerLeft) target = headerLeft;
+    } else if (targetKey === "workflow-stepper" && !isMobileViewport) {
+      const card = target.querySelector(".workflow-progression-card") || (target.classList?.contains("workflow-progression-card") ? target : null);
+      if (card) target = card;
+    } else if (targetKey === "workflow-input") {
       const card = target.querySelector(".workflow-input-card");
       if (card) target = card;
     } else if (targetKey === "workflow-results") {
@@ -198,6 +204,12 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [guideOpen]);
 
+  useEffect(() => {
+    const handleOpenGuide = () => setGuideStep(0);
+    window.addEventListener("open-page-guide", handleOpenGuide);
+    return () => window.removeEventListener("open-page-guide", handleOpenGuide);
+  }, []);
+
   function advanceGuide() {
     if (guideStep === guideSteps.length - 1) {
       setGuideStep(-1);
@@ -218,7 +230,7 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
 
   return (
     <div className="workflow-page">
-      <Navbar />
+      <Navbar onGuideClick={() => setGuideStep(0)} />
       <main className="workflow-shell">
         <header className="workflow-header" data-guide="workspace-header">
           <div className="workflow-header-left">
@@ -237,16 +249,6 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="groups-guide-trigger-btn workflow-guide-button"
-            data-guide="workflow-guide-button"
-            onClick={() => setGuideStep(0)}
-            aria-label="Open page guide"
-          >
-            <Compass size={16} />
-            <span>Guide</span>
-          </button>
         </header>
 
         <div className="workflow-content">{children}</div>
@@ -276,7 +278,7 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
                   : { bottom: "80px", top: "auto", left: "16px", right: "16px", width: "auto" }
                 : isNearGuideBtn && spotlight
                 ? {
-                    top: Math.max(150, Math.round(spotlight.top + spotlight.height + 16)),
+                    top: Math.max(76, Math.round(spotlight.top + spotlight.height + 14)),
                     bottom: "auto",
                     right: Math.max(16, Math.round((typeof window !== "undefined" ? window.innerWidth : 1200) - (spotlight.left + spotlight.width))),
                     left: "auto",
@@ -310,13 +312,15 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
             <h2 id="workflow-guide-title">{renderGuideText(guideSteps[guideStep]?.title)}</h2>
             <p>{renderGuideText(guideSteps[guideStep]?.description)}</p>
             <div className="workflow-guide-actions">
-              <button
-                type="button"
-                className="workflow-guide-skip"
-                onClick={() => setGuideStep(-1)}
-              >
-                Skip Tour
-              </button>
+              {guideStep < guideSteps.length - 1 && (
+                <button
+                  type="button"
+                  className="workflow-guide-skip"
+                  onClick={() => setGuideStep(-1)}
+                >
+                  Skip Tour
+                </button>
+              )}
               <div className="workflow-guide-nav-buttons">
                 {guideStep > 0 && (
                   <button
@@ -328,7 +332,7 @@ export default function WorkflowLayout({ children, currentStep = "extractor" }) 
                   </button>
                 )}
                 <button type="button" className="workflow-guide-next" onClick={advanceGuide}>
-                  {guideStep === guideSteps.length - 1 ? "Finish" : "Next"}
+                  {guideStep >= guideSteps.length - 1 ? "Finish" : "Next"}
                 </button>
               </div>
             </div>

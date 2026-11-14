@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTheme } from "../../../../context/ThemeContext";
 
 export default function DocumentActiveCard({
@@ -6,6 +8,7 @@ export default function DocumentActiveCard({
   onNavigate,
 }) {
   const { isDark } = useTheme();
+  const [open, setOpen] = useState(true);
   const hasDocs = documents.length > 0;
 
   if (!hasDocs) {
@@ -26,6 +29,7 @@ export default function DocumentActiveCard({
         {/* Header: No documents */}
         <div
           className="workflow-card-header"
+          onClick={() => setOpen((o) => !o)}
           style={{
             display: "flex",
             alignItems: "center",
@@ -33,7 +37,9 @@ export default function DocumentActiveCard({
             marginBottom: 0,
             padding: "1.125rem 1.5rem",
             background: "var(--cw-bg-surface-elevated, #f9fafb)",
-            borderBottom: "1px solid var(--cw-border, #e5e7eb)",
+            borderBottom: open ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+            cursor: "pointer",
+            userSelect: "none",
           }}
         >
           <span
@@ -47,36 +53,44 @@ export default function DocumentActiveCard({
           >
             No documents uploaded
           </span>
-        </div>
-
-        <div style={{ padding: "2rem 1.5rem", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
-          <div style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "50%",
-            background: isDark ? "rgba(249, 115, 22, 0.15)" : "#fff7ef",
-            border: isDark ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid #fed7aa",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#f97316",
-          }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="12" y1="18" x2="12" y2="12"/>
-              <line x1="9" y1="15" x2="15" y2="15"/>
-            </svg>
-          </div>
-          <span style={{
-            fontFamily: "'Poppins', sans-serif",
-            fontSize: "0.85rem",
-            color: isDark ? "#94a3b8" : "#6b7280",
-            lineHeight: "1.5",
-          }}>
-            Upload PDF candidates using the upload button to view and manage their AI assessments.
+          <span
+            className="cw-collapse-chevron"
+            style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}
+          >
+            {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </span>
         </div>
+
+        {open && (
+          <div style={{ padding: "2rem 1.5rem", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+            <div style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "50%",
+              background: isDark ? "rgba(249, 115, 22, 0.15)" : "#fff7ef",
+              border: isDark ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid #fed7aa",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#f97316",
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+            </div>
+            <span style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.85rem",
+              color: isDark ? "#94a3b8" : "#6b7280",
+              lineHeight: "1.5",
+            }}>
+              Upload PDF candidates using the upload button to view and manage their AI assessments.
+            </span>
+          </div>
+        )}
       </div>
     );
   }
@@ -91,105 +105,160 @@ export default function DocumentActiveCard({
         background: "var(--cw-bg-surface, #ffffff)",
         border: "1px solid var(--cw-border, #e5e7eb)",
         borderRadius: "16px",
-        padding: "16px",
+        padding: 0,
         display: "flex",
         flexDirection: "column",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
         overflow: "hidden",
       }}
     >
+      {/* Header: Active Document */}
       <div
+        className="workflow-card-header"
+        onClick={() => setOpen((o) => !o)}
         style={{
           display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "flex-start",
-          gap: "14px",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 0,
+          padding: "1.125rem 1.5rem",
+          background: "var(--cw-bg-surface-elevated, #f9fafb)",
+          borderBottom: open ? "1px solid var(--cw-border, #e5e7eb)" : "none",
+          cursor: "pointer",
+          userSelect: "none",
         }}
       >
-        {/* PDF folding dog-ear icon */}
-        <div
-          style={{
-            position: "relative",
-            width: "36px",
-            height: "46px",
-            background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-            borderRadius: "4px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            paddingBottom: "6px",
-            flexShrink: 0,
-            boxShadow: "0 2px 6px rgba(249, 115, 22, 0.25)",
-          }}
-        >
-          {/* Dog-ear triangle overlay — matches card bg */}
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              width: 0,
-              height: 0,
-              borderStyle: "solid",
-              borderWidth: "0 10px 10px 0",
-              borderColor: `transparent transparent ${cardBgColor} ${cardBgColor}`,
-              borderTopRightRadius: "4px",
-            }}
-          />
+        <div style={{ display: "flex", alignItems: "center" }}>
           <span
+            className="workflow-card-header-title"
             style={{
               fontFamily: "'Poppins', sans-serif",
-              fontSize: "9px",
-              fontWeight: "900",
-              color: "#ffffff",
-              letterSpacing: "0.2px",
+              fontSize: "1.05rem",
+              fontWeight: "700",
+              color: "var(--cw-text-primary, #0f0e17)",
+              letterSpacing: "0.01em",
             }}
           >
-            PDF
+            Active Document
           </span>
         </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span
+            className="workflow-card-header-subtitle"
             style={{
+              fontSize: "11px",
+              color: "var(--cw-text-muted, #6b7280)",
               fontFamily: "'Poppins', sans-serif",
-              fontSize: "14px",
-              fontWeight: "600",
-              color: isDark ? "#ffffff" : "#111827",
-              marginBottom: "4px",
-              wordWrap: "break-word",
-              whiteSpace: "normal",
+              fontWeight: 500,
             }}
           >
-            {doc.name}
-          </div>
-          {doc.title && doc.title !== doc.name && (
-            <div
-              style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: "12px",
-                color: isDark ? "#cbd5e1" : "#6b7280",
-                marginBottom: "4px",
-                fontStyle: "italic",
-                wordWrap: "break-word",
-                whiteSpace: "normal",
-              }}
-            >
-              {doc.title}
-            </div>
-          )}
-          <div
-            style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "12px",
-              color: isDark ? "#94a3b8" : "#9ca3af",
-            }}
+            ({currentIndex + 1} of {documents.length})
+          </span>
+          <span
+            className="cw-collapse-chevron"
+            style={{ color: "var(--cw-text-muted, #6b7280)", display: "inline-flex", alignItems: "center" }}
           >
-            {doc.size}
-          </div>
+            {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
         </div>
       </div>
+
+      {open && (
+        <div style={{ padding: "16px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "flex-start",
+              gap: "14px",
+            }}
+          >
+            {/* PDF folding dog-ear icon */}
+            <div
+              style={{
+                position: "relative",
+                width: "36px",
+                height: "46px",
+                background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                borderRadius: "4px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                paddingBottom: "6px",
+                flexShrink: 0,
+                boxShadow: "0 2px 6px rgba(249, 115, 22, 0.25)",
+              }}
+            >
+              {/* Dog-ear triangle overlay — matches card bg */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  width: 0,
+                  height: 0,
+                  borderStyle: "solid",
+                  borderWidth: "0 10px 10px 0",
+                  borderColor: `transparent transparent ${cardBgColor} ${cardBgColor}`,
+                  borderTopRightRadius: "4px",
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "9px",
+                  fontWeight: "900",
+                  color: "#ffffff",
+                  letterSpacing: "0.2px",
+                }}
+              >
+                PDF
+              </span>
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: isDark ? "#ffffff" : "#111827",
+                  marginBottom: "4px",
+                  wordWrap: "break-word",
+                  whiteSpace: "normal",
+                }}
+              >
+                {doc.name}
+              </div>
+              {doc.title && doc.title !== doc.name && (
+                <div
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: "12px",
+                    color: isDark ? "#cbd5e1" : "#6b7280",
+                    marginBottom: "4px",
+                    fontStyle: "italic",
+                    wordWrap: "break-word",
+                    whiteSpace: "normal",
+                  }}
+                >
+                  {doc.title}
+                </div>
+              )}
+              <div
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "12px",
+                  color: isDark ? "#94a3b8" : "#9ca3af",
+                }}
+              >
+                {doc.size}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

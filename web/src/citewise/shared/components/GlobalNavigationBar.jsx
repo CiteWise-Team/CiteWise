@@ -140,7 +140,7 @@ function MobileNavigation({ currentStep, maxUnlockedStep, onNavigate, onLogoClic
                 style={{
                   position: "relative",
                   background: isActive
-                    ? "linear-gradient(135deg, #ea580c 0%, #f97316 100%)"
+                    ? "#ea580c"
                     : "transparent",
                   color: isActive
                     ? "#ffffff"
@@ -400,7 +400,7 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
                     right: "1.5rem",
                     height: "2px",
                     borderRadius: "2px 2px 0 0",
-                    background: "linear-gradient(90deg, #f97316, #fb8c3a)",
+                    background: "#ea580c",
                     opacity: isActive ? 1 : 0,
                     transform: isActive ? "scaleX(1)" : "scaleX(0.6)",
                     transformOrigin: "center",
