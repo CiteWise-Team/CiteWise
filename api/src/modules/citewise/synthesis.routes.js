@@ -342,7 +342,13 @@ async function asyncSynthesisJob({
       throw new Error(`Synthesis webhook returned an empty response. HTTP ${n8nRes.status}`);
     }
     if (!n8nRes.ok) {
-      throw new Error(`Synthesis workflow returned HTTP ${n8nRes.status}: ${raw.slice(0, 300)}`);
+      // Prefer the structured message from the n8n error body over a raw slice.
+      let detail = raw.slice(0, 300);
+      try {
+        const parsed = JSON.parse(raw);
+        detail = parsed.message || parsed.errorMessage || parsed.error || detail;
+      } catch { /* body is not JSON; keep the raw slice */ }
+      throw new Error(`Synthesis workflow returned HTTP ${n8nRes.status}: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`);
     }
 
     let root;
@@ -473,8 +479,16 @@ async function asyncSynthesisJob({
     console.info(`[synthesis-async] ✅ Draft synthesis completed and persisted for session ${sessionId}.`);
   } catch (err) {
     console.error(`[synthesis-async] Fatal error during synthesis for session ${sessionId}:`, err.message);
-    let userFacingError = err.message || 'Synthesis encountered an unexpected error.';
-    if (/error in workflow/i.test(err.message) || /HTTP 500/i.test(err.message) || /non-JSON response/i.test(err.message) || /fetch failed/i.test(err.message)) {
+    let userFacingError = (err.message || 'Synthesis encountered an unexpected error.')
+      .replace(/^Synthesis workflow returned HTTP \d+:\s*/, '');
+    // Unwrap a JSON-shaped message so the frontend gets plain text.
+    if (userFacingError.startsWith('{') && userFacingError.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(userFacingError);
+        userFacingError = parsed.message || parsed.errorMessage || parsed.error || userFacingError;
+      } catch { /* not valid JSON; leave as-is */ }
+    }
+    if (/error in workflow/i.test(userFacingError) || /HTTP 500/i.test(err.message) || /non-JSON response/i.test(err.message) || /fetch failed/i.test(err.message)) {
       userFacingError = 'The AI synthesis engine encountered a temporary processing hiccup. Please try generating again.';
     }
     await supabase.from('generated_draft').update({
