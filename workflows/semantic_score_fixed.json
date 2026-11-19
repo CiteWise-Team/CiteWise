@@ -127,7 +127,7 @@
     },
     {
       "id": "f989ffd9-0976-4a65-8a13-b3e91418325f_copy0",
-      "name": "Google Vertex AI Model (Gemini 2.5 Flash Lite)",
+      "name": "Google Vertex AI Model (Gemini 2.5 Flash)",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
       "typeVersion": 1,
       "position": [
@@ -135,11 +135,10 @@
         216
       ],
       "parameters": {
-        "modelName": "gemini-2.5-flash-lite",
+        "modelName": "gemini-2.5-flash",
         "projectId": "citewise-n8n-prod",
         "options": {
-          "temperature": 0.1,
-          "maxOutputTokens": 1500
+          "temperature": 0.1
         }
       },
       "credentials": {
