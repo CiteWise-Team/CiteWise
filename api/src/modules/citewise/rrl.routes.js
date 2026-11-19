@@ -297,6 +297,7 @@ export async function scoringPipeline(docId, sessionId) {
         scoring_completed_at:  new Date(finishedAt).toISOString(),
       }).eq('id', docId);
       await updateDocumentFields(docId, {
+        extraction_status:           'EMPTY_TEXT',
         page_count:                  doc.page_count ?? null,
         scoring_duration_ms:         assessmentMs,
         assessment_duration_seconds: assessmentSeconds,
@@ -629,6 +630,7 @@ export async function asyncExtractPipeline(docId, sessionId, buffer, fileName, h
     }).eq('id', docId);
 
     await updateDocumentFields(docId, {
+      extraction_status: charCount > 0 ? 'OK' : 'EMPTY_TEXT',
       extraction_method: 'llamaparse',
       extraction_ms:     extractionMs,
       page_offsets_json: pageOffsets,
@@ -643,6 +645,30 @@ export async function asyncExtractPipeline(docId, sessionId, buffer, fileName, h
       scoring_status: 'FAILED',
       scoring_error_message: `Extraction failed: ${err.message?.slice(0, 200)}`,
     }).eq('id', docId);
+    await updateDocumentFields(docId, {
+      extraction_status: 'EXTRACTION_FAILED',
+    }, 'asyncExtract');
+  }
+}
+
+// Log pre-insert upload rejections to upload_rejections (migration 007) so T3
+// parse-rate denominators are recoverable from the database. Degrades cleanly
+// if migration 007 has not been applied yet.
+async function recordUploadRejection({ sessionId, userId, fileName, sizeBytes, mimeType, rejectionReason }) {
+  try {
+    const { error } = await supabase.from('upload_rejections').insert({
+      session_id:       sessionId,
+      user_id:          userId ?? null,
+      file_name:        fileName,
+      size_bytes:       sizeBytes ?? null,
+      mime_type:        mimeType ?? null,
+      rejection_reason: rejectionReason,
+    });
+    if (error && !/upload_rejections|schema cache|does not exist|relation/i.test(String(error.message ?? ''))) {
+      console.warn(`[upload_rejections] insert warning for ${fileName}:`, error.message);
+    }
+  } catch (err) {
+    console.warn(`[upload_rejections] skipped for ${fileName}:`, err.message);
   }
 }
 
@@ -650,6 +676,7 @@ export async function asyncExtractPipeline(docId, sessionId, buffer, fileName, h
 
 router.post('/upload', acceptUploads, async (req, res) => {
   const sessionId = req.headers['x-session-id'];
+  const userId = req.user?.id ?? null;
   if (!sessionId?.trim()) {
     return res.status(400).json({ success: false, message: 'Session ID is required', data: null });
   }
@@ -667,18 +694,22 @@ router.post('/upload', acceptUploads, async (req, res) => {
 
     const isPdf = mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
     if (!isPdf) {
+      await recordUploadRejection({ sessionId, userId, fileName, sizeBytes, mimeType, rejectionReason: 'UNSUPPORTED_TYPE' });
       results.push({ success: false, fileName, sizeBytes, message: 'Unsupported file type', characterCount: 0 });
       continue;
     }
     if (sizeBytes > MAX_FILE_MB * 1024 * 1024) {
+      await recordUploadRejection({ sessionId, userId, fileName, sizeBytes, mimeType, rejectionReason: 'OVERSIZE' });
       results.push({ success: false, fileName, sizeBytes, message: 'File exceeds size limit', characterCount: 0 });
       continue;
     }
     if (!file.buffer?.length) {
+      await recordUploadRejection({ sessionId, userId, fileName, sizeBytes, mimeType, rejectionReason: 'EMPTY' });
       results.push({ success: false, fileName, sizeBytes, message: 'File is empty', characterCount: 0 });
       continue;
     }
     if (!looksLikePdf(file.buffer)) {
+      await recordUploadRejection({ sessionId, userId, fileName, sizeBytes, mimeType, rejectionReason: 'INVALID_MAGIC_BYTES' });
       results.push({ success: false, fileName, sizeBytes, message: 'File is not a valid PDF', characterCount: 0 });
       continue;
     }
@@ -688,6 +719,7 @@ router.post('/upload', acceptUploads, async (req, res) => {
       .from('uploaded_documents').select('id')
       .eq('session_id', sessionId).eq('file_name', fileName).maybeSingle();
     if (existingName) {
+      await recordUploadRejection({ sessionId, userId, fileName, sizeBytes, mimeType, rejectionReason: 'DUPLICATE_FILENAME' });
       results.push({ success: false, fileName, sizeBytes, message: 'File already uploaded previously', characterCount: 0 });
       continue;
     }
@@ -698,6 +730,7 @@ router.post('/upload', acceptUploads, async (req, res) => {
       .from('uploaded_documents').select('id')
       .eq('session_id', sessionId).eq('file_hash', hash).maybeSingle();
     if (existingHash) {
+      await recordUploadRejection({ sessionId, userId, fileName, sizeBytes, mimeType, rejectionReason: 'DUPLICATE_HASH' });
       results.push({ success: false, fileName, sizeBytes, message: 'File already uploaded previously', characterCount: 0 });
       continue;
     }
@@ -766,6 +799,8 @@ router.post('/upload', acceptUploads, async (req, res) => {
       }
 
       await updateDocumentFields(saved.id, {
+        user_id:           userId,
+        extraction_status: 'OK',
         page_count:        extraction.pageCount,
         page_offsets_json: extraction.pageOffsets,
         extraction_method: 'local',
@@ -810,9 +845,11 @@ router.post('/upload', acceptUploads, async (req, res) => {
       continue;
     }
 
-    if (extraction.pageCount) {
-      await updateDocumentFields(saved.id, { page_count: extraction.pageCount }, 'upload');
-    }
+    await updateDocumentFields(saved.id, {
+      user_id:           userId,
+      extraction_status: 'EXTRACTING',
+      ...(extraction.pageCount ? { page_count: extraction.pageCount } : {}),
+    }, 'upload');
 
     accepted++;
     results.push({

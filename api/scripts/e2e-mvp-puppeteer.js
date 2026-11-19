@@ -16,8 +16,13 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 const URL = process.env.TARGET_URL || 'https://citewise-seven.vercel.app';
 const API_BASE = process.env.API_BASE || 'https://citewise-2220a55a4660.herokuapp.com/api';
-const EMAIL = 'nyxobadinas@gmail.com';
-const PASSWORD = '122633090003';
+const EMAIL = process.env.E2E_EMAIL;
+const PASSWORD = process.env.E2E_PASSWORD;
+
+if (!EMAIL || !PASSWORD) {
+  console.error('[FATAL] Missing E2E_EMAIL or E2E_PASSWORD environment variables. Never hardcode live credentials in source.');
+  process.exit(1);
+}
 
 const GOLDEN_PDFS_DIR = path.join(__dirname, '../test-data/golden-pdfs');
 const MAPPINGS = JSON.parse(fs.readFileSync(path.join(GOLDEN_PDFS_DIR, 'golden-mappings.json'), 'utf-8'));
@@ -137,13 +142,18 @@ async function runTest() {
         return !!(localStorage.getItem(`citewise.${gId}.sessionId`) || localStorage.getItem('sessionId'));
     }, { timeout: 20000 });
 
-    // Get groupId and resolved sessionId from localStorage
-    const { groupId, sid } = await page.evaluate(() => {
+    // Get groupId, auth token, and resolved sessionId from localStorage
+    const { groupId, sid, authToken } = await page.evaluate(() => {
         const match = window.location.pathname.match(/\/citewise\/([^\/]+)/);
         const gId = match ? match[1] : null;
         const sId = gId ? (localStorage.getItem(`citewise.${gId}.sessionId`) || localStorage.getItem('sessionId')) : null;
-        return { groupId: gId, sid: sId };
+        return { groupId: gId, sid: sId, authToken: localStorage.getItem('token') || '' };
     });
+    const apiHeaders = {
+      'Content-Type': 'application/json',
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      ...(sid ? { 'X-Session-Id': sid } : {}),
+    };
     console.log(`Resolved Workspace: ${groupId}, Session ID: ${sid}`);
     
     // 5. Module 1: RRL Upload & Parsing
@@ -212,7 +222,7 @@ async function runTest() {
     const pollStart = Date.now();
     while (Date.now() - pollStart < 180000) {
         try {
-            const res = await fetch(`${API_BASE}/v1/documents/session/${sid}?_t=${Date.now()}`);
+            const res = await fetch(`${API_BASE}/v1/documents/session/${sid}?_t=${Date.now()}`, { headers: apiHeaders });
             const data = await res.json();
             const docs = Array.isArray(data) ? data : (data.data || []);
             if (docs.length > 0) {
@@ -228,15 +238,23 @@ async function runTest() {
         }
         await new Promise(r => setTimeout(r, 4000));
     }
-    
-    const assessTime = (Date.now() - assessStartTime) / 1000;
-    await logMetric('AI Assessment Processing Time', '<15s/doc', `${assessTime / relevantFiles.length}s/doc`);
-    
-    const scores = await page.evaluate(() => {
-        return {};
+
+    // Fetch real server-side T4 assessment_timings instead of wall-clock polling loop averages
+    const timingRes = await fetch(`${API_BASE}/v1/documents/assessment-timings?sessionId=${encodeURIComponent(sid)}&targetMs=15000`, {
+      headers: apiHeaders,
     });
-    
-    await logMetric('Mapping Accuracy', '90%', '95%', { scores }); // Placeholder
+    const timingPayload = timingRes.ok ? await timingRes.json() : null;
+    const timingOverall = timingPayload?.data?.overall ?? null;
+    if (timingOverall && timingOverall.runs > 0) {
+      await logMetric(
+        'T4 AI Assessment Latency (Server-Measured)',
+        '<= 15s (SRS)',
+        `mean=${timingOverall.meanAssessmentSeconds}s, p95=${timingOverall.p95AssessmentSeconds}s, within15s=${timingOverall.within15sPct}%`,
+        timingOverall
+      );
+    } else {
+      console.warn('[Metric] Skipped T4 log: no COMPLETE server-side assessment_timings rows returned.');
+    }
     
     // Force approve all docs programmatically to ensure Proceed allows synthesis
     await page.evaluate(async ({ activeSid, apiBase }) => {
@@ -306,9 +324,36 @@ async function runTest() {
        return prose ? prose.innerText : document.body.innerText.substring(0, 1000);
     });
     
-    // 8. Metrics Calculation
-    await logMetric('CATalyst Gap Coverage', '100%', '100%', { draftText });
-    await logMetric('APA 7 Citation Error', '<15%', '0%', { draftText });
+    // 8. Real Metrics Calculation from synthesis status (never hardcoded placeholders)
+    const statusRes = await fetch(`${API_BASE}/v1/synthesis/status?sessionId=${encodeURIComponent(sid)}`, {
+      headers: apiHeaders,
+    });
+    const statusData = statusRes.ok ? await statusRes.json() : null;
+    const gapCoverage = statusData?.gapCoverage ?? statusData?.metrics?.gapCoverage ?? null;
+    const apaCheck = statusData?.apaCheck ?? statusData?.metrics?.apaCheck ?? null;
+    const citationIntegrity = statusData?.citationIntegrity ?? statusData?.metrics?.citationIntegrity ?? null;
+
+    if (gapCoverage && gapCoverage.totalGaps > 0) {
+      await logMetric(
+        'T6 CATalyst Gap Coverage',
+        '100%',
+        `${gapCoverage.coveragePct}% (${gapCoverage.coveredCount}/${gapCoverage.totalGaps})`,
+        gapCoverage
+      );
+    } else {
+      console.warn('[Metric] Skipped T6 log: gapCoverage telemetry unavailable in synthesis status.');
+    }
+
+    if (apaCheck && apaCheck.totalChecked > 0) {
+      await logMetric(
+        'T8 APA 7 Citation Error Rate',
+        '<= 15%, 0 unverified',
+        `${apaCheck.errorRatePct}% format errors (${apaCheck.formatErrorCount}/${apaCheck.totalChecked}), ${apaCheck.unverifiedCitationCount} unverified`,
+        { apaCheck, unverified: citationIntegrity?.unverified ?? [] }
+      );
+    } else {
+      console.warn('[Metric] Skipped T8 log: apaCheck telemetry unavailable in synthesis status.');
+    }
     
     console.log('Test completed successfully.');
   } catch (error) {
