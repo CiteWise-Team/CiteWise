@@ -1,0 +1,9 @@
+{
+  "title": "Citation-Aware Retrieval-Augmented Generation for Traceable Academic Literature Synthesis",
+  "rationale": "Students and researchers using large language models for literature reviews frequently encounter fabricated citations, unverified claims, and weak alignment to stated research gaps. Combining retrieval-augmented generation (RAG) with verifiable source grounding and structured rubric evaluation can improve provenance and source-selection reliability.",
+  "gaps": [
+    "Large language models lack reliable source provenance and frequently hallucinate unsupported claims or citations during academic literature synthesis.",
+    "Automated literature evaluation pipelines often lack transparent, multi-criterion rubric scoring and quote-level verification back to source pages.",
+    "Existing RAG benchmarks rarely evaluate end-to-end citation faithfulness, gap alignment, and human-in-the-loop validation for scholarly synthesis."
+  ]
+}

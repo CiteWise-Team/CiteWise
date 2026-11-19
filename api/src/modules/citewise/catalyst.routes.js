@@ -12,6 +12,179 @@ const router = express.Router();
 // All CATalyst import routes require a valid user session.
 router.use(requireAuth);
 
+function normalizeSetupMode(raw) {
+  return String(raw ?? '').trim().toLowerCase() === 'manual' ? 'manual' : 'auto';
+}
+
+function parseIsoTimestamp(raw) {
+  if (!raw) return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function parseGapsInput(rawGaps) {
+  if (Array.isArray(rawGaps)) {
+    return rawGaps.map((g) => String(g ?? '').trim()).filter(Boolean);
+  }
+  if (typeof rawGaps === 'string') {
+    const trimmed = rawGaps.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed.map((g) => String(g ?? '').trim()).filter(Boolean);
+    } catch { /* fall through to line/semicolon split */ }
+    return trimmed.split(/\r?\n+|;\s*/).map((g) => g.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function isMissingSetupTimingColumnError(err) {
+  return /setup_mode|setup_started_at|setup_completed_at|schema cache|column/i.test(String(err?.message ?? ''));
+}
+
+async function persistBaselineRow(baseline) {
+  const tryUpsert = async (row) => {
+    let { error } = await supabase
+      .from('research_baselines')
+      .upsert(row, { onConflict: 'session_id' });
+
+    if (error) {
+      const { data: existingBaseline } = await supabase
+        .from('research_baselines')
+        .select('session_id')
+        .eq('session_id', row.session_id)
+        .maybeSingle();
+
+      if (existingBaseline) {
+        const { error: updateError } = await supabase
+          .from('research_baselines')
+          .update(row)
+          .eq('session_id', row.session_id);
+        error = updateError;
+      }
+    }
+    return error;
+  };
+
+  let err = await tryUpsert(baseline);
+  if (err && isMissingSetupTimingColumnError(err)) {
+    console.warn('[T1 Setup Timing] Timing columns missing on research_baselines; saving baseline without timing fields. Apply api/migrations/006_t1_setup_timing.sql.');
+    const { setup_mode, setup_started_at, setup_completed_at, ...coreBaseline } = baseline;
+    err = await tryUpsert(coreBaseline);
+  }
+  if (err) throw new Error(`Failed to persist baseline: ${err.message}`);
+}
+
+function escapeCsvCell(value) {
+  if (value === null || value === undefined) return '';
+  const s = String(value);
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function computeDurationSeconds(startedAt, completedAt) {
+  if (!startedAt || !completedAt) return null;
+  const startMs = new Date(startedAt).getTime();
+  const endMs = new Date(completedAt).getTime();
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null;
+  return Number(((endMs - startMs) / 1000).toFixed(2));
+}
+
+// GET /api/catalyst/setup-timings/export?format=csv|json
+// Exports T1 setup duration telemetry (setup_mode, setup_started_at, setup_completed_at)
+router.get('/setup-timings/export', async (req, res) => {
+  const format = String(req.query.format ?? 'json').trim().toLowerCase();
+  const filterMode = req.query.setupMode ? normalizeSetupMode(req.query.setupMode) : null;
+  const filterSessionId = req.query.sessionId ? String(req.query.sessionId).trim() : null;
+  const includeAll = String(req.query.all ?? '').toLowerCase() === 'true';
+
+  try {
+    let query = supabase
+      .from('research_baselines')
+      .select('session_id, catalyst_workspace_id, project_title, source_system, setup_mode, setup_started_at, setup_completed_at, created_at')
+      .order('created_at', { ascending: false });
+
+    if (filterSessionId) query = query.eq('session_id', filterSessionId);
+    if (filterMode) query = query.eq('setup_mode', filterMode);
+
+    const { data, error } = await query;
+    if (error) {
+      if (isMissingSetupTimingColumnError(error)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Setup timing columns are not migrated yet. Apply api/migrations/006_t1_setup_timing.sql first.',
+          data: null,
+        });
+      }
+      throw new Error(error.message);
+    }
+
+    const rows = (data ?? [])
+      .filter((r) => includeAll || r.setup_started_at || r.setup_completed_at || r.setup_mode)
+      .map((r) => ({
+        session_id: r.session_id,
+        catalyst_workspace_id: r.catalyst_workspace_id ?? null,
+        project_title: r.project_title ?? null,
+        source_system: r.source_system ?? null,
+        setup_mode: r.setup_mode ?? (r.source_system === 'Manual' ? 'manual' : 'auto'),
+        setup_started_at: r.setup_started_at ?? null,
+        setup_completed_at: r.setup_completed_at ?? null,
+        setup_duration_seconds: computeDurationSeconds(r.setup_started_at, r.setup_completed_at),
+      }));
+
+    if (format === 'csv') {
+      const headers = [
+        'session_id',
+        'catalyst_workspace_id',
+        'project_title',
+        'source_system',
+        'setup_mode',
+        'setup_started_at',
+        'setup_completed_at',
+        'setup_duration_seconds',
+      ];
+      const csvLines = [headers.join(',')];
+      for (const r of rows) {
+        csvLines.push(headers.map((h) => escapeCsvCell(r[h])).join(','));
+      }
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="t1-setup-timings.csv"');
+      return res.send(csvLines.join('\n') + '\n');
+    }
+
+    const autoDurations = rows
+      .filter((r) => r.setup_mode === 'auto' && r.setup_duration_seconds != null)
+      .map((r) => r.setup_duration_seconds);
+    const manualDurations = rows
+      .filter((r) => r.setup_mode === 'manual' && r.setup_duration_seconds != null)
+      .map((r) => r.setup_duration_seconds);
+    const mean = (arr) => (arr.length ? Number((arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2)) : null);
+    const autoMeanSeconds = mean(autoDurations);
+    const manualMeanSeconds = mean(manualDurations);
+    const reductionPct =
+      autoMeanSeconds != null && manualMeanSeconds != null && manualMeanSeconds > 0
+        ? Number((((manualMeanSeconds - autoMeanSeconds) / manualMeanSeconds) * 100).toFixed(2))
+        : null;
+
+    return res.json({
+      success: true,
+      data: {
+        summary: {
+          totalRows: rows.length,
+          autoCount: autoDurations.length,
+          manualCount: manualDurations.length,
+          autoMeanSeconds,
+          manualMeanSeconds,
+          reductionPct,
+        },
+        rows,
+      },
+    });
+  } catch (err) {
+    console.error('[catalyst setup-timings/export]', err.message);
+    return res.status(500).json({ success: false, message: `Failed to export setup timings: ${err.message}`, data: null });
+  }
+});
+
 
 // Helper: fetch Topic + GapResult rows from the CATalyst Supabase tables
 async function fetchCatalystData(workspaceId) {
@@ -121,12 +294,14 @@ router.get('/:groupId/topics', async (req, res) => {
 });
 
 // POST /api/catalyst/import  – fetch + persist research_baselines + return sessionId
-// Body: { workspaceId, title?, rationale? }
+// Body: { workspaceId, title?, rationale?, setupMode?, setupStartedAt? }
 //   title + rationale override the DB lookup — used when user has picked a specific topic
 router.post('/import', async (req, res) => {
-  const workspaceId  = req.body?.workspaceId;
+  const workspaceId      = req.body?.workspaceId;
   const titleOverride    = req.body?.title?.trim()    || null;
   const rationaleOverride= req.body?.rationale?.trim()|| null;
+  const setupMode        = normalizeSetupMode(req.body?.setupMode ?? 'auto');
+  const setupStartedAt   = parseIsoTimestamp(req.body?.setupStartedAt) ?? new Date().toISOString();
 
   if (!workspaceId?.trim()) {
     return res.status(400).json({ success: false, message: 'Workspace ID is required', data: null });
@@ -160,31 +335,13 @@ router.post('/import', async (req, res) => {
       rationale:              finalRationale,
       research_gaps:          payload.gaps,
       source_system:          'CATalyst',
+      setup_mode:             setupMode,
+      setup_started_at:       setupStartedAt,
     };
 
-    let { error: insertError } = await supabase
-      .from('research_baselines')
-      .upsert(baseline, { onConflict: 'session_id' });
+    await persistBaselineRow(baseline);
 
-    if (insertError) {
-      const { data: existingBaseline } = await supabase
-        .from('research_baselines')
-        .select('session_id')
-        .eq('session_id', sessionId)
-        .maybeSingle();
-
-      if (existingBaseline) {
-        const { error: updateError } = await supabase
-          .from('research_baselines')
-          .update(baseline)
-          .eq('session_id', sessionId);
-        insertError = updateError;
-      }
-    }
-
-    if (insertError) throw new Error(`Failed to persist baseline: ${insertError.message}`);
-
-    console.log(`✓ Created session ${sessionId} for workspace ${workspaceId} - title: ${finalTitle?.slice(0,60)}`);
+    console.log(`✓ Created session ${sessionId} for workspace ${workspaceId} (${setupMode}) - title: ${finalTitle?.slice(0,60)}`);
 
     return res.json({
       success: true,
@@ -194,11 +351,136 @@ router.post('/import', async (req, res) => {
         title:     finalTitle,
         rationale: finalRationale,
         gaps:      payload.gaps,
+        setupMode,
+        setupStartedAt,
       },
     });
   } catch (err) {
     console.error('[catalyst import]', err.message);
     return res.status(500).json({ success: false, message: `Failed to import workspace: ${err.message}`, data: null });
+  }
+});
+
+// POST /api/catalyst/manual-baseline  – T1 ?mode=manual baseline entry
+// Body: { workspaceId?, title, rationale, gaps, setupStartedAt? }
+router.post('/manual-baseline', async (req, res) => {
+  const workspaceId    = String(req.body?.workspaceId ?? '').trim();
+  const title          = String(req.body?.title ?? '').trim();
+  const rationale      = String(req.body?.rationale ?? '').trim();
+  const gaps           = parseGapsInput(req.body?.gaps);
+  const setupStartedAt = parseIsoTimestamp(req.body?.setupStartedAt) ?? new Date().toISOString();
+
+  if (!title) {
+    return res.status(400).json({ success: false, message: 'Research Title is required', data: null });
+  }
+  if (!rationale && gaps.length === 0) {
+    return res.status(400).json({ success: false, message: 'Rationale or at least one Research Gap is required', data: null });
+  }
+
+  try {
+    const sessionId = (workspaceId ? deriveSessionId(req.user?.id, workspaceId) : null) || uuidv4();
+    const baseline = {
+      session_id:             sessionId,
+      catalyst_workspace_id:  workspaceId || null,
+      project_title:          title,
+      rationale,
+      research_gaps:          gaps,
+      source_system:          'Manual',
+      setup_mode:             'manual',
+      setup_started_at:       setupStartedAt,
+    };
+
+    await persistBaselineRow(baseline);
+
+    console.log(`✓ Saved manual baseline for session ${sessionId} - title: ${title.slice(0, 60)}`);
+
+    return res.json({
+      success: true,
+      message: 'Manual research baseline saved',
+      data: {
+        sessionId,
+        title,
+        rationale,
+        gaps,
+        setupMode: 'manual',
+        setupStartedAt,
+      },
+    });
+  } catch (err) {
+    console.error('[catalyst manual-baseline]', err.message);
+    return res.status(500).json({ success: false, message: `Failed to save manual baseline: ${err.message}`, data: null });
+  }
+});
+
+// POST /api/catalyst/setup-timing  – records T1 setup_started_at / setup_completed_at / setup_mode
+router.post('/setup-timing', async (req, res) => {
+  const sessionId        = String(req.body?.sessionId ?? '').trim();
+  const setupMode        = normalizeSetupMode(req.body?.setupMode ?? 'auto');
+  const setupStartedAt   = parseIsoTimestamp(req.body?.setupStartedAt);
+  const setupCompletedAt = parseIsoTimestamp(req.body?.setupCompletedAt) ?? new Date().toISOString();
+
+  if (!sessionId) {
+    return res.status(400).json({ success: false, message: 'Session ID is required', data: null });
+  }
+
+  try {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('research_baselines')
+      .select('session_id, setup_started_at, setup_mode')
+      .eq('session_id', sessionId)
+      .maybeSingle();
+
+    if (fetchErr) {
+      if (isMissingSetupTimingColumnError(fetchErr)) {
+        return res.json({
+          success: true,
+          message: 'Setup timing skipped (migration 006 not applied yet)',
+          data: { sessionId, setupMode, setupStartedAt, setupCompletedAt, setupDurationSeconds: null, migrated: false },
+        });
+      }
+      throw new Error(fetchErr.message);
+    }
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Session baseline not found', data: null });
+    }
+
+    const effectiveStartedAt = existing.setup_started_at ?? setupStartedAt ?? setupCompletedAt;
+    const { error: updateErr } = await supabase
+      .from('research_baselines')
+      .update({
+        setup_mode: existing.setup_mode ?? setupMode,
+        setup_started_at: effectiveStartedAt,
+        setup_completed_at: setupCompletedAt,
+      })
+      .eq('session_id', sessionId);
+
+    if (updateErr) {
+      if (isMissingSetupTimingColumnError(updateErr)) {
+        return res.json({
+          success: true,
+          message: 'Setup timing skipped (migration 006 not applied yet)',
+          data: { sessionId, setupMode, setupStartedAt: effectiveStartedAt, setupCompletedAt, setupDurationSeconds: null, migrated: false },
+        });
+      }
+      throw new Error(updateErr.message);
+    }
+
+    const setupDurationSeconds = computeDurationSeconds(effectiveStartedAt, setupCompletedAt);
+    return res.json({
+      success: true,
+      message: 'Setup timing recorded',
+      data: {
+        sessionId,
+        setupMode: existing.setup_mode ?? setupMode,
+        setupStartedAt: effectiveStartedAt,
+        setupCompletedAt,
+        setupDurationSeconds,
+      },
+    });
+  } catch (err) {
+    console.error('[catalyst setup-timing]', err.message);
+    return res.status(500).json({ success: false, message: `Failed to record setup timing: ${err.message}`, data: null });
   }
 });
 
