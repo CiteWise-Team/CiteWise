@@ -178,7 +178,9 @@ export function computeRecommendation(overall, gapAlignment, methodology, theore
   const confidenceLow = !confidenceLevel || confidenceLevel.toLowerCase() === 'low';
 
   if (overall < 50 || gapAlignment < 40 || criticalMismatch || !hasEvidence) return 'Low Relevance';
-  if (overall >= 80 && gapAlignment >= 75 && methodology >= 70 && citation >= 60 && !confidenceLow) return 'Recommended';
+  if (overall >= 75 && gapAlignment >= 70 && methodology >= 70 && theoretical >= 50 && citation >= 60 && !confidenceLow) {
+    return 'Recommended';
+  }
   return 'Needs Review';
 }
 
