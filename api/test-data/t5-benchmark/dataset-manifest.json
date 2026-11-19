@@ -8,7 +8,8 @@
     "pdf_url": "https://arxiv.org/pdf/2406.13663v4.pdf",
     "pages": 17,
     "extractable_chars": 75809,
-    "size_kb": 3226
+    "size_kb": 3226,
+    "sha256": "b7cdbe596038d90cf2c446921aef496202d689d39812fdbe7fb0bf4737f9b800"
   },
   {
     "filename": "relevant_02_2601.13222.pdf",
@@ -19,7 +20,8 @@
     "pdf_url": "https://arxiv.org/pdf/2601.13222v2.pdf",
     "pages": 11,
     "extractable_chars": 25635,
-    "size_kb": 452
+    "size_kb": 452,
+    "sha256": "04712121f9b85fe4e7a447fac70b9d45e2f26048d4284e347e3725a3409a5449"
   },
   {
     "filename": "relevant_03_2609.14245.pdf",
@@ -30,7 +32,8 @@
     "pdf_url": "https://arxiv.org/pdf/2609.14245v1.pdf",
     "pages": 20,
     "extractable_chars": 71458,
-    "size_kb": 222
+    "size_kb": 222,
+    "sha256": "9653fd2075ff46fa7f663b8c8323b86fee310bf152ea1ff3f1dee94c7629e44e"
   },
   {
     "filename": "relevant_04_2611.17161.pdf",
@@ -41,7 +44,8 @@
     "pdf_url": "https://arxiv.org/pdf/2611.17161v1.pdf",
     "pages": 16,
     "extractable_chars": 64580,
-    "size_kb": 279
+    "size_kb": 279,
+    "sha256": "f85d70a9da1061abf8c09209d4e37e82b8e52c968dbd2916b202ffa5b906a2c8"
   },
   {
     "filename": "relevant_05_2607.09349.pdf",
@@ -52,7 +56,8 @@
     "pdf_url": "https://arxiv.org/pdf/2607.09349v1.pdf",
     "pages": 24,
     "extractable_chars": 77355,
-    "size_kb": 4130
+    "size_kb": 4130,
+    "sha256": "1946b73cf1d393a32d56dcd292cff4f30be62e8f1cedb002c6e3307805c599e1"
   },
   {
     "filename": "relevant_06_2506.16988.pdf",
@@ -63,7 +68,8 @@
     "pdf_url": "https://arxiv.org/pdf/2506.16988v2.pdf",
     "pages": 5,
     "extractable_chars": 31435,
-    "size_kb": 806
+    "size_kb": 806,
+    "sha256": "37e24befa3a1b68ab255569b9735e9459790c07818e6e7d5caa3965b5fd29b8d"
   },
   {
     "filename": "relevant_07_2510.15682.pdf",
@@ -74,7 +80,8 @@
     "pdf_url": "https://arxiv.org/pdf/2510.15682v1.pdf",
     "pages": 6,
     "extractable_chars": 36788,
-    "size_kb": 756
+    "size_kb": 756,
+    "sha256": "5b45247a0ed911a79e43266f089865cb431f13d9cb1a7b323adb8f3fc4176230"
   },
   {
     "filename": "relevant_08_2406.13692.pdf",
@@ -85,7 +92,8 @@
     "pdf_url": "https://arxiv.org/pdf/2406.13692v2.pdf",
     "pages": 17,
     "extractable_chars": 71723,
-    "size_kb": 1002
+    "size_kb": 1002,
+    "sha256": "b011bf3711fc8ae9c4130c7bd44726249f9b3f89a8f4bcd1d2fd21c64a4af0fa"
   },
   {
     "filename": "relevant_09_2606.28358.pdf",
@@ -96,7 +104,8 @@
     "pdf_url": "https://arxiv.org/pdf/2606.28358v2.pdf",
     "pages": 18,
     "extractable_chars": 47789,
-    "size_kb": 479
+    "size_kb": 479,
+    "sha256": "ebb872a2c95309dbb40f90a5de8727943456aa8b8effcbe2b64f89ae89ac14d1"
   },
   {
     "filename": "relevant_10_2509.20859.pdf",
@@ -107,7 +116,8 @@
     "pdf_url": "https://arxiv.org/pdf/2509.20859v2.pdf",
     "pages": 8,
     "extractable_chars": 39927,
-    "size_kb": 302
+    "size_kb": 302,
+    "sha256": "c72969232b5f6e691f820187179a5856d125688a9a8090456d069eea7cbf5cd3"
   },
   {
     "filename": "relevant_11_2407.01796.pdf",
@@ -118,7 +128,8 @@
     "pdf_url": "https://arxiv.org/pdf/2407.01796v2.pdf",
     "pages": 20,
     "extractable_chars": 76649,
-    "size_kb": 859
+    "size_kb": 859,
+    "sha256": "b363578b7a7ff9cf1b406e11c6e4286ea1bce066c8c7884f65dac0e7c10cc4b1"
   },
   {
     "filename": "relevant_12_2412.14457.pdf",
@@ -129,7 +140,8 @@
     "pdf_url": "https://arxiv.org/pdf/2412.14457v1.pdf",
     "pages": 14,
     "extractable_chars": 47054,
-    "size_kb": 3566
+    "size_kb": 3566,
+    "sha256": "952b9d864c566afd9631a3abfc015212bcbe89b76fc2bc253338b4a1c001edf3"
   },
   {
     "filename": "relevant_13_2604.25448.pdf",
@@ -140,7 +152,8 @@
     "pdf_url": "https://arxiv.org/pdf/2604.25448v1.pdf",
     "pages": 10,
     "extractable_chars": 42712,
-    "size_kb": 332
+    "size_kb": 332,
+    "sha256": "4c79dae98b957a6f6c16535518c57db155f11bb48ecf22a62e0bfcf9da8a773c"
   },
   {
     "filename": "relevant_14_2607.01852.pdf",
@@ -151,7 +164,8 @@
     "pdf_url": "https://arxiv.org/pdf/2607.01852v1.pdf",
     "pages": 4,
     "extractable_chars": 16369,
-    "size_kb": 677
+    "size_kb": 677,
+    "sha256": "c7ddcaa62cf3f4f911e0fb9b6bbe85c3973bde45fb1070b29f43c26cbaaeffd9"
   },
   {
     "filename": "relevant_15_2605.14192.pdf",
@@ -162,7 +176,8 @@
     "pdf_url": "https://arxiv.org/pdf/2605.14192v1.pdf",
     "pages": 12,
     "extractable_chars": 65167,
-    "size_kb": 1831
+    "size_kb": 1831,
+    "sha256": "f584ec8c466ed1f9be1db540da1d758a0453b7a7cd97508f23609696ee95414d"
   },
   {
     "filename": "relevant_16_2601.03052.pdf",
@@ -173,7 +188,8 @@
     "pdf_url": "https://arxiv.org/pdf/2601.03052v1.pdf",
     "pages": 15,
     "extractable_chars": 78872,
-    "size_kb": 1461
+    "size_kb": 1461,
+    "sha256": "2ad510040c57b5f6dafb6eb08ea53ca5d6f514080e81bc8a07b8efa53ec2f92e"
   },
   {
     "filename": "relevant_17_2507.04480.pdf",
@@ -184,7 +200,8 @@
     "pdf_url": "https://arxiv.org/pdf/2507.04480v1.pdf",
     "pages": 21,
     "extractable_chars": 49591,
-    "size_kb": 894
+    "size_kb": 894,
+    "sha256": "79577a36da22abbe11f9bcc0178160b84d6a4f7bdfef97da9d3fc92359d23fce"
   },
   {
     "filename": "relevant_18_2610.29722.pdf",
@@ -195,7 +212,8 @@
     "pdf_url": "https://arxiv.org/pdf/2610.29722v1.pdf",
     "pages": 102,
     "extractable_chars": 352611,
-    "size_kb": 1869
+    "size_kb": 1869,
+    "sha256": "d0f1acd39464ceec649584b7f95c3df17298b70b512f9f0e2b18835e5c5882d3"
   },
   {
     "filename": "relevant_19_2603.09891.pdf",
@@ -206,7 +224,8 @@
     "pdf_url": "https://arxiv.org/pdf/2603.09891v1.pdf",
     "pages": 21,
     "extractable_chars": 74570,
-    "size_kb": 3567
+    "size_kb": 3567,
+    "sha256": "b29563048227483cb2665e8c2aa1530e153ad9eb7a5409b77b8831b92cfa29c3"
   },
   {
     "filename": "relevant_20_2510.11394.pdf",
@@ -217,7 +236,8 @@
     "pdf_url": "https://arxiv.org/pdf/2510.11394v1.pdf",
     "pages": 8,
     "extractable_chars": 47361,
-    "size_kb": 635
+    "size_kb": 635,
+    "sha256": "a37cd528615ff19b46241414c2c1862350822b54825210cc511ac9e3f8daa39c"
   },
   {
     "filename": "not_relevant_01_1904.07880.pdf",
@@ -228,7 +248,8 @@
     "pdf_url": "https://arxiv.org/pdf/1904.07880v1.pdf",
     "pages": 16,
     "extractable_chars": 71148,
-    "size_kb": 3341
+    "size_kb": 3341,
+    "sha256": "f7a0ef300b4cd0ecbb1b2d5c9d6acd1f5b0219f984492c0d5db746e1832fe9b6"
   },
   {
     "filename": "not_relevant_02_1904.07898.pdf",
@@ -239,7 +260,8 @@
     "pdf_url": "https://arxiv.org/pdf/1904.07898v1.pdf",
     "pages": 18,
     "extractable_chars": 26895,
-    "size_kb": 863
+    "size_kb": 863,
+    "sha256": "1d4ef7bcdbf4eed77e102c655679f0d1a8655ed737276d3a3853981fadc17dac"
   },
   {
     "filename": "not_relevant_03_1904.08043.pdf",
@@ -250,7 +272,8 @@
     "pdf_url": "https://arxiv.org/pdf/1904.08043v1.pdf",
     "pages": 17,
     "extractable_chars": 37613,
-    "size_kb": 802
+    "size_kb": 802,
+    "sha256": "5518e2cbae3c32af8256a929ab9e5f199384cd1db2c602b9ff39b0acccef46c7"
   },
   {
     "filename": "not_relevant_04_1905.00120.pdf",
@@ -261,7 +284,8 @@
     "pdf_url": "https://arxiv.org/pdf/1905.00120v2.pdf",
     "pages": 15,
     "extractable_chars": 60289,
-    "size_kb": 1017
+    "size_kb": 1017,
+    "sha256": "9a0e74e2b3d4ab0a3bcb2ac42c3cba5adc2f17b6762b1519e65477d658662760"
   },
   {
     "filename": "not_relevant_05_1905.02741.pdf",
@@ -272,7 +296,8 @@
     "pdf_url": "https://arxiv.org/pdf/1905.02741v3.pdf",
     "pages": 19,
     "extractable_chars": 92873,
-    "size_kb": 1611
+    "size_kb": 1611,
+    "sha256": "ad55e75732804d283934c3cda420905a824b0413a64b010854b43807f6bd870a"
   },
   {
     "filename": "not_relevant_06_1905.02880.pdf",
@@ -283,7 +308,8 @@
     "pdf_url": "https://arxiv.org/pdf/1905.02880v1.pdf",
     "pages": 10,
     "extractable_chars": 45047,
-    "size_kb": 433
+    "size_kb": 433,
+    "sha256": "f31f735c9d5c1e74015eeb8cbb80b104b39f6248c46695c91c9c67834d04d6e5"
   },
   {
     "filename": "not_relevant_07_1905.02018.pdf",
@@ -294,7 +320,8 @@
     "pdf_url": "https://arxiv.org/pdf/1905.02018v1.pdf",
     "pages": 37,
     "extractable_chars": 70344,
-    "size_kb": 1854
+    "size_kb": 1854,
+    "sha256": "754b303bdbbfc11accd68b00d6bfd1e3030fa4e37dee14d68a937cfe0ed13b99"
   },
   {
     "filename": "not_relevant_08_1905.02020.pdf",
@@ -305,7 +332,8 @@
     "pdf_url": "https://arxiv.org/pdf/1905.02020v1.pdf",
     "pages": 9,
     "extractable_chars": 47815,
-    "size_kb": 1261
+    "size_kb": 1261,
+    "sha256": "e61bd7ca55e9d31fc69ada26ded2d03905fcc15be9f534cc0a61864749a7a230"
   },
   {
     "filename": "not_relevant_09_1905.02023.pdf",
@@ -316,7 +344,8 @@
     "pdf_url": "https://arxiv.org/pdf/1905.02023v1.pdf",
     "pages": 23,
     "extractable_chars": 91136,
-    "size_kb": 713
+    "size_kb": 713,
+    "sha256": "2067ffe8a99263bb98090f618b2267f6ded718889d4530416c31c766314028d1"
   },
   {
     "filename": "not_relevant_10_1905.03230.pdf",
@@ -327,7 +356,8 @@
     "pdf_url": "https://arxiv.org/pdf/1905.03230v1.pdf",
     "pages": 17,
     "extractable_chars": 58551,
-    "size_kb": 761
+    "size_kb": 761,
+    "sha256": "0bade9323828a876538ce34bf7d38584dafd3a3bca631d6eae9a0132a02339b6"
   },
   {
     "filename": "not_relevant_11_1904.07611.pdf",
@@ -338,7 +368,8 @@
     "pdf_url": "https://arxiv.org/pdf/1904.07611v2.pdf",
     "pages": 6,
     "extractable_chars": 25353,
-    "size_kb": 297
+    "size_kb": 297,
+    "sha256": "1978c3dc854725df801c29d96af44d86819d47c73a049130e15f8353a41b1891"
   },
   {
     "filename": "not_relevant_12_1904.07621.pdf",
@@ -349,7 +380,8 @@
     "pdf_url": "https://arxiv.org/pdf/1904.07621v1.pdf",
     "pages": 34,
     "extractable_chars": 88496,
-    "size_kb": 1532
+    "size_kb": 1532,
+    "sha256": "15f66b13b3a32a9e9047f5c67152b7af0746c9129aa5762df0bb81623f7fad5f"
   },
   {
     "filename": "not_relevant_13_1905.00375.pdf",
@@ -360,7 +392,8 @@
     "pdf_url": "https://arxiv.org/pdf/1905.00375v2.pdf",
     "pages": 17,
     "extractable_chars": 66807,
-    "size_kb": 1515
+    "size_kb": 1515,
+    "sha256": "486beaaae346274c91181c62f807f894d8bea125551876aa6f417633fc31a8b7"
   },
   {
     "filename": "not_relevant_14_1905.02815.pdf",
@@ -371,7 +404,8 @@
     "pdf_url": "https://arxiv.org/pdf/1905.02815v1.pdf",
     "pages": 17,
     "extractable_chars": 67965,
-    "size_kb": 248
+    "size_kb": 248,
+    "sha256": "8a504d593ede6be013e9b05979bc6ef97354d12d4c4d5e9af823b464b5d73bcf"
   },
   {
     "filename": "not_relevant_15_2005.11433.pdf",
@@ -382,7 +416,8 @@
     "pdf_url": "https://arxiv.org/pdf/2005.11433v1.pdf",
     "pages": 25,
     "extractable_chars": 79448,
-    "size_kb": 748
+    "size_kb": 748,
+    "sha256": "5de471b185988a5af50060d924ce22f468079153d7562bec264f0ac812820b50"
   },
   {
     "filename": "not_relevant_16_2005.11767.pdf",
@@ -393,7 +428,8 @@
     "pdf_url": "https://arxiv.org/pdf/2005.11767v1.pdf",
     "pages": 20,
     "extractable_chars": 33548,
-    "size_kb": 1228
+    "size_kb": 1228,
+    "sha256": "96635745a44de2162e9dd9c1db613d26eba90836ce8227dc9444c7dde7eb889f"
   },
   {
     "filename": "not_relevant_17_2005.14052.pdf",
@@ -404,7 +440,8 @@
     "pdf_url": "https://arxiv.org/pdf/2005.14052v3.pdf",
     "pages": 30,
     "extractable_chars": 67516,
-    "size_kb": 1169
+    "size_kb": 1169,
+    "sha256": "3d4795a0b762d616c2e711c19bcbbf951f92cce5b8d2e55ca64dbc59554b2df5"
   },
   {
     "filename": "not_relevant_18_2006.05943.pdf",
@@ -415,7 +452,8 @@
     "pdf_url": "https://arxiv.org/pdf/2006.05943v1.pdf",
     "pages": 20,
     "extractable_chars": 72191,
-    "size_kb": 7957
+    "size_kb": 7957,
+    "sha256": "b99054e1167b080bad450e39e3d813f47f79784d8cdaa67e0a2371f2b8b5cef6"
   },
   {
     "filename": "not_relevant_19_2007.05859.pdf",
@@ -426,7 +464,8 @@
     "pdf_url": "https://arxiv.org/pdf/2007.05859v2.pdf",
     "pages": 61,
     "extractable_chars": 83989,
-    "size_kb": 2160
+    "size_kb": 2160,
+    "sha256": "2979df7ee941043efa6c9a9c98b5dc1d75e7a68d2d07908fc12b1fe2eb962687"
   },
   {
     "filename": "not_relevant_20_2007.07736.pdf",
@@ -437,6 +476,7 @@
     "pdf_url": "https://arxiv.org/pdf/2007.07736v4.pdf",
     "pages": 39,
     "extractable_chars": 72899,
-    "size_kb": 3557
+    "size_kb": 3557,
+    "sha256": "f99f54347bbb6f6a80af7991d44610c4baaaf66eda30f6754cd2efa85349acbc"
   }
 ]

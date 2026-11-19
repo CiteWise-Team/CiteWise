@@ -7,9 +7,9 @@ import requireAuth from '../../common/middlewares/auth.middleware.js';
 import { scoringPipeline } from './rrl.routes.js';
 import { extractCitationMetadata } from './helpers/citationMetadata.js';
 import { deriveSessionId } from './helpers/sessionId.js';
-import { loadFullText, ensurePageOffsets } from './helpers/documentPages.js';
+import { loadFullText, ensurePageOffsets, updateDocumentFields } from './helpers/documentPages.js';
 import { buildSearchIndex, locateQuote, pageForOffset, pageRange } from './helpers/pageText.js';
-import { summarizeTimings } from './helpers/assessmentTiming.js';
+import { summarizeTimings, SRS_TARGET_MS } from './helpers/assessmentTiming.js';
 import { getPresignedDownloadUrl, getBufferFromR2 } from '../../common/config/r2Client.js';
 
 const router = express.Router();
@@ -233,17 +233,24 @@ router.get('/:id/insights', async (req, res) => {
   });
 });
 
-// GET /api/v1/documents/assessment-timings
+// GET /api/v1/documents/assessment-timings?targetMs=15000&sessionId=...
 // How long assessments take for a given number of pages, and the largest page
-// count that still finishes within the 15 s target.
-router.get('/assessment-timings', async (_req, res) => {
-  const { data, error } = await supabase
+// count that still finishes within the 15 s SRS target (override via ?targetMs=).
+router.get('/assessment-timings', async (req, res) => {
+  const rawTarget = Number.parseInt(req.query?.targetMs, 10);
+  const targetMs = Number.isFinite(rawTarget) && rawTarget > 0 ? rawTarget : SRS_TARGET_MS;
+  const filterSessionId = req.query?.sessionId ? String(req.query.sessionId).trim() : null;
+
+  let query = supabase
     .from('assessment_timings')
     .select('page_count, extraction_method, extraction_ms, ai_ms, assessment_ms, total_ms, status, reused_ai_response, created_at')
     .order('created_at', { ascending: false })
     .limit(5000);
+  if (filterSessionId) query = query.eq('session_id', filterSessionId);
+
+  const { data, error } = await query;
   if (error) return res.status(500).json({ success: false, message: error.message });
-  return res.json({ success: true, data: summarizeTimings(data) });
+  return res.json({ success: true, data: summarizeTimings(data, targetMs) });
 });
 
 // GET /api/v1/documents/:id/page?page=N&quote=...
@@ -436,6 +443,11 @@ router.patch('/:id/approval', async (req, res) => {
   }
 
   await supabase.from('uploaded_documents').update(updatePayload).eq('id', doc.id);
+  await updateDocumentFields(
+    doc.id,
+    { approved_at: approved ? new Date().toISOString() : null },
+    'approval'
+  );
 
   const activeSession = sessionId || doc.session_id;
   const { data: approvedDocs } = await supabase

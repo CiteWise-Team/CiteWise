@@ -14,11 +14,116 @@ import {
 } from './helpers/citationMetadata.js';
 import { ensurePageOffsets } from './helpers/documentPages.js';
 import { buildCitationTrace } from './helpers/citationTrace.js';
+import { evaluateGapCoverage } from './helpers/gapCoverage.js';
+import { checkApa7Compliance } from './helpers/apaChecker.js';
 
 const router = express.Router();
 
 // All synthesis routes require a valid user session.
 router.use(requireAuth);
+
+// Write migration-007 telemetry columns onto generated_draft without failing
+// on databases where migration 007 has not been applied yet.
+async function updateGeneratedDraftTelemetry(sessionId, fields) {
+  if (!fields || Object.keys(fields).length === 0) return;
+  let current = { ...fields };
+  while (Object.keys(current).length > 0) {
+    try {
+      const { error } = await supabase
+        .from('generated_draft')
+        .update(current)
+        .eq('session_id', sessionId);
+      if (!error) return;
+      const match = String(error.message ?? '').match(/Could not find the '([^']+)' column/i);
+      if (match && Object.prototype.hasOwnProperty.call(current, match[1])) {
+        delete current[match[1]];
+        continue;
+      }
+      if (/gaps_used_json|primary_focus_gap|rrl_usage_json|generation_completed_at|schema cache|column/i.test(String(error.message ?? ''))) {
+        return;
+      }
+      console.warn(`[synthesis-telemetry] update warning for session ${sessionId}:`, error.message);
+      return;
+    } catch (telemetryErr) {
+      console.warn(`[synthesis-telemetry] skipped for session ${sessionId}:`, telemetryErr.message);
+      return;
+    }
+  }
+}
+
+// Persist an immutable row into draft_snapshots (migration 007) so as-generated
+// T6/T7/T8 metrics survive regenerations, manual edits, and paraphrase accepts.
+async function recordDraftSnapshot({
+  sessionId,
+  userId = null,
+  snapshotType,
+  validationStatus = null,
+  contentText = null,
+  referencesText = null,
+  backgroundText = null,
+  rationaleText = null,
+  gapText = null,
+  approvedDocumentIds = null,
+  rrlUsage = null,
+  gapsUsed = null,
+  primaryFocusGap = null,
+  citationIntegrity = null,
+  apaCheck = null,
+  gapCoverage = null,
+  metrics = null,
+}) {
+  try {
+    const { data: latest, error: latestErr } = await supabase
+      .from('draft_snapshots')
+      .select('version_number')
+      .eq('session_id', sessionId)
+      .order('version_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (latestErr) {
+      if (/draft_snapshots|schema cache|does not exist|relation/i.test(String(latestErr.message ?? ''))) {
+        return null;
+      }
+      console.warn(`[draft_snapshots] version lookup warning for ${sessionId}:`, latestErr.message);
+      return null;
+    }
+
+    const nextVersion = (latest?.version_number ?? 0) + 1;
+    const row = {
+      session_id:                 sessionId,
+      user_id:                    userId ?? null,
+      version_number:             nextVersion,
+      snapshot_type:              snapshotType,
+      validation_status:          validationStatus,
+      content_text:               contentText,
+      references_text:            referencesText,
+      background_text:            backgroundText,
+      rationale_text:             rationaleText,
+      gap_text:                   gapText,
+      approved_document_ids_json: approvedDocumentIds,
+      rrl_usage_json:             rrlUsage,
+      gaps_used_json:             gapsUsed,
+      primary_focus_gap:          primaryFocusGap,
+      citation_integrity_json:    citationIntegrity,
+      apa_check_json:             apaCheck,
+      gap_coverage_json:          gapCoverage,
+      metrics_json:               metrics,
+    };
+
+    const { error: insertErr } = await supabase.from('draft_snapshots').insert(row);
+    if (insertErr) {
+      if (!/draft_snapshots|schema cache|does not exist|relation/i.test(String(insertErr.message ?? ''))) {
+        console.warn(`[draft_snapshots] insert warning for ${sessionId}:`, insertErr.message);
+      }
+      return null;
+    }
+    return nextVersion;
+  } catch (snapshotErr) {
+    console.warn(`[draft_snapshots] skipped for ${sessionId}:`, snapshotErr.message);
+    return null;
+  }
+}
 
 
 // Source tier logic (port of RAGSynthesisService.determineSourceTier)
@@ -98,9 +203,10 @@ function parseJsonArray(str) {
   } catch { return []; }
 }
 
-// Async background synthesis worker
-async function asyncSynthesisJob({
+// Async background synthesis worker (exported for live validation & tests)
+export async function asyncSynthesisJob({
   sessionId,
+  userId = null,
   chosenGap,
   userInstructions,
   weights,
@@ -458,6 +564,51 @@ async function asyncSynthesisJob({
       return;
     }
 
+    // Evaluate T6 gap coverage & T8 APA 7th format compliance on the as-generated draft
+    const gapCoverage = evaluateGapCoverage(gapsArray, {
+      contentText,
+      gapText: sections?.gap ?? '',
+      primaryFocusGap: chosenGap,
+    });
+    const apaCheck = checkApa7Compliance(
+      contentText,
+      referencesText,
+      citationIntegrity.unverified
+    );
+
+    const approvedDocIds = usableDocs.map(({ doc }) => doc.id);
+    const persistedRrlUsage = Object.create(null);
+    for (const { doc, tier } of tieredDocs) {
+      const docUsage = rrlUsage?.[doc.id] ?? rrlUsage?.[String(doc.id)] ?? {};
+      persistedRrlUsage[String(doc.id)] = {
+        usage: docUsage.usage ?? 'auto',
+        resolvedTier: tier,
+      };
+    }
+
+    const sourceTierSummary = {
+      core: usableDocs.filter((d) => d.tier === 'CORE').length,
+      supporting: usableDocs.filter((d) => d.tier === 'SUPPORTING').length,
+      tangential: usableDocs.filter((d) => d.tier === 'TANGENTIAL').length,
+      excluded: tieredDocs.filter((d) => d.tier === 'EXCLUDED').length,
+      usableCount: usableDocs.length,
+    };
+
+    const generationCompletedAt = new Date().toISOString();
+    const enrichedMetrics = {
+      ...(n8nData.metrics ?? {}),
+      sourceTierSummary,
+      approvedDocumentIds: approvedDocIds,
+      rrlUsage: persistedRrlUsage,
+      gapsUsed: gapsArray,
+      primaryFocusGap: chosenGap ?? null,
+      generationCompletedAt,
+      citationIntegrity,
+      citationTrace,
+      gapCoverage,
+      apaCheck,
+    };
+
     // Persist finalized draft
     await supabase.from('generated_draft').update({
       content_text:                contentText,
@@ -469,12 +620,37 @@ async function asyncSynthesisJob({
       validation_status:           'PASSED',
       validation_flags_json:       JSON.stringify(validationFlags),
       unsupported_claim_flags_json:JSON.stringify(n8nData.unsupportedClaimFlags ?? []),
-      metrics_json:                JSON.stringify({
-        ...(n8nData.metrics ?? {}),
-        citationIntegrity,
-        citationTrace,
-      }),
+      metrics_json:                JSON.stringify(enrichedMetrics),
     }).eq('session_id', sessionId);
+
+    // Persist dedicated T6/F/B telemetry columns (migration 007, graceful fallback)
+    await updateGeneratedDraftTelemetry(sessionId, {
+      gaps_used_json:          gapsArray,
+      primary_focus_gap:       chosenGap ?? null,
+      rrl_usage_json:          persistedRrlUsage,
+      generation_completed_at: generationCompletedAt,
+    });
+
+    // Persist immutable as-generated snapshot (Fix #5 & #18)
+    await recordDraftSnapshot({
+      sessionId,
+      userId,
+      snapshotType:        'generated',
+      validationStatus:    'PASSED',
+      contentText,
+      referencesText,
+      backgroundText:      sections?.background ?? null,
+      rationaleText:       sections?.rationale  ?? null,
+      gapText:             sections?.gap        ?? null,
+      approvedDocumentIds: approvedDocIds,
+      rrlUsage:            persistedRrlUsage,
+      gapsUsed:            gapsArray,
+      primaryFocusGap:     chosenGap ?? null,
+      citationIntegrity,
+      apaCheck,
+      gapCoverage,
+      metrics:             enrichedMetrics,
+    });
 
     console.info(`[synthesis-async] ✅ Draft synthesis completed and persisted for session ${sessionId}.`);
   } catch (err) {
@@ -577,7 +753,7 @@ router.post('/generate', async (req, res) => {
   // Check for in-flight generation to prevent duplicate concurrent runs
   const { data: existingDraft } = await supabase
     .from('generated_draft')
-    .select('id, validation_status, created_at')
+    .select('*')
     .eq('session_id', sessionId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -592,6 +768,35 @@ router.post('/generate', async (req, res) => {
         message: 'Synthesis is already in progress for this session. Please wait a moment.'
       });
     }
+  }
+
+  // Snapshot existing non-empty draft before deleting so previous runs are preserved (Fix #5 & #18)
+  if (existingDraft?.content_text) {
+    let existingMetrics = null;
+    try {
+      existingMetrics = typeof existingDraft.metrics_json === 'string'
+        ? JSON.parse(existingDraft.metrics_json)
+        : (existingDraft.metrics_json ?? null);
+    } catch { /* ignore malformed metrics_json */ }
+    await recordDraftSnapshot({
+      sessionId,
+      userId:              req.user?.id ?? null,
+      snapshotType:        'pre_regenerate',
+      validationStatus:    existingDraft.validation_status ?? null,
+      contentText:         existingDraft.content_text,
+      referencesText:      existingDraft.references_text ?? null,
+      backgroundText:      existingDraft.background_text ?? null,
+      rationaleText:       existingDraft.rationale_text ?? null,
+      gapText:             existingDraft.gap_text ?? null,
+      approvedDocumentIds: existingMetrics?.approvedDocumentIds ?? null,
+      rrlUsage:            existingDraft.rrl_usage_json ?? existingMetrics?.rrlUsage ?? null,
+      gapsUsed:            existingDraft.gaps_used_json ?? existingMetrics?.gapsUsed ?? null,
+      primaryFocusGap:     existingDraft.primary_focus_gap ?? existingMetrics?.primaryFocusGap ?? null,
+      citationIntegrity:   existingMetrics?.citationIntegrity ?? null,
+      apaCheck:            existingMetrics?.apaCheck ?? null,
+      gapCoverage:         existingMetrics?.gapCoverage ?? null,
+      metrics:             existingMetrics,
+    });
   }
 
   // Reset or create placeholder draft row in GENERATING status
@@ -623,6 +828,7 @@ router.post('/generate', async (req, res) => {
   setImmediate(() => {
     asyncSynthesisJob({
       sessionId,
+      userId: req.user?.id ?? null,
       chosenGap,
       userInstructions,
       weights,
@@ -725,11 +931,42 @@ router.get('/status', async (req, res) => {
     citationsUsed,
     citationIntegrity: metrics.citationIntegrity ?? null,
     citationTrace: metrics.citationTrace ?? [],
+    gapCoverage: metrics.gapCoverage ?? null,
+    apaCheck: metrics.apaCheck ?? null,
+    gapsUsed: draft.gaps_used_json ?? metrics.gapsUsed ?? [],
+    primaryFocusGap: draft.primary_focus_gap ?? metrics.primaryFocusGap ?? null,
+    generationCompletedAt: draft.generation_completed_at ?? metrics.generationCompletedAt ?? null,
     validationStatus: draft.validation_status,
     validationFlags,
     metrics,
     createdAt: draft.created_at,
   });
+});
+
+// GET /api/v1/synthesis/snapshots?sessionId=...
+// Returns immutable server-side draft snapshots for version history & T7/T8 auditability (Fix #5 & #18).
+router.get('/snapshots', async (req, res) => {
+  const { sessionId } = req.query;
+  if (!sessionId) return res.status(400).json({ success: false, message: 'sessionId is required', data: null });
+
+  const { data, error } = await supabase
+    .from('draft_snapshots')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('version_number', { ascending: false });
+
+  if (error) {
+    if (/draft_snapshots|schema cache|does not exist|relation/i.test(String(error.message ?? ''))) {
+      return res.status(400).json({
+        success: false,
+        message: 'draft_snapshots table not migrated yet. Apply api/migrations/007_validation_evidence_telemetry.sql first.',
+        data: [],
+      });
+    }
+    return res.status(500).json({ success: false, message: error.message, data: null });
+  }
+
+  return res.json({ success: true, data: data ?? [] });
 });
 
 // GET /api/v1/synthesis/export?draftId=...&format=txt
@@ -955,14 +1192,15 @@ router.post('/update-citations', async (req, res) => {
 
 // POST /api/v1/synthesis/save-draft
 // Persists a manually edited or paraphrased draft back to the database so the
-// DB is always in sync with whatever the user has on screen.
+// DB is always in sync with whatever the user has on screen, while preserving
+// an immutable snapshot in draft_snapshots (Fix #5 & #18).
 router.post('/save-draft', async (req, res) => {
   const { sessionId, contentText, referencesText, source } = req.body;
   if (!sessionId)   return res.status(400).json({ success: false, message: 'sessionId is required' });
   if (!contentText) return res.status(400).json({ success: false, message: 'contentText is required' });
 
   const { data: draft } = await supabase
-    .from('generated_draft').select('id').eq('session_id', sessionId).maybeSingle();
+    .from('generated_draft').select('*').eq('session_id', sessionId).maybeSingle();
 
   if (!draft) {
     return res.status(404).json({
@@ -971,11 +1209,42 @@ router.post('/save-draft', async (req, res) => {
     });
   }
 
+  // If the current draft is the original as-generated draft, ensure we snapshot
+  // it before overwriting so T7/T8 as-generated metrics are never destroyed.
+  if (draft.validation_status === 'PASSED' && draft.content_text) {
+    let existingMetrics = null;
+    try {
+      existingMetrics = typeof draft.metrics_json === 'string'
+        ? JSON.parse(draft.metrics_json)
+        : (draft.metrics_json ?? null);
+    } catch { /* ignore */ }
+    await recordDraftSnapshot({
+      sessionId,
+      userId:              req.user?.id ?? null,
+      snapshotType:        'pre_edit_backup',
+      validationStatus:    draft.validation_status,
+      contentText:         draft.content_text,
+      referencesText:      draft.references_text ?? null,
+      backgroundText:      draft.background_text ?? null,
+      rationaleText:       draft.rationale_text ?? null,
+      gapText:             draft.gap_text ?? null,
+      approvedDocumentIds: existingMetrics?.approvedDocumentIds ?? null,
+      rrlUsage:            draft.rrl_usage_json ?? existingMetrics?.rrlUsage ?? null,
+      gapsUsed:            draft.gaps_used_json ?? existingMetrics?.gapsUsed ?? null,
+      primaryFocusGap:     draft.primary_focus_gap ?? existingMetrics?.primaryFocusGap ?? null,
+      citationIntegrity:   existingMetrics?.citationIntegrity ?? null,
+      apaCheck:            existingMetrics?.apaCheck ?? null,
+      gapCoverage:         existingMetrics?.gapCoverage ?? null,
+      metrics:             existingMetrics,
+    });
+  }
+
+  const nextStatus = source ? `manual_${source}` : 'manual_edited';
   const { error } = await supabase.from('generated_draft').update({
     content_text:      contentText,
     references_text:   referencesText ?? null,
     // Track the edit source in the validation_status column for audit purposes.
-    validation_status: source ? `manual_${source}` : 'manual_edited',
+    validation_status: nextStatus,
   }).eq('id', draft.id);
 
   if (error) {
@@ -983,7 +1252,21 @@ router.post('/save-draft', async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 
-  return res.json({ success: true, draftId: draft.id });
+  const apaCheckAfterEdit = checkApa7Compliance(contentText, referencesText ?? draft.references_text ?? '');
+  await recordDraftSnapshot({
+    sessionId,
+    userId:           req.user?.id ?? null,
+    snapshotType:     source === 'paraphrased' ? 'paraphrase_accept' : 'manual_save',
+    validationStatus: nextStatus,
+    contentText,
+    referencesText:   referencesText ?? draft.references_text ?? null,
+    backgroundText:   draft.background_text ?? null,
+    rationaleText:    draft.rationale_text ?? null,
+    gapText:          draft.gap_text ?? null,
+    apaCheck:         apaCheckAfterEdit,
+  });
+
+  return res.json({ success: true, draftId: draft.id, apaCheck: apaCheckAfterEdit });
 });
 
 // In-memory store for async paraphrase jobs with periodic TTL cleanup
