@@ -1,0 +1,737 @@
+{
+  "generatedAt": "2026-11-19T13:34:57.102Z",
+  "targets": {
+    "T1_setupTime": {
+      "setupMode": "auto",
+      "setupStartedAt": "2026-11-19T13:31:14.133+00:00",
+      "setupCompletedAt": "2026-11-19T13:31:23.869+00:00",
+      "setupDurationSeconds": 9.74,
+      "note": "Automated pipeline persistence verified in research_baselines; paired human participant Auto vs. ?mode=manual trials are still required for the -80% human setup-time claim."
+    },
+    "T2_importFidelity": {
+      "workspacesChecked": 10,
+      "fieldsChecked": 30,
+      "fieldsMatched": 30,
+      "fidelityPct": 100,
+      "samples": [
+        {
+          "groupId": "e8887e39-5910-4d87-abb8-dbfabc2e78b8",
+          "titlePresent": true,
+          "rationalePresent": true,
+          "rawGapRowCount": 1,
+          "parsedGapCount": 3,
+          "gapsParsedCleanly": true
+        },
+        {
+          "groupId": "da0875e8-5d1b-4a6b-aa58-0d6c097cf314",
+          "titlePresent": true,
+          "rationalePresent": true,
+          "rawGapRowCount": 1,
+          "parsedGapCount": 3,
+          "gapsParsedCleanly": true
+        },
+        {
+          "groupId": "6d420a1b-97f7-49a6-a5a0-0abb8e717fca",
+          "titlePresent": true,
+          "rationalePresent": true,
+          "rawGapRowCount": 1,
+          "parsedGapCount": 3,
+          "gapsParsedCleanly": true
+        },
+        {
+          "groupId": "b752aa2d-d447-4339-a6b6-e5759acef892",
+          "titlePresent": true,
+          "rationalePresent": true,
+          "rawGapRowCount": 1,
+          "parsedGapCount": 2,
+          "gapsParsedCleanly": true
+        },
+        {
+          "groupId": "b7c9560c-7591-4f34-9990-ee7604be1a2c",
+          "titlePresent": true,
+          "rationalePresent": true,
+          "rawGapRowCount": 1,
+          "parsedGapCount": 3,
+          "gapsParsedCleanly": true
+        },
+        {
+          "groupId": "5d77d43d-4bfb-4f6f-8900-9612e5a3c171",
+          "titlePresent": true,
+          "rationalePresent": true,
+          "rawGapRowCount": 1,
+          "parsedGapCount": 3,
+          "gapsParsedCleanly": true
+        },
+        {
+          "groupId": "a5c77422-2bfc-49fe-b68e-6518660068ce",
+          "titlePresent": true,
+          "rationalePresent": true,
+          "rawGapRowCount": 1,
+          "parsedGapCount": 3,
+          "gapsParsedCleanly": true
+        },
+        {
+          "groupId": "e338c994-14dd-4ac5-88b3-6f2aae118555",
+          "titlePresent": true,
+          "rationalePresent": true,
+          "rawGapRowCount": 1,
+          "parsedGapCount": 3,
+          "gapsParsedCleanly": true
+        },
+        {
+          "groupId": "8eedd6c9-3bbf-470f-ae16-34ea3de753c8",
+          "titlePresent": true,
+          "rationalePresent": true,
+          "rawGapRowCount": 1,
+          "parsedGapCount": 3,
+          "gapsParsedCleanly": true
+        },
+        {
+          "groupId": "37dffe4a-0214-489d-a7b7-e7875a1b13e2",
+          "titlePresent": true,
+          "rationalePresent": true,
+          "rawGapRowCount": 1,
+          "parsedGapCount": 2,
+          "gapsParsedCleanly": true
+        }
+      ]
+    },
+    "T3_parseRate": {
+      "liveProbe": {
+        "validPdfsAttempted": 3,
+        "validPdfsExtractedOk": 3,
+        "parseRateOnValidPdfsPct": 100,
+        "invalidUploadRejectionLogged": true
+      },
+      "t5Benchmark40Pdfs": {
+        "total": 40,
+        "extracted": 40,
+        "empty": 0,
+        "failed": 0,
+        "extractionRatePct": 100,
+        "avgExtractionMs": 796.98
+      }
+    },
+    "T4_assessmentLatency": {
+      "liveSupabaseHistorical": {
+        "totalRowsScanned": 353,
+        "usableRuns": 317,
+        "srs15s": {
+          "runs": 307,
+          "meanAiMs": 19726,
+          "meanAiSeconds": 19.73,
+          "meanAssessmentMs": 21173,
+          "meanAssessmentSeconds": 21.17,
+          "p95AssessmentMs": 37864,
+          "p95AssessmentSeconds": 37.86,
+          "p95TotalMs": 38793,
+          "withinTargetCount": 71,
+          "withinTargetPct": 23.13,
+          "within15sCount": 71,
+          "within15sPct": 23.13,
+          "buckets": [
+            {
+              "pages": "1-5",
+              "maxPages": 5,
+              "runs": 30,
+              "avgTotalMs": 21545,
+              "p90TotalMs": 32631,
+              "avgExtractionMs": 223,
+              "avgAiMs": 19840,
+              "avgAssessmentMs": 21322,
+              "avgAssessmentSeconds": 21.32,
+              "withinTarget": false
+            },
+            {
+              "pages": "6-10",
+              "maxPages": 10,
+              "runs": 72,
+              "avgTotalMs": 22409,
+              "p90TotalMs": 34556,
+              "avgExtractionMs": 217,
+              "avgAiMs": 20566,
+              "avgAssessmentMs": 22192,
+              "avgAssessmentSeconds": 22.19,
+              "withinTarget": false
+            },
+            {
+              "pages": "11-20",
+              "maxPages": 20,
+              "runs": 153,
+              "avgTotalMs": 20400,
+              "p90TotalMs": 36279,
+              "avgExtractionMs": 951,
+              "avgAiMs": 18141,
+              "avgAssessmentMs": 19449,
+              "avgAssessmentSeconds": 19.45,
+              "withinTarget": false
+            },
+            {
+              "pages": "21-30",
+              "maxPages": 30,
+              "runs": 28,
+              "avgTotalMs": 23635,
+              "p90TotalMs": 33050,
+              "avgExtractionMs": 369,
+              "avgAiMs": 21728,
+              "avgAssessmentMs": 23266,
+              "avgAssessmentSeconds": 23.27,
+              "withinTarget": false
+            },
+            {
+              "pages": "31-50",
+              "maxPages": 50,
+              "runs": 10,
+              "avgTotalMs": 21584,
+              "p90TotalMs": 28302,
+              "avgExtractionMs": 597,
+              "avgAiMs": 19572,
+              "avgAssessmentMs": 20987,
+              "avgAssessmentSeconds": 20.99,
+              "withinTarget": false
+            },
+            {
+              "pages": "51-100",
+              "maxPages": 100,
+              "runs": 10,
+              "avgTotalMs": 23981,
+              "p90TotalMs": 33282,
+              "avgExtractionMs": 362,
+              "avgAiMs": 21995,
+              "avgAssessmentMs": 23620,
+              "avgAssessmentSeconds": 23.62,
+              "withinTarget": false
+            },
+            {
+              "pages": "101-200",
+              "maxPages": 200,
+              "runs": 3,
+              "avgTotalMs": 55825,
+              "p90TotalMs": 93520,
+              "avgExtractionMs": 1189,
+              "avgAiMs": 52546,
+              "avgAssessmentMs": 54637,
+              "avgAssessmentSeconds": 54.64,
+              "withinTarget": false
+            },
+            {
+              "pages": "201+",
+              "maxPages": null,
+              "runs": 1,
+              "avgTotalMs": 26065,
+              "p90TotalMs": 26065,
+              "avgExtractionMs": 587,
+              "avgAiMs": 22752,
+              "avgAssessmentMs": 25478,
+              "avgAssessmentSeconds": 25.48,
+              "withinTarget": false
+            }
+          ],
+          "observedMaxPages": null,
+          "estimatedMaxPages": null,
+          "fit": {
+            "fixedMs": 20319,
+            "msPerPage": 81.7
+          }
+        },
+        "operational30sWithinPct": 78.5,
+        "byMethod": {
+          "local": {
+            "runs": 303,
+            "meanAiMs": 19924,
+            "meanAiSeconds": 19.92,
+            "meanAssessmentMs": 21379,
+            "meanAssessmentSeconds": 21.38,
+            "p95AssessmentMs": 37864,
+            "p95AssessmentSeconds": 37.86,
+            "p95TotalMs": 38793,
+            "withinTargetCount": 68,
+            "withinTargetPct": 22.44,
+            "within15sCount": 68,
+            "within15sPct": 22.44,
+            "buckets": [
+              {
+                "pages": "1-5",
+                "maxPages": 5,
+                "runs": 30,
+                "avgTotalMs": 21545,
+                "p90TotalMs": 32631,
+                "avgExtractionMs": 223,
+                "avgAiMs": 19840,
+                "avgAssessmentMs": 21322,
+                "avgAssessmentSeconds": 21.32,
+                "withinTarget": false
+              },
+              {
+                "pages": "6-10",
+                "maxPages": 10,
+                "runs": 72,
+                "avgTotalMs": 22409,
+                "p90TotalMs": 34556,
+                "avgExtractionMs": 217,
+                "avgAiMs": 20566,
+                "avgAssessmentMs": 22192,
+                "avgAssessmentSeconds": 22.19,
+                "withinTarget": false
+              },
+              {
+                "pages": "11-20",
+                "maxPages": 20,
+                "runs": 149,
+                "avgTotalMs": 20230,
+                "p90TotalMs": 36279,
+                "avgExtractionMs": 408,
+                "avgAiMs": 18501,
+                "avgAssessmentMs": 19822,
+                "avgAssessmentSeconds": 19.82,
+                "withinTarget": false
+              },
+              {
+                "pages": "21-30",
+                "maxPages": 30,
+                "runs": 28,
+                "avgTotalMs": 23635,
+                "p90TotalMs": 33050,
+                "avgExtractionMs": 369,
+                "avgAiMs": 21728,
+                "avgAssessmentMs": 23266,
+                "avgAssessmentSeconds": 23.27,
+                "withinTarget": false
+              },
+              {
+                "pages": "31-50",
+                "maxPages": 50,
+                "runs": 10,
+                "avgTotalMs": 21584,
+                "p90TotalMs": 28302,
+                "avgExtractionMs": 597,
+                "avgAiMs": 19572,
+                "avgAssessmentMs": 20987,
+                "avgAssessmentSeconds": 20.99,
+                "withinTarget": false
+              },
+              {
+                "pages": "51-100",
+                "maxPages": 100,
+                "runs": 10,
+                "avgTotalMs": 23981,
+                "p90TotalMs": 33282,
+                "avgExtractionMs": 362,
+                "avgAiMs": 21995,
+                "avgAssessmentMs": 23620,
+                "avgAssessmentSeconds": 23.62,
+                "withinTarget": false
+              },
+              {
+                "pages": "101-200",
+                "maxPages": 200,
+                "runs": 3,
+                "avgTotalMs": 55825,
+                "p90TotalMs": 93520,
+                "avgExtractionMs": 1189,
+                "avgAiMs": 52546,
+                "avgAssessmentMs": 54637,
+                "avgAssessmentSeconds": 54.64,
+                "withinTarget": false
+              },
+              {
+                "pages": "201+",
+                "maxPages": null,
+                "runs": 1,
+                "avgTotalMs": 26065,
+                "p90TotalMs": 26065,
+                "avgExtractionMs": 587,
+                "avgAiMs": 22752,
+                "avgAssessmentMs": 25478,
+                "avgAssessmentSeconds": 25.48,
+                "withinTarget": false
+              }
+            ],
+            "observedMaxPages": null,
+            "estimatedMaxPages": null,
+            "fit": {
+              "fixedMs": 20236,
+              "msPerPage": 82.3
+            }
+          },
+          "unknown": {
+            "runs": 0,
+            "meanAiMs": null,
+            "meanAiSeconds": null,
+            "meanAssessmentMs": null,
+            "meanAssessmentSeconds": null,
+            "p95AssessmentMs": null,
+            "p95AssessmentSeconds": null,
+            "p95TotalMs": null,
+            "withinTargetCount": 0,
+            "withinTargetPct": null,
+            "within15sCount": 0,
+            "within15sPct": null,
+            "buckets": [],
+            "observedMaxPages": null,
+            "estimatedMaxPages": null,
+            "fit": null
+          },
+          "llamaparse": {
+            "runs": 4,
+            "meanAiMs": 4750,
+            "meanAiSeconds": 4.75,
+            "meanAssessmentMs": 5569,
+            "meanAssessmentSeconds": 5.57,
+            "p95AssessmentMs": 19886,
+            "p95AssessmentSeconds": 19.89,
+            "p95TotalMs": 38233,
+            "withinTargetCount": 3,
+            "withinTargetPct": 75,
+            "within15sCount": 3,
+            "within15sPct": 75,
+            "buckets": [
+              {
+                "pages": "11-20",
+                "maxPages": 20,
+                "runs": 4,
+                "avgTotalMs": 26749,
+                "p90TotalMs": 38233,
+                "avgExtractionMs": 21180,
+                "avgAiMs": 4750,
+                "avgAssessmentMs": 5569,
+                "avgAssessmentSeconds": 5.57,
+                "withinTarget": false
+              }
+            ],
+            "observedMaxPages": null,
+            "estimatedMaxPages": null,
+            "fit": null
+          }
+        }
+      },
+      "freshLiveProbe": {
+        "scoredDocs": [
+          {
+            "fileName": "relevant_01_2406.13663.pdf",
+            "pages": 17,
+            "scoringStatus": "COMPLETE",
+            "recommendation": "Recommended",
+            "overallScore": 78.35,
+            "aiSeconds": 22.38,
+            "assessmentSeconds": 24.25
+          },
+          {
+            "fileName": "relevant_06_2506.16988.pdf",
+            "pages": 5,
+            "scoringStatus": "COMPLETE",
+            "recommendation": "Recommended",
+            "overallScore": 81.45,
+            "aiSeconds": 26.93,
+            "assessmentSeconds": 28.74
+          },
+          {
+            "fileName": "relevant_07_2510.15682.pdf",
+            "pages": 6,
+            "scoringStatus": "COMPLETE",
+            "recommendation": "Recommended",
+            "overallScore": 79.35,
+            "aiSeconds": 24.9,
+            "assessmentSeconds": 26.81
+          }
+        ]
+      }
+    },
+    "T5_sourceSelectionAccuracy": {
+      "benchmark40Pdfs": {
+        "total": 40,
+        "correct": 36,
+        "tp": 16,
+        "tn": 20,
+        "fp": 0,
+        "fn": 4,
+        "accuracyPct": 90,
+        "precisionPct": 100,
+        "recallPct": 80,
+        "f1Pct": 88.89,
+        "meetsTarget80": true
+      },
+      "thresholdSensitivity60": {
+        "total": 40,
+        "correct": 40,
+        "tp": 20,
+        "tn": 20,
+        "fp": 0,
+        "fn": 0,
+        "accuracyPct": 100,
+        "precisionPct": 100,
+        "recallPct": 100,
+        "f1Pct": 100,
+        "meetsTarget80": true
+      },
+      "thresholdSensitivity70": {
+        "total": 40,
+        "correct": 40,
+        "tp": 20,
+        "tn": 20,
+        "fp": 0,
+        "fn": 0,
+        "accuracyPct": 100,
+        "precisionPct": 100,
+        "recallPct": 100,
+        "f1Pct": 100,
+        "meetsTarget80": true
+      }
+    },
+    "T6_gapCoverage": {
+      "threshold": 0.35,
+      "totalGaps": 3,
+      "coveredCount": 3,
+      "uncoveredCount": 0,
+      "coveragePct": 100,
+      "meetsTarget100Pct": true,
+      "primaryFocusGap": "Large language models lack reliable source provenance and frequently hallucinate unsupported claims or citations during academic literature synthesis.",
+      "primaryFocusCovered": true,
+      "perGap": [
+        {
+          "index": 0,
+          "gap": "Large language models lack reliable source provenance and frequently hallucinate unsupported claims or citations during academic literature synthesis.",
+          "isPrimaryFocus": true,
+          "keywordCount": 14,
+          "matchedCount": 14,
+          "matchedKeywords": [
+            "large",
+            "language",
+            "model",
+            "reliable",
+            "source",
+            "provenance",
+            "frequently",
+            "hallucinate",
+            "unsupport",
+            "claim",
+            "citation",
+            "academic",
+            "literature",
+            "synthesi"
+          ],
+          "fullDraftOverlap": 1,
+          "gapSectionOverlap": 0.7857,
+          "bestOverlap": 1,
+          "covered": true
+        },
+        {
+          "index": 1,
+          "gap": "Automated literature evaluation pipelines often lack transparent, multi-criterion rubric scoring and quote-level verification back to source pages.",
+          "isPrimaryFocus": false,
+          "keywordCount": 15,
+          "matchedCount": 13,
+          "matchedKeywords": [
+            "automat",
+            "literature",
+            "evaluation",
+            "pipeline",
+            "transparent",
+            "multi",
+            "criterion",
+            "scor",
+            "quote",
+            "level",
+            "verification",
+            "back",
+            "source"
+          ],
+          "fullDraftOverlap": 0.8667,
+          "gapSectionOverlap": 0.8667,
+          "bestOverlap": 0.8667,
+          "covered": true
+        },
+        {
+          "index": 2,
+          "gap": "Existing RAG benchmarks rarely evaluate end-to-end citation faithfulness, gap alignment, and human-in-the-loop validation for scholarly synthesis.",
+          "isPrimaryFocus": false,
+          "keywordCount": 15,
+          "matchedCount": 15,
+          "matchedKeywords": [
+            "exist",
+            "rag",
+            "benchmark",
+            "rarely",
+            "evaluate",
+            "end",
+            "citation",
+            "faithfulness",
+            "gap",
+            "alignment",
+            "human",
+            "loop",
+            "validation",
+            "scholarly",
+            "synthesi"
+          ],
+          "fullDraftOverlap": 1,
+          "gapSectionOverlap": 1,
+          "bestOverlap": 1,
+          "covered": true
+        }
+      ]
+    },
+    "T7_approvedCited": {
+      "usableCount": 3,
+      "citedCount": 3,
+      "omittedCount": 0,
+      "omittedDocuments": [],
+      "coveragePct": 100,
+      "meetsTarget80Pct": true
+    },
+    "T8_apaErrors": {
+      "totalChecked": 26,
+      "referenceCount": 3,
+      "referenceErrorCount": 0,
+      "inTextCitationCount": 23,
+      "inTextErrorCount": 0,
+      "formatErrorCount": 0,
+      "errorRatePct": 0,
+      "unverifiedCitationCount": 0,
+      "referencesOutOfOrderCount": 0,
+      "meetsTarget15Pct": true,
+      "meetsZeroUnverified": true,
+      "referenceChecks": [
+        {
+          "index": 0,
+          "entry": "Besrour, I., Dresden, Germany, He, J., Schreieder, T., & Färber, M. (2025). RAGentA: Multi-Agent Retrieval-Augmented Generation for Attributed Question Answering.",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "index": 1,
+          "entry": "Generation, R., Besrour, I., He, J., Dresden, Germany, Schreieder, T., & Färber, M. (2025). SQuAI: Scientific Question-Answering with Multi-Agent.",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "index": 2,
+          "entry": "Qi, J., Sarti, G., Fernández, R., & Bisazza, A. (2023). Model Internals-based Answer Attribution for Trustworthy Retrieval-Augmented Generation.",
+          "valid": true,
+          "issues": []
+        }
+      ],
+      "inTextChecks": [
+        {
+          "citation": "(Generation et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Qi et al., 2023)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Besrour et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Generation et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Besrour et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Generation et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Qi et al., 2023)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Besrour et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Qi et al., 2023)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Besrour et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Generation et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Besrour et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Generation et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Qi et al., 2023)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Qi et al., 2023)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Besrour et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Qi et al., 2023)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Qi et al., 2023)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Generation et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Qi et al., 2023)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Besrour et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Generation et al., 2025)",
+          "valid": true,
+          "issues": []
+        },
+        {
+          "citation": "(Qi et al., 2023)",
+          "valid": true,
+          "issues": []
+        }
+      ],
+      "unverifiedCitations": [],
+      "autoCorrectionsCount": 0
+    }
+  },
+  "liveSessionId": "f637f54a-59af-4577-b432-c9231179d98f",
+  "synthesisDurationSeconds": 37.3
+}

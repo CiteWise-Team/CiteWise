@@ -171,8 +171,11 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.1-flash-lite",
-        "options": {}
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {
+          "temperature": 0.1,
+          "maxOutputTokens": 1500
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
@@ -208,8 +211,11 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.1-flash-lite",
-        "options": {}
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {
+          "temperature": 0.1,
+          "maxOutputTokens": 1500
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
@@ -245,8 +251,11 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.1-flash-lite",
-        "options": {}
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {
+          "temperature": 0.1,
+          "maxOutputTokens": 1500
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
@@ -282,8 +291,11 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.1-flash-lite",
-        "options": {}
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {
+          "temperature": 0.1,
+          "maxOutputTokens": 1500
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
@@ -319,8 +331,11 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.1-flash-lite",
-        "options": {}
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {
+          "temperature": 0.1,
+          "maxOutputTokens": 1500
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
@@ -356,8 +371,11 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.1-flash-lite",
-        "options": {}
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {
+          "temperature": 0.1,
+          "maxOutputTokens": 1500
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,

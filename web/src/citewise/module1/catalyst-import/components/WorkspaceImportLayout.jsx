@@ -20,16 +20,18 @@ function buildFileKey(file) {
 }
 
 export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProceed }) {
-  // Group-scoped localStorage keys so each workspace keeps independent data.
-  const STORAGE_SESSION_KEY  = `citewise.${groupId}.sessionId`;
-  const STORAGE_CATALYST_KEY = `citewise.${groupId}.catalystData`;
-
   // ── T1 Setup-Time Mode & Telemetry ─────────────────────────────
   const isManualMode =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("mode") === "manual";
   const setupMode = isManualMode ? "manual" : "auto";
   const SETUP_STARTED_KEY = `citewise.${groupId}.setupStartedAt.${setupMode}`;
+
+  // Group-scoped localStorage keys (isolated for ?mode=manual so a previous
+  // auto-import session never hides the manual-entry form or collides on sessionId).
+  const modeScope = isManualMode ? ".manual" : "";
+  const STORAGE_SESSION_KEY  = `citewise.${groupId}${modeScope}.sessionId`;
+  const STORAGE_CATALYST_KEY = `citewise.${groupId}${modeScope}.catalystData`;
 
   const setupStartedAtRef = useRef("");
   if (!setupStartedAtRef.current && typeof window !== "undefined") {
