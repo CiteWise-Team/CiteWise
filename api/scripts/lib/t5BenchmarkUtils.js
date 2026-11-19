@@ -360,6 +360,9 @@ export function computeT4LatencyMetrics(rows) {
     .filter((v) => typeof v === 'number' && Number.isFinite(v))
     .sort((a, b) => a - b);
 
+  const within15sCount = assessmentDurations.filter((s) => s <= 15).length;
+  const within30sCount = assessmentDurations.filter((s) => s <= 30).length;
+
   return {
     aiCount: aiLatencies.length,
     minAiSeconds: aiLatencies.length ? Number(aiLatencies[0].toFixed(2)) : null,
@@ -369,6 +372,15 @@ export function computeT4LatencyMetrics(rows) {
     maxAiSeconds: aiLatencies.length ? Number(aiLatencies[aiLatencies.length - 1].toFixed(2)) : null,
     meanAssessmentSeconds: meanOf(assessmentDurations),
     medianAssessmentSeconds: percentileSorted(assessmentDurations, 0.5),
+    p95AssessmentSeconds: percentileSorted(assessmentDurations, 0.95),
+    within15sCount,
+    within15sPct: assessmentDurations.length
+      ? Number(((within15sCount / assessmentDurations.length) * 100).toFixed(2))
+      : null,
+    within30sCount,
+    within30sPct: assessmentDurations.length
+      ? Number(((within30sCount / assessmentDurations.length) * 100).toFixed(2))
+      : null,
   };
 }
 

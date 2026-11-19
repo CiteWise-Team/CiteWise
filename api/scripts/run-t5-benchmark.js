@@ -185,10 +185,13 @@ async function persistValidationLogs(supabase, testRunId, sessionId, baseline, s
     },
     {
       test_run_id: testRunId,
-      metric_name: 'T4 AI Assessment Latency (Mean)',
-      expected_target: '< 30s',
-      actual_result: t4Latency.meanAiSeconds != null ? `${t4Latency.meanAiSeconds}s` : 'N/A',
-      raw_data_json: { sessionId, ...t4Latency },
+      metric_name: 'T4 AI Assessment Latency (Mean / p95 / <=15s)',
+      expected_target: '<= 15s (SRS) / < 30s (operational)',
+      actual_result:
+        t4Latency.meanAssessmentSeconds != null
+          ? `mean=${t4Latency.meanAssessmentSeconds}s, p95=${t4Latency.p95AssessmentSeconds ?? 'N/A'}s, within15s=${t4Latency.within15sPct ?? 0}% (aiMean=${t4Latency.meanAiSeconds ?? 'N/A'}s)`
+          : (t4Latency.meanAiSeconds != null ? `${t4Latency.meanAiSeconds}s` : 'N/A'),
+      raw_data_json: { sessionId, claimColumn: 'assessment_ms', ...t4Latency },
     },
   ];
 

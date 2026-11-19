@@ -18,6 +18,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 
@@ -335,7 +336,8 @@ async function downloadAndVerifyPdf(entry, destPath, pdfDir, skipExisting) {
       if (existingPath !== destPath) {
         fs.copyFileSync(existingPath, destPath);
       }
-      return { ...stats, sizeBytes: existing.length, reused: true };
+      const sha256 = crypto.createHash('sha256').update(existing).digest('hex');
+      return { ...stats, sizeBytes: existing.length, sha256, reused: true };
     }
   }
 
@@ -349,8 +351,9 @@ async function downloadAndVerifyPdf(entry, destPath, pdfDir, skipExisting) {
   }
   const buffer = Buffer.from(await res.arrayBuffer());
   const stats = await validatePdfBuffer(buffer);
+  const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
   fs.writeFileSync(destPath, buffer);
-  return { ...stats, sizeBytes: buffer.length, reused: false };
+  return { ...stats, sizeBytes: buffer.length, sha256, reused: false };
 }
 
 function csvCell(val) {
@@ -438,6 +441,7 @@ async function main(opts) {
           pages: stats.pages,
           extractable_chars: stats.chars,
           size_kb: Math.round(stats.sizeBytes / 1024),
+          sha256: stats.sha256,
         });
         saved++;
         if (!stats.reused) await sleep(800);

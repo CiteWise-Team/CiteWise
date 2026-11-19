@@ -39,8 +39,16 @@ function parseGapsInput(rawGaps) {
 }
 
 function isMissingSetupTimingColumnError(err) {
-  return /setup_mode|setup_started_at|setup_completed_at|schema cache|column/i.test(String(err?.message ?? ''));
+  return /setup_mode|setup_started_at|setup_completed_at|user_id|import_fidelity_json|schema cache|column/i.test(String(err?.message ?? ''));
 }
+
+const OPTIONAL_BASELINE_COLS = [
+  'setup_mode',
+  'setup_started_at',
+  'setup_completed_at',
+  'user_id',
+  'import_fidelity_json',
+];
 
 async function persistBaselineRow(baseline) {
   const tryUpsert = async (row) => {
@@ -66,11 +74,28 @@ async function persistBaselineRow(baseline) {
     return error;
   };
 
-  let err = await tryUpsert(baseline);
-  if (err && isMissingSetupTimingColumnError(err)) {
-    console.warn('[T1 Setup Timing] Timing columns missing on research_baselines; saving baseline without timing fields. Apply api/migrations/006_t1_setup_timing.sql.');
-    const { setup_mode, setup_started_at, setup_completed_at, ...coreBaseline } = baseline;
-    err = await tryUpsert(coreBaseline);
+  let current = { ...baseline };
+  let err = await tryUpsert(current);
+
+  // Gracefully strip any unmigrated optional telemetry columns (migrations 006/007)
+  let stripped = false;
+  while (err && isMissingSetupTimingColumnError(err)) {
+    const colMatch = String(err?.message ?? '').match(/Could not find the '([^']+)' column/i);
+    if (colMatch && Object.prototype.hasOwnProperty.call(current, colMatch[1])) {
+      delete current[colMatch[1]];
+      stripped = true;
+      err = await tryUpsert(current);
+      continue;
+    }
+    const remainingOptional = OPTIONAL_BASELINE_COLS.filter((c) => Object.prototype.hasOwnProperty.call(current, c));
+    if (!remainingOptional.length) break;
+    for (const c of remainingOptional) delete current[c];
+    stripped = true;
+    err = await tryUpsert(current);
+  }
+
+  if (stripped) {
+    console.warn('[T1/T2 Telemetry] Optional columns missing on research_baselines; saved core baseline. Apply migrations 006 & 007.');
   }
   if (err) throw new Error(`Failed to persist baseline: ${err.message}`);
 }
@@ -229,11 +254,18 @@ async function fetchCatalystData(workspaceId) {
   }
 
   const baselineGaps = Array.isArray(baseline?.research_gaps) ? baseline.research_gaps : [];
+  const rawGapValues = (gapRes.data ?? []).map((row) => row.gap);
 
   return {
     title:    topic?.title     ?? baseline?.project_title ?? null,
     rationale:topic?.rationale ?? baseline?.rationale     ?? null,
     gaps:     gaps.length      ? gaps : baselineGaps,
+    rawSource: {
+      sourceTitle: topic?.title ?? null,
+      sourceRationale: topic?.rationale ?? null,
+      rawGapValues,
+      usedBaselineFallback: !topic?.title || !gaps.length,
+    },
   };
 }
 
@@ -328,8 +360,25 @@ router.post('/import', async (req, res) => {
     // it are still there. A random id per import stranded them.
     const sessionId = deriveSessionId(req.user?.id, workspaceId.trim()) || uuidv4();
 
+    const importFidelity = {
+      capturedAt: new Date().toISOString(),
+      sourceTitle: payload.rawSource?.sourceTitle ?? null,
+      storedTitle: finalTitle,
+      titleOverridden: Boolean(titleOverride && titleOverride !== payload.rawSource?.sourceTitle),
+      titleMatchesSource: finalTitle === (payload.rawSource?.sourceTitle ?? null),
+      sourceRationale: payload.rawSource?.sourceRationale ?? null,
+      storedRationale: finalRationale,
+      rationaleOverridden: Boolean(rationaleOverride && rationaleOverride !== payload.rawSource?.sourceRationale),
+      rationaleMatchesSource: finalRationale === (payload.rawSource?.sourceRationale ?? ''),
+      rawGapValues: payload.rawSource?.rawGapValues ?? [],
+      storedGaps: payload.gaps,
+      storedGapCount: Array.isArray(payload.gaps) ? payload.gaps.length : 0,
+      usedBaselineFallback: Boolean(payload.rawSource?.usedBaselineFallback),
+    };
+
     const baseline = {
       session_id:             sessionId,
+      user_id:                req.user?.id ?? null,
       catalyst_workspace_id:  workspaceId.trim(),
       project_title:          finalTitle,
       rationale:              finalRationale,
@@ -337,6 +386,7 @@ router.post('/import', async (req, res) => {
       source_system:          'CATalyst',
       setup_mode:             setupMode,
       setup_started_at:       setupStartedAt,
+      import_fidelity_json:   importFidelity,
     };
 
     await persistBaselineRow(baseline);
@@ -353,6 +403,7 @@ router.post('/import', async (req, res) => {
         gaps:      payload.gaps,
         setupMode,
         setupStartedAt,
+        importFidelity,
       },
     });
   } catch (err) {
@@ -362,13 +413,14 @@ router.post('/import', async (req, res) => {
 });
 
 // POST /api/catalyst/manual-baseline  – T1 ?mode=manual baseline entry
-// Body: { workspaceId?, title, rationale, gaps, setupStartedAt? }
+// Body: { workspaceId?, title, rationale, gaps, setupStartedAt?, reuseSession? }
 router.post('/manual-baseline', async (req, res) => {
   const workspaceId    = String(req.body?.workspaceId ?? '').trim();
   const title          = String(req.body?.title ?? '').trim();
   const rationale      = String(req.body?.rationale ?? '').trim();
   const gaps           = parseGapsInput(req.body?.gaps);
   const setupStartedAt = parseIsoTimestamp(req.body?.setupStartedAt) ?? new Date().toISOString();
+  const reuseSession   = Boolean(req.body?.reuseSession);
 
   if (!title) {
     return res.status(400).json({ success: false, message: 'Research Title is required', data: null });
@@ -378,9 +430,12 @@ router.post('/manual-baseline', async (req, res) => {
   }
 
   try {
-    const sessionId = (workspaceId ? deriveSessionId(req.user?.id, workspaceId) : null) || uuidv4();
+    // Always mint a fresh UUID for ?mode=manual unless reuseSession is explicitly requested,
+    // preventing session_id collisions with the automated CATalyst arm on the same workspace.
+    const sessionId = (reuseSession && workspaceId ? deriveSessionId(req.user?.id, workspaceId) : null) || uuidv4();
     const baseline = {
       session_id:             sessionId,
+      user_id:                req.user?.id ?? null,
       catalyst_workspace_id:  workspaceId || null,
       project_title:          title,
       rationale,

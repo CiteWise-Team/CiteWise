@@ -66,10 +66,19 @@ export default function TopicSuggesterOutput({
         if (key?.startsWith(`citewise.${group_id}.`)) localStorage.removeItem(key);
       }
 
+      const setupStartedAt = new Date().toISOString();
+      sessionStorage.setItem(`citewise.${group_id}.setupStartedAt.auto`, setupStartedAt);
+
       const { res, data: payload } = await apiFetch("/api/catalyst/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId: group_id, title: activeItem.title, rationale: activeItem.rationale }),
+        body: JSON.stringify({
+          workspaceId: group_id,
+          title: activeItem.title,
+          rationale: activeItem.rationale,
+          setupMode: "auto",
+          setupStartedAt,
+        }),
       });
 
       if (!res.ok || !payload?.success) {

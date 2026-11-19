@@ -2,6 +2,7 @@
 // page threshold that still fits the target time.
 
 export const TARGET_MS = 30000;
+export const SRS_TARGET_MS = 15000;
 
 const BUCKETS = [
   [1, 5], [6, 10], [11, 20], [21, 30], [31, 50], [51, 100], [101, 200], [201, Infinity],
@@ -70,8 +71,40 @@ function summarizeGroup(rows, targetMs) {
     estimatedMaxPages = Math.max(0, Math.floor((targetMs - fit.intercept) / fit.slope));
   }
 
+  const assessmentValues = timed
+    .map((r) => r.row.assessment_ms)
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  const totalValues = timed.map((r) => r.ms).sort((a, b) => a - b);
+  const aiValues = timed
+    .map((r) => r.row.ai_ms)
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+
+  const meanAssessmentMs = mean(assessmentValues);
+  const p95AssessmentMs = percentile(assessmentValues, 0.95);
+  const p95TotalMs = percentile(totalValues, 0.95);
+  const meanAiMs = mean(aiValues);
+  const withinTargetCount = assessmentValues.filter((ms) => ms <= targetMs).length;
+  const within15sCount = assessmentValues.filter((ms) => ms <= SRS_TARGET_MS).length;
+
   return {
     runs: timed.length,
+    meanAiMs,
+    meanAiSeconds: meanAiMs != null ? Number((meanAiMs / 1000).toFixed(2)) : null,
+    meanAssessmentMs,
+    meanAssessmentSeconds: meanAssessmentMs != null ? Number((meanAssessmentMs / 1000).toFixed(2)) : null,
+    p95AssessmentMs,
+    p95AssessmentSeconds: p95AssessmentMs != null ? Number((p95AssessmentMs / 1000).toFixed(2)) : null,
+    p95TotalMs,
+    withinTargetCount,
+    withinTargetPct: assessmentValues.length
+      ? Number(((withinTargetCount / assessmentValues.length) * 100).toFixed(2))
+      : null,
+    within15sCount,
+    within15sPct: assessmentValues.length
+      ? Number(((within15sCount / assessmentValues.length) * 100).toFixed(2))
+      : null,
     buckets,
     observedMaxPages,
     estimatedMaxPages,
@@ -81,12 +114,18 @@ function summarizeGroup(rows, targetMs) {
 
 export function summarizeTimings(rows, targetMs = TARGET_MS) {
   const usable = (rows ?? []).filter((r) => r.status === 'COMPLETE' && !r.reused_ai_response);
-  const byMethod = {};
+  const byMethod = Object.create(null);
   for (const r of usable) {
     const key = r.extraction_method || 'unknown';
     (byMethod[key] ||= []).push(r);
   }
-  const methods = {};
+  const methods = Object.create(null);
   for (const [key, group] of Object.entries(byMethod)) methods[key] = summarizeGroup(group, targetMs);
-  return { targetMs, runs: usable.length, overall: summarizeGroup(usable, targetMs), methods };
+  return {
+    targetMs,
+    srsTargetMs: SRS_TARGET_MS,
+    runs: usable.length,
+    overall: summarizeGroup(usable, targetMs),
+    methods,
+  };
 }
