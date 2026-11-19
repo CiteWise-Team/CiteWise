@@ -24,12 +24,30 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
   const STORAGE_SESSION_KEY  = `citewise.${groupId}.sessionId`;
   const STORAGE_CATALYST_KEY = `citewise.${groupId}.catalystData`;
 
+  // ── T1 Setup-Time Mode & Telemetry ─────────────────────────────
+  const isManualMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("mode") === "manual";
+  const setupMode = isManualMode ? "manual" : "auto";
+  const SETUP_STARTED_KEY = `citewise.${groupId}.setupStartedAt.${setupMode}`;
+
+  const setupStartedAtRef = useRef("");
+  if (!setupStartedAtRef.current && typeof window !== "undefined") {
+    const existingStart = sessionStorage.getItem(SETUP_STARTED_KEY);
+    const nowIso = existingStart || new Date().toISOString();
+    if (!existingStart) sessionStorage.setItem(SETUP_STARTED_KEY, nowIso);
+    setupStartedAtRef.current = nowIso;
+  }
+
   // ── Panel Collapse States ──────────────────────────────────────
   const [catalystCardOpen, setCatalystCardOpen] = useState(true);
   const [rrlCardOpen, setRrlCardOpen] = useState(true);
 
   // ── CATalyst Import State ──────────────────────────────────────
   const [workspaceId, setWorkspaceId] = useState("");
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualRationale, setManualRationale] = useState("");
+  const [manualGapsText, setManualGapsText] = useState("");
   const [catalystData, setCatalystData] = useState(() => {
     const stored = localStorage.getItem(STORAGE_CATALYST_KEY);
     if (!stored) return null;
@@ -184,7 +202,11 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
       const { res: response, data: payload } = await apiFetch(`/api/catalyst/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId: trimmed })
+        body: JSON.stringify({
+          workspaceId: trimmed,
+          setupMode: "auto",
+          setupStartedAt: setupStartedAtRef.current || new Date().toISOString(),
+        })
       });
 
       if (!response.ok || !payload?.success) {
@@ -208,6 +230,66 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
         console.log("✅ New session created:", newSessionId);
       }
 
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleManualSave = async (e) => {
+    e?.preventDefault?.();
+    const title = manualTitle.trim();
+    const rationale = manualRationale.trim();
+    const gaps = manualGapsText
+      .split(/\r?\n+|;\s*/)
+      .map((g) => g.trim())
+      .filter(Boolean);
+
+    if (!title) {
+      setError("Research Title is required.");
+      return;
+    }
+    if (!rationale && gaps.length === 0) {
+      setError("Rationale or at least one Research Gap is required.");
+      return;
+    }
+
+    setHasAttempted(true);
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const { res: response, data: payload } = await apiFetch(`/api/catalyst/manual-baseline`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: groupId || "",
+          title,
+          rationale,
+          gaps,
+          setupStartedAt: setupStartedAtRef.current || new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || "Unable to save manual research data.");
+      }
+
+      const savedData = {
+        title: payload.data?.title ?? title,
+        rationale: payload.data?.rationale ?? rationale,
+        gaps: payload.data?.gaps ?? gaps,
+      };
+      setCatalystData(savedData);
+      localStorage.setItem(STORAGE_CATALYST_KEY, JSON.stringify(savedData));
+
+      const newSessionId = payload.data?.sessionId;
+      if (newSessionId) {
+        localStorage.setItem(STORAGE_SESSION_KEY, newSessionId);
+        setSessionId(newSessionId);
+        onImportSuccess?.(newSessionId);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -250,12 +332,25 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
     // When queue has finished uploading and at least one document succeeded, proceed
     if (proceedOnSuccess && queuedOrUploading === 0 && (uploaded > 0 || extracting > 0)) {
+      const currentSid = (sessionId || localStorage.getItem(STORAGE_SESSION_KEY) || "").trim();
+      if (currentSid) {
+        void apiFetch("/api/catalyst/setup-timing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: currentSid,
+            setupMode,
+            setupStartedAt: setupStartedAtRef.current || undefined,
+            setupCompletedAt: new Date().toISOString(),
+          }),
+        }).catch(() => {});
+      }
       setShowSuccessToast(true);
       setTimeout(() => {
         onProceed?.();
       }, 2200);
     }
-  }, [onProceed]);
+  }, [onProceed, sessionId, setupMode]);
 
   const uploadSingleFile = async (item) => {
     const currentSid = sessionId.trim();
@@ -808,13 +903,29 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }} onClick={(e) => e.stopPropagation()}>
-                {!catalystData && (
+                {!catalystData && !isManualMode && (
                   <ImportHeaderBar
                     workspaceId={workspaceId}
                     onWorkspaceIdChange={setWorkspaceId}
                     onImport={handleImport}
                     isLoading={isLoading}
                   />
+                )}
+                {isManualMode && (
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 600,
+                      padding: "0.2rem 0.6rem",
+                      borderRadius: "999px",
+                      background: "rgba(249, 115, 22, 0.12)",
+                      color: "#ea580c",
+                      border: "1px solid rgba(249, 115, 22, 0.3)",
+                      fontFamily: "'Poppins', sans-serif",
+                    }}
+                  >
+                    Manual Entry Mode
+                  </span>
                 )}
                 <span
                   style={{ display: "inline-flex", alignItems: "center", color: "var(--cw-text-muted, #6b7280)", cursor: "pointer" }}
@@ -827,7 +938,7 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
 
             {catalystCardOpen && (
               <>
-                {!catalystData && (
+                {!catalystData && !isManualMode && (
                   <div style={{ padding: isMobile ? "1.75rem 1rem" : "2.5rem 2rem", textAlign: "center" }}>
                     <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(249, 115, 22, 0.08)", border: "1px solid rgba(249, 115, 22, 0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -838,6 +949,107 @@ export default function WorkspaceImportLayout({ groupId, onImportSuccess, onProc
                       Enter your CATalyst workspace ID above to load your research data.
                     </p>
                   </div>
+                )}
+
+                {!catalystData && isManualMode && (
+                  <form
+                    onSubmit={handleManualSave}
+                    style={{
+                      padding: isMobile ? "1.25rem 1rem" : "1.5rem 1.75rem",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1rem",
+                    }}
+                  >
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.35rem", color: "var(--cw-text-primary, #111827)", fontFamily: "'Poppins', sans-serif" }}>
+                        Research Title
+                      </label>
+                      <input
+                        type="text"
+                        value={manualTitle}
+                        onChange={(e) => setManualTitle(e.target.value)}
+                        placeholder="Paste or type your research title..."
+                        style={{
+                          width: "100%",
+                          padding: "0.65rem 0.85rem",
+                          borderRadius: "8px",
+                          border: "1px solid var(--cw-border, #d1d5db)",
+                          background: "var(--cw-bg-base, #ffffff)",
+                          color: "var(--cw-text-primary, #111827)",
+                          fontSize: "0.875rem",
+                          fontFamily: "'Poppins', sans-serif",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.35rem", color: "var(--cw-text-primary, #111827)", fontFamily: "'Poppins', sans-serif" }}>
+                        Rationale
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={manualRationale}
+                        onChange={(e) => setManualRationale(e.target.value)}
+                        placeholder="Paste or type your research rationale..."
+                        style={{
+                          width: "100%",
+                          padding: "0.65rem 0.85rem",
+                          borderRadius: "8px",
+                          border: "1px solid var(--cw-border, #d1d5db)",
+                          background: "var(--cw-bg-base, #ffffff)",
+                          color: "var(--cw-text-primary, #111827)",
+                          fontSize: "0.875rem",
+                          fontFamily: "'Poppins', sans-serif",
+                          resize: "vertical",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.35rem", color: "var(--cw-text-primary, #111827)", fontFamily: "'Poppins', sans-serif" }}>
+                        Research Gaps (one per line)
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={manualGapsText}
+                        onChange={(e) => setManualGapsText(e.target.value)}
+                        placeholder="Paste or type research gaps (one per line or semicolon-separated)..."
+                        style={{
+                          width: "100%",
+                          padding: "0.65rem 0.85rem",
+                          borderRadius: "8px",
+                          border: "1px solid var(--cw-border, #d1d5db)",
+                          background: "var(--cw-bg-base, #ffffff)",
+                          color: "var(--cw-text-primary, #111827)",
+                          fontSize: "0.875rem",
+                          fontFamily: "'Poppins', sans-serif",
+                          resize: "vertical",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        style={{
+                          background: "#ea580c",
+                          color: "#ffffff",
+                          border: "1px solid #ea580c",
+                          borderRadius: "8px",
+                          padding: "0.6rem 1.2rem",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                          fontFamily: "'Poppins', sans-serif",
+                          cursor: isLoading ? "not-allowed" : "pointer",
+                          opacity: isLoading ? 0.7 : 1,
+                        }}
+                      >
+                        {isLoading ? "Saving..." : "Save Research Data"}
+                      </button>
+                    </div>
+                  </form>
                 )}
 
                 <DataDisplayGrid

@@ -1,0 +1,41 @@
+filename,expected_label,arxiv_id,category,title
+relevant_01_2406.13663.pdf,Relevant,2406.13663,cs.CL,Model Internals-based Answer Attribution for Trustworthy Retrieval-Augmented Generation
+relevant_02_2601.13222.pdf,Relevant,2601.13222,cs.IR,Incorporating Q&A Nuggets into Retrieval-Augmented Generation
+relevant_03_2609.14245.pdf,Relevant,2609.14245,cs.CL,The Attribution-Compression Frontier in Retrieval-Augmented Generation
+relevant_04_2611.17161.pdf,Relevant,2611.17161,cs.AI,Cited but Unused: Parametric Provenance in Retrieval-Augmented Generation
+relevant_05_2607.09349.pdf,Relevant,2607.09349,cs.CL,Deceptive Grounding: Entity Attribution Failure in Clinical Retrieval-Augmented Generation
+relevant_06_2506.16988.pdf,Relevant,2506.16988,cs.IR,RAGentA: Multi-Agent Retrieval-Augmented Generation for Attributed Question Answering
+relevant_07_2510.15682.pdf,Relevant,2510.15682,cs.IR,SQuAI: Scientific Question-Answering with Multi-Agent Retrieval-Augmented Generation
+relevant_08_2406.13692.pdf,Relevant,2406.13692,cs.CL,Synchronous Faithfulness Monitoring for Trustworthy Retrieval-Augmented Generation
+relevant_09_2606.28358.pdf,Relevant,2606.28358,cs.IR,How Do LLMs Cite? A Mechanistic Interpretation of Attribution in Retrieval-Augmented Generation
+relevant_10_2509.20859.pdf,Relevant,2509.20859,cs.CL,Concise and Sufficient Sub-Sentence Citations for Retrieval-Augmented Generation
+relevant_11_2407.01796.pdf,Relevant,2407.01796,cs.CL,Ground Every Sentence: Improving Retrieval-Augmented LLMs with Interleaved Reference-Claim Generation
+relevant_12_2412.14457.pdf,Relevant,2412.14457,cs.IR,VISA: Retrieval Augmented Generation with Visual Source Attribution
+relevant_13_2604.25448.pdf,Relevant,2604.25448,cs.CL,Navigating Global AI Regulation: A Multi-Jurisdictional Retrieval-Augmented Generation System
+relevant_14_2607.01852.pdf,Relevant,2607.01852,cs.IR,Evaluating Chunking Strategies for Retrieval-Augmented Generation on Academic Texts
+relevant_15_2605.14192.pdf,Relevant,2605.14192,cs.CL,Why Retrieval-Augmented Generation Fails: A Graph Perspective
+relevant_16_2601.03052.pdf,Relevant,2601.03052,cs.CL,Detecting Hallucinations in Retrieval-Augmented Generation via Semantic-level Internal Reasoning Graph
+relevant_17_2507.04480.pdf,Relevant,2507.04480,cs.LG,Source Attribution in Retrieval-Augmented Generation
+relevant_18_2610.29722.pdf,Relevant,2610.29722,cs.CL,Retrieval Augmented Generation Compositionality
+relevant_19_2603.09891.pdf,Relevant,2603.09891,cs.IR,Overview of the TREC 2025 Retrieval Augmented Generation (RAG) Track
+relevant_20_2510.11394.pdf,Relevant,2510.11394,cs.IR,VeriCite: Towards Reliable Citations in Retrieval-Augmented Generation via Rigorous Verification
+not_relevant_01_1904.07880.pdf,Not Relevant,1904.07880,astro-ph.GA,Star formation in galaxies hosting AGN: A flat trend of star-formation rate with X-ray luminosity of galaxies hosting AGN in the SCUBA-2 Cosmology Legacy Survey
+not_relevant_02_1904.07898.pdf,Not Relevant,1904.07898,astro-ph.GA,The Discovery of QSOs Behind M31 and M33
+not_relevant_03_1904.08043.pdf,Not Relevant,1904.08043,astro-ph.GA,"SDSS J153636.22+044127.0 and its analogues: shocked outflows, not active binary black holes"
+not_relevant_04_1905.00120.pdf,Not Relevant,1905.00120,astro-ph.GA,Slim accretion disks: theory and observational consequences
+not_relevant_05_1905.02741.pdf,Not Relevant,1905.02741,astro-ph.GA,Black Hole -- Galaxy Correlations in Simba
+not_relevant_06_1905.02880.pdf,Not Relevant,1905.02880,astro-ph.GA,Galactic Stellar Populations from Photometric Metallicity Distribution Functions
+not_relevant_07_1905.02018.pdf,Not Relevant,1905.02018,astro-ph.GA,CO Outflow Candidates Toward the W3/4/5 Complex I: The Sample and its Spatial Distribution
+not_relevant_08_1905.02020.pdf,Not Relevant,1905.02020,astro-ph.SR,The extended halo of NGC 2682 (M 67) from Gaia DR2
+not_relevant_09_1905.02023.pdf,Not Relevant,1905.02023,astro-ph.GA,An evolving and mass dependent ${\rm σ_{\text{sSFR}}}$-${\rm M_{\star}}$ relation for galaxies
+not_relevant_10_1905.03230.pdf,Not Relevant,1905.03230,astro-ph.GA,APEX Millimeter Observations of Methanol Emission Toward High-Mass Star-Forming Cores
+not_relevant_11_1904.07611.pdf,Not Relevant,1904.07611,astro-ph.GA,Spectral Energy Distribution of the First Galaxies: Contribution from Pre-Main-Sequence Stars
+not_relevant_12_1904.07621.pdf,Not Relevant,1904.07621,astro-ph.GA,Outflows in the Discs of Active Galaxies
+not_relevant_13_1905.00375.pdf,Not Relevant,1905.00375,astro-ph.CO,Dynamics of Merging Galaxy Clusters from Simulated Analogs
+not_relevant_14_1905.02815.pdf,Not Relevant,1905.02815,q-bio.BM,Allostery and conformational changes upon binding as generic features of proteins: a high-dimension geometrical approach
+not_relevant_15_2005.11433.pdf,Not Relevant,2005.11433,q-bio.MN,Implementing Non-Equilibrium Networks with Active Circuits of Duplex Catalysts
+not_relevant_16_2005.11767.pdf,Not Relevant,2005.11767,q-bio.BM,Protein-ligand interaction study to identify potential dietary compounds binding at the active site of therapeutic target proteins of SARS-CoV-2
+not_relevant_17_2005.14052.pdf,Not Relevant,2005.14052,physics.bio-ph,Universal Free Energy Landscape Produces Efficient and Reversible Electron Bifurcation
+not_relevant_18_2006.05943.pdf,Not Relevant,2006.05943,cond-mat.soft,Soft macromolecular confinement
+not_relevant_19_2007.05859.pdf,Not Relevant,2007.05859,q-bio.GN,SARS-CoV-2 orthologs of pathogenesis-involved small viral RNAs of SARS-CoV
+not_relevant_20_2007.07736.pdf,Not Relevant,2007.07736,q-bio.BM,"The natural polyphenol fortunellin and its structural analogs are inhibitors of the SARS-CoV-2 main proteinase dimerization, as revealed by molecular simulation studies"
