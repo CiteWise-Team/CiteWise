@@ -9,7 +9,6 @@ import {
   ArrowLeft, 
   Sparkles, 
   ShieldCheck, 
-  FileText, 
   CheckCircle2
 } from "lucide-react";
 
@@ -18,7 +17,36 @@ import { useAuth } from "../context/AuthContext";
 import { useFeedbackModal } from "../hooks/useFeedbackModel";
 import FeedbackModal from "../components/modals/FeedbackModal";
 import citeWiseLogo from "../assets/citewise-logo.png";
+import { AuthPreviewCard, AuthBackdropChips } from "../components/auth/AuthShowcaseMotion";
 import "../styles/AuthSplitScreen.css";
+import "../styles/auth-motion.css";
+
+const LOGIN_SCENES = [
+  {
+    badge: "SciRAG Baseline",
+    title: "Adaptive, Citation-Aware Literature Synthesis",
+    gapLabel: "Detected Research Gap",
+    gap: "Cross-domain validation under constrained computational environments with real-time citation graphs.",
+    metaLabel: "Relevance Score",
+    score: 98.4,
+  },
+  {
+    badge: "Policy Baseline",
+    title: "Targeted Policing and Adolescent Violence Prevention",
+    gapLabel: "Detected Research Gap",
+    gap: "Few studies compare outcomes across cities that use different enforcement models.",
+    metaLabel: "Relevance Score",
+    score: 94.1,
+  },
+  {
+    badge: "Topic Draft",
+    title: "Lightweight Citation-Aware Synthesis for Small Labs",
+    gapLabel: "Suggested Thesis Topic",
+    gap: "Answers two gaps found across your selected papers and is ready to send to CiteWise.",
+    metaLabel: "Gap Coverage",
+    score: 96.7,
+  },
+];
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -71,6 +99,7 @@ export default function Login() {
         <div className="auth-glow-orb-1" />
         <div className="auth-glow-orb-2" />
         <div className="auth-mesh-grid" />
+        <AuthBackdropChips />
 
         {/* Header with Brand Logo & Back to Home */}
         <div className="auth-showcase-header">
@@ -109,33 +138,7 @@ export default function Login() {
           </p>
 
           {/* Interactive Feature Preview Card */}
-          <div className="auth-preview-card">
-            <div className="auth-preview-header">
-              <div className="auth-preview-status">
-                <span className="auth-preview-status-dot" />
-                <span>Active Research Corpus</span>
-              </div>
-              <span className="auth-preview-badge">SciRAG Baseline</span>
-            </div>
-
-            <div className="auth-preview-paper-title">
-              <FileText size={16} color="#ea580c" />
-              <span>Adaptive, Citation-Aware Literature Synthesis</span>
-            </div>
-
-            <div className="auth-preview-gap-box">
-              <span className="auth-preview-gap-label">Detected Research Gap</span>
-              Cross-domain validation under constrained computational environments with real-time citation graphs.
-            </div>
-
-            <div className="auth-preview-meta">
-              <span>Relevance Score</span>
-              <div className="auth-preview-progress-bar">
-                <div className="auth-preview-progress-fill" />
-              </div>
-              <span style={{ color: "#ea580c", fontWeight: 700 }}>98.4%</span>
-            </div>
-          </div>
+          <AuthPreviewCard status="Active Research Corpus" scenes={LOGIN_SCENES} />
 
           {/* Capability Feature Badges */}
           <div className="auth-feature-row">
