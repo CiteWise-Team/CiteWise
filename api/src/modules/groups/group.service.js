@@ -11,7 +11,23 @@ export async function findGroupService(id) {
   }
 }
 
-export async function createGroupService({ name, description, ownerId, color }) {
+// A double-click on "Create Group" sends two identical POSTs before the first
+// one answers, and each used to insert its own row. Concurrent requests from
+// the same owner for the same name now share the first request's result.
+const inFlightCreates = new Map();
+
+export function createGroupService({ name, description, ownerId, color }) {
+  const key = `${ownerId}:${String(name).trim().toLowerCase()}`;
+  const pending = inFlightCreates.get(key);
+  if (pending) return pending;
+
+  const promise = createGroupOnce({ name, description, ownerId, color })
+    .finally(() => inFlightCreates.delete(key));
+  inFlightCreates.set(key, promise);
+  return promise;
+}
+
+async function createGroupOnce({ name, description, ownerId, color }) {
   try {
     const joinCode = await generateGroupCode(name);
     const group = await createGroupRepo({ name, description, ownerId, joinCode, color });
