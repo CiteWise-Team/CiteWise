@@ -220,12 +220,14 @@ export default function Groups() {
         title: "Group Created",
         message: "Your research workspace is ready.",
       });
+      return true;
     } catch (err) {
       showFeedback({
         type: "error",
         title: "Group Creation Failed",
         message: err.message || "Something went wrong.",
       });
+      return false;
     }
   }
 

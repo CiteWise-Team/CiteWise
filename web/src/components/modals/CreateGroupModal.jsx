@@ -18,6 +18,8 @@ export default function CreateGroupModal({ onSubmit }) {
   const [description, setDescription] = useState("");
   const [color, setColor] = useState(COLORS[0]);
   const descRef = useRef(null);
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const adjustTextareaHeight = (el) => {
     if (!el) return;
@@ -31,9 +33,24 @@ export default function CreateGroupModal({ onSubmit }) {
     }
   }, [description]);
 
-  function handleSubmit(e) {
+  // The ref, not the state, is the lock: a second click can land before React
+  // re-renders with the disabled button.
+  async function handleSubmit(e) {
     e.preventDefault();
-    onSubmit({ name, description, color });
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      const created = await onSubmit({ name, description, color });
+      if (created) {
+        setName("");
+        setDescription("");
+        setColor(COLORS[0]);
+      }
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -156,8 +173,9 @@ export default function CreateGroupModal({ onSubmit }) {
                 <button
                   type="submit"
                   className="workspace-modal-button workspace-modal-submit"
+                  disabled={submitting}
                 >
-                  Create Group
+                  {submitting ? "Creating..." : "Create Group"}
                 </button>
               </div>
             </form>
