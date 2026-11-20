@@ -11,6 +11,7 @@ export default function WorkflowPartnerLoadingUI({
   title,
   description,
   stepType = "extractor",
+  compact = false,
 }) {
   const { isDark } = useTheme();
 
@@ -28,6 +29,7 @@ export default function WorkflowPartnerLoadingUI({
         { progress: 78, text: "Structuring section hierarchies with AI..." },
         { progress: 94, text: "Finalizing extracted document report..." },
       ],
+      waiting: ["Still working through the document...", "Cross-checking the extracted sections...", "Large documents take a little longer..."],
     },
     summarizer: {
       defaultTitle: "Summarizing Document Content",
@@ -38,6 +40,7 @@ export default function WorkflowPartnerLoadingUI({
         { progress: 78, text: "Generating objective academic summary..." },
         { progress: 94, text: "Finalizing summary report..." },
       ],
+      waiting: ["Still condensing the key findings...", "Checking the summary against the source...", "Longer papers take a little longer..."],
     },
     gap: {
       defaultTitle: "Analyzing Research Gaps",
@@ -48,6 +51,7 @@ export default function WorkflowPartnerLoadingUI({
         { progress: 78, text: "Formulating scientific gap hypotheses..." },
         { progress: 94, text: "Finalizing detected research gaps..." },
       ],
+      waiting: ["Still comparing the literature...", "Weighing candidate gaps against coverage...", "Broader literature takes a little longer..."],
     },
     topic: {
       defaultTitle: "Generating Topic Recommendations",
@@ -58,6 +62,7 @@ export default function WorkflowPartnerLoadingUI({
         { progress: 78, text: "Validating academic feasibility with AI..." },
         { progress: 94, text: "Compiling topic recommendations..." },
       ],
+      waiting: ["Still shaping topic options...", "Checking each topic against the gaps...", "Thorough checks take a little longer..."],
     },
   }[stepType] || {
     defaultTitle: "Analyzing Document Content",
@@ -68,10 +73,16 @@ export default function WorkflowPartnerLoadingUI({
       { progress: 78, text: "Synthesizing document insights..." },
       { progress: 94, text: "Finalizing assessment report..." },
     ],
+    waiting: ["Still working on it...", "Cross-checking the results...", "This is taking a little longer than usual..."],
   };
 
   const effectiveTitle = title || stepConfig.defaultTitle;
   const progressLabel = stepConfig.progressLabel;
+
+  // Same look in both modes; compact just scales it down for narrow panels.
+  const sz = compact
+    ? { spinner: 52, core: 28, icon: 15, ring: 3, spinnerGap: "0.7rem", titleSize: "0.95rem", subSize: "0.75rem", subGap: "0.9rem", barW: "200px", barH: "6px", metaSize: "0.68rem", skelTop: "0.9rem", skelH: "30px", outerPad: "0.75rem 0.5rem", innerPad: "0.5rem 0.5rem", minH: "0" }
+    : { spinner: 76, core: 42, icon: 22, ring: 3.5, spinnerGap: "1.25rem", titleSize: "1.2rem", subSize: "0.85rem", subGap: "1.5rem", barW: "280px", barH: "8px", metaSize: "0.75rem", skelTop: "1.5rem", skelH: "48px", outerPad: "2rem 1rem", innerPad: "2.5rem 1.5rem", minH: "360px" };
 
   useEffect(() => {
     setPanelProgress(stepConfig.stages[0].progress);
@@ -92,10 +103,28 @@ export default function WorkflowPartnerLoadingUI({
       setPanelStatusText(description || stepConfig.stages[3].text);
     }, 2200);
 
+    // The request is often still running after the last stage. Keep easing the
+    // bar toward 99% and rotate a few "still working" lines so the loader never
+    // looks frozen, however long the wait is.
+    let waitTick = 0;
+    const creep = setInterval(() => {
+      waitTick += 1;
+      setPanelProgress((p) =>
+        p >= stepConfig.stages[3].progress && p < 99
+          ? Math.min(99, p + Math.max(0.15, (99 - p) * 0.05))
+          : p
+      );
+      if (!description && waitTick % 3 === 0) {
+        const msgs = stepConfig.waiting;
+        setPanelStatusText(msgs[(waitTick / 3 - 1) % msgs.length]);
+      }
+    }, 1200);
+
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearInterval(creep);
     };
   }, [stepType, description]);
 
@@ -106,8 +135,8 @@ export default function WorkflowPartnerLoadingUI({
         alignItems: "center",
         justifyContent: "center",
         width: "100%",
-        minHeight: "360px",
-        padding: "2rem 1rem",
+        minHeight: sz.minH,
+        padding: sz.outerPad,
         boxSizing: "border-box",
       }}
     >
@@ -117,7 +146,7 @@ export default function WorkflowPartnerLoadingUI({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          padding: "2.5rem 1.5rem",
+          padding: sz.innerPad,
           maxWidth: "460px",
           width: "100%",
           textAlign: "center",
@@ -128,17 +157,17 @@ export default function WorkflowPartnerLoadingUI({
         <div
           style={{
             position: "relative",
-            width: "76px",
-            height: "76px",
+            width: `${sz.spinner}px`,
+            height: `${sz.spinner}px`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: "1.25rem",
+            marginBottom: sz.spinnerGap,
           }}
         >
           <svg
-            width="76"
-            height="76"
+            width={sz.spinner}
+            height={sz.spinner}
             viewBox="0 0 50 50"
             style={{ position: "absolute", inset: 0 }}
           >
@@ -148,7 +177,7 @@ export default function WorkflowPartnerLoadingUI({
               r="20"
               fill="none"
               stroke="rgba(234, 88, 12, 0.12)"
-              strokeWidth="3.5"
+              strokeWidth={sz.ring}
             />
             <circle
               cx="25"
@@ -156,7 +185,7 @@ export default function WorkflowPartnerLoadingUI({
               r="20"
               fill="none"
               stroke="#ea580c"
-              strokeWidth="3.5"
+              strokeWidth={sz.ring}
               strokeLinecap="round"
               strokeDasharray="55 70"
             >
@@ -171,9 +200,10 @@ export default function WorkflowPartnerLoadingUI({
             </circle>
           </svg>
           <div
+            className="cw-wpl-core"
             style={{
-              width: "42px",
-              height: "42px",
+              width: `${sz.core}px`,
+              height: `${sz.core}px`,
               borderRadius: "50%",
               background: "rgba(234, 88, 12, 0.09)",
               display: "flex",
@@ -183,8 +213,8 @@ export default function WorkflowPartnerLoadingUI({
             }}
           >
             <svg
-              width="22"
-              height="22"
+              width={sz.icon}
+              height={sz.icon}
               viewBox="0 0 24 24"
               fill="none"
               stroke="#ea580c"
@@ -205,7 +235,7 @@ export default function WorkflowPartnerLoadingUI({
         <h3
           style={{
             fontFamily: "'Poppins', sans-serif",
-            fontSize: "1.2rem",
+            fontSize: sz.titleSize,
             fontWeight: 700,
             color: isDark ? "#ffffff" : "var(--cw-text-primary, #0f0e17)",
             margin: "0 0 0.35rem 0",
@@ -219,10 +249,10 @@ export default function WorkflowPartnerLoadingUI({
         <p
           style={{
             fontFamily: "'Poppins', sans-serif",
-            fontSize: "0.85rem",
+            fontSize: sz.subSize,
             color: isDark ? "#94a3b8" : "var(--cw-text-muted, #6b7280)",
             lineHeight: 1.55,
-            margin: "0 0 1.5rem 0",
+            margin: `0 0 ${sz.subGap} 0`,
             maxWidth: "400px",
             minHeight: "1.55em",
           }}
@@ -233,9 +263,9 @@ export default function WorkflowPartnerLoadingUI({
         {/* Moving Progress Bar & Percentage Count */}
         <div
           style={{
-            width: "280px",
+            width: sz.barW,
             maxWidth: "85%",
-            height: "8px",
+            height: sz.barH,
             background: isDark ? "rgba(255, 255, 255, 0.08)" : "var(--cw-border, #e5e7eb)",
             borderRadius: "999px",
             overflow: "hidden",
@@ -245,12 +275,13 @@ export default function WorkflowPartnerLoadingUI({
           }}
         >
           <div
+            className="cw-wpl-bar-fill"
             style={{
               height: "100%",
               width: `${panelProgress}%`,
               background: "linear-gradient(90deg, #ea580c 0%, #f97316 50%, #fb923c 100%)",
               borderRadius: "999px",
-              transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)",
               boxShadow: "0 0 10px rgba(234, 88, 12, 0.45)",
             }}
           />
@@ -260,10 +291,10 @@ export default function WorkflowPartnerLoadingUI({
           style={{
             display: "flex",
             justifyContent: "space-between",
-            width: "280px",
+            width: sz.barW,
             maxWidth: "85%",
             margin: "0 auto",
-            fontSize: "0.75rem",
+            fontSize: sz.metaSize,
             fontFamily: "'Poppins', sans-serif",
           }}
         >
@@ -271,7 +302,7 @@ export default function WorkflowPartnerLoadingUI({
             {progressLabel}
           </span>
           <span style={{ color: "#ea580c", fontWeight: 700 }}>
-            {panelProgress}%
+            {Math.floor(panelProgress)}%
           </span>
         </div>
 
@@ -279,7 +310,7 @@ export default function WorkflowPartnerLoadingUI({
         <div
           className="cw-loading-skeleton-preview"
           style={{
-            marginTop: "1.5rem",
+            marginTop: sz.skelTop,
             width: "100%",
             maxWidth: "380px",
             display: "flex",
@@ -289,7 +320,7 @@ export default function WorkflowPartnerLoadingUI({
           <div
             className="cw-loading-skeleton-card-left"
             style={{
-              height: "48px",
+              height: sz.skelH,
               borderRadius: "12px",
               border: isDark ? "1px dashed rgba(255, 255, 255, 0.12)" : "1px dashed var(--cw-border, #e5e7eb)",
             }}
@@ -297,7 +328,7 @@ export default function WorkflowPartnerLoadingUI({
           <div
             className="cw-loading-skeleton-card-right"
             style={{
-              height: "48px",
+              height: sz.skelH,
               borderRadius: "12px",
               border: isDark ? "1px dashed rgba(255, 255, 255, 0.12)" : "1px dashed var(--cw-border, #e5e7eb)",
             }}

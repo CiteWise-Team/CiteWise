@@ -163,12 +163,12 @@ export default function TopicSuggesterOutput({
 
           <div className="workflow-result-sidebar-list flex-grow-1" style={{ overflowY: "auto", minHeight: 0, paddingRight: "4px" }}>
             {loading ? (
-              <div style={{ padding: "2.5rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: "10px" }}>
-                <span className="catalyst-btn-spinner-orange" style={{ width: "24px", height: "24px", borderWidth: "2.5px" }} />
-                <span style={{ fontSize: "0.82rem", color: "var(--cw-text-muted, #6b7280)", fontWeight: 500, fontFamily: "'Poppins', sans-serif" }}>
-                  Loading topics...
-                </span>
-              </div>
+              <WorkflowPartnerLoadingUI
+                compact
+                stepType="topic"
+                title="Loading topics..."
+                description="Fetching suggested topics..."
+              />
             ) : items.length === 0 ? (
               <div className="text-center py-4 px-2 d-flex flex-column align-items-center justify-content-center">
                 <div
