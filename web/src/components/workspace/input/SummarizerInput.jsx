@@ -9,6 +9,7 @@ import { summarizerAPI, getSummarizerJobStatusAPI } from "../../../api/workflow.
 import { useFeedbackModal } from "../../../hooks/useFeedbackModel";
 import FeedbackModal from "../../modals/FeedbackModal";
 import WorkflowCardHeader from "../WorkflowCardHeader";
+import WorkflowPartnerLoadingUI from "../output/WorkflowPartnerLoadingUI";
 
 export default function SummarizerInput({
   setResult,
@@ -216,17 +217,12 @@ export default function SummarizerInput({
                   }}
                 >
                   {loading && (
-                    <div style={{ padding: "1.5rem 1rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span className="catalyst-btn-spinner-orange" />
-                        <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#9a3412", fontFamily: "'Poppins', sans-serif" }}>
-                          Loading extracted papers...
-                        </span>
-                      </div>
-                      <div style={{ width: "140px", height: "4px", background: "#fed7aa", borderRadius: "999px", overflow: "hidden", position: "relative" }}>
-                        <div className="catalyst-progress-beam" />
-                      </div>
-                    </div>
+                    <WorkflowPartnerLoadingUI
+                      compact
+                      stepType="summarizer"
+                      title="Loading extracted papers..."
+                      description="Fetching your extracted papers..."
+                    />
                   )}
 
                   {!loading && extractedFiles.length === 0 && (
