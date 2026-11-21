@@ -1,0 +1,478 @@
+/* ==========================================================================
+   Landing motion layer
+   Loaded after landing.css. Everything here is additive and respects
+   prefers-reduced-motion (landing.css already disables animation globally).
+   ========================================================================== */
+
+/* ---------- Scroll progress (progressive enhancement) ---------- */
+.lm-scroll-progress { display: none; }
+
+@supports (animation-timeline: scroll()) {
+  .lm-scroll-progress {
+    display: block;
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 3px;
+    z-index: 1200;
+    pointer-events: none;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    animation: lmScrollBar linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+
+@keyframes lmScrollBar {
+  to { transform: scaleX(1); }
+}
+
+/* ---------- Hero: pointer parallax (uses the independent `translate` property) ---------- */
+.hero-section-v2 .float-badge {
+  translate: calc(var(--mx, 0) * var(--depth, 12) * 1px) calc(var(--my, 0) * var(--depth, 12) * 0.7px);
+  transition:
+    translate 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.3s ease;
+}
+.hero-section-v2 .badge-1 { --depth: 20; }
+.hero-section-v2 .badge-2 { --depth: -14; }
+.hero-section-v2 .badge-3 { --depth: 26; }
+.hero-section-v2 .badge-4 { --depth: -22; }
+
+.hero-section-v2 .hero-papers-visual,
+.hero-section-v2 .hero-airplane-visual {
+  translate: calc(var(--mx, 0) * var(--depth, 12) * 1px) calc(var(--my, 0) * var(--depth, 12) * 0.6px);
+  transition: translate 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hero-section-v2 .hero-papers-visual { --depth: -30; }
+.hero-section-v2 .hero-airplane-visual { --depth: 38; }
+
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .hero-section-v2 .float-badge,
+  .hero-section-v2 .hero-papers-visual,
+  .hero-section-v2 .hero-airplane-visual { translate: none; }
+}
+
+/* ---------- Live workflow card ---------- */
+@keyframes lwFill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes lwLineIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes lwFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes lwSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes lwCaret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+/* Stepper: steps are buttons now, joined by links that fill while a step runs */
+.lw-card .stepper { align-items: flex-start; flex-wrap: nowrap; gap: 0.35rem; }
+.lw-step {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  min-width: 0;
+  border-radius: 0.75rem;
+}
+.lw-step:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.lw-step.done { color: var(--text-heading); }
+.lw-step.done .step-icon {
+  background: var(--accent-tint);
+  border-color: rgba(234, 88, 12, 0.4);
+  color: var(--accent);
+}
+.lw-step.active .step-icon { animation: lwIconBeat 1.9s ease-in-out infinite; }
+
+@keyframes lwIconBeat {
+  0%, 100% { box-shadow: 0 4px 14px var(--accent-glow), 0 0 0 0 rgba(234, 88, 12, 0.35); }
+  50%      { box-shadow: 0 4px 14px var(--accent-glow), 0 0 0 9px rgba(234, 88, 12, 0); }
+}
+
+.lw-link {
+  flex: 0 0 clamp(14px, 3.6vw, 56px);
+  height: 2px;
+  margin-top: 21px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  position: relative;
+}
+.lw-link.is-done { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+.lw-link-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  animation: lwFill var(--lw-ms, 3800ms) linear forwards;
+}
+
+.lw-status-text { animation: lwFadeIn 0.4s ease both; }
+
+.lw-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.lw-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: lwCaret 1.4s ease-in-out infinite;
+}
+
+/* Left panel */
+.lw-input-body { min-height: 196px; }
+.lw-dropzone { padding: 1.5rem 1.25rem 1.25rem; animation: lwFadeIn 0.45s ease both; }
+.lw-dropzone p { margin-bottom: 0.9rem; }
+
+.lw-file {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: var(--bg-card);
+  color: var(--accent);
+  font-size: 0.76rem;
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+}
+.lw-file-name {
+  color: var(--text-heading);
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lw-file-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: transparent;
+}
+.lw-file-bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  animation: lwFill calc(var(--lw-ms, 3800ms) * 0.55) cubic-bezier(0.4, 0, 0.2, 1) 0.2s forwards;
+}
+.lw-file.is-static { animation: lwFadeIn 0.4s ease both; }
+
+.lw-chain { display: flex; flex-direction: column; gap: 0.5rem; }
+.lw-done-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  align-self: flex-start;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-tint);
+  border: 1px solid rgba(234, 88, 12, 0.25);
+  animation: lwLineIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 0.14s + 0.1s);
+}
+
+.lw-run { position: relative; overflow: hidden; }
+.lw-run > *:not(.lw-run-fill) { position: relative; z-index: 1; }
+.lw-run-fill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: rgba(255, 255, 255, 0.24);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  animation: lwFill var(--lw-ms, 3800ms) linear forwards;
+}
+.lw-spin { animation: lwSpin 0.9s linear infinite; }
+
+/* Right panel */
+.lw-paper {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.5rem;
+  padding: 0.6rem 0.9rem;
+}
+.lw-result {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed var(--border);
+  min-height: 146px;
+}
+.lw-result-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+.lw-result-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.45);
+  animation: lwResultPulse 1.6s ease-out infinite;
+}
+@keyframes lwResultPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.45); }
+  100% { box-shadow: 0 0 0 9px rgba(234, 88, 12, 0); }
+}
+.lw-line {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.42rem 0;
+  font-size: 0.78rem;
+  animation: lwLineIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 0.55s + 0.45s);
+}
+.lw-line-k {
+  flex: 0 0 5.2rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+.lw-line-v { color: var(--text-body); line-height: 1.45; }
+
+@media (max-width: 575.98px) {
+  .lw-link { display: none; }
+  .lw-card .stepper { flex-wrap: wrap; }
+}
+
+/* ---------- Features: list items arrive one after another ---------- */
+@keyframes lmItemIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.features-master-section .reveal.is-visible .engine-feature-item {
+  animation: lmItemIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.features-master-section .reveal.is-visible .engine-feature-list > :nth-child(1) { animation-delay: 0.30s; }
+.features-master-section .reveal.is-visible .engine-feature-list > :nth-child(2) { animation-delay: 0.42s; }
+.features-master-section .reveal.is-visible .engine-feature-list > :nth-child(3) { animation-delay: 0.54s; }
+.features-master-section .reveal.is-visible .engine-feature-list > :nth-child(4) { animation-delay: 0.66s; }
+
+/* ---------- How it works: active step ---------- */
+.overview-step-card { position: relative; overflow: hidden; }
+
+.cat-landing .overview-step-card.is-active,
+[data-theme="dark"] .overview-step-card.is-active {
+  border-color: rgba(234, 88, 12, 0.55);
+  box-shadow: 0 16px 32px -12px var(--accent-glow);
+  transform: translateY(-4px);
+}
+.cat-landing .overview-step-card.is-active .overview-step-icon,
+[data-theme="dark"] .overview-step-card.is-active .overview-step-icon {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  border-color: transparent;
+  color: #ffffff;
+  animation: lmIconPulse 1.8s ease-in-out infinite;
+}
+@keyframes lmIconPulse {
+  0%, 100% { box-shadow: 0 4px 12px -2px var(--accent-glow), 0 0 0 0 rgba(234, 88, 12, 0.35); }
+  50%      { box-shadow: 0 4px 12px -2px var(--accent-glow), 0 0 0 8px rgba(234, 88, 12, 0); }
+}
+.lm-ov-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+}
+.lm-ov-bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  animation: lwFill var(--lm-ov-ms, 2600ms) linear forwards;
+}
+
+/* Trust strip: check marks pop in order once visible */
+@keyframes lmPop {
+  0%   { transform: scale(0) rotate(-40deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.overview-trust-strip.is-visible .overview-trust-item svg {
+  animation: lmPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.overview-trust-strip.is-visible .overview-trust-item:nth-child(1) svg { animation-delay: 0.35s; }
+.overview-trust-strip.is-visible .overview-trust-item:nth-child(2) svg { animation-delay: 0.6s; }
+.overview-trust-strip.is-visible .overview-trust-item:nth-child(3) svg { animation-delay: 0.85s; }
+
+/* ---------- Call to action: slow drifting light behind the copy ---------- */
+.landing-cta-box {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.landing-cta-box::before,
+.landing-cta-box::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+.landing-cta-box::before {
+  top: -45%;
+  left: -12%;
+  background: radial-gradient(circle, rgba(234, 88, 12, 0.22), transparent 68%);
+  animation: lmDriftA 14s ease-in-out infinite alternate;
+}
+.landing-cta-box::after {
+  bottom: -50%;
+  right: -10%;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.2), transparent 68%);
+  animation: lmDriftB 17s ease-in-out infinite alternate;
+}
+@keyframes lmDriftA {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(18%, 14%) scale(1.15); }
+}
+@keyframes lmDriftB {
+  from { transform: translate(0, 0) scale(1.1); }
+  to   { transform: translate(-16%, -12%) scale(0.95); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lm-scroll-progress,
+  .lw-step.active .step-icon,
+  .lw-live-dot,
+  .lw-result-dot,
+  .lw-spin,
+  .landing-cta-box::before,
+  .landing-cta-box::after { animation: none !important; }
+}
+
+/* ==========================================================================
+   Hero: stronger, layered motion
+   Layers use different properties so they compose instead of fighting:
+   transform (drift), scale (entrance, breathing), rotate (orbit), translate
+   (pointer parallax + bobbing). Reduced motion is handled in landing.css.
+   ========================================================================== */
+
+/* The wrappers only clip to the hero; the section already clips, so let the
+   parallax move them without exposing a cut line at the top edge. */
+.hero-section-v2 .hero-papers-visual,
+.hero-section-v2 .hero-airplane-visual { overflow: visible; }
+
+/* ---------- Badges: each one wanders on its own path ---------- */
+@keyframes lmBadgeDrift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25%      { transform: translate(calc(var(--ax) * 0.6), calc(var(--ay) * -1)) rotate(calc(var(--rot) * 1deg)); }
+  50%      { transform: translate(var(--ax), calc(var(--ay) * -0.3)) rotate(0deg); }
+  75%      { transform: translate(calc(var(--ax) * 0.3), var(--ay)) rotate(calc(var(--rot) * -1deg)); }
+}
+@keyframes lmBadgePop {
+  from { opacity: 0; scale: 0.55; }
+}
+
+.hero-section-v2 .float-badge {
+  animation:
+    lmBadgeDrift var(--bd, 9s) ease-in-out infinite,
+    lmBadgePop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  animation-delay: var(--bdelay, 0s), var(--pop, 0.3s);
+}
+.hero-section-v2 .badge-1 { --ax: 18px;  --ay: 13px; --rot: 1.6; --bd: 9s;  --bdelay: -2s; --pop: 0.35s; }
+.hero-section-v2 .badge-2 { --ax: -20px; --ay: 15px; --rot: -1.4; --bd: 11s; --bdelay: -5s; --pop: 0.55s; }
+.hero-section-v2 .badge-3 { --ax: 16px;  --ay: 11px; --rot: -1.8; --bd: 10s; --bdelay: -7s; --pop: 0.75s; }
+.hero-section-v2 .badge-4 { --ax: -18px; --ay: 14px; --rot: 1.5; --bd: 12s; --bdelay: -3s; --pop: 0.95s; }
+
+/* ---------- Big visuals: bob and tilt on top of their existing float ---------- */
+@keyframes lmBobPapers {
+  from { translate: 0 10px;  rotate: -1.5deg; }
+  to   { translate: 0 -18px; rotate: 2.5deg; }
+}
+@keyframes lmBobPlane {
+  from { translate: 0 12px;  rotate: 2deg; }
+  to   { translate: 0 -22px; rotate: -3deg; }
+}
+
+.hero-section-v2 .hero-papers-visual img {
+  animation: papersFloat 7s ease-in-out infinite alternate, lmBobPapers 5.6s ease-in-out infinite alternate;
+}
+.hero-section-v2 .hero-airplane-visual img {
+  animation: airplaneFloat 6s ease-in-out infinite alternate, lmBobPlane 6.4s ease-in-out infinite alternate;
+}
+@media (min-width: 992px) {
+  .hero-section-v2 .hero-papers-visual img {
+    animation: papersFloatDesktop 8s ease-in-out infinite alternate, lmBobPapers 5.6s ease-in-out infinite alternate;
+  }
+  .hero-section-v2 .hero-airplane-visual img {
+    animation: airplaneFloatDesktop 7s ease-in-out infinite alternate, lmBobPlane 6.4s ease-in-out infinite alternate;
+  }
+}
+@media (min-width: 1400px) {
+  .hero-section-v2 .hero-papers-visual img {
+    animation: papersFloatDesktop 9s ease-in-out infinite alternate, lmBobPapers 5.6s ease-in-out infinite alternate;
+  }
+  .hero-section-v2 .hero-airplane-visual img {
+    animation: airplaneFloatDesktop 8s ease-in-out infinite alternate, lmBobPlane 6.4s ease-in-out infinite alternate;
+  }
+}
+
+/* ---------- Orbit rings: breathe, and a light travels around each one ---------- */
+@keyframes lmRingSpin   { to { rotate: 360deg; } }
+@keyframes lmRingBreath {
+  from { scale: 0.985; opacity: 0.65; }
+  to   { scale: 1.03;  opacity: 1; }
+}
+
+.hero-section-v2 .hero-orbit-mask span {
+  animation: lmRingSpin 48s linear infinite, lmRingBreath 7s ease-in-out infinite alternate;
+}
+.hero-section-v2 .hero-orbit-mask .ring-2 {
+  animation-duration: 76s, 9s;
+  animation-direction: reverse, alternate;
+}
+.hero-orbit-mask span::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  box-shadow: 0 0 12px 3px rgba(249, 115, 22, 0.65);
+}
+.hero-orbit-mask .ring-2::after { top: auto; bottom: -4px; }

@@ -9,7 +9,6 @@ import {
   ArrowLeft, 
   Sparkles, 
   ShieldCheck, 
-  FileText, 
   CheckCircle2,
   Circle,
   AlertCircle
@@ -20,7 +19,9 @@ import { useAuth } from "../context/AuthContext";
 import { useFeedbackModal } from "../hooks/useFeedbackModel";
 import FeedbackModal from "../components/modals/FeedbackModal";
 import citeWiseLogo from "../assets/citewise-logo.png";
+import { AuthPreviewCard, AuthBackdropChips } from "../components/auth/AuthShowcaseMotion";
 import "../styles/AuthSplitScreen.css";
+import "../styles/auth-motion.css";
 
 // Mirrors passwordPolicyError in api/src/modules/auth/auth.controller.js.
 const PASSWORD_RULES = [
@@ -45,6 +46,33 @@ function passwordExtraError(password, email) {
   }
   return null;
 }
+
+const REGISTER_SCENES = [
+  {
+    badge: "Automated Synthesis",
+    title: "Multi-Source Literature Correlation",
+    gapLabel: "Methodological Opportunity",
+    gap: "Identified 3 under-explored avenues in multimodal scientific claim verification across distributed datasets.",
+    metaLabel: "Citation Confidence",
+    score: 99.2,
+  },
+  {
+    badge: "Source Trail",
+    title: "Claims Linked to Their Source Pages",
+    gapLabel: "Verified Provenance",
+    gap: "Every extracted claim points back to the page it came from, so you can check it in seconds.",
+    metaLabel: "Source Match",
+    score: 97.8,
+  },
+  {
+    badge: "Reference Builder",
+    title: "References Formatted as You Draft",
+    gapLabel: "Formatted Output",
+    gap: "In-text citations and reference lists stay in APA 7th or IEEE without manual cleanup.",
+    metaLabel: "Format Check",
+    score: 99.6,
+  },
+];
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -109,6 +137,7 @@ export default function Register() {
         <div className="auth-glow-orb-1" />
         <div className="auth-glow-orb-2" />
         <div className="auth-mesh-grid" />
+        <AuthBackdropChips />
 
         {/* Header with Brand Logo & Back to Home */}
         <div className="auth-showcase-header">
@@ -147,33 +176,7 @@ export default function Register() {
           </p>
 
           {/* Interactive Feature Preview Card */}
-          <div className="auth-preview-card">
-            <div className="auth-preview-header">
-              <div className="auth-preview-status">
-                <span className="auth-preview-status-dot" />
-                <span>AI Gap Extraction Matrix</span>
-              </div>
-              <span className="auth-preview-badge">Automated Synthesis</span>
-            </div>
-
-            <div className="auth-preview-paper-title">
-              <FileText size={16} color="#ea580c" />
-              <span>Multi-Source Literature Correlation</span>
-            </div>
-
-            <div className="auth-preview-gap-box">
-              <span className="auth-preview-gap-label">Methodological Opportunity</span>
-              Identified 3 under-explored avenues in multimodal scientific claim verification across distributed datasets.
-            </div>
-
-            <div className="auth-preview-meta">
-              <span>Citation Confidence</span>
-              <div className="auth-preview-progress-bar">
-                <div className="auth-preview-progress-fill" style={{ width: "96%" }} />
-              </div>
-              <span style={{ color: "#ea580c", fontWeight: 700 }}>99.2%</span>
-            </div>
-          </div>
+          <AuthPreviewCard status="AI Gap Extraction Matrix" scenes={REGISTER_SCENES} />
 
           {/* Capability Feature Badges */}
           <div className="auth-feature-row">

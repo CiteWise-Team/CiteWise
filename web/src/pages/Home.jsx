@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import PublicLayout from "../layouts/PublicLayout";
 import "../styles/landing.css";
+import "../styles/landing-motion.css";
 import { useAuth } from "../context/AuthContext";
 import papersHero from "../assets/Photoroom.png";
 import airplaneHero from "../assets/left.png";
@@ -22,7 +23,9 @@ import {
   ShieldCheck,
   Zap,
   SplitSquareVertical,
-  FileCheck
+  FileCheck,
+  Check,
+  Loader2
 } from "lucide-react";
 
 function useScrollReveal() {
@@ -45,13 +48,6 @@ function useScrollReveal() {
   }, []);
   return rootRef;
 }
-
-const STEPS = [
-  { icon: "description", label: "Extractor", active: true },
-  { icon: "summarize", label: "Summarizer" },
-  { icon: "extension", label: "Gap Extractor" },
-  { icon: "psychology", label: "Topic Suggester" },
-];
 
 const PAPERS = [
   { title: "SciRAG: Adaptive, Citation-Aware, and Outline-Guided Retrieval and Synthesis for Scientific Literature", selected: true },
@@ -132,18 +128,338 @@ const OVERVIEW_STEPS = [
   },
 ];
 
+/* ---------- Motion helpers ---------- */
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(
+    () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (!mq) return undefined;
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return reduced;
+}
+
+function useInView(threshold = 0.3) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [threshold]);
+  return [ref, inView];
+}
+
+// Moves the hero visuals a few pixels with the pointer (fine pointers only).
+function useHeroParallax() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    let frame = 0;
+    const onMove = (e) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect();
+        el.style.setProperty("--mx", (((e.clientX - r.left) / r.width) * 2 - 1).toFixed(3));
+        el.style.setProperty("--my", (((e.clientY - r.top) / r.height) * 2 - 1).toFixed(3));
+      });
+    };
+    const onLeave = () => {
+      el.style.setProperty("--mx", "0");
+      el.style.setProperty("--my", "0");
+    };
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
+    return () => {
+      cancelAnimationFrame(frame);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+    };
+  }, []);
+  return ref;
+}
+
+/* ---------- Live workflow preview ---------- */
+
+const DEMO_STEP_MS = 3800;
+
+const DEMO_STEPS = [
+  {
+    icon: "description",
+    label: "Extractor",
+    status: "Extracting sections",
+    sub: "Upload academic PDF or choose from group library.",
+    result: "Extracted sections",
+    lines: [
+      ["Abstract", "Aim and scope captured"],
+      ["Methods", "Retrieval and outline-guided synthesis"],
+      ["Limitations", "Study constraints flagged"],
+    ],
+  },
+  {
+    icon: "summarize",
+    label: "Summarizer",
+    status: "Summarizing findings",
+    sub: "Condensing the extracted sections into a short summary.",
+    result: "Paper summary",
+    lines: [
+      ["Aim", "Citation-grounded synthesis of scientific literature"],
+      ["Finding", "Outline guidance keeps claims traceable"],
+      ["Constraint", "Evaluated on a narrow benchmark"],
+    ],
+  },
+  {
+    icon: "extension",
+    label: "Gap Extractor",
+    status: "Finding research gaps",
+    sub: "Comparing summaries to find what the literature misses.",
+    result: "Research gaps",
+    lines: [
+      ["Gap 1", "Validation under limited compute"],
+      ["Gap 2", "Real-time citation graphs"],
+      ["Gap 3", "Coverage beyond English sources"],
+    ],
+  },
+  {
+    icon: "psychology",
+    label: "Topic Suggester",
+    status: "Drafting thesis topics",
+    sub: "Turning selected gaps into defensible thesis topics.",
+    result: "Suggested topic",
+    lines: [
+      ["Topic", "Lightweight citation-aware synthesis for small labs"],
+      ["Rationale", "Answers Gap 1 and Gap 2"],
+      ["Next", "Send to CiteWise to start drafting"],
+    ],
+  },
+];
+
+function LiveWorkflowCard({ email }) {
+  const [cardRef, inView] = useInView(0.35);
+  const reduced = usePrefersReducedMotion();
+  const [step, setStep] = useState(0);
+  const current = DEMO_STEPS[step];
+
+  // Advance on its own while the card is on screen. Clicking a step jumps there
+  // and the timer simply restarts from that step.
+  useEffect(() => {
+    if (!inView || reduced) return undefined;
+    const id = setTimeout(() => setStep((s) => (s + 1) % DEMO_STEPS.length), DEMO_STEP_MS);
+    return () => clearTimeout(id);
+  }, [inView, reduced, step]);
+
+  return (
+    <div
+      className="glass-card workflow-card reveal lw-card"
+      ref={cardRef}
+      style={{ "--lw-ms": `${DEMO_STEP_MS}ms` }}
+    >
+      <div className="workflow-topbar">
+        <div className="workflow-brand">
+          <span className="mark">
+            <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>layers</span>
+          </span>
+          CATalyst Workbench
+        </div>
+        <div className="workflow-user">
+          {email || "researcher@university.edu"}
+          <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>expand_more</span>
+        </div>
+      </div>
+
+      <div className="workflow-body">
+        <div className="workflow-breadcrumb" style={{ textAlign: "left" }}>
+          Workspaces / <span className="current">Adolescent Gun Violence Thesis</span>
+        </div>
+
+        <div className="workflow-header-row" style={{ textAlign: "left" }}>
+          <div style={{ textAlign: "left" }}>
+            <span className="eyebrow-label" style={{ textAlign: "left" }}>Research Workspace</span>
+            <h3 className="workflow-title" style={{ textAlign: "left" }}>Workflow Sequence</h3>
+            <p className="workflow-sub" style={{ textAlign: "left" }}>
+              Process a document through extraction, summarization, gap analysis, and topic discovery.
+            </p>
+          </div>
+          <span className="status-badge lw-status" style={{ alignSelf: "flex-start" }}>
+            <span className="dot" />
+            <span key={step} className="lw-status-text">{current.status}</span>
+          </span>
+        </div>
+
+        <div className="stepper" style={{ justifyContent: "flex-start" }}>
+          {DEMO_STEPS.map((s, i) => (
+            <Fragment key={s.label}>
+              <button
+                type="button"
+                className={`step lw-step ${i === step ? "active" : ""} ${i < step ? "done" : ""}`}
+                aria-current={i === step ? "step" : undefined}
+                aria-label={`Show the ${s.label} step`}
+                onClick={() => setStep(i)}
+                style={{ alignItems: "center" }}
+              >
+                <div className="step-icon">
+                  {i < step ? (
+                    <Check size={18} strokeWidth={2.6} />
+                  ) : (
+                    <span className="material-symbols-outlined">{s.icon}</span>
+                  )}
+                </div>
+                {s.label}
+              </button>
+              {i < DEMO_STEPS.length - 1 && (
+                <span className={`lw-link ${i < step ? "is-done" : ""}`} aria-hidden="true">
+                  {i === step && <span key={step} className="lw-link-fill" />}
+                </span>
+              )}
+            </Fragment>
+          ))}
+        </div>
+
+        <div className="workflow-panels">
+          <div className="panel" style={{ textAlign: "left" }}>
+            <div className="panel-title">
+              <h5>Input</h5>
+              <span className="lw-live"><span className="lw-live-dot" />Live preview</span>
+            </div>
+            <div className="panel-sub">{current.sub}</div>
+
+            <div className="lw-input-body">
+              {step === 0 ? (
+                <div className="dropzone lw-dropzone" key="dropzone">
+                  <span className="material-symbols-outlined">cloud_upload</span>
+                  <h6>Ready to extract?</h6>
+                  <p>Drop PDF files or click to browse</p>
+                  <div className="lw-file">
+                    <FileText size={15} />
+                    <span className="lw-file-name">SciRAG_adaptive_synthesis.pdf</span>
+                    <span className="lw-file-bar"><span className="lw-file-bar-fill" /></span>
+                  </div>
+                </div>
+              ) : (
+                <div className="lw-chain" key={`chain-${step}`}>
+                  <div className="lw-file is-static">
+                    <FileText size={15} />
+                    <span className="lw-file-name">SciRAG_adaptive_synthesis.pdf</span>
+                  </div>
+                  {DEMO_STEPS.slice(0, step).map((d, i) => (
+                    <div className="lw-done-chip" style={{ "--i": i }} key={d.label}>
+                      <Check size={13} strokeWidth={2.8} />
+                      {d.result}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button type="button" className="btn fw-bold btn-glow run-btn lw-run" tabIndex={-1}>
+              <span key={step} className="lw-run-fill" />
+              <Loader2 size={17} className="lw-spin" />
+              <span>Running {current.label}</span>
+            </button>
+          </div>
+
+          <div className="panel" style={{ textAlign: "left" }}>
+            <div className="tab-row" style={{ justifyContent: "flex-start" }}>
+              <span className="tab-item">Papers</span>
+              <span className="tab-item active">Result</span>
+            </div>
+
+            {PAPERS.map((p) => (
+              <div
+                className={`paper-item lw-paper ${p.selected ? "selected" : ""}`}
+                key={p.title}
+                style={{ textAlign: "left" }}
+              >
+                {p.title}
+              </div>
+            ))}
+
+            <div className="lw-result" key={`result-${step}`}>
+              <div className="lw-result-head">
+                <span className="lw-result-dot" />
+                {current.result}
+              </div>
+              {current.lines.map(([k, v], i) => (
+                <div className="lw-line" style={{ "--i": i }} key={k}>
+                  <span className="lw-line-k">{k}</span>
+                  <span className="lw-line-v">{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- How it works: steps light up in order ---------- */
+
+const OV_STEP_MS = 2600;
+
+function OverviewSteps() {
+  const [rowRef, inView] = useInView(0.25);
+  const reduced = usePrefersReducedMotion();
+  const [active, setActive] = useState(-1);
+
+  useEffect(() => {
+    if (!inView || reduced) return undefined;
+    const id = setTimeout(
+      () => setActive((a) => (a + 1) % OVERVIEW_STEPS.length),
+      active < 0 ? 400 : OV_STEP_MS
+    );
+    return () => clearTimeout(id);
+  }, [inView, reduced, active]);
+
+  return (
+    <div className="row g-3 reveal" ref={rowRef} style={{ "--lm-ov-ms": `${OV_STEP_MS}ms` }}>
+      {OVERVIEW_STEPS.map((step, i) => (
+        <div className="col-lg-3 col-md-6" key={step.num}>
+          <div className={`overview-step-card ${active === i ? "is-active" : ""}`}>
+            <div className="d-flex align-items-center justify-content-between mb-3">
+              <span className="overview-step-num">{step.num}</span>
+              <div className="overview-step-icon">
+                {step.icon}
+              </div>
+            </div>
+            <h4 className="overview-step-title">{step.title}</h4>
+            <p className="overview-step-desc">{step.desc}</p>
+            {active === i && (
+              <span className="lm-ov-bar" aria-hidden="true">
+                <span key={`${i}-${active}`} className="lm-ov-bar-fill" />
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   const containerRef = useScrollReveal();
+  const heroRef = useHeroParallax();
   const { user, isAuthenticated } = useAuth();
 
   return (
     <PublicLayout>
       <div className="cat-landing" ref={containerRef}>
+        <div className="lm-scroll-progress" aria-hidden="true" />
 
         {/* ==========================================================================
             1. HOME SECTION (Hero + Workflow Card Preview)
             ========================================================================== */}
-        <section id="home" className="hero-section-v2">
+        <section id="home" className="hero-section-v2" ref={heroRef}>
           <div className="hero-orbit-mask d-none d-lg-block">
             <span className="ring-1" />
             <span className="ring-2" />
@@ -225,88 +541,9 @@ export default function Home() {
           </div>
         </section>
 
-        {/* WORKFLOW CARD (Interactive simulation inside Home section) */}
+        {/* WORKFLOW CARD: plays through the four steps on its own */}
         <section className="container pb-5">
-          <div className="glass-card workflow-card reveal">
-
-            <div className="workflow-topbar">
-              <div className="workflow-brand">
-                <span className="mark">
-                  <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>layers</span>
-                </span>
-                CATalyst Workbench
-              </div>
-              <div className="workflow-user">
-                {user?.email || "researcher@university.edu"}
-                <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>expand_more</span>
-              </div>
-            </div>
-
-            <div className="workflow-body">
-              <div className="workflow-breadcrumb" style={{ textAlign: "left" }}>
-                Workspaces / <span className="current">Adolescent Gun Violence Thesis</span>
-              </div>
-
-              <div className="workflow-header-row" style={{ textAlign: "left" }}>
-                <div style={{ textAlign: "left" }}>
-                  <span className="eyebrow-label" style={{ textAlign: "left" }}>Research Workspace</span>
-                  <h3 className="workflow-title" style={{ textAlign: "left" }}>Workflow Sequence</h3>
-                  <p className="workflow-sub" style={{ textAlign: "left" }}>
-                    Process a document through extraction, summarization, gap analysis, and topic discovery.
-                  </p>
-                </div>
-                <span className="status-badge" style={{ alignSelf: "flex-start" }}>
-                  <span className="dot" /> Ready to work
-                </span>
-              </div>
-
-              <div className="stepper" style={{ justifyContent: "flex-start" }}>
-                {STEPS.map((s) => (
-                  <div className={`step ${s.active ? "active" : ""}`} key={s.label} style={{ alignItems: "center" }}>
-                    <div className="step-icon">
-                      <span className="material-symbols-outlined">{s.icon}</span>
-                    </div>
-                    {s.label}
-                  </div>
-                ))}
-              </div>
-
-              <div className="workflow-panels">
-                <div className="panel" style={{ textAlign: "left" }}>
-                  <div className="panel-title">
-                    <h5>Input</h5>
-                  </div>
-                  <div className="panel-sub">Upload academic PDF or choose from group library.</div>
-
-                  <div className="dropzone">
-                    <span className="material-symbols-outlined">cloud_upload</span>
-                    <h6>Ready to extract?</h6>
-                    <p>Drop PDF files or click to browse</p>
-                    <button className="btn btn-sm fw-bold btn-glow">Upload File</button>
-                  </div>
-
-                  <button className="btn fw-bold btn-glow run-btn">
-                    <span className="material-symbols-outlined" style={{ fontSize: "1.1rem" }}>play_arrow</span>
-                    Run Workflow
-                  </button>
-                </div>
-
-                <div className="panel" style={{ textAlign: "left" }}>
-                  <div className="tab-row" style={{ justifyContent: "flex-start" }}>
-                    <span className="tab-item active">Papers</span>
-                    <span className="tab-item">Result</span>
-                  </div>
-
-                  {PAPERS.map((p) => (
-                    <div className={`paper-item ${p.selected ? "selected" : ""}`} key={p.title} style={{ textAlign: "left" }}>
-                      {p.title}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-          </div>
+          <LiveWorkflowCard email={user?.email} />
         </section>
 
         {/* ==========================================================================
@@ -428,23 +665,8 @@ export default function Home() {
               </p>
             </div>
 
-            {/* 4 Clean Step Cards */}
-            <div className="row g-3 reveal">
-              {OVERVIEW_STEPS.map((step) => (
-                <div className="col-lg-3 col-md-6" key={step.num}>
-                  <div className="overview-step-card">
-                    <div className="d-flex align-items-center justify-content-between mb-3">
-                      <span className="overview-step-num">{step.num}</span>
-                      <div className="overview-step-icon">
-                        {step.icon}
-                      </div>
-                    </div>
-                    <h4 className="overview-step-title">{step.title}</h4>
-                    <p className="overview-step-desc">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* Four steps, lit in order */}
+            <OverviewSteps />
 
             {/* Trust Highlights Strip */}
             <div className="overview-trust-strip mt-4 reveal">
