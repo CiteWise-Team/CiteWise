@@ -37,7 +37,7 @@ export default function SummarizerResult({
         setPapers(sorted);
         if (sorted.length > 0) onComplete?.();
 
-        if (result) {
+        if (result && typeof result === "object") {
           setSelectedPaper(result);
           setActiveTab("result");
         } else if (sorted.length > 0 && !selectedPaper) {

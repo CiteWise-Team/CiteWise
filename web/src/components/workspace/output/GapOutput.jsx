@@ -31,8 +31,15 @@ export default function GapOutput({
         setItems(data);
         if (data.length > 0) onComplete?.();
 
-        if (result?.id) {
-          setActiveId(result.id);
+        const matchedById = result?.id ? data.find((item) => item.id === result.id) : null;
+        const matchedByTitle = !matchedById && result?.title
+          ? [...data].reverse().find((item) => item.title === result.title)
+          : null;
+
+        if (matchedById) {
+          setActiveId(matchedById.id);
+        } else if (matchedByTitle) {
+          setActiveId(matchedByTitle.id);
         } else if (data.length > 0) {
           setActiveId(data[0].id);
         }

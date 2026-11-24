@@ -10,12 +10,12 @@ export async function runGapExtractorService(data){
 
     try{
         const summary = await fetchSummaryDataByIdService(id);
-        if(!summary){
-            return { status:404, message: "No summary data from given Id"}
+        if(!summary || summary.status >= 400 || !summary.data){
+            return { status: summary?.status || 404, message: summary?.message || "No summary data from given Id" };
         }
         const overallSummary = 
-            summary.data?.introduction + summary.data?.literature_review + summary.data?.methodology 
-            + summary.data?.discussion + summary.data?.results + summary.data?.conclusion 
+            (summary.data.introduction ?? "") + (summary.data.literature_review ?? "") + (summary.data.methodology ?? "")
+            + (summary.data.discussion ?? "") + (summary.data.results ?? "") + (summary.data.conclusion ?? "");
 
         
         const finalSummarizedData = {
@@ -23,8 +23,9 @@ export async function runGapExtractorService(data){
             summary : overallSummary,
         }
         const gapResult = await triggerGapExtractorWorkflow(finalSummarizedData);
+        const gapPayload = Array.isArray(gapResult) ? gapResult[0] : gapResult;
         
-        const insertedData = await insertDataToGapRepository(groupId,summary.data?.title,gapResult[0]);
+        const insertedData = await insertDataToGapRepository(groupId, summary.data.title, gapPayload);
        
         
         return {
@@ -42,6 +43,24 @@ export async function runGapExtractorService(data){
 }
 
 
+function parseGapRow(rawGap) {
+  if (Array.isArray(rawGap)) {
+    return rawGap.map((g) => String(g ?? "").trim()).filter(Boolean);
+  }
+  if (typeof rawGap !== "string") return [];
+  const trimmed = rawGap.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.map((g) => String(g ?? "").trim()).filter(Boolean);
+    }
+    return [String(parsed ?? "").trim()].filter(Boolean);
+  } catch {
+    return trimmed.split(/;\s*/).map((g) => g.trim()).filter(Boolean);
+  }
+}
+
 export async function fetchGapsDataUsingGroupIdService(group_id) {
   try {
     const data = await getGapUsingGroupIdRepo(group_id);
@@ -55,7 +74,7 @@ export async function fetchGapsDataUsingGroupIdService(group_id) {
     let counter = 1;
 
     for (const row of data) {
-      const gapsArray = JSON.parse(row.gap); // convert string → array
+      const gapsArray = parseGapRow(row.gap);
 
       for (const gapText of gapsArray) {
         flattenedGaps.push({

@@ -119,8 +119,7 @@ export default function GroupWorkflow() {
     return () => { cancelled = true; };
   }, [routeGroupId]);
 
-  const handleStepResult = useCallback((stepKey, nextResult) => {
-    setResult(nextResult);
+  const markStepCompleted = useCallback((stepKey) => {
     setCompletedSteps((completed) => {
       if (completed.includes(stepKey)) return completed;
       const nextCompleted = [...completed, stepKey];
@@ -134,9 +133,14 @@ export default function GroupWorkflow() {
     });
   }, [routeGroupId]);
 
+  const handleStepResult = useCallback((stepKey, nextResult) => {
+    setResult(nextResult);
+    markStepCompleted(stepKey);
+  }, [markStepCompleted]);
+
   const handleResultComplete = useCallback(() => {
-    handleStepResult(step, true);
-  }, [handleStepResult, step]);
+    markStepCompleted(step);
+  }, [markStepCompleted, step]);
 
   if (missingFor === routeGroupId) {
     return (

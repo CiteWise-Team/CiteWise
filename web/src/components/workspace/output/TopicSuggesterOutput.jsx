@@ -41,7 +41,7 @@ export default function TopicSuggesterOutput({
           } catch {}
         }
 
-        if (result?.id) {
+        if (result?.id && data.some((item) => item.id === result.id)) {
           setActiveId(result.id);
         } else if (data.length > 0) {
           setActiveId(data[0].id);
