@@ -624,6 +624,27 @@ export function reconcileInTextCitations(text, metas) {
   return { text: out, fixes, unverified };
 }
 
+// The model often writes curly quotes/apostrophes ("Teachers’ perception") where
+// the extracted citation has straight ones, so compare on a normalized form.
+function normalizeForCitationMatch(text) {
+  return String(text ?? '')
+    .replace(/[‘’‚‛ʼ′`´]/g, "'")
+    .replace(/[“”„‟″«»]/g, '"')
+    .replace(/[‐-―]/g, '-')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+/** True when the draft text cites this source by any of its known forms. */
+export function isCitedIn(meta, text) {
+  const c = meta?.citation;
+  if (!c) return false;
+  const haystack = normalizeForCitationMatch(text);
+  return [c.inTextParenthetical, c.inTextAuthors, c.shortTitle, c.sourceFile]
+    .filter(Boolean)
+    .some((needle) => haystack.includes(normalizeForCitationMatch(needle)));
+}
+
 /**
  * Authoritative APA reference list, alphabetised by the string APA sorts on.
  * Built entirely from extracted metadata so the saved draft's references can

@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import supabase from '../../common/config/supabaseClient.js';
 import requireAuth from '../../common/middlewares/auth.middleware.js';
 import { deriveSessionId } from './helpers/sessionId.js';
+import { requireGroupAccess } from '../../common/middlewares/groupAccess.middleware.js';
 
 const router = express.Router();
 
@@ -270,7 +271,7 @@ async function fetchCatalystData(workspaceId) {
 }
 
 // GET /api/catalyst/:groupId  – used by the existing CiteWise WorkspaceImportLayout GET check
-router.get('/:groupId', async (req, res) => {
+router.get('/:groupId', requireGroupAccess((req) => req.params.groupId), async (req, res) => {
   const { groupId } = req.params;
   if (!groupId?.trim()) {
     return res.status(400).json({ success: false, message: 'Workspace ID is required', data: null });
@@ -285,7 +286,7 @@ router.get('/:groupId', async (req, res) => {
 });
 
 // GET /api/catalyst/:groupId/topics  – return all topics for a group (for topic-picker UI)
-router.get('/:groupId/topics', async (req, res) => {
+router.get('/:groupId/topics', requireGroupAccess((req) => req.params.groupId), async (req, res) => {
   const { groupId } = req.params;
   if (!groupId?.trim()) {
     return res.status(400).json({ success: false, message: 'Workspace ID is required', data: null });
@@ -328,7 +329,7 @@ router.get('/:groupId/topics', async (req, res) => {
 // POST /api/catalyst/import  – fetch + persist research_baselines + return sessionId
 // Body: { workspaceId, title?, rationale?, setupMode?, setupStartedAt? }
 //   title + rationale override the DB lookup — used when user has picked a specific topic
-router.post('/import', async (req, res) => {
+router.post('/import', requireGroupAccess((req) => req.body?.workspaceId), async (req, res) => {
   const workspaceId      = req.body?.workspaceId;
   const titleOverride    = req.body?.title?.trim()    || null;
   const rationaleOverride= req.body?.rationale?.trim()|| null;
@@ -414,7 +415,7 @@ router.post('/import', async (req, res) => {
 
 // POST /api/catalyst/manual-baseline  – T1 ?mode=manual baseline entry
 // Body: { workspaceId?, title, rationale, gaps, setupStartedAt?, reuseSession? }
-router.post('/manual-baseline', async (req, res) => {
+router.post('/manual-baseline', requireGroupAccess((req) => req.body?.workspaceId), async (req, res) => {
   const workspaceId    = String(req.body?.workspaceId ?? '').trim();
   const title          = String(req.body?.title ?? '').trim();
   const rationale      = String(req.body?.rationale ?? '').trim();

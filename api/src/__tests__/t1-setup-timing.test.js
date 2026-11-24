@@ -140,12 +140,14 @@ describe('T1 Setup-Time Reduction & ?mode=manual Telemetry', () => {
       baselines: [],
     };
 
+    vi.doMock('../common/middlewares/groupAccess.middleware.js', () => ({ requireGroupAccess: () => (_req, _res, next) => next() }));
     vi.doMock('../common/config/supabaseClient.js', () => ({ default: makeCatalystSupabaseMock(dbState) }));
     app = (await import('../app.js')).default;
   });
 
   afterEach(() => {
     vi.doUnmock('../common/config/supabaseClient.js');
+    vi.doUnmock('../common/middlewares/groupAccess.middleware.js');
   });
 
   it('records auto vs manual setup timings and exports CSV & JSON with reductionPct', async () => {
@@ -240,6 +242,7 @@ describe('T1 Setup-Time Reduction & ?mode=manual Telemetry', () => {
 
   it('degrades gracefully when migration 006 columns are not yet in Supabase', async () => {
     vi.resetModules();
+    vi.doMock('../common/middlewares/groupAccess.middleware.js', () => ({ requireGroupAccess: () => (_req, _res, next) => next() }));
     vi.doMock('../common/config/supabaseClient.js', () => ({
       default: makeCatalystSupabaseMock(dbState, { missingTimingCols: true }),
     }));

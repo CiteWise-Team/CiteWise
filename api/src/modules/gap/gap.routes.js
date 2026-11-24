@@ -1,5 +1,6 @@
 import express from "express";
 import requireAuth from "../../common/middlewares/auth.middleware.js";
+import { requireGroupAccess } from "../../common/middlewares/groupAccess.middleware.js";
 import { 
   startGapExtractorController, 
   getGapJobStatusController,
@@ -12,7 +13,7 @@ const router = express.Router();
 router.use(requireAuth);
 
 router.get("/status/:jobId", getGapJobStatusController);
-router.post("/:group_id", startGapExtractorController);
-router.get("/:group_id", fetchGapDataByGroupIdController );
+router.post("/:group_id", requireGroupAccess((req) => [req.params.group_id, req.body?.group_id, req.body?.id?.group_id]), startGapExtractorController);
+router.get("/:group_id", requireGroupAccess((req) => req.params.group_id), fetchGapDataByGroupIdController );
 
 export default router;

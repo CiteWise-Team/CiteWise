@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { requireGroupAccess } from "../../common/middlewares/groupAccess.middleware.js";
 import multer from "multer";
 import { runExtractorService, fetchExtractedDataUsingGroupIdService } from "./extractor.service.js";
 import { getPresignedDownloadUrl } from "../../common/config/r2Client.js";
@@ -21,6 +22,7 @@ setInterval(() => {
 
 export const startExtractorController = [
   upload.single("file"), 
+  requireGroupAccess((req) => req.body?.group_id),
   async (req, res, next) => {
     try {
       const file = req.file?.buffer;

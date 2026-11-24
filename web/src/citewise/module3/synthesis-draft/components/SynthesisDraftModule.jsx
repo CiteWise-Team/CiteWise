@@ -182,6 +182,7 @@
     const GENERATING_STORAGE_KEY = `citewise_synthesis_generating_${sessionId}`;
 
     const [approvedDocuments, setApprovedDocuments] = useState([]);
+    const [defaultSources, setDefaultSources] = useState([]);
     const [loading, setLoading] = useState(true);
     const [generationStatus, setGenerationStatus] = useState(() => {
       if (sessionId && typeof window !== "undefined") {
@@ -583,8 +584,19 @@
       return unsub;
     }, [sessionId, DOCS_STORAGE_KEY]);
 
+    useEffect(() => {
+      if (!sessionId) return;
+      let cancelled = false;
+      apiFetch(`/api/v1/synthesis/default-source?sessionId=${encodeURIComponent(sessionId)}`)
+        .then(({ res, data }) => {
+          if (!cancelled && res.ok && Array.isArray(data?.data)) setDefaultSources(data.data);
+        })
+        .catch((err) => console.warn("Could not load CATalyst default source:", err));
+      return () => { cancelled = true; };
+    }, [sessionId]);
+
     const startSynthesis = async () => {
-      if (approvedDocuments.length === 0) {
+      if (approvedDocuments.length === 0 && defaultSources.length === 0) {
         setStatusText("No approved documents available. Please approve documents in AI Assessment first.");
         return;
       }
@@ -1004,8 +1016,9 @@
                 statusText={statusText}
                 onSynthesize={startSynthesis}
                 onRegenerate={resetGeneration}
-                hasApprovedDocuments={approvedDocuments.length > 0}
-                approvedCount={approvedDocuments.length}
+                hasApprovedDocuments={approvedDocuments.length > 0 || defaultSources.length > 0}
+                approvedCount={approvedDocuments.length + defaultSources.length}
+                defaultSources={approvedDocuments.length === 0 ? defaultSources : []}
               />
             </div>
             <div style={styles.leftColumnRest}>
@@ -1031,6 +1044,7 @@
                 <ApprovedSourceList 
                   sessionId={sessionId}
                   documents={approvedDocuments} 
+                  catalystDocuments={defaultSources}
                   loading={loading} 
                   onUpdateSources={(newDocs) => {
                     setApprovedDocuments(newDocs);

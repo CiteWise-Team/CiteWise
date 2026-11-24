@@ -8,7 +8,7 @@ import * as store from "../../../lib/citewiseStore";
 import { useTheme } from "../../../../context/ThemeContext";
 import ModernToast from "../../../../components/ui/ModernToast";
 
-export default function ApprovedSourceList({ sessionId, documents, loading, onOverrideComplete, onUpdateSources }) {
+export default function ApprovedSourceList({ sessionId, documents, catalystDocuments = [], loading, onOverrideComplete, onUpdateSources }) {
   const { isDark } = useTheme();
   const [editingDoc, setEditingDoc] = useState(null);
   const [citationText, setCitationText] = useState("");
@@ -244,7 +244,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
               letterSpacing: "0.01em",
             }}
           >
-            Source Documents ({documents.length})
+            Source Documents ({documents.length + catalystDocuments.length})
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -317,7 +317,7 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                 Loading source documents...
               </span>
             </div>
-          ) : documents.length === 0 ? (
+          ) : documents.length === 0 && catalystDocuments.length === 0 ? (
             <div
               style={{
                 textAlign: "center",
@@ -343,6 +343,58 @@ export default function ApprovedSourceList({ sessionId, documents, loading, onOv
                 paddingRight: documents.length > 5 ? "4px" : "0px",
               }}
             >
+              {catalystDocuments.map((doc) => (
+                <div
+                  key={doc.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "16px",
+                    padding: "12px",
+                    background: isDark ? "rgba(249, 115, 22, 0.06)" : "#fffaf5",
+                    border: isDark ? "1px solid rgba(249, 115, 22, 0.25)" : "1px solid #fed7aa",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "6px",
+                      background: isDark ? "rgba(249, 115, 22, 0.15)" : "#fff7ef",
+                      border: isDark ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid #fed7aa",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#f97316",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <FileText size={16} />
+                  </div>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px", overflow: "hidden" }}>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                        color: isDark ? "#f9fafb" : "#111827",
+                        textOverflow: "ellipsis",
+                        overflow: "hidden",
+                        whiteSpace: "nowrap",
+                        display: "block",
+                        width: "100%",
+                      }}
+                      title={doc.name}
+                    >
+                      {doc.name}
+                    </span>
+                    <span style={{ fontSize: "0.7rem", color: "#f97316", fontWeight: 600 }}>
+                      Original PDF from CATalyst workflow
+                    </span>
+                  </div>
+                </div>
+              ))}
               {documents.map((doc, idx) => (
                 <div
                   key={doc.id || idx}

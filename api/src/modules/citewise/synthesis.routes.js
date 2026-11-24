@@ -11,11 +11,13 @@ import {
   extractCitationMetadata,
   buildReferenceList,
   reconcileInTextCitations,
+  isCitedIn,
 } from './helpers/citationMetadata.js';
 import { ensurePageOffsets } from './helpers/documentPages.js';
 import { buildCitationTrace } from './helpers/citationTrace.js';
 import { evaluateGapCoverage } from './helpers/gapCoverage.js';
 import { checkApa7Compliance } from './helpers/apaChecker.js';
+import { loadCatalystSourceDocs, loadCatalystSourceRows } from './helpers/catalystSource.js';
 
 const router = express.Router();
 
@@ -203,6 +205,13 @@ function parseJsonArray(str) {
   } catch { return []; }
 }
 
+// The original CATalyst PDF(s) are always sources; skip one the user also
+// uploaded as an RRL paper so it is not cited twice.
+function withCatalystSources(docs, catalystDocs) {
+  const names = new Set((docs ?? []).map((d) => String(d.file_name ?? '').toLowerCase()));
+  return [...(docs ?? []), ...catalystDocs.filter((d) => !names.has(String(d.file_name ?? '').toLowerCase()))];
+}
+
 // Async background synthesis worker (exported for live validation & tests)
 export async function asyncSynthesisJob({
   sessionId,
@@ -225,6 +234,9 @@ export async function asyncSynthesisJob({
 
     // Load insights + determine tiers
     const tieredDocs = await Promise.all(approvedDocs.map(async (doc) => {
+      if (doc.isCatalystSource) {
+        return { doc, insight: null, tier: 'CORE', emphasizedExcerpts: [], customExcerpts: [] };
+      }
       const { data: insights } = await supabase.from('document_insights').select('*').eq('document_id', doc.id).order('id', { ascending: false }).limit(1);
       const insight = insights?.[0] ?? null;
       const { data: excerpts } = insight
@@ -282,7 +294,12 @@ export async function asyncSynthesisJob({
       + 'The primaryFocusGap is the user\'s selected gap and should be treated as the main structural narrative pivot. '
       + 'The remaining gaps provide supporting context. '
       + 'When a source provides emphasizedExcerpts or customHighlights, treat those passages as the user\'s highlighted, highest-priority evidence. '
-      + citationRules;
+      + citationRules
+      + (usableDocs.some(({ doc }) => doc.isCatalystSource)
+        ? (usableDocs.every(({ doc }) => doc.isCatalystSource)
+          ? ' The user selected no RRL papers, so the `approvedDocuments` array holds only the original PDF(s) from the CATalyst workflow. Use them as the default source.'
+          : ' The `approvedDocuments` array also holds the original PDF(s) from the CATalyst workflow that the title and gaps were derived from; cite them alongside the RRL papers.')
+        : '');
 
     // Kept server-side (not sent to n8n) to trace each citation to its page.
     const traceSources = [];
@@ -500,18 +517,7 @@ export async function asyncSynthesisJob({
       (sections?.rationale || '') + ' ' + 
       (sections?.gap || '');
 
-    const citedMetas = allCitationMetas.filter((meta) => {
-      if (!meta?.citation) return false;
-      const inTextP = meta.citation.inTextParenthetical;
-      const inTextAuthors = meta.citation.inTextAuthors;
-      const shortTitle = meta.citation.shortTitle;
-      const srcFile = meta.citation.sourceFile;
-      if (inTextP && fullTextToCheck.includes(inTextP)) return true;
-      if (inTextAuthors && fullTextToCheck.includes(inTextAuthors)) return true;
-      if (shortTitle && fullTextToCheck.includes(shortTitle)) return true;
-      if (srcFile && fullTextToCheck.includes(srcFile)) return true;
-      return false;
-    });
+    const citedMetas = allCitationMetas.filter((meta) => isCitedIn(meta, fullTextToCheck));
 
     const referencesText = citedMetas.length > 0
       ? buildReferenceList(citedMetas)
@@ -745,9 +751,12 @@ router.post('/generate', async (req, res) => {
     approvedDocs = (approvedDocs || []).filter((d) => allowed.has(String(d.id)) && !excludedSet.has(String(d.id)));
   }
 
-  const docsWithText = (approvedDocs ?? []).filter(d => d.parsed_text?.trim() || d.r2_text_key);
+  const docsWithText = withCatalystSources(
+    (approvedDocs ?? []).filter(d => d.parsed_text?.trim() || d.r2_text_key),
+    await loadCatalystSourceDocs(sessionId),
+  );
   if (!docsWithText.length) {
-    return res.status(400).json({ success: false, message: 'Approve at least one document before generating an introduction.' });
+    return res.status(400).json({ success: false, message: 'Approve at least one document, or upload the original PDF in CATalyst, before generating an introduction.' });
   }
 
   // Check for in-flight generation to prevent duplicate concurrent runs
@@ -845,6 +854,27 @@ router.post('/generate', async (req, res) => {
     sessionId,
     message: 'Draft synthesis started in the background.',
   });
+});
+
+// GET /api/v1/synthesis/default-source?sessionId=...
+// The original CATalyst PDF(s) synthesis uses when no RRL paper is approved.
+router.get('/default-source', async (req, res) => {
+  const { sessionId } = req.query;
+  if (!sessionId) return res.status(400).json({ success: false, message: 'sessionId is required' });
+  try {
+    const rows = await loadCatalystSourceRows(sessionId);
+    return res.json({
+      success: true,
+      data: rows.map((row) => ({
+        id: `catalyst-${row.id}`,
+        name: row.file_name || `${row.title || 'CATalyst document'}.pdf`,
+        title: row.title || null,
+        fileUrl: row.file_url || null,
+      })),
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // GET /api/v1/synthesis/status?sessionId=...
@@ -1140,6 +1170,8 @@ router.post('/update-citations', async (req, res) => {
     approvedDocs = approvedDocs.filter((doc) => allowed.has(String(doc.id)));
   }
 
+  approvedDocs = withCatalystSources(approvedDocs, await loadCatalystSourceDocs(sessionId));
+
   if (excludedIds.size > 0) {
     const excludedDocIds = [...excludedIds].map(parseId).filter(Boolean);
     if (excludedDocIds.length > 0) {
@@ -1165,15 +1197,7 @@ router.post('/update-citations', async (req, res) => {
 
   const fullTextToCheck = contentText + ' ' + background + ' ' + rationale + ' ' + gap;
 
-  const citedMetas = allCitationMetas.filter((meta) => {
-    if (!meta?.citation) return false;
-    const { inTextParenthetical, inTextAuthors, shortTitle, sourceFile } = meta.citation;
-    if (inTextParenthetical && fullTextToCheck.includes(inTextParenthetical)) return true;
-    if (inTextAuthors       && fullTextToCheck.includes(inTextAuthors))       return true;
-    if (shortTitle          && fullTextToCheck.includes(shortTitle))          return true;
-    if (sourceFile          && fullTextToCheck.includes(sourceFile))          return true;
-    return false;
-  });
+  const citedMetas = allCitationMetas.filter((meta) => isCitedIn(meta, fullTextToCheck));
 
   const referencesText = citedMetas.length > 0
     ? buildReferenceList(citedMetas)

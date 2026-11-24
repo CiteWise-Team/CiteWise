@@ -7,6 +7,7 @@ import Privacy from "./pages/Privacy";
 import Groups from "./pages/Groups";
 import Upload from "./pages/Upload";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import GroupAccessGate from "./routes/GroupAccessGate";
 import GroupWorkflow from "./pages/Workspace";
 import CiteWiseApp from "./citewise/App";
 import SmartGoals from "./pages/SmartGoals";
@@ -46,7 +47,9 @@ export default function App() {
           path="/workspace/:groupName"
           element={
             <ProtectedRoute>
-              <GroupWorkflow />
+              <GroupAccessGate param="groupName">
+                <GroupWorkflow />
+              </GroupAccessGate>
             </ProtectedRoute>
           }
         />
@@ -56,7 +59,9 @@ export default function App() {
           path="/citewise/:groupId"
           element={
             <ProtectedRoute>
-              <CiteWiseApp />
+              <GroupAccessGate param="groupId">
+                <CiteWiseApp />
+              </GroupAccessGate>
             </ProtectedRoute>
           }
         />
