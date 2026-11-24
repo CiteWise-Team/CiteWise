@@ -10,7 +10,8 @@ export default function SynthesisControlPanel({
   onSynthesize, 
   onRegenerate,
   hasApprovedDocuments,
-  approvedCount
+  approvedCount,
+  defaultSources = []
 }) {
   const { isDark } = useTheme();
   const [open, setOpen] = useState(true);
@@ -60,6 +61,14 @@ export default function SynthesisControlPanel({
           {!hasApprovedDocuments && generationStatus === "idle" && (
             <div style={styles.warningBox}>
               <span style={styles.warningText}>⚠️ No approved documents found. Please approve documents in AI Assessment first.</span>
+            </div>
+          )}
+
+          {defaultSources.length > 0 && generationStatus === "idle" && (
+            <div style={styles.warningBox}>
+              <span style={styles.warningText}>
+                No RRL papers selected. The original CATalyst PDF{defaultSources.length > 1 ? "s" : ""} will be used as the source: {defaultSources.map((d) => d.name).join(", ")}
+              </span>
             </div>
           )}
 
