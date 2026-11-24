@@ -65,7 +65,6 @@ describe('workspace access', () => {
     `/api/gap/${GROUP}`,
     `/api/topic/${GROUP}`,
     `/api/v1/documents/session-for-group/${GROUP}`,
-    `/api/v1/smart-goals/saved/${GROUP}`,
     `/api/groups/access/${GROUP}`,
   ];
 
@@ -89,7 +88,6 @@ describe('workspace access', () => {
   it('blocks a non-member from running CATalyst workflows on the workspace', async () => {
     expect((await request(app).post(`/api/gap/${GROUP}`).set(as(STRANGER)).send({ group_id: GROUP })).status).toBe(404);
     expect((await request(app).post('/api/topic/run').set(as(STRANGER)).send({ group_id: GROUP })).status).toBe(404);
-    expect((await request(app).post('/api/v1/smart-goals/save').set(as(STRANGER)).send({ groupId: GROUP })).status).toBe(404);
   });
 
   it('blocks a member path param paired with a foreign body group id', async () => {

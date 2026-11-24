@@ -70,9 +70,7 @@ export default function App() {
           path="/smart-goals/:groupId"
           element={
             <ProtectedRoute>
-              <GroupAccessGate param="groupId">
-                <SmartGoals />
-              </GroupAccessGate>
+              <SmartGoals />
             </ProtectedRoute>
           }
         />

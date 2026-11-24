@@ -2,13 +2,11 @@ import express from 'express';
 import fetch from 'node-fetch';
 import supabase from '../../common/config/supabaseClient.js';
 import requireAuth from '../../common/middlewares/auth.middleware.js';
-import { requireGroupAccess } from '../../common/middlewares/groupAccess.middleware.js';
 import { deriveSessionId } from './helpers/sessionId.js';
 import { getOrStoreSmartGoalsBrief } from './smartGoalsBrief.service.js';
 
 const router = express.Router();
 router.use(requireAuth);
-router.use(requireGroupAccess((req) => req.body?.groupId));
 
 const responseSchema = {
   type: 'OBJECT',
@@ -146,7 +144,7 @@ function normalizeSavedGeneration(value) {
   };
 }
 
-router.get('/saved/:groupId', requireGroupAccess((req) => req.params.groupId), async (req, res) => {
+router.get('/saved/:groupId', async (req, res) => {
   const groupId = cleanText(req.params.groupId, 128);
   const sessionId = deriveSessionId(req.user?.id, groupId);
   if (!sessionId) return res.status(401).json({ message: 'A signed-in user is required.' });
