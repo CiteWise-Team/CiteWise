@@ -1,5 +1,6 @@
 import express from "express";
 import requireAuth from "../../common/middlewares/auth.middleware.js";
+import { requireGroupAccess } from "../../common/middlewares/groupAccess.middleware.js";
 import { 
   startExtractorController, 
   getExtractionJobStatusController, 
@@ -12,8 +13,13 @@ const router = express.Router();
 // workflows, so they need the same session check as the CiteWise modules.
 router.use(requireAuth);
 
-router.get("/file/view", viewExtractorFileController);
+// R2 keys are catalyst/<group_id>/<file>; anything else is not an extractor file.
+const groupFromFileKey = (req) => {
+  const match = String(req.query.key ?? "").match(/^catalyst\/([^/]+)\//);
+  return match ? match[1] : "invalid-key";
+};
+router.get("/file/view", requireGroupAccess(groupFromFileKey), viewExtractorFileController);
 router.post("/file", startExtractorController);
 router.get("/status/:jobId", getExtractionJobStatusController);
-router.get("/:group_id", fetchExtractorDataByGroupIdController);
+router.get("/:group_id", requireGroupAccess((req) => req.params.group_id), fetchExtractorDataByGroupIdController);
 export default router;

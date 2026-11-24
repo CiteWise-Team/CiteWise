@@ -7,6 +7,7 @@ import requireAuth from '../../common/middlewares/auth.middleware.js';
 import { scoringPipeline } from './rrl.routes.js';
 import { extractCitationMetadata } from './helpers/citationMetadata.js';
 import { deriveSessionId } from './helpers/sessionId.js';
+import { requireGroupAccess } from '../../common/middlewares/groupAccess.middleware.js';
 import { loadFullText, ensurePageOffsets, updateDocumentFields } from './helpers/documentPages.js';
 import { buildSearchIndex, locateQuote, pageForOffset, pageRange } from './helpers/pageText.js';
 import { summarizeTimings, SRS_TARGET_MS } from './helpers/assessmentTiming.js';
@@ -19,7 +20,7 @@ router.use(requireAuth);
 
 // The CiteWise session for this account in this workspace. Replaces the
 // browser-local random id that stranded uploads on one machine.
-router.get('/session-for-group/:groupId', (req, res) => {
+router.get('/session-for-group/:groupId', requireGroupAccess((req) => req.params.groupId), (req, res) => {
   const sessionId = deriveSessionId(req.user?.id, req.params.groupId);
   if (!sessionId) {
     return res.status(400).json({ success: false, message: 'Group ID is required', data: null });

@@ -217,12 +217,14 @@ describe('End-to-End Validation Telemetry Routes (T1/T2/T3/T4/T7/T8/B/C/F)', () 
       draft_snapshots: [],
     };
 
+    vi.doMock('../common/middlewares/groupAccess.middleware.js', () => ({ requireGroupAccess: () => (_req, _res, next) => next() }));
     vi.doMock('../common/config/supabaseClient.js', () => ({ default: makeTelemetrySupabaseMock(dbState) }));
     app = (await import('../app.js')).default;
   });
 
   afterEach(() => {
     vi.doUnmock('../common/config/supabaseClient.js');
+    vi.doUnmock('../common/middlewares/groupAccess.middleware.js');
   });
 
   it('snapshots T2 import_fidelity_json + user_id and isolates ?mode=manual session_id from auto arm', async () => {
