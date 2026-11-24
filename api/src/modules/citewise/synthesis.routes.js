@@ -11,6 +11,7 @@ import {
   extractCitationMetadata,
   buildReferenceList,
   reconcileInTextCitations,
+  isCitedIn,
 } from './helpers/citationMetadata.js';
 import { ensurePageOffsets } from './helpers/documentPages.js';
 import { buildCitationTrace } from './helpers/citationTrace.js';
@@ -516,18 +517,7 @@ export async function asyncSynthesisJob({
       (sections?.rationale || '') + ' ' + 
       (sections?.gap || '');
 
-    const citedMetas = allCitationMetas.filter((meta) => {
-      if (!meta?.citation) return false;
-      const inTextP = meta.citation.inTextParenthetical;
-      const inTextAuthors = meta.citation.inTextAuthors;
-      const shortTitle = meta.citation.shortTitle;
-      const srcFile = meta.citation.sourceFile;
-      if (inTextP && fullTextToCheck.includes(inTextP)) return true;
-      if (inTextAuthors && fullTextToCheck.includes(inTextAuthors)) return true;
-      if (shortTitle && fullTextToCheck.includes(shortTitle)) return true;
-      if (srcFile && fullTextToCheck.includes(srcFile)) return true;
-      return false;
-    });
+    const citedMetas = allCitationMetas.filter((meta) => isCitedIn(meta, fullTextToCheck));
 
     const referencesText = citedMetas.length > 0
       ? buildReferenceList(citedMetas)
@@ -1207,15 +1197,7 @@ router.post('/update-citations', async (req, res) => {
 
   const fullTextToCheck = contentText + ' ' + background + ' ' + rationale + ' ' + gap;
 
-  const citedMetas = allCitationMetas.filter((meta) => {
-    if (!meta?.citation) return false;
-    const { inTextParenthetical, inTextAuthors, shortTitle, sourceFile } = meta.citation;
-    if (inTextParenthetical && fullTextToCheck.includes(inTextParenthetical)) return true;
-    if (inTextAuthors       && fullTextToCheck.includes(inTextAuthors))       return true;
-    if (shortTitle          && fullTextToCheck.includes(shortTitle))          return true;
-    if (sourceFile          && fullTextToCheck.includes(sourceFile))          return true;
-    return false;
-  });
+  const citedMetas = allCitationMetas.filter((meta) => isCitedIn(meta, fullTextToCheck));
 
   const referencesText = citedMetas.length > 0
     ? buildReferenceList(citedMetas)
