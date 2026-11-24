@@ -123,6 +123,7 @@ describe('SMART goals generation', () => {
         },
       },
     }));
+    vi.doMock('../common/middlewares/groupAccess.middleware.js', () => ({ requireGroupAccess: () => (_req, _res, next) => next() }));
     vi.doMock('../common/middlewares/auth.middleware.js', () => ({
       default: (req, _res, next) => { req.user = { id: state.userId }; next(); },
     }));
@@ -138,6 +139,7 @@ describe('SMART goals generation', () => {
     vi.doUnmock('node-fetch');
     vi.doUnmock('../common/config/supabaseClient.js');
     vi.doUnmock('../common/middlewares/auth.middleware.js');
+    vi.doUnmock('../common/middlewares/groupAccess.middleware.js');
     if (previousApiKey === undefined) delete process.env.GEMINI_API_KEY;
     else process.env.GEMINI_API_KEY = previousApiKey;
     if (previousModel === undefined) delete process.env.GEMINI_MODEL;

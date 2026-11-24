@@ -1,6 +1,7 @@
 import express from 'express';
 import { groupCreation,getGroupDetails,getJoinCode, joinGroup,getGroupsById, setRequestStatus, updateGroup, deleteGroup     } from './group.controller.js';
 import requireAuth from '../../common/middlewares/auth.middleware.js';
+import { requireGroupAccess } from '../../common/middlewares/groupAccess.middleware.js';
 
 const router = express.Router();
 
@@ -12,6 +13,10 @@ router.post('/create', groupCreation);
 // router.get('/:groupId', getGroupDetails);
 router.get('/join/:joinCode', getJoinCode);
 router.post('/join', joinGroup);
+// Lets the UI refuse a pasted workspace link before loading any of its data.
+router.get('/access/:groupId', requireGroupAccess((req) => req.params.groupId), (req, res) => {
+  res.json({ success: true, data: { groupId: req.params.groupId, access: true } });
+});
 router.get('/:id', getGroupsById);
 
 
